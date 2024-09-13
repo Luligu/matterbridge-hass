@@ -1,2 +1,2 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Ensure all text files use LF line endings
+* text=auto eol=lf

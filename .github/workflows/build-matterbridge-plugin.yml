@@ -1,0 +1,55 @@
+name: Build, lint and test
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }} 
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Verify Node.js version
+        run: node -v
+
+      - name: Verify Npm version
+        run: npm -v
+            
+      - name: Install matterbridge
+        run: npm install -g matterbridge
+
+      - name: Install dependencies
+        run: npm install
+  
+      - name: Lint the project
+        run: npm run lint
+
+      - name: Test the project
+        run: npm run test
+
+      - name: Build the project
+        run: npm run build
+
+      # - name: List, audit, fix outdated dependencies and build again
+      #   run: |
+      #     npm uninstall matterbridge
+      #     npm list --outdated
+      #     npm audit || true  # ignore failures
+      #     npm audit fix || true
+      #     npm list --outdated
+      #     npm install -g matterbridge
+      #     npm install
+      #     npm run build
+
