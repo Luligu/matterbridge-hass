@@ -15,6 +15,8 @@ describe('initializePlugin', () => {
     mockConfig = {
       'name': 'matterbridge-homeassistant',
       'type': 'DynamicPlatform',
+      'blackList': [],
+      'whiteList': [],
       'debug': false,
       'unregisterOnShutdown': false,
     } as PlatformConfig;
