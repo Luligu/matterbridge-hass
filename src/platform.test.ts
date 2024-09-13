@@ -33,7 +33,7 @@ describe('ShellyPlatform', () => {
     // Creates the mocks for Matterbridge, AnsiLogger, and PlatformConfig
     mockMatterbridge = {
       addBridgedDevice: jest.fn(),
-      matterbridgeDirectory: '',
+      matterbridgeDirectory: 'temp',
       matterbridgePluginDirectory: 'temp',
       systemInformation: { ipv4Address: undefined },
       removeAllBridgedDevices: jest.fn(),

@@ -162,7 +162,7 @@ jest.config.js
 screenshot
 
 # other stuff
-matterbridge-shelly
+matterbridge-homeassistant
 jest-shelly
 TODO.md
 yellow-button.png
