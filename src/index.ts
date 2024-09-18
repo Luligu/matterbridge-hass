@@ -3,10 +3,10 @@
  *
  * @file src\index.ts
  * @author Luca Liguori
- * @date 2024-08-28
- * @version 1.0.0
+ * @date 2024-09-13
+ * @version 0.0.1
  *
- * Copyright 2024, 2025 Luca Liguori.
+ * Copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

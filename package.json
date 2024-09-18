@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-homeassistant",
-  "version": "0.0.1",
+  "version": "0.0.1-alpha.1",
   "description": "Matterbridge Home Assistant plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -81,22 +81,24 @@
     "dev:install": "npm install --save-dev matterbridge",
     "dev:uninstall": "npm uninstall matterbridge && npm unlink matterbridge",
     "install": "node link-matterbridge-script.js",
-    "install:dependencies": "npm install node-ansi-logger node-persist-manager axios && npm install --save-dev rimraf",
+    "install:dependencies": "npm install node-ansi-logger node-persist-manager ws home-assistant-js-websocket && npm install --save-dev rimraf @types/ws",
     "install:typescript": "npm install --save-dev typescript @types/node && npm run install && npm run build",
     "install:eslint": "npm install --save-dev eslint @eslint/js @types/eslint__js typescript typescript-eslint",
     "install:prettier": "npm install --save-dev prettier eslint-config-prettier eslint-plugin-prettier",
     "install:jest": "npm install --save-dev jest ts-jest @types/jest eslint-plugin-jest"
   },
   "dependencies": {
-    "axios": "^1.7.7",
+    "home-assistant-js-websocket": "^9.4.0",
     "node-ansi-logger": "^3.0.0",
-    "node-persist-manager": "^1.0.8"
+    "node-persist-manager": "^1.0.8",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.10.0",
     "@types/eslint__js": "^8.42.3",
     "@types/jest": "^29.5.13",
     "@types/node": "^22.5.4",
+    "@types/ws": "^8.5.12",
     "eslint": "^9.10.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^28.8.3",

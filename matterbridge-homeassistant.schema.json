@@ -1,0 +1,76 @@
+{
+  "title": "Matterbridge Home Assistant plugin",
+  "description": "matterbridge-homeassistant v. 0.0.1 by https://github.com/Luligu",
+  "type": "object",
+  "required": [
+    "host",
+    "token"
+  ],
+  "properties": {
+    "name": {
+      "description": "Plugin name",
+      "type": "string",
+      "readOnly": true
+    },
+    "type": {
+      "description": "Plugin type",
+      "type": "string",
+      "readOnly": true
+    },
+    "host": {
+      "description": "Home Assistant host (eg. http://homeassistant.local:8123 or http://<IP-ADDRESS>:8123)",
+      "type": "string",
+      "default": "http://homeassistant.local:8123"
+    },
+    "token": {
+      "description": "Home Assistant token",
+      "type": "string"
+    },
+    "blackList": {
+      "description": "The devices in the list will not be exposed.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "whiteList": {
+      "description": "Only the devices in the list will be exposed.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "featureBlackList": {
+      "description": "The features in the list will not be exposed for all devices.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "deviceFeatureBlackList": {
+      "description": "List of features not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the features to exclude.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "postfix": {
+      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
+      "type": "string",
+      "default": ""
+    },
+    "debug": {
+      "description": "Enable the debug for the plugin (development only)",
+      "type": "boolean",
+      "default": false
+    },
+    "unregisterOnShutdown": {
+      "description": "Unregister all devices on shutdown (development only)",
+      "type": "boolean",
+      "default": false
+    }
+  }
+}
