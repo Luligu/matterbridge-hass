@@ -114,7 +114,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const check = () => {
       return this.ha.connected && this.ha.devicesReceived && this.ha.entitiesReceived && this.ha.subscribed;
     };
-    await waiter('Home Assistant connected', check, true, 50000, 1000);
+    await waiter('Home Assistant connected', check, true, 10000, 1000); // Wait for 10 seconds with 1 second interval and throw error if not connected
 
     // Scan devices and entities and create Matterbridge devices
     this.ha.hassDevices.forEach((device) => {
@@ -139,6 +139,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.ha.hassEntities.forEach((entity) => {
         if (entity.device_id !== device.id) return;
         if (entity.entity_id.startsWith('switch.')) {
+          // console.log('device', device);
+          // console.log('entity', entity);
           if (!mbDevice) mbDevice = createdDevice();
           this.log.debug(`- entity ${entity.entity_id} ${dn}${entity.name ?? entity.original_name}${db}` /* , entity*/);
           mbDevice.addChildDeviceTypeWithClusterServer(entity.entity_id, [onOffSwitch]);
@@ -215,6 +217,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     );
     if (entityId.startsWith('switch.')) {
       mbDevice.setAttribute(OnOffCluster.id, 'onOff', new_state.state === 'on', mbDevice.log, endpoint);
+      // console.error('deviceId', deviceId, 'entityId', entityId, 'state', new_state);
     }
   }
 

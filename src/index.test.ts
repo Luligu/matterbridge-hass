@@ -17,6 +17,8 @@ describe('initializePlugin', () => {
       'type': 'DynamicPlatform',
       'blackList': [],
       'whiteList': [],
+      'host': 'http://homeassistant.local:8123',
+      'token': 'long-lived token',
       'debug': false,
       'unregisterOnShutdown': false,
     } as PlatformConfig;

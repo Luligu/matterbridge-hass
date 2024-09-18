@@ -588,14 +588,14 @@ export class HomeAssistant extends EventEmitter {
           this.hassServices = data.result as HomeAssistantServices;
           this.emit('services', this.hassServices);
         } else {
-          this.log.debug(`Result received id ${data.id}:`, data);
+          this.log.debug(`Result received id ${data.id}:` /* , data*/);
         }
       } else if (data.type === 'pong') {
         this.log.debug(`Home Assistant pong received with id ${data.id}`);
         if (this.pingTimeout) clearTimeout(this.pingTimeout);
         this.pingTimeout = null;
       } else if (data.type === 'event') {
-        this.log.debug(`Event received id ${data.id}:` /* , data.event*/);
+        // this.log.debug(`Event received id ${data.id}:` /* , data.event*/);
         const event = data.event as HassEvent;
         if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'state_changed') {
           const entity = this.hassEntities.get(event.data.entity_id);
@@ -690,7 +690,7 @@ export class HomeAssistant extends EventEmitter {
         return;
       }
       const id = this.nextId++;
-      this.log.debug(`***Fetching async ${type} with id ${id}...`);
+      this.log.debug(`Fetching async ${type} with id ${id}...`);
 
       const message = JSON.stringify({ id, type });
       this.ws.send(message);
