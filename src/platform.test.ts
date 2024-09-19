@@ -203,8 +203,8 @@ describe('ShellyPlatform', () => {
   });
 
   it('should register a switch device from ha', async () => {
-    loggerLogSpy.mockRestore();
-    consoleLogSpy.mockRestore();
+    // loggerLogSpy.mockRestore();
+    // consoleLogSpy.mockRestore();
 
     expect(haPlatform).toBeDefined();
     (haPlatform as any).ha.connected = true;

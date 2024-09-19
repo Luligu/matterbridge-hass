@@ -529,26 +529,7 @@ export class HomeAssistant extends EventEmitter {
         this.fetch('subscribe_events', this.eventsSubscribeId);
 
         // Start ping interval
-        this.pingInterval = setInterval(() => {
-          if (!this.ws || this.ws?.readyState !== WebSocket.OPEN) {
-            this.log.error('WebSocket not open sending ping. Closing connection...');
-            this.close();
-            return;
-          }
-          this.log.debug(`Sending WebSocket ping...`);
-          this.ws.ping();
-          this.log.debug(`Sending Home Assistant ping id ${this.nextId}...`);
-          this.ws.send(
-            JSON.stringify({
-              id: this.nextId++,
-              type: 'ping',
-            }),
-          );
-          this.pingTimeout = setTimeout(() => {
-            this.log.error('Ping timeout. Closing connection...');
-            this.close();
-          }, this.pingTimeoutTime);
-        }, this.pingIntervalTime);
+        this.startPing();
       } else if (data.type === 'result' && !data.success) {
         this.log.error('Error result received:', data);
         this.emit('error', data.error);
@@ -631,12 +612,49 @@ export class HomeAssistant extends EventEmitter {
     };
   }
 
+  private startPing() {
+    if (this.pingInterval) {
+      this.log.error('Ping interval already started');
+      return;
+    }
+    this.log.debug('Starting ping interval...');
+    this.pingInterval = setInterval(() => {
+      if (!this.ws || this.ws?.readyState !== WebSocket.OPEN) {
+        this.log.error('WebSocket not open sending ping. Closing connection...');
+        this.close();
+        return;
+      }
+      this.log.debug(`Sending WebSocket ping...`);
+      this.ws.ping();
+      this.log.debug(`Sending Home Assistant ping id ${this.nextId}...`);
+      this.ws.send(
+        JSON.stringify({
+          id: this.nextId++,
+          type: 'ping',
+        }),
+      );
+      this.pingTimeout = setTimeout(() => {
+        this.log.error('Ping timeout. Closing connection...');
+        this.close();
+      }, this.pingTimeoutTime);
+    }, this.pingIntervalTime);
+  }
+
+  private stopPing() {
+    this.log.debug('Stopping ping interval...');
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    if (this.pingTimeout) {
+      clearTimeout(this.pingTimeout);
+      this.pingTimeout = null;
+    }
+  }
+
   close() {
     this.log.info('Closing Home Assistance connection...');
-    if (this.pingInterval) clearInterval(this.pingInterval);
-    this.pingInterval = null;
-    if (this.pingTimeout) clearTimeout(this.pingTimeout);
-    this.pingTimeout = null;
+    this.stopPing();
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.close(0x1000, 'Normal closure');
     }
