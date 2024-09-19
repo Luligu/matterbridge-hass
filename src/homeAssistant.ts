@@ -21,9 +21,8 @@
  * limitations under the License. *
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EventEmitter } from 'events';
-import { AnsiLogger, LogLevel, TimestampFormat, CYAN, er } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, TimestampFormat, CYAN, er, BLUE, db, debugStringify } from 'matterbridge/logger';
 import WebSocket from 'ws';
 
 /**
@@ -72,12 +71,12 @@ export interface HassEntity {
   labels: string[]; // Labels associated with the entity
   modified_at: string; // Timestamp of last modification
   name: string | null; // Friendly name of the entity
-  options: Record<string, any> | null; // Additional options for the entity
+  options: Record<string, HomeAssistantPrimitive> | null; // Additional options for the entity
   original_name: string | null; // The original name of the entity (set by the integration)
   platform: string; // Platform or integration the entity belongs to (e.g., "shelly")
   unique_id: string; // Unique ID of the entity
   unit_of_measurement: string | null; // Optional unit of measurement (e.g., °C, %, etc.)
-  capabilities: Record<string, any> | null; // Additional capabilities, like brightness for lights
+  capabilities: Record<string, HomeAssistantPrimitive> | null; // Additional capabilities, like brightness for lights
   device_class: string | null; // Device class (e.g., "light", "sensor", etc.)
 }
 
@@ -96,7 +95,7 @@ export interface HassContext {
 export interface HassEntityState {
   entity_id: string;
   state: string;
-  attributes: Record<string, any>;
+  attributes: Record<string, HomeAssistantPrimitive>;
   last_changed: string;
   last_reported: string;
   last_updated: string;
@@ -164,266 +163,13 @@ export interface HomeAssistantService {
   [key: string]: object;
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 export interface HomeAssistantServices {
-  homeassistant: {
-    save_persistent_states: HomeAssistantService;
-    turn_off: HomeAssistantService;
-    turn_on: HomeAssistantService;
-    toggle: HomeAssistantService;
-    stop: HomeAssistantService;
-    restart: HomeAssistantService;
-    check_config: HomeAssistantService;
-    update_entity: HomeAssistantService;
-    reload_core_config: HomeAssistantService;
-    set_location: HomeAssistantService;
-    reload_custom_templates: HomeAssistantService;
-    reload_config_entry: HomeAssistantService;
-    reload_all: HomeAssistantService;
-  };
-  persistent_notification: {
-    create: HomeAssistantService;
-    dismiss: HomeAssistantService;
-    dismiss_all: HomeAssistantService;
-  };
-  system_log: {
-    clear: HomeAssistantService;
-    write: HomeAssistantService;
-  };
-  logger: {
-    set_default_level: HomeAssistantService;
-    set_level: HomeAssistantService;
-  };
-  person: {
-    reload: HomeAssistantService;
-  };
-  frontend: {
-    set_theme: HomeAssistantService;
-    reload_themes: HomeAssistantService;
-  };
-  recorder: {
-    purge: HomeAssistantService;
-    purge_entities: HomeAssistantService;
-    enable: HomeAssistantService;
-    disable: HomeAssistantService;
-  };
-  hassio: {
-    addon_start: HomeAssistantService;
-    addon_stop: HomeAssistantService;
-    addon_restart: HomeAssistantService;
-    addon_update: HomeAssistantService;
-    addon_stdin: HomeAssistantService;
-    host_shutdown: HomeAssistantService;
-    host_reboot: HomeAssistantService;
-    backup_full: HomeAssistantService;
-    backup_partial: HomeAssistantService;
-    restore_full: HomeAssistantService;
-    restore_partial: HomeAssistantService;
-  };
-  update: {
-    install: HomeAssistantService;
-    skip: HomeAssistantService;
-    clear_skipped: HomeAssistantService;
-  };
-  cloud: {
-    remote_connect: HomeAssistantService;
-    remote_disconnect: HomeAssistantService;
-  };
-  ffmpeg: {
-    start: HomeAssistantService;
-    stop: HomeAssistantService;
-    restart: HomeAssistantService;
-  };
-  tts: {
-    speak: HomeAssistantService;
-    clear_cache: HomeAssistantService;
-    cloud_say: HomeAssistantService;
-  };
-  scene: {
-    turn_on: HomeAssistantService;
-    reload: HomeAssistantService;
-    apply: HomeAssistantService;
-    create: HomeAssistantService;
-    delete: HomeAssistantService;
-  };
-  zone: {
-    reload: HomeAssistantService;
-  };
-  input_select: {
-    reload: HomeAssistantService;
-    select_first: HomeAssistantService;
-    select_last: HomeAssistantService;
-    select_next: HomeAssistantService;
-    select_option: HomeAssistantService;
-    select_previous: HomeAssistantService;
-    set_options: HomeAssistantService;
-  };
-  input_number: {
-    reload: HomeAssistantService;
-    set_value: HomeAssistantService;
-    increment: HomeAssistantService;
-    decrement: HomeAssistantService;
-  };
-  logbook: {
-    log: HomeAssistantService;
-  };
-  timer: {
-    reload: HomeAssistantService;
-    start: HomeAssistantService;
-    pause: HomeAssistantService;
-    cancel: HomeAssistantService;
-    finish: HomeAssistantService;
-    change: HomeAssistantService;
-  };
-  input_button: {
-    reload: HomeAssistantService;
-    press: HomeAssistantService;
-  };
-  script: {
-    reload: HomeAssistantService;
-    turn_on: HomeAssistantService;
-    turn_off: HomeAssistantService;
-    toggle: HomeAssistantService;
-  };
-  input_boolean: {
-    reload: HomeAssistantService;
-    turn_on: HomeAssistantService;
-    turn_off: HomeAssistantService;
-    toggle: HomeAssistantService;
-  };
-  automation: {
-    trigger: HomeAssistantService;
-    toggle: HomeAssistantService;
-    turn_on: HomeAssistantService;
-    turn_off: HomeAssistantService;
-    reload: HomeAssistantService;
-  };
-  conversation: {
-    process: HomeAssistantService;
-    reload: HomeAssistantService;
-  };
-  schedule: {
-    reload: HomeAssistantService;
-  };
-  climate: {
-    turn_on: HomeAssistantService;
-    turn_off: HomeAssistantService;
-    toggle: HomeAssistantService;
-    set_hvac_mode: HomeAssistantService;
-    set_preset_mode: HomeAssistantService;
-    set_aux_heat: HomeAssistantService;
-    set_temperature: HomeAssistantService;
-    set_humidity: HomeAssistantService;
-    set_fan_mode: HomeAssistantService;
-    set_swing_mode: HomeAssistantService;
-  };
-  cover: {
-    open_cover: HomeAssistantService;
-    close_cover: HomeAssistantService;
-    set_cover_position: HomeAssistantService;
-    stop_cover: HomeAssistantService;
-    toggle: HomeAssistantService;
-    open_cover_tilt: HomeAssistantService;
-    close_cover_tilt: HomeAssistantService;
-    stop_cover_tilt: HomeAssistantService;
-    set_cover_tilt_position: HomeAssistantService;
-    toggle_cover_tilt: HomeAssistantService;
-  };
-  fan: {
-    turn_on: HomeAssistantService;
-    turn_off: HomeAssistantService;
-    toggle: HomeAssistantService;
-    increase_speed: HomeAssistantService;
-    decrease_speed: HomeAssistantService;
-    oscillate: HomeAssistantService;
-    set_direction: HomeAssistantService;
-    set_percentage: HomeAssistantService;
-    set_preset_mode: HomeAssistantService;
-  };
-  light: {
-    turn_on: HomeAssistantService;
-    turn_off: HomeAssistantService;
-    toggle: HomeAssistantService;
-  };
-  lock: {
-    unlock: HomeAssistantService;
-    lock: HomeAssistantService;
-    open: HomeAssistantService;
-  };
-  number: {
-    set_value: HomeAssistantService;
-  };
-  select: {
-    select_first: HomeAssistantService;
-    select_last: HomeAssistantService;
-    select_next: HomeAssistantService;
-    select_option: HomeAssistantService;
-    select_previous: HomeAssistantService;
-  };
-  switch: {
-    turn_off: HomeAssistantService;
-    turn_on: HomeAssistantService;
-    toggle: HomeAssistantService;
-  };
-  shopping_list: {
-    add_item: HomeAssistantService;
-    remove_item: HomeAssistantService;
-    complete_item: HomeAssistantService;
-    incomplete_item: HomeAssistantService;
-    complete_all: HomeAssistantService;
-    incomplete_all: HomeAssistantService;
-    clear_completed_items: HomeAssistantService;
-    sort: HomeAssistantService;
-  };
-  counter: {
-    increment: HomeAssistantService;
-    decrement: HomeAssistantService;
-    reset: HomeAssistantService;
-    set_value: HomeAssistantService;
-  };
-  input_datetime: {
-    reload: HomeAssistantService;
-    set_datetime: HomeAssistantService;
-  };
-  input_text: {
-    reload: HomeAssistantService;
-    set_value: HomeAssistantService;
-  };
-  notify: {
-    send_message: HomeAssistantService;
-    persistent_notification: HomeAssistantService;
-    mobile_app_lucas_iphone: HomeAssistantService;
-    notify: HomeAssistantService;
-  };
-  device_tracker: {
-    see: HomeAssistantService;
-  };
-  todo: {
-    add_item: HomeAssistantService;
-    update_item: HomeAssistantService;
-    remove_item: HomeAssistantService;
-    get_items: HomeAssistantService;
-    remove_completed_items: HomeAssistantService;
-  };
-  button: {
-    press: HomeAssistantService;
-  };
-  text: {
-    set_value: HomeAssistantService;
-  };
-  valve: {
-    open_valve: HomeAssistantService;
-    close_valve: HomeAssistantService;
-    set_valve_position: HomeAssistantService;
-    stop_valve: HomeAssistantService;
-    toggle: HomeAssistantService;
-  };
-  weather: {
-    get_forecasts: HomeAssistantService;
-  };
+  [key: string]: HomeAssistantService;
 }
 
 interface HomeAssistantEvent {
-  connected: [ha_version: string];
+  connected: [ha_version: HomeAssistantPrimitive];
   disconnected: [event?: WebSocket.CloseEvent];
   subscribed: [];
   config: [config: HomeAssistantConfig];
@@ -440,8 +186,10 @@ interface HomeAssistantResponseEvent {
   type: string;
   success: boolean;
   error?: { code: string; message: string };
-  [key: string]: any;
+  [key: string]: HomeAssistantPrimitive;
 }
+
+export type HomeAssistantPrimitive = string | number | bigint | boolean | object | null | undefined;
 
 export class HomeAssistant extends EventEmitter {
   hassDevices = new Map<string, HassDevice>();
@@ -459,6 +207,7 @@ export class HomeAssistant extends EventEmitter {
   private readonly entitiesFetchId = 4;
   private readonly statesFetchId = 5;
   private readonly eventsSubscribeId = 6;
+  private asyncFetchId = 0;
   private nextId = 7;
   connected = false;
   devicesReceived = false;
@@ -530,7 +279,7 @@ export class HomeAssistant extends EventEmitter {
 
         // Start ping interval
         this.startPing();
-      } else if (data.type === 'result' && !data.success) {
+      } else if (data.type === 'result' && data.success !== true) {
         this.log.error('Error result received:', data);
         this.emit('error', data.error);
       } else if (data.type === 'result' && data.success) {
@@ -568,8 +317,10 @@ export class HomeAssistant extends EventEmitter {
           // this.log.debug('Received services:', data);
           this.hassServices = data.result as HomeAssistantServices;
           this.emit('services', this.hassServices);
+        } else if (data.id === this.asyncFetchId) {
+          this.log.debug(`Received async result id ${data.id}` /* , data*/);
         } else {
-          this.log.debug(`Result received id ${data.id}:` /* , data*/);
+          this.log.debug(`Unknown result received id ${data.id}:` /* , data*/);
         }
       } else if (data.type === 'pong') {
         this.log.debug(`Home Assistant pong received with id ${data.id}`);
@@ -590,6 +341,8 @@ export class HomeAssistant extends EventEmitter {
             return;
           }
           this.emit('event', device.id, event.data.entity_id, event.data.old_state, event.data.new_state);
+        } else {
+          this.log.debug(`Unknown event received id ${data.id}:`, data);
         }
       }
     };
@@ -695,6 +448,7 @@ export class HomeAssistant extends EventEmitter {
    *     console.error('Error:', error);
    *   });
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fetchAsync(type: string, timeout = 5000): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -707,10 +461,10 @@ export class HomeAssistant extends EventEmitter {
         reject('Fetch error: WebSocket not open.');
         return;
       }
-      const id = this.nextId++;
-      this.log.debug(`Fetching async ${type} with id ${id}...`);
+      this.asyncFetchId = this.nextId++;
+      this.log.debug(`Fetching async ${type} with id ${this.asyncFetchId}...`);
 
-      const message = JSON.stringify({ id, type });
+      const message = JSON.stringify({ id: this.asyncFetchId, type });
       this.ws.send(message);
 
       const timer = setTimeout(() => {
@@ -730,7 +484,7 @@ export class HomeAssistant extends EventEmitter {
           reject('Error parsing WebSocket.MessageEvent');
           return;
         }
-        if (response.type === 'result' && response.id === id) {
+        if (response.type === 'result' && response.id === this.asyncFetchId) {
           clearTimeout(timer);
           this.ws?.removeEventListener('message', handleMessage);
           if (response.success) {
@@ -748,7 +502,7 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Sends a command to a specified Home Assistant service.
    * @param {string} domain - The domain of the Home Assistant service.
-   * @param {string} service - The action to call on the Home Assistant service.
+   * @param {string} service - The service to call on the Home Assistant domain.
    * @param {string} entityId - The ID of the entity to target with the command.
    * @param {Record<string, any>} [serviceData={}] - Additional data to send with the command.
    *
@@ -757,8 +511,8 @@ export class HomeAssistant extends EventEmitter {
    * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });
    *
    */
-  callService(domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) {
-    this.log.debug(`Calling service ${domain}.${service} for entity ${entityId}`);
+  callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}) {
+    this.log.debug(`Calling service ${BLUE}${domain}.${service}${db} for entity ${BLUE}${entityId}${db} with: ${debugStringify(serviceData)}`);
     this.ws?.send(
       JSON.stringify({
         id: this.nextId++, // Unique message ID

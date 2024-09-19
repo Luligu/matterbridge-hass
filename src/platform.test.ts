@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Endpoint, Matterbridge, MatterbridgeDevice, PlatformConfig } from 'matterbridge';
 import { wait } from 'matterbridge/utils';
-import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW } from 'matterbridge/logger';
+import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW, CYAN } from 'matterbridge/logger';
 import { HomeAssistantPlatform } from './platform';
 import { jest } from '@jest/globals';
 import { HomeAssistant } from './homeAssistant';
@@ -52,10 +52,10 @@ describe('ShellyPlatform', () => {
   beforeAll(() => {
     // Creates the mocks for Matterbridge, AnsiLogger, and PlatformConfig
     mockMatterbridge = {
-      addBridgedDevice: jest.fn(),
-      matterbridgeDirectory: 'temp',
-      matterbridgePluginDirectory: 'temp',
+      matterbridgeDirectory: 'jest',
+      matterbridgePluginDirectory: 'jest',
       systemInformation: { ipv4Address: undefined },
+      addBridgedDevice: jest.fn(),
       removeAllBridgedDevices: jest.fn(),
     } as unknown as Matterbridge;
     mockLog = {
@@ -212,9 +212,9 @@ describe('ShellyPlatform', () => {
     (haPlatform as any).ha.entitiesReceived = true;
     (haPlatform as any).ha.subscribed = true;
 
-    (haPlatform as any).ha.hassDevices.set(switchDevice.id, switchDevice);
-    (haPlatform as any).ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity);
-    (haPlatform as any).ha.hassStates = [switchDeviceEntityState];
+    (haPlatform as any).hassDevices = [switchDevice];
+    (haPlatform as any).hassEntities = [switchDeviceEntity];
+    (haPlatform as any).hassStates = [switchDeviceEntityState];
 
     await haPlatform.onStart('Test reason');
 
@@ -228,7 +228,7 @@ describe('ShellyPlatform', () => {
     await haPlatform.onConfigure();
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}`);
     expect(mockLog.info).toHaveBeenCalledWith(
-      expect.stringContaining(`${db}Received event from Home Assistant device ${idn}${switchDevice.name}${rs}${db} entity ${BLUE}${switchDeviceEntity.entity_id}${db}`),
+      expect.stringContaining(`${db}Received update event from Home Assistant device ${idn}${switchDevice.name}${rs}${db} entity ${CYAN}${switchDeviceEntity.entity_id}${db}`),
     );
   });
 

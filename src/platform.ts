@@ -24,10 +24,13 @@
 import {
   bridgedNode,
   ClusterId,
+  DeviceTypeDefinition,
   DeviceTypes,
   DoorLock,
   DoorLockCluster,
   Endpoint,
+  FanControl,
+  FanControlCluster,
   Matterbridge,
   MatterbridgeDevice,
   MatterbridgeDynamicPlatform,
@@ -35,15 +38,45 @@ import {
   onOffSwitch,
   PlatformConfig,
 } from 'matterbridge';
-import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN } from 'matterbridge/logger';
 import { isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 import path from 'path';
 import { promises as fs } from 'fs';
 
-import { HassDevice, HassEntity, HassEntityState, HomeAssistant, HomeAssistantConfig, HomeAssistantServices } from './homeAssistant.js';
-import { BLUE } from 'node-ansi-logger';
+import { HassDevice, HassEntity, HassEntityState, HomeAssistant, HomeAssistantConfig, HomeAssistantPrimitive, HomeAssistantServices } from './homeAssistant.js';
+
+// eslint-disable
+// prettier-ignore
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const hassUpdateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
+  { domain: 'switch', state: 'on', clusterId: OnOffCluster.id, attribute: 'onOff', value: true },
+  { domain: 'switch', state: 'off', clusterId: OnOffCluster.id, attribute: 'onOff', value: false },
+  { domain: 'light', state: 'on', clusterId: OnOffCluster.id, attribute: 'onOff', value: true },
+  { domain: 'light', state: 'off', clusterId: OnOffCluster.id, attribute: 'onOff', value: false },
+  { domain: 'lock', state: 'locked', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.Locked },
+  { domain: 'lock', state: 'locking', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.NotFullyLocked },
+  { domain: 'lock', state: 'unlocking', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.NotFullyLocked },
+  { domain: 'lock', state: 'unlocked', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.Unlocked },
+  { domain: 'fan', state: 'on', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.On },
+  { domain: 'fan', state: 'off', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.Off },
+];
+
+// Empty command means the command is not supported but the domain is supported
+const hassCommandConverter: { command: string; deviceType: DeviceTypeDefinition; domain: string; service: string }[] = [
+  { command: 'on', deviceType: onOffSwitch, domain: 'switch', service: 'turn_on' },
+  { command: 'off', deviceType: onOffSwitch, domain: 'switch', service: 'turn_off' },
+  { command: 'toggle', deviceType: onOffSwitch, domain: 'switch', service: 'toggle' },
+  { command: 'on', deviceType: onOffSwitch, domain: 'light', service: 'turn_on' },
+  { command: 'off', deviceType: onOffSwitch, domain: 'light', service: 'turn_off' },
+  { command: 'toggle', deviceType: onOffSwitch, domain: 'light', service: 'toggle' },
+  { command: 'lockDoor', deviceType: DeviceTypes.DOOR_LOCK, domain: 'lock', service: 'lock' },
+  { command: 'unlockDoor', deviceType: DeviceTypes.DOOR_LOCK, domain: 'lock', service: 'unlock' },
+  { command: '', deviceType: DeviceTypes.FAN, domain: 'fan', service: 'turn_on' },
+  { command: '', deviceType: DeviceTypes.FAN, domain: 'fan', service: 'turn_off' },
+];
+// eslint-enable
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // NodeStorageManager
@@ -80,7 +113,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.ha = new HomeAssistant(this.host, this.token);
 
-    this.ha.on('connected', (ha_version: string) => {
+    this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
     });
 
@@ -148,6 +181,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       devices: this.hassDevices,
       entities: this.hassEntities,
       states: this.hassStates,
+      config: this.hassConfig,
+      services: this.hassServices,
     };
     fs.writeFile(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-homeassistant', 'homeassistant.json'), JSON.stringify(payload, null, 2))
       .then(() => {
@@ -158,14 +193,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       });
 
     // Scan devices and entities and create Matterbridge devices
-    this.ha.hassDevices.forEach((device) => {
+    this.hassDevices.forEach((device) => {
       if (!device.name || !this.validateWhiteBlackList(device.name)) return;
 
-      // Create a new Matterbridge device
       let mbDevice: MatterbridgeDevice | undefined;
+
+      // Create a new Matterbridge device
       const createdDevice = () => {
         this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${device.id}`);
-        const mbDevice = new MatterbridgeDevice(bridgedNode, undefined, this.config.debug as boolean);
+        mbDevice = new MatterbridgeDevice(bridgedNode, undefined, this.config.debug as boolean);
         mbDevice.createDefaultBridgedDeviceBasicInformationClusterServer(
           device.name ?? 'Unknown',
           device.id + (isValidString(this.config.postfix, 1, 3) ? '-' + this.config.postfix : ''),
@@ -173,49 +209,34 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           'HomeAssistant',
           device.model ?? 'Unknown',
         );
-        return mbDevice;
       };
 
-      // Scan entities and add them to the device
-      this.ha.hassEntities.forEach((entity) => {
+      // Scan entities for supported domaina and services and add them to the Matterbridge device
+      this.hassEntities.forEach((entity) => {
         if (entity.device_id !== device.id) return;
-        if (entity.entity_id.startsWith('switch.')) {
-          // console.log('device', device);
-          // console.log('entity', entity);
-          if (!mbDevice) mbDevice = createdDevice();
-          this.log.debug(`- entity ${entity.entity_id} ${dn}${entity.name ?? entity.original_name}${db}` /* , entity*/);
-          mbDevice.addChildDeviceTypeWithClusterServer(entity.entity_id, [onOffSwitch]);
-
-          // Add command handlers
-          mbDevice.addCommandHandler('on', async (data) => {
-            this.commandHandler(mbDevice, data.endpoint, 'on', entity);
+        const domain = entity.entity_id.split('.')[0];
+        const hassCommands = hassCommandConverter.filter((command) => command.domain === domain);
+        if (hassCommands.length > 0) {
+          this.log.debug(`- entity ${entity.entity_id} ${dn}${entity.name ?? entity.original_name}${db} domain ${CYAN}${domain}${db}`);
+          if (!mbDevice) createdDevice();
+          mbDevice?.addChildDeviceTypeWithClusterServer(entity.entity_id, [hassCommands[0].deviceType]);
+          hassCommands.forEach((hassCommand) => {
+            if (!hassCommand.command || hassCommand.command === '') return;
+            this.log.debug(`  - domain ${CYAN}${domain}${db} service ${CYAN}${hassCommand.service}${db} command ${CYAN}${hassCommand.command}${db}`);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            mbDevice?.addCommandHandler(hassCommand.command, async (data) => {
+              this.commandHandler(mbDevice, data.endpoint, hassCommand.command, entity);
+            });
           });
-          mbDevice.addCommandHandler('off', async (data) => {
-            this.commandHandler(mbDevice, data.endpoint, 'off', entity);
-          });
-          mbDevice.addCommandHandler('toggle', async (data) => {
-            this.commandHandler(mbDevice, data.endpoint, 'toggle', entity);
-          });
-        } else if (entity.entity_id.startsWith('lock.')) {
-          console.log('device', device);
-          console.log('entity', entity);
-          if (!mbDevice) mbDevice = createdDevice();
-          this.log.debug(`- entity ${entity.entity_id} ${dn}${entity.name ?? entity.original_name}${db}` /* , entity*/);
-          mbDevice.addChildDeviceTypeWithClusterServer(entity.entity_id, [DeviceTypes.DOOR_LOCK]);
-
-          // Add command handlers
-          mbDevice.addCommandHandler('lockDoor', async (data) => {
-            this.commandHandler(mbDevice, data.endpoint, 'lockDoor', entity);
-          });
-          mbDevice.addCommandHandler('unlockDoor', async (data) => {
-            this.commandHandler(mbDevice, data.endpoint, 'unlockDoor', entity);
-          });
+        } else {
+          this.log.debug(`Domain ${CYAN}${domain}${db} not supported for entity ${entity.entity_id}`);
         }
       });
 
-      // Register the device
+      // Register the device if we have found supported domains and services
       if (mbDevice && mbDevice.getChildEndpoints().length > 0) {
-        this.log.debug(`Registering device ${dn}${device.name}${db}...` /* , device*/);
+        this.log.debug(`Registering device ${dn}${device.name}${db}...`);
         this.registerDevice(mbDevice);
         this.matterbridgeDevices.set(device.id, mbDevice);
       }
@@ -225,9 +246,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   override async onConfigure() {
     this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}`);
     try {
-      this.ha.hassStates = await this.ha.fetchAsync('get_states');
-      this.ha.hassStates?.forEach((state) => {
-        const deviceId = this.ha.hassEntities.get(state.entity_id)?.device_id;
+      this.hassStates = await this.ha.fetchAsync('get_states');
+      this.hassStates?.forEach((state) => {
+        // const deviceId = this.hassEntities.get(state.entity_id)?.device_id;
+        const entity = this.hassEntities.find((entity) => entity.entity_id === state.entity_id);
+        const deviceId = entity?.device_id;
         if (deviceId) this.updateHandler(deviceId, state.entity_id, state, state);
       });
     } catch (error) {
@@ -248,61 +271,33 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   private async commandHandler(mbDevice: MatterbridgeDevice | undefined, endpoint: Endpoint, command: string, entity: HassEntity) {
     if (!mbDevice) return;
     this.log.info(
-      `${db}Received command ${ign}${command}${rs}${db} from device ${dn}${mbDevice?.deviceName}${db} for endpoint ${or}${endpoint.name}:${endpoint.number}${db} entity ${entity.entity_id}`,
+      `${db}Received command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint.name}:${endpoint.number}${db} entity ${entity.entity_id}`,
     );
-    if (entity.entity_id.startsWith('switch.')) {
-      if (command === 'on') {
-        this.ha.callService('switch', 'turn_on', entity.entity_id);
-      } else if (command === 'off') {
-        this.ha.callService('switch', 'turn_off', entity.entity_id);
-      } else if (command === 'toggle') {
-        this.ha.callService('switch', 'toggle', entity.entity_id);
-      }
-    } else if (entity.entity_id.startsWith('lock.')) {
-      if (command === 'lockDoor') {
-        this.ha.callService('lock', 'lock', entity.entity_id);
-      } else if (command === 'unlockDoor') {
-        this.ha.callService('lock', 'unlock', entity.entity_id);
-      }
+    const domain = entity.entity_id.split('.')[0];
+    const hassCommand = hassCommandConverter.find((update) => update.command === command && update.domain === domain);
+    if (hassCommand) {
+      this.ha.callService(hassCommand.domain, hassCommand.service, entity.entity_id);
+    } else {
+      this.log.warn(`Command ${CYAN}${command}${wr} not supported for entity ${entity.entity_id}`);
     }
   }
 
   private updateHandler(deviceId: string, entityId: string, old_state: HassEntityState, new_state: HassEntityState) {
-    // eslint-disable
-    // prettier-ignore
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
-      { domain: 'switch', state: 'on', clusterId: OnOffCluster.id, attribute: 'onOff', value: true },
-      { domain: 'switch', state: 'off', clusterId: OnOffCluster.id, attribute: 'onOff', value: false },
-      { domain: 'lock', state: 'locked', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.Locked },
-      { domain: 'lock', state: 'unlocked', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.Unlocked },
-      { domain: 'lock', state: 'locking', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.NotFullyLocked },
-      { domain: 'lock', state: 'unlocking', clusterId: DoorLockCluster.id, attribute: 'lockState', value: DoorLock.LockState.NotFullyLocked },
-    ];
-    // eslint-enable
-
     const mbDevice = this.matterbridgeDevices.get(deviceId);
     if (!mbDevice) return;
     const endpoint = mbDevice.getChildEndpointByName(entityId);
     if (!endpoint) return;
     this.log.info(
-      `${db}Received event from Home Assistant device ${idn}${mbDevice?.deviceName}${rs}${db} entity ${BLUE}${entityId}${db} ` +
+      `${db}Received update event from Home Assistant device ${idn}${mbDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
     );
     const domain = entityId.split('.')[0];
-    const update = updateConverter.find((update) => update.domain === domain && update.state === new_state.state);
-    if (update) {
-      mbDevice.setAttribute(update.clusterId, update.attribute, update.value, mbDevice.log, endpoint);
+    const hassUpdate = hassUpdateConverter.find((update) => update.domain === domain && update.state === new_state.state);
+    if (hassUpdate) {
+      mbDevice.setAttribute(hassUpdate.clusterId, hassUpdate.attribute, hassUpdate.value, mbDevice.log, endpoint);
+    } else {
+      this.log.warn(`Update ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
     }
-    /*
-    if (entityId.startsWith('switch.')) {
-      mbDevice.setAttribute(OnOffCluster.id, 'onOff', new_state.state === 'on', mbDevice.log, endpoint);
-      // console.log('deviceId', deviceId, 'entityId', entityId, 'state', new_state);
-    } else if (entityId.startsWith('lock.')) {
-      mbDevice.setAttribute(DoorLockCluster.id, 'lockState', new_state.state === 'locked' ? DoorLock.LockState.Locked : DoorLock.LockState.Unlocked, mbDevice.log, endpoint);
-      console.log('deviceId', deviceId, 'entityId', entityId, 'state', new_state);
-    }
-      */
   }
 
   private validateWhiteBlackList(entityName: string) {
