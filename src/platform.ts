@@ -31,15 +31,17 @@ import {
   Endpoint,
   FanControl,
   FanControlCluster,
+  LevelControlCluster,
   Matterbridge,
   MatterbridgeDevice,
   MatterbridgeDynamicPlatform,
   OnOffCluster,
+  onOffLight,
   onOffSwitch,
   PlatformConfig,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN } from 'matterbridge/logger';
-import { isValidString, waiter } from 'matterbridge/utils';
+import { isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 import path from 'path';
@@ -50,7 +52,7 @@ import { HassDevice, HassEntity, HassEntityState, HomeAssistant, HomeAssistantCo
 // eslint-disable
 // prettier-ignore
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const hassUpdateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
+const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
   { domain: 'switch', state: 'on', clusterId: OnOffCluster.id, attribute: 'onOff', value: true },
   { domain: 'switch', state: 'off', clusterId: OnOffCluster.id, attribute: 'onOff', value: false },
   { domain: 'light', state: 'on', clusterId: OnOffCluster.id, attribute: 'onOff', value: true },
@@ -63,20 +65,41 @@ const hassUpdateConverter: { domain: string; state: string; clusterId: ClusterId
   { domain: 'fan', state: 'off', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.Off },
 ];
 
-// Empty command means the command is not supported but the domain is supported
+// eslint-disable
+// prettier-ignore
+// eslint-disable eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: ClusterId; attribute: string; converter: any }[] = [
+  { domain: 'light', with: 'brightness', clusterId: LevelControlCluster.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 1, 255) ? (value / 255) * 254 : null) },
+];
+
+// eslint-disable
+// prettier-ignore
 const hassCommandConverter: { command: string; deviceType: DeviceTypeDefinition; domain: string; service: string }[] = [
   { command: 'on', deviceType: onOffSwitch, domain: 'switch', service: 'turn_on' },
   { command: 'off', deviceType: onOffSwitch, domain: 'switch', service: 'turn_off' },
   { command: 'toggle', deviceType: onOffSwitch, domain: 'switch', service: 'toggle' },
-  { command: 'on', deviceType: onOffSwitch, domain: 'light', service: 'turn_on' },
-  { command: 'off', deviceType: onOffSwitch, domain: 'light', service: 'turn_off' },
-  { command: 'toggle', deviceType: onOffSwitch, domain: 'light', service: 'toggle' },
+  { command: 'on', deviceType: onOffLight, domain: 'light', service: 'turn_on' },
+  { command: 'off', deviceType: onOffLight, domain: 'light', service: 'turn_off' },
+  { command: 'toggle', deviceType: onOffLight, domain: 'light', service: 'toggle' },
   { command: 'lockDoor', deviceType: DeviceTypes.DOOR_LOCK, domain: 'lock', service: 'lock' },
   { command: 'unlockDoor', deviceType: DeviceTypes.DOOR_LOCK, domain: 'lock', service: 'unlock' },
-  { command: '', deviceType: DeviceTypes.FAN, domain: 'fan', service: 'turn_on' },
-  { command: '', deviceType: DeviceTypes.FAN, domain: 'fan', service: 'turn_off' },
 ];
 // eslint-enable
+// prettier-enable
+
+// eslint-disable
+// prettier-ignore
+const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition; clusterIds?: ClusterId[] }[] = [
+  { domain: 'switch', deviceType: onOffSwitch, clusterIds: [OnOffCluster.id] },
+  { domain: 'light', deviceType: onOffLight, clusterIds: [OnOffCluster.id, LevelControlCluster.id] },
+  { domain: 'lock', deviceType: DeviceTypes.DOOR_LOCK, clusterIds: [DoorLockCluster.id] },
+];
+// { min_color_temp_kelvin: 2000, max_color_temp_kelvin: 6802, min_mireds: 147, max_mireds: 500, supported_color_modes: [ 'color_temp', 'hs', 'xy' ], color_mode: 'hs',
+// brightness: 90, color_temp_kelvin: null, color_temp: null, hs_color: [ 0, 50.394 ], rgb_color: [ 255, 126, 126 ], xy_color: [ 0.528, 0.313 ],
+// friendly_name: 'Light (XY, HS and CT) Light', supported_features: 32 }
+// eslint-enable
+// prettier-enable
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // NodeStorageManager
@@ -211,26 +234,38 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         );
       };
 
-      // Scan entities for supported domaina and services and add them to the Matterbridge device
+      // Scan entities for supported domains and services and add them to the Matterbridge device
       this.hassEntities.forEach((entity) => {
         if (entity.device_id !== device.id) return;
         const domain = entity.entity_id.split('.')[0];
+
+        // Add device types and ClusterIds for supported domains
+        const hassDomains = hassDomainConverter.filter((command) => command.domain === domain);
+        if (hassDomains.length > 0) {
+          if (!mbDevice) createdDevice();
+          mbDevice?.addChildDeviceTypeWithClusterServer(entity.entity_id, [hassDomains[0].deviceType], hassDomains[0].clusterIds);
+        }
+
+        // Add device types and ClusterIds for supported attributes
+        const hassStates = this.hassStates.filter((state) => state.entity_id === entity.entity_id);
+        if (hassStates.length > 0) {
+          hassStates.forEach((state) => {
+            this.log.debug(`- entity ${entity.entity_id} state ${debugStringify(state)}`);
+          });
+        }
+
+        // Add command handlers for supported domains and services
         const hassCommands = hassCommandConverter.filter((command) => command.domain === domain);
         if (hassCommands.length > 0) {
-          this.log.debug(`- entity ${entity.entity_id} ${dn}${entity.name ?? entity.original_name}${db} domain ${CYAN}${domain}${db}`);
-          if (!mbDevice) createdDevice();
-          mbDevice?.addChildDeviceTypeWithClusterServer(entity.entity_id, [hassCommands[0].deviceType]);
+          this.log.debug(`- entity ${entity.entity_id} domain ${CYAN}${domain}${db}`);
           hassCommands.forEach((hassCommand) => {
-            if (!hassCommand.command || hassCommand.command === '') return;
-            this.log.debug(`  - domain ${CYAN}${domain}${db} service ${CYAN}${hassCommand.service}${db} command ${CYAN}${hassCommand.command}${db}`);
+            this.log.debug(`  - command: ${CYAN}${hassCommand.command}${db}`);
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             mbDevice?.addCommandHandler(hassCommand.command, async (data) => {
               this.commandHandler(mbDevice, data.endpoint, hassCommand.command, entity);
             });
           });
-        } else {
-          this.log.debug(`Domain ${CYAN}${domain}${db} not supported for entity ${entity.entity_id}`);
         }
       });
 
@@ -292,11 +327,25 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
     );
     const domain = entityId.split('.')[0];
-    const hassUpdate = hassUpdateConverter.find((update) => update.domain === domain && update.state === new_state.state);
-    if (hassUpdate) {
-      mbDevice.setAttribute(hassUpdate.clusterId, hassUpdate.attribute, hassUpdate.value, mbDevice.log, endpoint);
+    // Update state of the device
+    const hassUpdateState = hassUpdateStateConverter.find((update) => update.domain === domain && update.state === new_state.state);
+    if (hassUpdateState) {
+      mbDevice.setAttribute(hassUpdateState.clusterId, hassUpdateState.attribute, hassUpdateState.value, mbDevice.log, endpoint);
     } else {
       this.log.warn(`Update ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
+    }
+    // Update attributes of the device
+    const hassUpdateAttributes = hassUpdateAttributeConverter.filter((update) => update.domain === domain);
+    if (hassUpdateAttributes.length > 0) {
+      hassUpdateAttributes.forEach((update) => {
+        const value = new_state.attributes[update.with];
+        if (value) {
+          const convertedValue = update.converter(value);
+          if (convertedValue) {
+            mbDevice.setAttribute(update.clusterId, update.attribute, convertedValue, mbDevice.log, endpoint);
+          }
+        }
+      });
     }
   }
 

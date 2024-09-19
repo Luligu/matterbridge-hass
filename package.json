@@ -1,7 +1,7 @@
 {
-  "name": "matterbridge-homeassistant",
+  "name": "matterbridge-hass",
   "version": "0.0.1-alpha.1",
-  "description": "Matterbridge Home Assistant plugin",
+  "description": "Matterbridge Official Home Assistant plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
   "type": "module",
