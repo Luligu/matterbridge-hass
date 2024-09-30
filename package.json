@@ -9,10 +9,10 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Luligu/matterbridge-homeassistant.git"
+    "url": "git+https://github.com/Luligu/matterbridge-hass.git"
   },
   "bugs": {
-    "url": "https://github.com/Luligu/matterbridge-homeassistant/issues"
+    "url": "https://github.com/Luligu/matterbridge-hass/issues"
   },
   "funding": {
     "type": "buymeacoffee",
