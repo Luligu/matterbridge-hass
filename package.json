@@ -1,7 +1,7 @@
 {
   "name": "matterbridge-hass",
   "version": "0.0.1-alpha.1",
-  "description": "Matterbridge Official Home Assistant plugin",
+  "description": "Matterbridge Home Assistant plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
   "type": "module",
@@ -60,14 +60,14 @@
     "lint:fix": "eslint --fix --max-warnings=0 .",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "clean": "npm install --no-save rimraf && rimraf tsconfig.tsbuildinfo ./dist",
+    "clean": "npx rimraf tsconfig.tsbuildinfo ./dist",
     "cleanBuild": "npm run clean && tsc",
-    "deepClean": "npm install --no-save rimraf && rimraf tsconfig.tsbuildinfo package-lock.json npm-shrinkwrap.json ./dist ./node_modules",
+    "deepClean": "npx rimraf tsconfig.tsbuildinfo package-lock.json npm-shrinkwrap.json ./dist ./node_modules",
     "deepCleanBuild": "npm run deepClean && npm install && npm link matterbridge && npm run build",
     "checkDependencies": "npx npm-check-updates",
-    "updateDependencies": "npx npm-check-updates -u && npm install && npm link matterbridge && npm run cleanBuild",
-    "prepublishOnly": "npm shrinkwrap",
-    "npmPack": "npm run deepCleanBuild && npm shrinkwrap && npm pack && npm run deepCleanBuild",
+    "updateDependencies": "npx npm-check-updates -u && npm install && npm link matterbridge && npm run build",
+    "prepublishOnly": "npm pkg delete devDependencies && npm install --omit=dev && npm shrinkwrap",
+    "npmPack": "npm run cleanBuild && copy package.json package.log && npm pkg delete devDependencies && npm install --omit=dev && npm shrinkwrap && npm pack && copy package.log package.json && npm run deepCleanBuild",
     "matterbridge:add": "matterbridge -add .\\",
     "matterbridge:remove": "matterbridge -remove .\\",
     "matterbridge:enable": "matterbridge -enable .\\",
@@ -85,17 +85,17 @@
     "install:jest": "npm install --save-dev jest ts-jest @types/jest eslint-plugin-jest"
   },
   "dependencies": {
-    "node-ansi-logger": "^3.0.0",
-    "node-persist-manager": "^1.0.8",
-    "ws": "^8.18.0"
+    "node-ansi-logger": "3.0.0",
+    "node-persist-manager": "1.0.8",
+    "ws": "8.18.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.11.1",
+    "@eslint/js": "^9.14.0",
     "@types/eslint__js": "^8.42.3",
-    "@types/jest": "^29.5.13",
-    "@types/node": "^22.7.4",
-    "@types/ws": "^8.5.12",
-    "eslint": "^9.11.1",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.8.6",
+    "@types/ws": "^8.5.13",
+    "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^28.8.3",
     "eslint-plugin-prettier": "^5.2.1",
@@ -103,7 +103,7 @@
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.6.2",
-    "typescript-eslint": "^8.7.0"
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.12.2"
   }
 }

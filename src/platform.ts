@@ -193,7 +193,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // create NodeStorageManager
     this.nodeStorageManager = new NodeStorageManager({
-      dir: path.join(this.matterbridge.matterbridgeDirectory, 'matterbridge-homeassistant'),
+      dir: path.join(this.matterbridge.matterbridgeDirectory, 'matterbridge-hass'),
       writeQueue: false,
       expiredInterval: undefined,
       logging: false,
@@ -202,7 +202,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.nodeStorage = await this.nodeStorageManager.createStorage('devices');
 
     // Create the plugin directory inside the Matterbridge plugin directory
-    await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-homeassistant'), { recursive: true });
+    await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.ha.connect();
@@ -219,7 +219,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       config: this.hassConfig,
       services: this.hassServices,
     };
-    fs.writeFile(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-homeassistant', 'homeassistant.json'), JSON.stringify(payload, null, 2))
+    fs.writeFile(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'), JSON.stringify(payload, null, 2))
       .then(() => {
         this.log.debug('Payload successfully written to homeassistant.json');
       })

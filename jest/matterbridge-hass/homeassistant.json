@@ -1,0 +1,88 @@
+{
+  "devices": [
+    {
+      "area_id": null,
+      "configuration_url": null,
+      "config_entries": [
+        "01J6J7D7EADB8KNX8XBDYDNB1B"
+      ],
+      "connections": [],
+      "created_at": 1725044472.632472,
+      "disabled_by": null,
+      "entry_type": null,
+      "hw_version": "1.0.0",
+      "id": "d80898f83188759ed7329e97df00ee6a",
+      "identifiers": [
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001C-230"
+        ],
+        [
+          "matter",
+          "deviceid_CAD2FA0F285B2850-000000000000001F-2"
+        ],
+        [
+          "matter",
+          "serial_0x23452164"
+        ]
+      ],
+      "labels": [],
+      "manufacturer": "Luligu",
+      "model": "Matterbridge Switch",
+      "model_id": null,
+      "modified_at": 1726500210.074452,
+      "name_by_user": null,
+      "name": "Switch",
+      "primary_config_entry": "01J6J7D7EADB8KNX8XBDYDNB1B",
+      "serial_number": "0x23452164",
+      "sw_version": "1.0.0",
+      "via_device_id": "09f9d3f59a339f12b621d15dce10bf4f"
+    }
+  ],
+  "entities": [
+    {
+      "area_id": null,
+      "categories": {},
+      "config_entry_id": "01J6J7D7EADB8KNX8XBDYDNB1B",
+      "created_at": 1726500210.089665,
+      "device_id": "d80898f83188759ed7329e97df00ee6a",
+      "disabled_by": null,
+      "entity_category": null,
+      "entity_id": "switch.switch_switch_2",
+      "has_entity_name": true,
+      "hidden_by": null,
+      "icon": null,
+      "id": "0b25a337cb83edefb1d310450ad2b0aa",
+      "labels": [],
+      "modified_at": 1726500210.093338,
+      "name": null,
+      "options": {
+        "conversation": {
+          "should_expose": true
+        }
+      },
+      "original_name": "Switch",
+      "platform": "matter",
+      "translation_key": "switch",
+      "unique_id": "CAD2FA0F285B2850-000000000000001F-2-2-MatterSwitch-6-0"
+    }
+  ],
+  "states": [
+    {
+      "entity_id": "switch.switch_switch_2",
+      "state": "on",
+      "attributes": {
+        "device_class": "outlet",
+        "friendly_name": "Switch Switch"
+      },
+      "last_changed": "2024-09-18T18:09:20.344470+00:00",
+      "last_reported": "2024-09-18T18:09:20.344470+00:00",
+      "last_updated": "2024-09-18T18:09:20.344470+00:00",
+      "context": {
+        "id": "01J83564ER52RJF78N4S96YHG8",
+        "parent_id": null,
+        "user_id": null
+      }
+    }
+  ]
+}

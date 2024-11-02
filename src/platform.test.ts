@@ -8,7 +8,7 @@ import { HomeAssistantPlatform } from './platform';
 import { jest } from '@jest/globals';
 import { HomeAssistant } from './homeAssistant';
 
-describe('ShellyPlatform', () => {
+describe('HassPlatform', () => {
   let mockMatterbridge: Matterbridge;
   let mockLog: AnsiLogger;
   let mockConfig: PlatformConfig;
@@ -79,7 +79,7 @@ describe('ShellyPlatform', () => {
       }),
     } as unknown as AnsiLogger;
     mockConfig = {
-      'name': 'matterbridge-homeassistant',
+      'name': 'matterbridge-hass',
       'type': 'DynamicPlatform',
       'blackList': [],
       'whiteList': [],

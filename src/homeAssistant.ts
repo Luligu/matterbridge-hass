@@ -226,6 +226,12 @@ export class HomeAssistant extends EventEmitter {
     return super.on(eventName, listener);
   }
 
+  /**
+   * Creates an instance of the HomeAssistant class.
+   *
+   * @param {string} url - The WebSocket URL for connecting to Home Assistant.
+   * @param {string} accessToken - The access token for authenticating with Home Assistant.
+   */
   constructor(url: string, accessToken: string) {
     super();
     this.wsUrl = url;
@@ -234,6 +240,9 @@ export class HomeAssistant extends EventEmitter {
     this.log = new AnsiLogger({ logName: 'HomeAssistant', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
   }
 
+  /**
+   * Establishes a WebSocket connection to Home Assistant.
+   */
   connect() {
     if (this.connected) {
       this.log.info('Already connected to Home Assistant');
@@ -244,14 +253,6 @@ export class HomeAssistant extends EventEmitter {
 
     this.ws.onopen = () => {
       this.log.debug('WebSocket connection established');
-
-      // Send authentication message
-      this.ws?.send(
-        JSON.stringify({
-          type: 'auth',
-          access_token: this.wsAccessToken,
-        }),
-      );
     };
 
     this.ws.onmessage = async (event: WebSocket.MessageEvent) => {
@@ -264,6 +265,13 @@ export class HomeAssistant extends EventEmitter {
       }
       if (data.type === 'auth_required') {
         this.log.debug('Authentication required. Sending auth message...');
+        // Send authentication message
+        this.ws?.send(
+          JSON.stringify({
+            type: 'auth',
+            access_token: this.wsAccessToken,
+          }),
+        );
       } else if (data.type === 'auth_ok') {
         this.log.debug(`Authenticated successfully with Home Assistant v. ${data.ha_version}`);
         this.connected = true;
@@ -365,6 +373,10 @@ export class HomeAssistant extends EventEmitter {
     };
   }
 
+  /**
+   * Starts the ping interval to keep the WebSocket connection alive.
+   * Logs an error if the ping interval is already started.
+   */
   private startPing() {
     if (this.pingInterval) {
       this.log.error('Ping interval already started');
@@ -393,6 +405,9 @@ export class HomeAssistant extends EventEmitter {
     }, this.pingIntervalTime);
   }
 
+  /**
+   * Stops the ping interval and clears any pending timeouts.
+   */
   private stopPing() {
     this.log.debug('Stopping ping interval...');
     if (this.pingInterval) {
@@ -405,6 +420,10 @@ export class HomeAssistant extends EventEmitter {
     }
   }
 
+  /**
+   * Closes the WebSocket connection to Home Assistant and stops the ping interval.
+   * Emits a 'disconnected' event.
+   */
   close() {
     this.log.info('Closing Home Assistance connection...');
     this.stopPing();
@@ -417,6 +436,13 @@ export class HomeAssistant extends EventEmitter {
     this.emit('disconnected');
   }
 
+  /**
+   * Sends a fetch request to Home Assistant.
+   * Logs an error if not connected or if the WebSocket is not open.
+   *
+   * @param {string} type - The type of fetch request to send.
+   * @param {number} [id] - The ID of the fetch request. If not provided, a new ID is generated.
+   */
   private fetch(type: string, id?: number) {
     if (!this.connected) {
       this.log.error('Fetch error: not connected to Home Assistant');
@@ -448,8 +474,8 @@ export class HomeAssistant extends EventEmitter {
    *     console.error('Error:', error);
    *   });
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fetchAsync(type: string, timeout = 5000): Promise<any> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-inferrable-types
+  fetchAsync(type: string, timeout: number = 5000): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
         this.log.error('Fetch error: not connected to Home Assistant');
@@ -501,6 +527,7 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Sends a command to a specified Home Assistant service.
+   *
    * @param {string} domain - The domain of the Home Assistant service.
    * @param {string} service - The service to call on the Home Assistant domain.
    * @param {string} entityId - The ID of the entity to target with the command.
@@ -509,7 +536,6 @@ export class HomeAssistant extends EventEmitter {
    * @example <caption>Example usage of the callService method.</caption>
    * await this.callService('switch', 'toggle', 'switch.living_room');
    * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });
-   *
    */
   callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}) {
     this.log.debug(`Calling service ${BLUE}${domain}.${service}${db} for entity ${BLUE}${entityId}${db} with: ${debugStringify(serviceData)}`);
@@ -527,51 +553,3 @@ export class HomeAssistant extends EventEmitter {
     );
   }
 }
-
-/*
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
-
-process.on('SIGINT', () => {
-  console.log('Received SIGINT signal. Exiting...');
-  ha.close();
-  // process.exit(0);
-});
-
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM signal. Exiting...');
-  ha.close();
-  // process.exit(0);
-});
-
-const TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIzNzQzODI4MGY5ZTc0ODcxYTg3YTgzOTBjZjg0YjI3ZSIsImlhdCI6MTcyNjI2MjA4OCwiZXhwIjoyMDQxNjIyMDg4fQ.PokvSxUHklUrqNizJwcZsJyh_gL-A7FvAJ12hnsHt-M';
-
-const ha = new HomeAssistant('http://homeassistant.local:8123', TOKEN);
-
-ha.on('connected', () => {
-  console.log('Connected to Home Assistant');
-  ha.fetchDevices();
-  ha.fetchEntities();
-  ha.subscribeEvents();
-});
-
-ha.on('disconnected', () => {
-  console.log('Disconnected from Home Assistant');
-});
-
-setTimeout(
-  () => {
-    if (ha.connected) {
-      console.log('Closing...');
-      ha.close();
-    }
-  },
-  60 * 60 * 1000,
-);
-*/
