@@ -53,6 +53,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { HassDevice, HassEntity, HassEntityState, HomeAssistant, HomeAssistantConfig, HomeAssistantPrimitive, HomeAssistantServices } from './homeAssistant.js';
 
+// Update Home Assistant state to Matterbridge device states
 // prettier-ignore
 const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
   { domain: 'switch', state: 'on', clusterId: OnOffCluster.id, attribute: 'onOff', value: true },
@@ -70,6 +71,7 @@ const hassUpdateStateConverter: { domain: string; state: string; clusterId: Clus
   { domain: 'fan', state: 'off', clusterId: FanControlCluster.id, attribute: 'fanMode', value: FanControl.FanMode.Off },
 ];
 
+// Update Home Assistant attributes to Matterbridge device attributes
 // prettier-ignore
 const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: ClusterId; attribute: string; converter: any }[] = [
   { domain: 'light', with: 'brightness', clusterId: LevelControlCluster.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 1, 255) ? Math.round(value / 255 * 254) : null) },
@@ -169,6 +171,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   private hassConfig: HomeAssistantConfig | null = null;
 
   private matterbridgeDevices = new Map<string, MatterbridgeDevice>();
+  private bridgedHassDevices = new Map<string, HassDevice>();
 
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
@@ -247,7 +250,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     };
     await waiter('Home Assistant connected', check, true, 10000, 1000); // Wait for 10 seconds with 1 second interval and throw error if not connected
 
-    // Save devices, entities and states to a local file
+    // Save devices, entities, states, config and services to a local file
     const payload = {
       devices: this.hassDevices,
       entities: this.hassEntities,
@@ -272,7 +275,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Create a new Matterbridge device
       const createdDevice = () => {
         this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+        this.bridgedHassDevices.set(device.id, device);
         mbDevice = new MatterbridgeDevice(bridgedNode, undefined, this.config.debug as boolean);
+        mbDevice.log.logName = device.name_by_user ?? device.name ?? 'Unknown';
         mbDevice.createDefaultBridgedDeviceBasicInformationClusterServer(
           device.name ?? 'Unknown',
           device.id + (isValidString(this.config.postfix, 1, 3) ? '-' + this.config.postfix : ''),
@@ -380,7 +385,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Register the device if we have found supported domains and services
       if (mbDevice && mbDevice.getChildEndpoints().length > 0) {
         this.log.debug(`Registering device ${dn}${device.name}${db}...`);
-        this.registerDevice(mbDevice);
+        this.registerDevice(mbDevice); // No await here, we don't want to block the loop
         this.matterbridgeDevices.set(device.id, mbDevice);
       }
     });
@@ -394,7 +399,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // const deviceId = this.hassEntities.get(state.entity_id)?.device_id;
         const entity = this.hassEntities.find((entity) => entity.entity_id === state.entity_id);
         const deviceId = entity?.device_id;
-        if (deviceId) this.updateHandler(deviceId, state.entity_id, state, state);
+        if (deviceId && this.bridgedHassDevices.has(deviceId)) {
+          // this.log.info(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${nf}`, state);
+          this.updateHandler(deviceId, state.entity_id, state, state);
+        }
       });
     } catch (error) {
       this.log.error(`Error configuring platform: ${error}`);
@@ -411,7 +419,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
   }
 
-  private async commandHandler(mbDevice: MatterbridgeDevice | undefined, endpoint: Endpoint, request: any, attributes: any, command: string, entity: HassEntity) {
+  async commandHandler(mbDevice: MatterbridgeDevice | undefined, endpoint: Endpoint, request: any, attributes: any, command: string, entity: HassEntity) {
     if (!mbDevice) return;
     this.log.info(
       `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint.name}:${endpoint.number}${db} entity ${CYAN}${entity.entity_id}${db}`,
@@ -427,7 +435,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  private updateHandler(deviceId: string, entityId: string, old_state: HassEntityState, new_state: HassEntityState) {
+  updateHandler(deviceId: string, entityId: string, old_state: HassEntityState, new_state: HassEntityState) {
     const mbDevice = this.matterbridgeDevices.get(deviceId);
     if (!mbDevice) return;
     const endpoint = mbDevice.getChildEndpointByName(entityId);
@@ -460,7 +468,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  private validateWhiteBlackList(entityName: string) {
+  validateWhiteBlackList(entityName: string) {
     if (this.whiteList.length > 0 && !this.whiteList.find((name) => name === entityName)) {
       this.log.warn(`Skipping ${dn}${entityName}${wr} because not in whitelist`);
       return false;
