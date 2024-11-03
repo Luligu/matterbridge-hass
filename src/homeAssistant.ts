@@ -236,7 +236,6 @@ export class HomeAssistant extends EventEmitter {
     super();
     this.wsUrl = url;
     this.wsAccessToken = accessToken;
-
     this.log = new AnsiLogger({ logName: 'HomeAssistant', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
   }
 
@@ -349,8 +348,10 @@ export class HomeAssistant extends EventEmitter {
             return;
           }
           this.emit('event', device.id, event.data.entity_id, event.data.old_state, event.data.new_state);
+        } else if (data.id === this.eventsSubscribeId && data.event && event.event_type === 'call_service') {
+          this.log.debug(`Event ${CYAN}${event?.event_type}${db} received id ${data.id}`);
         } else {
-          this.log.debug(`Unknown event received id ${data.id}:`, data);
+          this.log.debug(`*Unknown event type ${CYAN}${event?.event_type}${db} received id ${data.id}`);
         }
       }
     };

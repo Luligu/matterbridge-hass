@@ -18,11 +18,15 @@ This plugin allows you to expose the Home Assistant devices to Matter.
 
 Features:
 
+- the plugin can run with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
+- the connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if Home Assistant is available.
+
 Supported devices:
 
-- switch
-- light
-- lock
+- switch (with state on/off)
+- light (with state on/off and attributes brightness/color_mode/color_temp/hs_color/xy_color)
+- lock (with state locked/locking/unlocking/unlocked)
+- fan (with state on/off and attributes percentage/preset_mode)
 
 ## Prerequisites
 

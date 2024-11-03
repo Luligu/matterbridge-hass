@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-matter and sponsoring it.
+If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
-## [0.0.1] - 2024-08-28
+## [0.0.1-alpha.1] - 2024-11-03
 
 First published release.
 

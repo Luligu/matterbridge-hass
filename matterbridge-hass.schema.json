@@ -2,7 +2,10 @@
   "title": "Matterbridge Home Assistant plugin",
   "description": "matterbridge-homeassistant v. 0.0.1 by https://github.com/Luligu",
   "type": "object",
-  "required": ["host", "token"],
+  "required": [
+    "host",
+    "token"
+  ],
   "properties": {
     "name": {
       "description": "Plugin name",
@@ -37,15 +40,15 @@
         "type": "string"
       }
     },
-    "featureBlackList": {
-      "description": "The features in the list will not be exposed for all devices.",
+    "entityBlackList": {
+      "description": "The entities in the list will not be exposed for all devices.",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
-    "deviceFeatureBlackList": {
-      "description": "List of features not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the features to exclude.",
+    "deviceEntityBlackList": {
+      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entities to exclude.",
       "type": "object",
       "additionalProperties": {
         "type": "array",
