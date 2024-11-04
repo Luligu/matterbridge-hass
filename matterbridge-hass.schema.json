@@ -1,6 +1,6 @@
 {
   "title": "Matterbridge Home Assistant plugin",
-  "description": "matterbridge-homeassistant v. 0.0.1 by https://github.com/Luligu",
+  "description": "matterbridge-hass v. 0.0.1 by https://github.com/Luligu",
   "type": "object",
   "required": [
     "host",
@@ -23,32 +23,32 @@
       "default": "http://homeassistant.local:8123"
     },
     "token": {
-      "description": "Home Assistant token",
+      "description": "Home Assistant Long-Lived Access Token",
       "type": "string"
     },
     "blackList": {
-      "description": "The devices in the list will not be exposed.",
+      "description": "The devices in the list will not be exposed. Use the device name.",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
     "whiteList": {
-      "description": "Only the devices in the list will be exposed.",
+      "description": "Only the devices in the list will be exposed. Use the device name.",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
     "entityBlackList": {
-      "description": "The entities in the list will not be exposed for all devices.",
+      "description": "The entities in the list will not be exposed for all devices.  Use the entity name.",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
     "deviceEntityBlackList": {
-      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entities to exclude.",
+      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.",
       "type": "object",
       "additionalProperties": {
         "type": "array",

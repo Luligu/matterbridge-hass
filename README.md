@@ -86,7 +86,7 @@ Your Home Assistance address (eg. http://homeassistant.local:8123 or http://IP-A
 
 ### token
 
-Home Assistant long term token used to connect to Home Assistant with WebSocket.
+Home Assistant long term token used to connect to Home Assistant with WebSocket. Click on your user name in the bottom left corner, Security and create a Long-Lived Access Tokens.
 
 ### debug
 
