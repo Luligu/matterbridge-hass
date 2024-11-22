@@ -23,6 +23,7 @@
  */
 
 import {
+  AtLeastOne,
   bridgedNode,
   ClusterId,
   ClusterRegistry,
@@ -35,6 +36,7 @@ import {
   DoorLock,
   DoorLockCluster,
   Endpoint,
+  EndpointOptions,
   FanControl,
   FanControlCluster,
   LevelControlCluster,
@@ -87,10 +89,10 @@ const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: C
     } 
   },
   { domain: 'light', with: 'color_temp', clusterId: ColorControlCluster.id, attribute: 'colorTemperatureMireds', converter: (value: number) => ( isValidNumber(value, 0, 65279) ? value : null ) },
-  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentHue', converter: (value: number[]) => ( isValidArray(value) && isValidNumber(value[0], 0, 360) ? Math.round(value[0] / 360 * 254) : null ) },
-  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentSaturation', converter: (value: number[]) => ( isValidArray(value) && isValidNumber(value[1], 0, 100) ? Math.round(value[1] / 100 * 254) : null ) },
-  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentX', converter: (value: number[]) => ( isValidArray(value) && isValidNumber(value[0], 0, 1) ? value[0] : null ) },
-  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentY', converter: (value: number[]) => ( isValidArray(value) && isValidNumber(value[1], 0, 1) ? value[1] : null ) },
+  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentHue', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) ? Math.round(value[0] / 360 * 254) : null ) },
+  { domain: 'light', with: 'hs_color', clusterId: ColorControlCluster.id, attribute: 'currentSaturation', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) ? Math.round(value[1] / 100 * 254) : null ) },
+  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentX', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) ? value[0] : null ) },
+  { domain: 'light', with: 'xy_color', clusterId: ColorControlCluster.id, attribute: 'currentY', converter: (value: number[]) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) ? value[1] : null ) },
 
   { domain: 'fan', with: 'percentage', clusterId: FanControlCluster.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
   { domain: 'fan', with: 'preset_mode', clusterId: FanControlCluster.id, attribute: 'fanMode', converter: (value: string) => {
@@ -173,8 +175,26 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   private matterbridgeDevices = new Map<string, MatterbridgeDevice>();
   private bridgedHassDevices = new Map<string, HassDevice>();
 
+  async createMutableDevice(definition: DeviceTypeDefinition | AtLeastOne<DeviceTypeDefinition>, options: EndpointOptions = {}, debug = false): Promise<MatterbridgeDevice> {
+    let device: MatterbridgeDevice;
+    const matterbridge = await import('matterbridge');
+    if ('edge' in this.matterbridge && this.matterbridge.edge === true && 'MatterbridgeEndpoint' in matterbridge) {
+      // Dynamically resolve the MatterbridgeEndpoint class from the imported module and instantiate it without throwing a TypeScript error for old versions of Matterbridge
+
+      device = new (matterbridge as any).MatterbridgeEndpoint(definition, options, debug) as MatterbridgeDevice;
+    } else device = new MatterbridgeDevice(definition, options, debug);
+    return device;
+  }
+
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
+
+    // Verify that Matterbridge is the correct version
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.6.2')) {
+      throw new Error(
+        `This plugin requires Matterbridge version >= "1.6.2". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+      );
+    }
 
     this.host = (config.host as string) ?? '';
     this.token = (config.token as string) ?? '';
@@ -267,19 +287,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       });
 
     // Scan devices and entities and create Matterbridge devices
-    this.hassDevices.forEach((device) => {
-      if (!isValidString(device.name) || !this.validateWhiteBlackList(device.name)) return;
+    for (const device of this.hassDevices) {
+      // this.hassDevices.forEach(async (device) => {
+      if (!isValidString(device.name) || !this.validateWhiteBlackList(device.name)) continue;
 
       let mbDevice: MatterbridgeDevice | undefined;
 
       // Create a new Matterbridge device
-      const createdDevice = () => {
+      const createdDevice = async () => {
         this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         this.bridgedHassDevices.set(device.id, device);
-        mbDevice = new MatterbridgeDevice(bridgedNode, undefined, this.config.debug as boolean);
-        mbDevice.log.logName = device.name_by_user ?? device.name ?? 'Unknown';
+        const name = device.name_by_user ?? device.name ?? 'Unknown';
+        mbDevice = await this.createMutableDevice(bridgedNode, { uniqueStorageKey: name }, this.config.debug as boolean);
+        mbDevice.log.logName = name;
         mbDevice.createDefaultBridgedDeviceBasicInformationClusterServer(
-          device.name ?? 'Unknown',
+          name,
           device.id + (isValidString(this.config.postfix, 1, 3) ? '-' + this.config.postfix : ''),
           0xfff1,
           'HomeAssistant',
@@ -288,8 +310,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       };
 
       // Scan entities for supported domains and services and add them to the Matterbridge device
-      this.hassEntities.forEach((entity) => {
-        if (entity.device_id !== device.id) return;
+      for (const entity of this.hassEntities) {
+        // this.hassEntities.forEach(async (entity) => {
+        if (entity.device_id !== device.id) continue;
 
         const domain = entity.entity_id.split('.')[0];
         let deviceType: DeviceTypeDefinition | undefined;
@@ -304,8 +327,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             clusterIds.set(hassDomain.clusterId, hassDomain.clusterId);
           });
         } else {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db}  entity ${CYAN}${entity.entity_id}${db}: domain not found`);
-          return;
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}: domain not found`);
+          continue;
         }
 
         // Add device types and clusterIds for supported attributes of the current entity state
@@ -329,13 +352,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
 
         // Create the device if not already created
-        if (!mbDevice) createdDevice();
+        if (!mbDevice) await createdDevice();
         let child: Endpoint | undefined = undefined;
         if (deviceType) {
           child = mbDevice?.addChildDeviceTypeWithClusterServer(entity.entity_id, [deviceType], Array.from(clusterIds.values()));
           // Special case for light domain: configure the color control cluster
           if (domain === 'light' && deviceType === colorTemperatureLight) {
-            mbDevice?.configureColorControlCluster(
+            await mbDevice?.configureColorControlCluster(
               supported_color_modes.includes('hs') || supported_color_modes.includes('rgb'),
               supported_color_modes.includes('xy') || supported_color_modes.includes('rgb'),
               supported_color_modes.includes('color_temp'),
@@ -343,8 +366,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               child,
             );
             if (supported_color_modes.includes('color_temp') && hassState?.attributes['min_mireds'] && hassState?.attributes['max_mireds']) {
-              mbDevice?.setAttribute(ColorControlCluster.id, 'colorTempPhysicalMinMireds', hassState?.attributes['min_mireds'], mbDevice.log, child);
-              mbDevice?.setAttribute(ColorControlCluster.id, 'colorTempPhysicalMaxMireds', hassState?.attributes['max_mireds'], mbDevice.log, child);
+              await mbDevice?.setAttribute(ColorControlCluster.id, 'colorTempPhysicalMinMireds', hassState?.attributes['min_mireds'], mbDevice.log, child);
+              await mbDevice?.setAttribute(ColorControlCluster.id, 'colorTempPhysicalMaxMireds', hassState?.attributes['max_mireds'], mbDevice.log, child);
             }
           }
         }
@@ -372,7 +395,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               hassSubscribe.attribute,
               (newValue: any, oldValue: any) => {
                 mbDevice?.log.info(
-                  `${db}Endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} changed to ${YELLOW}${newValue}${db} from ${YELLOW}${oldValue}${db}`,
+                  `${db}Endpoint ${or}${child?.name}${db}:${or}${child?.number}${db} subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} changed from ${YELLOW}${oldValue}${db} to ${YELLOW}${newValue}${db}`,
                 );
               },
               mbDevice?.log,
@@ -380,15 +403,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             );
           });
         }
-      });
+      } // hassEntities
 
       // Register the device if we have found supported domains and services
       if (mbDevice && mbDevice.getChildEndpoints().length > 0) {
         this.log.debug(`Registering device ${dn}${device.name}${db}...`);
-        this.registerDevice(mbDevice); // No await here, we don't want to block the loop
+        await this.registerDevice(mbDevice);
         this.matterbridgeDevices.set(device.id, mbDevice);
       }
-    });
+    } // hassDevices
   }
 
   override async onConfigure() {
@@ -396,11 +419,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     try {
       this.hassStates = await this.ha.fetchAsync('get_states');
       this.hassStates?.forEach((state) => {
-        // const deviceId = this.hassEntities.get(state.entity_id)?.device_id;
         const entity = this.hassEntities.find((entity) => entity.entity_id === state.entity_id);
         const deviceId = entity?.device_id;
         if (deviceId && this.bridgedHassDevices.has(deviceId)) {
-          // this.log.info(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${nf}`, state);
+          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${nf}`, state);
           this.updateHandler(deviceId, state.entity_id, state, state);
         }
       });
@@ -435,7 +457,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  updateHandler(deviceId: string, entityId: string, old_state: HassEntityState, new_state: HassEntityState) {
+  async updateHandler(deviceId: string, entityId: string, old_state: HassEntityState, new_state: HassEntityState) {
     const mbDevice = this.matterbridgeDevices.get(deviceId);
     if (!mbDevice) return;
     const endpoint = mbDevice.getChildEndpointByName(entityId);
@@ -448,7 +470,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Update state of the device
     const hassUpdateState = hassUpdateStateConverter.find((updateState) => updateState.domain === domain && updateState.state === new_state.state);
     if (hassUpdateState) {
-      mbDevice.setAttribute(hassUpdateState.clusterId, hassUpdateState.attribute, hassUpdateState.value, mbDevice.log, endpoint);
+      await mbDevice.setAttribute(hassUpdateState.clusterId, hassUpdateState.attribute, hassUpdateState.value, mbDevice.log, endpoint);
     } else {
       this.log.warn(`Update ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
     }
@@ -456,15 +478,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
     if (hassUpdateAttributes.length > 0) {
       // console.log('Processing update attributes: ', hassUpdateAttributes.length);
-      hassUpdateAttributes.forEach((update) => {
+      for (const update of hassUpdateAttributes) {
         // console.log('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
         const value = new_state.attributes[update.with];
         if (value !== null) {
           // console.log('-- converting update attribute value', update.converter(value));
           const convertedValue = update.converter(value);
-          if (convertedValue !== null) mbDevice.setAttribute(update.clusterId, update.attribute, convertedValue, mbDevice.log, endpoint);
+          if (convertedValue !== null) await mbDevice.setAttribute(update.clusterId, update.attribute, convertedValue, mbDevice.log, endpoint);
         }
-      });
+      }
     }
   }
 

@@ -10,7 +10,14 @@ describe('initializePlugin', () => {
   let mockConfig: PlatformConfig;
 
   beforeEach(() => {
-    mockMatterbridge = { matterbridgeDirectory: 'jest', matterbridgePluginDirectory: 'jest', addBridgedDevice: jest.fn() } as unknown as Matterbridge;
+    mockMatterbridge = {
+      addBridgedDevice: jest.fn(),
+      matterbridgeDirectory: '',
+      matterbridgePluginDirectory: 'temp',
+      systemInformation: { ipv4Address: undefined },
+      matterbridgeVersion: '1.6.2',
+      removeAllBridgedDevices: jest.fn(),
+    } as unknown as Matterbridge;
     mockLog = { fatal: jest.fn(), error: jest.fn(), warn: jest.fn(), notice: jest.fn(), info: jest.fn(), debug: jest.fn() } as unknown as AnsiLogger;
     mockConfig = {
       'name': 'matterbridge-hass',

@@ -19,7 +19,7 @@ This plugin allows you to expose the Home Assistant devices to Matter.
 Features:
 
 - the plugin can run with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
-- the connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if Home Assistant is available.
+- the connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if Home Assistant is reachable.
 
 Supported devices:
 
@@ -35,13 +35,13 @@ Supported devices:
 Follow these steps to install or update Matterbridge if it is not already installed and up to date:
 
 ```
-npm install -g matterbridge
+npm install -g matterbridge --omit=dev
 ```
 
 on Linux you may need the necessary permissions:
 
 ```
-sudo npm install -g matterbridge
+sudo npm install -g matterbridge --omit=dev
 ```
 
 See the complete guidelines on [Matterbridge](https://github.com/Luligu/matterbridge/blob/main/README.md) for more information.
@@ -58,7 +58,7 @@ On windows:
 
 ```
 cd $HOME\Matterbridge
-npm install -g matterbridge-hass
+npm install -g matterbridge-hass --omit=dev
 matterbridge -add matterbridge-hass
 ```
 
@@ -66,7 +66,7 @@ On linux:
 
 ```
 cd ~/Matterbridge
-sudo npm install -g matterbridge-hass
+sudo npm install -g matterbridge-hass --omit=dev
 matterbridge -add matterbridge-hass
 ```
 

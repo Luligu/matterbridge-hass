@@ -71,6 +71,7 @@ describe('HassPlatform', () => {
       matterbridgeDirectory: 'jest',
       matterbridgePluginDirectory: 'jest',
       systemInformation: { ipv4Address: undefined },
+      matterbridgeVersion: '1.6.2',
       addBridgedDevice: jest.fn(),
       removeAllBridgedDevices: jest.fn(),
     } as unknown as Matterbridge;
@@ -147,7 +148,8 @@ describe('HassPlatform', () => {
   });
 
   afterAll(() => {
-    //
+    loggerLogSpy.mockRestore();
+    consoleLogSpy.mockRestore();
   });
 
   it('should not initialize platform with config name', () => {
