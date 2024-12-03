@@ -43,6 +43,7 @@ import {
   Matterbridge,
   MatterbridgeDevice,
   MatterbridgeDynamicPlatform,
+  MatterbridgeEndpoint,
   OnOffCluster,
   onOffLight,
   onOffSwitch,
@@ -177,12 +178,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   async createMutableDevice(definition: DeviceTypeDefinition | AtLeastOne<DeviceTypeDefinition>, options: EndpointOptions = {}, debug = false): Promise<MatterbridgeDevice> {
     let device: MatterbridgeDevice;
-    const matterbridge = await import('matterbridge');
-    if ('edge' in this.matterbridge && this.matterbridge.edge === true && 'MatterbridgeEndpoint' in matterbridge) {
-      // Dynamically resolve the MatterbridgeEndpoint class from the imported module and instantiate it without throwing a TypeScript error for old versions of Matterbridge
-
-      device = new (matterbridge as any).MatterbridgeEndpoint(definition, options, debug) as MatterbridgeDevice;
-    } else device = new MatterbridgeDevice(definition, options, debug);
+    if (this.matterbridge.edge === true) device = new MatterbridgeEndpoint(definition, options, debug) as unknown as MatterbridgeDevice;
+    else device = new MatterbridgeDevice(definition, options, debug);
     return device;
   }
 
@@ -190,11 +187,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.6.2')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('1.6.5')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "1.6.2". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "1.6.5". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
+
+    this.log.info(`Initializing platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
 
     this.host = (config.host as string) ?? '';
     this.token = (config.token as string) ?? '';
@@ -288,7 +287,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // Scan devices and entities and create Matterbridge devices
     for (const device of this.hassDevices) {
-      // this.hassDevices.forEach(async (device) => {
+      const name = device.name_by_user ?? device.name ?? 'Unknown';
       if (!isValidString(device.name) || !this.validateWhiteBlackList(device.name)) continue;
 
       let mbDevice: MatterbridgeDevice | undefined;
@@ -297,8 +296,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const createdDevice = async () => {
         this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         this.bridgedHassDevices.set(device.id, device);
-        const name = device.name_by_user ?? device.name ?? 'Unknown';
-        mbDevice = await this.createMutableDevice(bridgedNode, { uniqueStorageKey: name }, this.config.debug as boolean);
+        mbDevice = await this.createMutableDevice(bridgedNode, { uniqueStorageKey: device.id }, this.config.debug as boolean);
         mbDevice.log.logName = name;
         mbDevice.createDefaultBridgedDeviceBasicInformationClusterServer(
           name,
@@ -348,7 +346,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             }
           }
         } else {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db}  entity ${CYAN}${entity.entity_id}${db}: state not found`);
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}: state not found`);
         }
 
         // Create the device if not already created
@@ -422,7 +420,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const entity = this.hassEntities.find((entity) => entity.entity_id === state.entity_id);
         const deviceId = entity?.device_id;
         if (deviceId && this.bridgedHassDevices.has(deviceId)) {
-          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${nf}`, state);
+          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${nf}` /* , state*/);
           this.updateHandler(deviceId, state.entity_id, state, state);
         }
       });
@@ -446,14 +444,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(
       `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint.name}:${endpoint.number}${db} entity ${CYAN}${entity.entity_id}${db}`,
     );
-    const domain = entity.entity_id.split('.')[0];
+    const entityId = endpoint.number ? mbDevice.getChildEndpoint(endpoint.number)?.uniqueStorageKey : undefined;
+    if (!entityId) return;
+    const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((update) => update.command === command && update.domain === domain);
     if (hassCommand) {
       // console.log('Command:', command, 'Domain:', domain, 'HassCommand:', hassCommand, 'Request:', request, 'Attributes:', attributes);
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(request, attributes) : undefined;
-      this.ha.callService(hassCommand.domain, hassCommand.service, entity.entity_id, serviceAttributes);
+      this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
     } else {
-      this.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entity.entity_id}${wr}`);
+      this.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }
   }
 

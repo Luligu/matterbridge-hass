@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Endpoint, Matterbridge, MatterbridgeDevice, PlatformConfig } from 'matterbridge';
+import { Endpoint, Matterbridge, MatterbridgeDevice, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
 import { wait } from 'matterbridge/utils';
 import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW, CYAN } from 'matterbridge/logger';
 import { HomeAssistantPlatform } from './platform';
@@ -9,7 +9,6 @@ import { jest } from '@jest/globals';
 import { HassDevice, HassEntity, HassEntityState, HomeAssistant } from './homeAssistant';
 import * as fs from 'fs';
 import * as path from 'path';
-import exp from 'constants';
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
@@ -26,7 +25,7 @@ describe('HassPlatform', () => {
   let mockMatterbridge: Matterbridge;
   let mockLog: AnsiLogger;
   let mockConfig: PlatformConfig;
-  let mockHomeAssistant: HomeAssistant;
+  // let mockHomeAssistant: HomeAssistant;
   let haPlatform: HomeAssistantPlatform;
   let mockMatterbridgeDevice: MatterbridgeDevice;
   let mockEndpoint: Endpoint;
@@ -52,13 +51,13 @@ describe('HassPlatform', () => {
   jest.spyOn(HomeAssistant.prototype, 'fetchAsync').mockImplementation((type: string, timeout = 5000) => {
     console.log(`Mocked fetchAsync: ${type}`);
     if (type === 'config/device_registry/list') {
-      return Promise.resolve([switchDevice]);
+      return Promise.resolve(mockData.devices);
     } else if (type === 'config/entity_registry/list') {
-      return Promise.resolve([switchDeviceEntity]);
+      return Promise.resolve(mockData.entities);
     } else if (type === 'get_states') {
-      return Promise.resolve([switchDeviceEntityState]);
+      return Promise.resolve(mockData.states);
     }
-    return Promise.resolve([switchDeviceEntityState]);
+    return Promise.resolve(mockData.config);
   });
 
   jest.spyOn(HomeAssistant.prototype, 'callService').mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
@@ -68,33 +67,52 @@ describe('HassPlatform', () => {
   beforeAll(() => {
     // Creates the mocks for Matterbridge, AnsiLogger, and PlatformConfig
     mockMatterbridge = {
-      matterbridgeDirectory: 'jest',
-      matterbridgePluginDirectory: 'jest',
+      addBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
+        // console.error('addBridgedDevice called');
+      }),
+      addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+        device.number = 100;
+        // console.error('addBridgedEndpoint called');
+      }),
+      removeBridgedDevice: jest.fn(async (pluginName: string, device: MatterbridgeDevice) => {
+        // console.error('removeBridgedDevice called');
+      }),
+      removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+        // console.error('removeBridgedEndpoint called');
+      }),
+      removeAllBridgedDevices: jest.fn(async (pluginName: string) => {
+        // console.error('removeAllBridgedDevices called');
+      }),
+      removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
+        // console.error('removeAllBridgedEndpoints called');
+      }),
+      matterbridgeDirectory: '',
+      matterbridgePluginDirectory: 'temp',
       systemInformation: { ipv4Address: undefined },
-      matterbridgeVersion: '1.6.2',
-      addBridgedDevice: jest.fn(),
-      removeAllBridgedDevices: jest.fn(),
+      matterbridgeVersion: '1.6.5',
     } as unknown as Matterbridge;
+
     mockLog = {
-      fatal: jest.fn((message) => {
-        console.log(`Fatal: ${message}`);
+      fatal: jest.fn((message: string, ...parameters: any[]) => {
+        // console.error('mockLog.fatal', message, parameters);
       }),
-      error: jest.fn((message) => {
-        console.log(`Error: ${message}`);
+      error: jest.fn((message: string, ...parameters: any[]) => {
+        // console.error('mockLog.error', message, parameters);
       }),
-      warn: jest.fn((message) => {
-        console.log(`Warn: ${message}`);
+      warn: jest.fn((message: string, ...parameters: any[]) => {
+        // console.error('mockLog.warn', message, parameters);
       }),
-      notice: jest.fn((message) => {
-        console.log(`Notice: ${message}`);
+      notice: jest.fn((message: string, ...parameters: any[]) => {
+        // console.error('mockLog.notice', message, parameters);
       }),
-      info: jest.fn((message) => {
-        console.log(`Info: ${message}`);
+      info: jest.fn((message: string, ...parameters: any[]) => {
+        // console.error('mockLog.info', message, parameters);
       }),
-      debug: jest.fn((message) => {
-        console.log(`Debug: ${message}`);
+      debug: jest.fn((message: string, ...parameters: any[]) => {
+        // console.error('mockLog.debug', message, parameters);
       }),
     } as unknown as AnsiLogger;
+
     mockConfig = {
       'name': 'matterbridge-hass',
       'type': 'DynamicPlatform',
@@ -106,12 +124,14 @@ describe('HassPlatform', () => {
       'unregisterOnShutdown': false,
     } as PlatformConfig;
 
+    /*
     mockHomeAssistant = {
       connect: jest.fn(),
       close: jest.fn(),
       fetchAsync: jest.fn(),
       callService: jest.fn(),
     } as unknown as HomeAssistant;
+    */
 
     mockMatterbridgeDevice = {
       deviceName: 'Switch',
@@ -134,17 +154,7 @@ describe('HassPlatform', () => {
   });
 
   beforeEach(() => {
-    // Clears the call history of mockLog.* before each test
-    (mockLog.fatal as jest.Mock).mockClear();
-    (mockLog.error as jest.Mock).mockClear();
-    (mockLog.warn as jest.Mock).mockClear();
-    (mockLog.notice as jest.Mock).mockClear();
-    (mockLog.info as jest.Mock).mockClear();
-    (mockLog.debug as jest.Mock).mockClear();
-
-    // Clears the call history before each test
-    loggerLogSpy.mockClear();
-    consoleLogSpy.mockClear();
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
@@ -243,6 +253,11 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`), expect.anything());
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${nf}`), expect.anything());
   });
 
   it('should register a Light (on/off) device from ha', async () => {
@@ -269,7 +284,10 @@ describe('HassPlatform', () => {
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(mockMatterbridge.addBridgedDevice).toHaveBeenCalled();
 
+    jest.clearAllMocks();
     await haPlatform.onConfigure();
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state`), expect.anything());
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`for device ${idn}${device.id}${nf}`), expect.anything());
   });
 
   it('should register a Dimmer device from ha', async () => {
@@ -510,9 +528,6 @@ describe('HassPlatform', () => {
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}`);
-    expect(mockLog.info).toHaveBeenCalledWith(
-      expect.stringContaining(`${db}Received update event from Home Assistant device ${idn}${switchDevice.name}${rs}${db} entity ${CYAN}${switchDeviceEntity.entity_id}${db}`),
-    );
   });
 
   it('should call callService', async () => {
