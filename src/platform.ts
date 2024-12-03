@@ -378,7 +378,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             mbDevice?.addCommandHandler(hassCommand.command, async (data) => {
-              this.commandHandler(mbDevice, data.endpoint, data.request, data.attributes, hassCommand.command, entity);
+              this.commandHandler(mbDevice, data.endpoint, data.request, data.attributes, hassCommand.command);
             });
           });
         }
@@ -420,7 +420,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const entity = this.hassEntities.find((entity) => entity.entity_id === state.entity_id);
         const deviceId = entity?.device_id;
         if (deviceId && this.bridgedHassDevices.has(deviceId)) {
-          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${nf}` /* , state*/);
+          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${nf} for device ${idn}${deviceId}${rs}${nf}` /* , state*/);
           this.updateHandler(deviceId, state.entity_id, state, state);
         }
       });
@@ -439,10 +439,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
   }
 
-  async commandHandler(mbDevice: MatterbridgeDevice | undefined, endpoint: Endpoint, request: any, attributes: any, command: string, entity: HassEntity) {
+  async commandHandler(mbDevice: MatterbridgeDevice | undefined, endpoint: Endpoint, request: any, attributes: any, command: string) {
     if (!mbDevice) return;
     this.log.info(
-      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint.name}:${endpoint.number}${db} entity ${CYAN}${entity.entity_id}${db}`,
+      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint.name}:${endpoint.number}${db}`,
     );
     const entityId = endpoint.number ? mbDevice.getChildEndpoint(endpoint.number)?.uniqueStorageKey : undefined;
     if (!entityId) return;
