@@ -235,7 +235,7 @@
       "model_id": null,
       "modified_at": 1730182394.007806,
       "name_by_user": null,
-      "name": "Luca’s iPhone",
+      "name": "None’s iPhone",
       "primary_config_entry": "01J7JMMF9DP1S0422TP2EBA4W6",
       "serial_number": null,
       "sw_version": "18.1",
@@ -1703,7 +1703,7 @@
       "device_id": null,
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "person.luca",
+      "entity_id": "person.None",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -1716,10 +1716,10 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca",
+      "original_name": "None",
       "platform": "person",
       "translation_key": null,
-      "unique_id": "luca"
+      "unique_id": "None"
     },
     {
       "area_id": null,
@@ -1963,7 +1963,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": "diagnostic",
-      "entity_id": "device_tracker.lucas_iphone",
+      "entity_id": "device_tracker.Nones_iphone",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -1976,7 +1976,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone",
+      "original_name": "None’s iPhone",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "85EA0E37-6F8E-4292-9D69-F2DD757F2672"
@@ -2261,7 +2261,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_average_active_pace",
+      "entity_id": "sensor.Nones_iphone_average_active_pace",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2274,7 +2274,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Average Active Pace",
+      "original_name": "None’s iPhone Average Active Pace",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_pedometer_avg_active_pace"
@@ -2287,7 +2287,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_floors_ascended",
+      "entity_id": "sensor.Nones_iphone_floors_ascended",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2300,7 +2300,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Floors Ascended",
+      "original_name": "None’s iPhone Floors Ascended",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_pedometer_floors_ascended"
@@ -2313,7 +2313,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_distance",
+      "entity_id": "sensor.Nones_iphone_distance",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2326,7 +2326,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Distance",
+      "original_name": "None’s iPhone Distance",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_pedometer_distance"
@@ -2339,7 +2339,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_floors_descended",
+      "entity_id": "sensor.Nones_iphone_floors_descended",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2352,7 +2352,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Floors Descended",
+      "original_name": "None’s iPhone Floors Descended",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_pedometer_floors_descended"
@@ -2365,7 +2365,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_steps",
+      "entity_id": "sensor.Nones_iphone_steps",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2378,7 +2378,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Steps",
+      "original_name": "None’s iPhone Steps",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_pedometer_steps"
@@ -2391,7 +2391,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_activity",
+      "entity_id": "sensor.Nones_iphone_activity",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2404,7 +2404,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Activity",
+      "original_name": "None’s iPhone Activity",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_activity"
@@ -2417,7 +2417,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_battery_level",
+      "entity_id": "sensor.Nones_iphone_battery_level",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2430,7 +2430,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Battery Level",
+      "original_name": "None’s iPhone Battery Level",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_battery_level"
@@ -2443,7 +2443,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_battery_state",
+      "entity_id": "sensor.Nones_iphone_battery_state",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2456,7 +2456,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Battery State",
+      "original_name": "None’s iPhone Battery State",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_battery_state"
@@ -2469,7 +2469,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_storage",
+      "entity_id": "sensor.Nones_iphone_storage",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2482,7 +2482,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Storage",
+      "original_name": "None’s iPhone Storage",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_storage"
@@ -2495,7 +2495,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_ssid",
+      "entity_id": "sensor.Nones_iphone_ssid",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2508,7 +2508,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone SSID",
+      "original_name": "None’s iPhone SSID",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_connectivity_ssid"
@@ -2521,7 +2521,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_bssid",
+      "entity_id": "sensor.Nones_iphone_bssid",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2534,7 +2534,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone BSSID",
+      "original_name": "None’s iPhone BSSID",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_connectivity_bssid"
@@ -2547,7 +2547,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_connection_type",
+      "entity_id": "sensor.Nones_iphone_connection_type",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2560,7 +2560,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Connection Type",
+      "original_name": "None’s iPhone Connection Type",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_connectivity_connection_type"
@@ -2573,7 +2573,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_sim_1",
+      "entity_id": "sensor.Nones_iphone_sim_1",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2586,7 +2586,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone SIM 1",
+      "original_name": "None’s iPhone SIM 1",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_connectivity_sim_1"
@@ -2599,7 +2599,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_sim_2",
+      "entity_id": "sensor.Nones_iphone_sim_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2612,7 +2612,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone SIM 2",
+      "original_name": "None’s iPhone SIM 2",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_connectivity_sim_2"
@@ -2625,7 +2625,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_geocoded_location",
+      "entity_id": "sensor.Nones_iphone_geocoded_location",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2638,7 +2638,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Geocoded Location",
+      "original_name": "None’s iPhone Geocoded Location",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_geocoded_location"
@@ -2651,7 +2651,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "binary_sensor.lucas_iphone_focus",
+      "entity_id": "binary_sensor.Nones_iphone_focus",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2664,7 +2664,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Focus",
+      "original_name": "None’s iPhone Focus",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_focus"
@@ -2677,7 +2677,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_last_update_trigger",
+      "entity_id": "sensor.Nones_iphone_last_update_trigger",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2690,7 +2690,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Last Update Trigger",
+      "original_name": "None’s iPhone Last Update Trigger",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_last_update_trigger"
@@ -2703,7 +2703,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": "diagnostic",
-      "entity_id": "sensor.lucas_iphone_app_version",
+      "entity_id": "sensor.Nones_iphone_app_version",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2716,7 +2716,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone App Version",
+      "original_name": "None’s iPhone App Version",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_app-version"
@@ -2729,7 +2729,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_location_permission",
+      "entity_id": "sensor.Nones_iphone_location_permission",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2742,7 +2742,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Location permission",
+      "original_name": "None’s iPhone Location permission",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "2ff4b3d616225d0334d7abf6d32d1991d1f9529a5924152546f3eac737378db2_location-permission"
@@ -2755,7 +2755,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_activity_2",
+      "entity_id": "sensor.Nones_iphone_activity_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2768,7 +2768,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Activity",
+      "original_name": "None’s iPhone Activity",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_activity"
@@ -2781,7 +2781,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_battery_level_2",
+      "entity_id": "sensor.Nones_iphone_battery_level_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2794,7 +2794,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Battery Level",
+      "original_name": "None’s iPhone Battery Level",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_battery_level"
@@ -2807,7 +2807,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_distance_2",
+      "entity_id": "sensor.Nones_iphone_distance_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2820,7 +2820,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Distance",
+      "original_name": "None’s iPhone Distance",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_pedometer_distance"
@@ -2833,7 +2833,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_floors_ascended_2",
+      "entity_id": "sensor.Nones_iphone_floors_ascended_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2846,7 +2846,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Floors Ascended",
+      "original_name": "None’s iPhone Floors Ascended",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_pedometer_floors_ascended"
@@ -2859,7 +2859,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_floors_descended_2",
+      "entity_id": "sensor.Nones_iphone_floors_descended_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2872,7 +2872,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Floors Descended",
+      "original_name": "None’s iPhone Floors Descended",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_pedometer_floors_descended"
@@ -2885,7 +2885,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_steps_2",
+      "entity_id": "sensor.Nones_iphone_steps_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2898,7 +2898,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Steps",
+      "original_name": "None’s iPhone Steps",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_pedometer_steps"
@@ -2911,7 +2911,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_battery_state_2",
+      "entity_id": "sensor.Nones_iphone_battery_state_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2924,7 +2924,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Battery State",
+      "original_name": "None’s iPhone Battery State",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_battery_state"
@@ -2937,7 +2937,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_storage_2",
+      "entity_id": "sensor.Nones_iphone_storage_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2950,7 +2950,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Storage",
+      "original_name": "None’s iPhone Storage",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_storage"
@@ -2963,7 +2963,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_ssid_2",
+      "entity_id": "sensor.Nones_iphone_ssid_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -2976,7 +2976,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone SSID",
+      "original_name": "None’s iPhone SSID",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_connectivity_ssid"
@@ -2989,7 +2989,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_bssid_2",
+      "entity_id": "sensor.Nones_iphone_bssid_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3002,7 +3002,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone BSSID",
+      "original_name": "None’s iPhone BSSID",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_connectivity_bssid"
@@ -3015,7 +3015,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_connection_type_2",
+      "entity_id": "sensor.Nones_iphone_connection_type_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3028,7 +3028,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Connection Type",
+      "original_name": "None’s iPhone Connection Type",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_connectivity_connection_type"
@@ -3041,7 +3041,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_sim_1_2",
+      "entity_id": "sensor.Nones_iphone_sim_1_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3054,7 +3054,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone SIM 1",
+      "original_name": "None’s iPhone SIM 1",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_connectivity_sim_1"
@@ -3067,7 +3067,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_sim_2_2",
+      "entity_id": "sensor.Nones_iphone_sim_2_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3080,7 +3080,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone SIM 2",
+      "original_name": "None’s iPhone SIM 2",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_connectivity_sim_2"
@@ -3093,7 +3093,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "binary_sensor.lucas_iphone_focus_2",
+      "entity_id": "binary_sensor.Nones_iphone_focus_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3106,7 +3106,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Focus",
+      "original_name": "None’s iPhone Focus",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_focus"
@@ -3119,7 +3119,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_last_update_trigger_2",
+      "entity_id": "sensor.Nones_iphone_last_update_trigger_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3132,7 +3132,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Last Update Trigger",
+      "original_name": "None’s iPhone Last Update Trigger",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_last_update_trigger"
@@ -3145,7 +3145,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": "diagnostic",
-      "entity_id": "sensor.lucas_iphone_app_version_2",
+      "entity_id": "sensor.Nones_iphone_app_version_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3158,7 +3158,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone App Version",
+      "original_name": "None’s iPhone App Version",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_app-version"
@@ -3171,7 +3171,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_location_permission_2",
+      "entity_id": "sensor.Nones_iphone_location_permission_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3184,7 +3184,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Location permission",
+      "original_name": "None’s iPhone Location permission",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_location-permission"
@@ -3197,7 +3197,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_average_active_pace_2",
+      "entity_id": "sensor.Nones_iphone_average_active_pace_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3210,7 +3210,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Average Active Pace",
+      "original_name": "None’s iPhone Average Active Pace",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_pedometer_avg_active_pace"
@@ -3223,7 +3223,7 @@
       "device_id": "e19544471e06a2fc73da46bec34b3f13",
       "disabled_by": null,
       "entity_category": null,
-      "entity_id": "sensor.lucas_iphone_geocoded_location_2",
+      "entity_id": "sensor.Nones_iphone_geocoded_location_2",
       "has_entity_name": false,
       "hidden_by": null,
       "icon": null,
@@ -3236,7 +3236,7 @@
           "should_expose": false
         }
       },
-      "original_name": "Luca’s iPhone Geocoded Location",
+      "original_name": "None’s iPhone Geocoded Location",
       "platform": "mobile_app",
       "translation_key": null,
       "unique_id": "43d0bd4c5cf030a7cf373a18016a71e7ac6e246dec0b3d5c3d0cc6eb0970d2fd_geocoded_location"
@@ -7549,20 +7549,20 @@
   ],
   "states": [
     {
-      "entity_id": "person.luca",
+      "entity_id": "person.None",
       "state": "not_home",
       "attributes": {
         "editable": true,
-        "id": "luca",
+        "id": "None",
         "device_trackers": [
-          "device_tracker.lucas_iphone"
+          "device_tracker.Nones_iphone"
         ],
-        "latitude": 43.73546856841873,
-        "longitude": 7.414291906426737,
+        "latitude": 42.3,
+        "longitude": 8.4,
         "gps_accuracy": 14,
-        "source": "device_tracker.lucas_iphone",
+        "source": "device_tracker.Nones_iphone",
         "user_id": "8db35feb8252468e83db0e5ef66fea59",
-        "friendly_name": "Luca"
+        "friendly_name": "None"
       },
       "last_changed": "2024-11-02T22:09:20.169051+00:00",
       "last_reported": "2024-11-03T08:32:19.821098+00:00",
@@ -7930,8 +7930,8 @@
       "entity_id": "zone.home",
       "state": "0",
       "attributes": {
-        "latitude": 43.7384853,
-        "longitude": 7.4148598,
+        "latitude": 41,
+        "longitude": 7,
         "radius": 100,
         "passive": false,
         "persons": [],
@@ -8116,11 +8116,11 @@
       }
     },
     {
-      "entity_id": "binary_sensor.lucas_iphone_focus",
+      "entity_id": "binary_sensor.Nones_iphone_focus",
       "state": "off",
       "attributes": {
         "icon": "mdi:moon-waning-crescent",
-        "friendly_name": "Luca’s iPhone Focus"
+        "friendly_name": "None’s iPhone Focus"
       },
       "last_changed": "2024-11-03T09:07:57.623643+00:00",
       "last_reported": "2024-11-03T09:07:57.623643+00:00",
@@ -8132,17 +8132,17 @@
       }
     },
     {
-      "entity_id": "device_tracker.lucas_iphone",
+      "entity_id": "device_tracker.Nones_iphone",
       "state": "not_home",
       "attributes": {
         "source_type": "gps",
         "battery_level": 100,
-        "latitude": 43.73546856841873,
-        "longitude": 7.414291906426737,
+        "latitude": 4,
+        "longitude": 7,
         "gps_accuracy": 14,
         "altitude": 152.69247338803464,
         "vertical_accuracy": 30,
-        "friendly_name": "Luca’s iPhone"
+        "friendly_name": "None’s iPhone"
       },
       "last_changed": "2024-11-03T08:32:19.819829+00:00",
       "last_reported": "2024-11-03T08:32:19.819829+00:00",
@@ -8154,12 +8154,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_average_active_pace",
+      "entity_id": "sensor.Nones_iphone_average_active_pace",
       "state": "0",
       "attributes": {
         "unit_of_measurement": "m/s",
         "icon": "mdi:speedometer",
-        "friendly_name": "Luca’s iPhone Average Active Pace"
+        "friendly_name": "None’s iPhone Average Active Pace"
       },
       "last_changed": "2024-11-03T12:53:21.634635+00:00",
       "last_reported": "2024-11-03T12:53:21.634635+00:00",
@@ -8171,12 +8171,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_floors_ascended",
+      "entity_id": "sensor.Nones_iphone_floors_ascended",
       "state": "1",
       "attributes": {
         "unit_of_measurement": "floors",
         "icon": "mdi:stairs-up",
-        "friendly_name": "Luca’s iPhone Floors Ascended"
+        "friendly_name": "None’s iPhone Floors Ascended"
       },
       "last_changed": "2024-11-03T12:53:21.632314+00:00",
       "last_reported": "2024-11-03T12:53:21.632314+00:00",
@@ -8188,12 +8188,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_distance",
+      "entity_id": "sensor.Nones_iphone_distance",
       "state": "3202",
       "attributes": {
         "unit_of_measurement": "m",
         "icon": "mdi:hiking",
-        "friendly_name": "Luca’s iPhone Distance"
+        "friendly_name": "None’s iPhone Distance"
       },
       "last_changed": "2024-11-03T17:10:40.594513+00:00",
       "last_reported": "2024-11-03T17:10:40.594513+00:00",
@@ -8205,12 +8205,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_floors_descended",
+      "entity_id": "sensor.Nones_iphone_floors_descended",
       "state": "15",
       "attributes": {
         "unit_of_measurement": "floors",
         "icon": "mdi:stairs-down",
-        "friendly_name": "Luca’s iPhone Floors Descended"
+        "friendly_name": "None’s iPhone Floors Descended"
       },
       "last_changed": "2024-11-03T12:53:21.633147+00:00",
       "last_reported": "2024-11-03T12:53:21.633147+00:00",
@@ -8222,12 +8222,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_steps",
+      "entity_id": "sensor.Nones_iphone_steps",
       "state": "4094",
       "attributes": {
         "unit_of_measurement": "steps",
         "icon": "mdi:walk",
-        "friendly_name": "Luca’s iPhone Steps"
+        "friendly_name": "None’s iPhone Steps"
       },
       "last_changed": "2024-11-03T17:10:40.596230+00:00",
       "last_reported": "2024-11-03T17:10:40.596230+00:00",
@@ -8239,7 +8239,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_activity",
+      "entity_id": "sensor.Nones_iphone_activity",
       "state": "Stationary",
       "attributes": {
         "Confidence": "High",
@@ -8247,7 +8247,7 @@
           "Stationary"
         ],
         "icon": "mdi:human-male",
-        "friendly_name": "Luca’s iPhone Activity"
+        "friendly_name": "None’s iPhone Activity"
       },
       "last_changed": "2024-11-03T17:05:39.925389+00:00",
       "last_reported": "2024-11-03T17:05:39.925389+00:00",
@@ -8259,13 +8259,13 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_battery_level",
+      "entity_id": "sensor.Nones_iphone_battery_level",
       "state": "60",
       "attributes": {
         "unit_of_measurement": "%",
         "device_class": "battery",
         "icon": "mdi:battery-60",
-        "friendly_name": "Luca’s iPhone Battery Level"
+        "friendly_name": "None’s iPhone Battery Level"
       },
       "last_changed": "2024-11-03T16:50:37.815673+00:00",
       "last_reported": "2024-11-03T16:50:37.815673+00:00",
@@ -8277,12 +8277,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_battery_state",
+      "entity_id": "sensor.Nones_iphone_battery_state",
       "state": "Not Charging",
       "attributes": {
         "Low Power Mode": false,
         "icon": "mdi:battery-60",
-        "friendly_name": "Luca’s iPhone Battery State"
+        "friendly_name": "None’s iPhone Battery State"
       },
       "last_changed": "2024-11-03T06:49:40.027471+00:00",
       "last_reported": "2024-11-03T16:30:34.966327+00:00",
@@ -8294,7 +8294,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_storage",
+      "entity_id": "sensor.Nones_iphone_storage",
       "state": "26.49",
       "attributes": {
         "Available": "13,13 GB",
@@ -8303,7 +8303,7 @@
         "Total": "127,87 GB",
         "unit_of_measurement": "% available",
         "icon": "mdi:database",
-        "friendly_name": "Luca’s iPhone Storage"
+        "friendly_name": "None’s iPhone Storage"
       },
       "last_changed": "2024-11-03T17:05:39.928801+00:00",
       "last_reported": "2024-11-03T17:05:39.928801+00:00",
@@ -8315,11 +8315,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_ssid",
+      "entity_id": "sensor.Nones_iphone_ssid",
       "state": "Not Connected",
       "attributes": {
         "icon": "mdi:wifi-off",
-        "friendly_name": "Luca’s iPhone SSID"
+        "friendly_name": "None’s iPhone SSID"
       },
       "last_changed": "2024-11-03T08:35:48.904209+00:00",
       "last_reported": "2024-11-03T08:35:48.904209+00:00",
@@ -8331,11 +8331,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_bssid",
+      "entity_id": "sensor.Nones_iphone_bssid",
       "state": "Not Connected",
       "attributes": {
         "icon": "mdi:wifi-off",
-        "friendly_name": "Luca’s iPhone BSSID"
+        "friendly_name": "None’s iPhone BSSID"
       },
       "last_changed": "2024-11-03T08:35:48.904847+00:00",
       "last_reported": "2024-11-03T08:35:48.904847+00:00",
@@ -8347,11 +8347,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_connection_type",
+      "entity_id": "sensor.Nones_iphone_connection_type",
       "state": "Wi-Fi",
       "attributes": {
         "icon": "mdi:wifi",
-        "friendly_name": "Luca’s iPhone Connection Type"
+        "friendly_name": "None’s iPhone Connection Type"
       },
       "last_changed": "2024-11-03T13:27:19.962279+00:00",
       "last_reported": "2024-11-03T13:27:19.962279+00:00",
@@ -8363,7 +8363,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_sim_1",
+      "entity_id": "sensor.Nones_iphone_sim_1",
       "state": "--",
       "attributes": {
         "Allows VoIP": true,
@@ -8374,7 +8374,7 @@
         "Mobile Country Code": "65535",
         "Mobile Network Code": "65535",
         "icon": "mdi:sim",
-        "friendly_name": "Luca’s iPhone SIM 1"
+        "friendly_name": "None’s iPhone SIM 1"
       },
       "last_changed": "2024-11-02T22:09:42.032480+00:00",
       "last_reported": "2024-11-02T22:09:42.032480+00:00",
@@ -8386,7 +8386,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_sim_2",
+      "entity_id": "sensor.Nones_iphone_sim_2",
       "state": "--",
       "attributes": {
         "Allows VoIP": true,
@@ -8397,7 +8397,7 @@
         "Mobile Country Code": "65535",
         "Mobile Network Code": "65535",
         "icon": "mdi:sim",
-        "friendly_name": "Luca’s iPhone SIM 2"
+        "friendly_name": "None’s iPhone SIM 2"
       },
       "last_changed": "2024-11-02T22:09:42.033570+00:00",
       "last_reported": "2024-11-02T22:09:42.033570+00:00",
@@ -8409,30 +8409,30 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_geocoded_location",
-      "state": "25B Avenue Hector Otto\n98000 Monaco\nMonaco",
+      "entity_id": "sensor.Nones_iphone_geocoded_location",
+      "state": "",
       "attributes": {
         "Administrative Area": "MC",
         "Areas Of Interest": "N/A",
-        "Country": "Monaco",
+        "Country": "None",
         "Inland Water": "N/A",
-        "ISO Country Code": "MC",
-        "Locality": "Monaco",
+        "ISO Country Code": "XX",
+        "Locality": "None",
         "Location": [
-          43.73546856841873,
-          7.414291906426737
+          4,
+          7
         ],
-        "Name": "25B Avenue Hector Otto",
+        "Name": "",
         "Ocean": "N/A",
-        "Postal Code": "98000",
+        "Postal Code": "",
         "Sub Administrative Area": "N/A",
-        "Sub Locality": "Jardin Exotique",
-        "Sub Thoroughfare": "25B",
-        "Thoroughfare": "Avenue Hector Otto",
-        "Time Zone": "Europe/Monaco",
+        "Sub Locality": "",
+        "Sub Thoroughfare": "",
+        "Thoroughfare": "",
+        "Time Zone": "",
         "Zones": [],
         "icon": "mdi:map",
-        "friendly_name": "Luca’s iPhone Geocoded Location"
+        "friendly_name": "None’s iPhone Geocoded Location"
       },
       "last_changed": "2024-11-03T08:32:19.607217+00:00",
       "last_reported": "2024-11-03T08:32:20.121645+00:00",
@@ -8444,11 +8444,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_last_update_trigger",
+      "entity_id": "sensor.Nones_iphone_last_update_trigger",
       "state": "Periodic",
       "attributes": {
         "icon": "mdi:cellphone-wireless",
-        "friendly_name": "Luca’s iPhone Last Update Trigger"
+        "friendly_name": "None’s iPhone Last Update Trigger"
       },
       "last_changed": "2024-11-03T16:30:34.969525+00:00",
       "last_reported": "2024-11-03T16:30:34.969525+00:00",
@@ -8460,11 +8460,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_app_version",
+      "entity_id": "sensor.Nones_iphone_app_version",
       "state": "2024.9.4",
       "attributes": {
         "icon": "mdi:cellphone",
-        "friendly_name": "Luca’s iPhone App Version"
+        "friendly_name": "None’s iPhone App Version"
       },
       "last_changed": "2024-11-02T22:09:42.036428+00:00",
       "last_reported": "2024-11-02T22:09:42.036428+00:00",
@@ -8476,11 +8476,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_location_permission",
+      "entity_id": "sensor.Nones_iphone_location_permission",
       "state": "Authorized when in use",
       "attributes": {
         "icon": "mdi:map",
-        "friendly_name": "Luca’s iPhone Location permission"
+        "friendly_name": "None’s iPhone Location permission"
       },
       "last_changed": "2024-11-02T22:09:42.037430+00:00",
       "last_reported": "2024-11-02T22:09:42.037430+00:00",
@@ -8492,11 +8492,11 @@
       }
     },
     {
-      "entity_id": "binary_sensor.lucas_iphone_focus_2",
+      "entity_id": "binary_sensor.Nones_iphone_focus_2",
       "state": "off",
       "attributes": {
         "icon": "mdi:moon-waning-crescent",
-        "friendly_name": "Luca’s iPhone Focus"
+        "friendly_name": "None’s iPhone Focus"
       },
       "last_changed": "2024-11-03T09:07:57.599940+00:00",
       "last_reported": "2024-11-03T09:07:57.599940+00:00",
@@ -8508,7 +8508,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_activity_2",
+      "entity_id": "sensor.Nones_iphone_activity_2",
       "state": "Stationary",
       "attributes": {
         "Confidence": "High",
@@ -8516,7 +8516,7 @@
           "Stationary"
         ],
         "icon": "mdi:human-male",
-        "friendly_name": "Luca’s iPhone Activity"
+        "friendly_name": "None’s iPhone Activity"
       },
       "last_changed": "2024-11-03T17:05:39.902525+00:00",
       "last_reported": "2024-11-03T17:05:39.902525+00:00",
@@ -8528,13 +8528,13 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_battery_level_2",
+      "entity_id": "sensor.Nones_iphone_battery_level_2",
       "state": "60",
       "attributes": {
         "unit_of_measurement": "%",
         "device_class": "battery",
         "icon": "mdi:battery-60",
-        "friendly_name": "Luca’s iPhone Battery Level"
+        "friendly_name": "None’s iPhone Battery Level"
       },
       "last_changed": "2024-11-03T16:50:37.746651+00:00",
       "last_reported": "2024-11-03T16:50:37.746651+00:00",
@@ -8546,12 +8546,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_distance_2",
+      "entity_id": "sensor.Nones_iphone_distance_2",
       "state": "3202",
       "attributes": {
         "unit_of_measurement": "m",
         "icon": "mdi:hiking",
-        "friendly_name": "Luca’s iPhone Distance"
+        "friendly_name": "None’s iPhone Distance"
       },
       "last_changed": "2024-11-03T17:10:40.523474+00:00",
       "last_reported": "2024-11-03T17:10:40.523474+00:00",
@@ -8563,12 +8563,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_floors_ascended_2",
+      "entity_id": "sensor.Nones_iphone_floors_ascended_2",
       "state": "1",
       "attributes": {
         "unit_of_measurement": "floors",
         "icon": "mdi:stairs-up",
-        "friendly_name": "Luca’s iPhone Floors Ascended"
+        "friendly_name": "None’s iPhone Floors Ascended"
       },
       "last_changed": "2024-11-03T12:53:22.073067+00:00",
       "last_reported": "2024-11-03T12:53:22.073067+00:00",
@@ -8580,12 +8580,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_floors_descended_2",
+      "entity_id": "sensor.Nones_iphone_floors_descended_2",
       "state": "15",
       "attributes": {
         "unit_of_measurement": "floors",
         "icon": "mdi:stairs-down",
-        "friendly_name": "Luca’s iPhone Floors Descended"
+        "friendly_name": "None’s iPhone Floors Descended"
       },
       "last_changed": "2024-11-03T12:53:22.073796+00:00",
       "last_reported": "2024-11-03T12:53:22.073796+00:00",
@@ -8597,12 +8597,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_steps_2",
+      "entity_id": "sensor.Nones_iphone_steps_2",
       "state": "4094",
       "attributes": {
         "unit_of_measurement": "steps",
         "icon": "mdi:walk",
-        "friendly_name": "Luca’s iPhone Steps"
+        "friendly_name": "None’s iPhone Steps"
       },
       "last_changed": "2024-11-03T17:10:40.525249+00:00",
       "last_reported": "2024-11-03T17:10:40.525249+00:00",
@@ -8614,12 +8614,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_battery_state_2",
+      "entity_id": "sensor.Nones_iphone_battery_state_2",
       "state": "Not Charging",
       "attributes": {
         "Low Power Mode": false,
         "icon": "mdi:battery-60",
-        "friendly_name": "Luca’s iPhone Battery State"
+        "friendly_name": "None’s iPhone Battery State"
       },
       "last_changed": "2024-11-03T06:49:39.903746+00:00",
       "last_reported": "2024-11-03T16:30:34.929075+00:00",
@@ -8631,7 +8631,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_storage_2",
+      "entity_id": "sensor.Nones_iphone_storage_2",
       "state": "26.49",
       "attributes": {
         "Available": "13,13 GB",
@@ -8640,7 +8640,7 @@
         "Total": "127,87 GB",
         "unit_of_measurement": "% available",
         "icon": "mdi:database",
-        "friendly_name": "Luca’s iPhone Storage"
+        "friendly_name": "None’s iPhone Storage"
       },
       "last_changed": "2024-11-03T17:05:39.905983+00:00",
       "last_reported": "2024-11-03T17:05:39.905983+00:00",
@@ -8652,11 +8652,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_ssid_2",
+      "entity_id": "sensor.Nones_iphone_ssid_2",
       "state": "Not Connected",
       "attributes": {
         "icon": "mdi:wifi-off",
-        "friendly_name": "Luca’s iPhone SSID"
+        "friendly_name": "None’s iPhone SSID"
       },
       "last_changed": "2024-11-03T08:35:48.835334+00:00",
       "last_reported": "2024-11-03T08:35:48.835334+00:00",
@@ -8668,11 +8668,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_bssid_2",
+      "entity_id": "sensor.Nones_iphone_bssid_2",
       "state": "Not Connected",
       "attributes": {
         "icon": "mdi:wifi-off",
-        "friendly_name": "Luca’s iPhone BSSID"
+        "friendly_name": "None’s iPhone BSSID"
       },
       "last_changed": "2024-11-03T08:35:48.836036+00:00",
       "last_reported": "2024-11-03T08:35:48.836036+00:00",
@@ -8684,11 +8684,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_connection_type_2",
+      "entity_id": "sensor.Nones_iphone_connection_type_2",
       "state": "Wi-Fi",
       "attributes": {
         "icon": "mdi:wifi",
-        "friendly_name": "Luca’s iPhone Connection Type"
+        "friendly_name": "None’s iPhone Connection Type"
       },
       "last_changed": "2024-11-03T13:27:19.803119+00:00",
       "last_reported": "2024-11-03T13:27:19.803119+00:00",
@@ -8700,7 +8700,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_sim_1_2",
+      "entity_id": "sensor.Nones_iphone_sim_1_2",
       "state": "--",
       "attributes": {
         "Allows VoIP": true,
@@ -8711,7 +8711,7 @@
         "Mobile Country Code": "65535",
         "Mobile Network Code": "65535",
         "icon": "mdi:sim",
-        "friendly_name": "Luca’s iPhone SIM 1"
+        "friendly_name": "None’s iPhone SIM 1"
       },
       "last_changed": "2024-11-02T22:09:42.061812+00:00",
       "last_reported": "2024-11-02T22:09:42.061812+00:00",
@@ -8723,7 +8723,7 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_sim_2_2",
+      "entity_id": "sensor.Nones_iphone_sim_2_2",
       "state": "--",
       "attributes": {
         "Allows VoIP": true,
@@ -8734,7 +8734,7 @@
         "Mobile Country Code": "65535",
         "Mobile Network Code": "65535",
         "icon": "mdi:sim",
-        "friendly_name": "Luca’s iPhone SIM 2"
+        "friendly_name": "None’s iPhone SIM 2"
       },
       "last_changed": "2024-11-02T22:09:42.062863+00:00",
       "last_reported": "2024-11-02T22:09:42.062863+00:00",
@@ -8746,11 +8746,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_last_update_trigger_2",
+      "entity_id": "sensor.Nones_iphone_last_update_trigger_2",
       "state": "Periodic",
       "attributes": {
         "icon": "mdi:cellphone-wireless",
-        "friendly_name": "Luca’s iPhone Last Update Trigger"
+        "friendly_name": "None’s iPhone Last Update Trigger"
       },
       "last_changed": "2024-11-03T16:30:34.951681+00:00",
       "last_reported": "2024-11-03T16:30:34.951681+00:00",
@@ -8762,11 +8762,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_app_version_2",
+      "entity_id": "sensor.Nones_iphone_app_version_2",
       "state": "2024.9.4",
       "attributes": {
         "icon": "mdi:cellphone",
-        "friendly_name": "Luca’s iPhone App Version"
+        "friendly_name": "None’s iPhone App Version"
       },
       "last_changed": "2024-11-02T22:09:42.070619+00:00",
       "last_reported": "2024-11-02T22:09:42.070619+00:00",
@@ -8778,11 +8778,11 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_location_permission_2",
+      "entity_id": "sensor.Nones_iphone_location_permission_2",
       "state": "Authorized when in use",
       "attributes": {
         "icon": "mdi:map",
-        "friendly_name": "Luca’s iPhone Location permission"
+        "friendly_name": "None’s iPhone Location permission"
       },
       "last_changed": "2024-11-02T22:09:42.071922+00:00",
       "last_reported": "2024-11-02T22:09:42.071922+00:00",
@@ -8794,12 +8794,12 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_average_active_pace_2",
+      "entity_id": "sensor.Nones_iphone_average_active_pace_2",
       "state": "0",
       "attributes": {
         "unit_of_measurement": "m/s",
         "icon": "mdi:speedometer",
-        "friendly_name": "Luca’s iPhone Average Active Pace"
+        "friendly_name": "None’s iPhone Average Active Pace"
       },
       "last_changed": "2024-11-03T12:53:22.075292+00:00",
       "last_reported": "2024-11-03T12:53:22.075292+00:00",
@@ -8811,30 +8811,30 @@
       }
     },
     {
-      "entity_id": "sensor.lucas_iphone_geocoded_location_2",
-      "state": "25B Avenue Hector Otto\n98000 Monaco\nMonaco",
+      "entity_id": "sensor.Nones_iphone_geocoded_location_2",
+      "state": "",
       "attributes": {
-        "Administrative Area": "MC",
-        "Areas Of Interest": "N/A",
-        "Country": "Monaco",
-        "Inland Water": "N/A",
-        "ISO Country Code": "MC",
-        "Locality": "Monaco",
+        "Administrative Area": "",
+        "Areas Of Interest": "",
+        "Country": "",
+        "Inland Water": "",
+        "ISO Country Code": "",
+        "Locality": "",
         "Location": [
-          43.73546856841873,
-          7.414291906426737
+          4,
+          7
         ],
-        "Name": "25B Avenue Hector Otto",
-        "Ocean": "N/A",
-        "Postal Code": "98000",
-        "Sub Administrative Area": "N/A",
-        "Sub Locality": "Jardin Exotique",
-        "Sub Thoroughfare": "25B",
-        "Thoroughfare": "Avenue Hector Otto",
-        "Time Zone": "Europe/Monaco",
+        "Name": "",
+        "Ocean": "",
+        "Postal Code": "",
+        "Sub Administrative Area": "",
+        "Sub Locality": "",
+        "Sub Thoroughfare": "",
+        "Thoroughfare": "",
+        "Time Zone": "",
         "Zones": [],
         "icon": "mdi:map",
-        "friendly_name": "Luca’s iPhone Geocoded Location"
+        "friendly_name": "None’s iPhone Geocoded Location"
       },
       "last_changed": "2024-11-03T08:32:19.724382+00:00",
       "last_reported": "2024-11-03T08:32:20.055037+00:00",
@@ -11356,8 +11356,8 @@
     }
   ],
   "config": {
-    "latitude": 43.1,
-    "longitude": 9.1,
+    "latitude": 43,
+    "longitude": 9,
     "elevation": 0,
     "unit_system": {
       "length": "km",
@@ -11369,7 +11369,7 @@
       "wind_speed": "m/s"
     },
     "location_name": "Home",
-    "time_zone": "Europe/Paris",
+    "time_zone": "Europe",
     "components": [
       "input_datetime",
       "person",
@@ -15840,37 +15840,6 @@
             },
             "name": "Data",
             "description": "Some integrations provide extended functionality. For information on how to use _data_, refer to the integration documentation.."
-          }
-        }
-      },
-      "mobile_app_lucas_iphone": {
-        "name": "Send a notification via mobile_app_lucas_iphone",
-        "description": "Sends a notification message using the mobile_app_lucas_iphone integration.",
-        "fields": {
-          "message": {
-            "required": true,
-            "example": "The garage door has been open for 10 minutes.",
-            "selector": {
-              "text": null
-            }
-          },
-          "title": {
-            "example": "Your Garage Door Friend",
-            "selector": {
-              "text": null
-            }
-          },
-          "target": {
-            "example": "platform specific",
-            "selector": {
-              "object": null
-            }
-          },
-          "data": {
-            "example": "platform specific",
-            "selector": {
-              "object": null
-            }
           }
         }
       },
