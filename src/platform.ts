@@ -331,7 +331,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
       const name = device.name_by_user ?? device.name ?? 'Unknown';
-      if (!isValidString(device.name) || !this._validateDeviceWhiteBlackList(device.name)) continue;
+      if (!this._validateDeviceWhiteBlackList(device)) continue;
 
       let mbDevice: MatterbridgeDevice | undefined;
 
@@ -607,12 +607,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  _validateDeviceWhiteBlackList(device: string) {
-    if (isValidArray(this.config.whiteList, 1) && !this.config.whiteList.includes(device)) {
+  _validateDeviceWhiteBlackList(device: Pick<HassDevice, 'id' | 'name' | 'name_by_user'>) {
+    if (isValidArray(this.config.whiteList, 1) && !this._matchStringListWithDevice(this.config.whiteList, device)) {
       this.log.warn(`Skipping device ${dn}${device}${wr} because not in whitelist`);
       return false;
     }
-    if (isValidArray(this.config.blackList, 1) && this.config.blackList.includes(device)) {
+    if (isValidArray(this.config.blackList, 1) && this._matchStringListWithDevice(this.config.blackList, device)) {
       this.log.warn(`Skipping device ${dn}${device}${wr} because in blacklist`);
       return false;
     }
@@ -633,5 +633,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       return false;
     }
     return true;
+  }
+
+  _matchStringListWithDevice(stringList: unknown[], device: Pick<HassDevice, 'id' | 'name' | 'name_by_user'>) {
+    return stringList.some((s) => s === device.name_by_user || s === device.name || s === device.id);
   }
 }
