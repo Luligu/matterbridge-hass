@@ -196,17 +196,17 @@ describe('HassPlatform', () => {
   it('should validate with white and black list', () => {
     haPlatform.config.whiteList = ['whiteDevice'];
     haPlatform.config.blackList = ['blackDevice'];
-    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: 'whiteDevice', name_by_user: null })).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: 'blackDevice', name_by_user: null })).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: 'xDevice', name_by_user: null })).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: '', name_by_user: null })).toBe(false);
 
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = ['blackDevice'];
-    expect(haPlatform._validateDeviceWhiteBlackList('whiteDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('blackDevice')).toBe(false);
-    expect(haPlatform._validateDeviceWhiteBlackList('xDevice')).toBe(true);
-    expect(haPlatform._validateDeviceWhiteBlackList('')).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: 'whiteDevice', name_by_user: null })).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: 'blackDevice', name_by_user: null })).toBe(false);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: 'xDevice', name_by_user: null })).toBe(true);
+    expect(haPlatform._validateDeviceWhiteBlackList({ id: '12345', name: '', name_by_user: null })).toBe(true);
 
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = [];
@@ -760,6 +760,19 @@ describe('HassPlatform', () => {
     expect(mockMatterbridge.removeAllBridgedDevices).toHaveBeenCalled();
     await wait(1000);
   }, 20000);
+
+  it('should match device id or name', () => {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const device = (mockData.devices as HassDevice[]).find((d) => d.id === 'd1ecb5ba126bd056b9388a96fed5da74')!;
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(haPlatform._matchStringListWithDevice([device.id!], device)).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(haPlatform._matchStringListWithDevice([device.name!], device)).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(haPlatform._matchStringListWithDevice([device.name_by_user!], device)).toBe(true);
+    expect(haPlatform._matchStringListWithDevice(['abcd'], device)).toBe(false);
+  });
 });
 
 const switchDevice = {
