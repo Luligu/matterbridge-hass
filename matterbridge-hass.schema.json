@@ -32,14 +32,14 @@
       "default": 60
     },
     "blackList": {
-      "description": "The devices in the list will not be exposed. Use the device name.",
+      "description": "The devices in the list will not be exposed. Use the device ID or name.",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
     "whiteList": {
-      "description": "Only the devices in the list will be exposed. Use the device name.",
+      "description": "Only the devices in the list will be exposed. Use the device ID or name.",
       "type": "array",
       "items": {
         "type": "string"
