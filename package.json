@@ -87,6 +87,7 @@
     "install:jest": "npm install --save-dev jest ts-jest @types/jest eslint-plugin-jest"
   },
   "dependencies": {
+    "matterbridge": "^1.6.5",
     "node-ansi-logger": "3.0.0",
     "node-persist-manager": "1.0.8",
     "ws": "8.18.0"
