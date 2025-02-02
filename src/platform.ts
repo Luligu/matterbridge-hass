@@ -168,7 +168,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan individual entities and create Matterbridge devices
     for (const entity of Array.from(this.ha.hassEntities.values())) {
       const [domain, name] = entity.entity_id.split('.');
-      if (!['automation', 'scene', 'script'].includes(domain)) continue;
+      if (!['automation', 'input_boolean', 'scene', 'script'].includes(domain)) continue;
       const entityName = entity.name ?? entity.original_name;
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore

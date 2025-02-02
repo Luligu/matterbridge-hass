@@ -381,13 +381,21 @@ export class HomeAssistant extends EventEmitter {
               this.log.debug(`Entity id ${CYAN}${response.event.data.entity_id}${db} not found processing event`);
               return;
             }
-            const device = this.hassDevices.get(entity.device_id);
-            if (!device) {
-              this.log.debug(`Device id ${CYAN}${entity.device_id}${db} not found processing event:`);
-              return;
+            // For bridgedHassEntities with no device_id, use the entity_id instead
+            let device_id;
+            if (!entity.device_id) {
+              this.log.debug(`Using ${CYAN}${entity.entity_id}${db} as the device_id`);
+              device_id = entity.entity_id;
+            } else {
+              const device = this.hassDevices.get(entity.device_id);
+              if (!device) {
+                this.log.debug(`Device id ${CYAN}${entity.device_id}${db} not found processing event:`);
+                return
+              }
+              device_id = device.id;
             }
             this.hassStates.set(response.event.data.new_state.entity_id, response.event.data.new_state);
-            this.emit('event', device.id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
+            this.emit('event', device_id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
           } else if (response.id === this.eventsSubscribeId && response.event && response.event.event_type === 'call_service') {
             this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
             this.emit('call_service');

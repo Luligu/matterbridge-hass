@@ -79,6 +79,9 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'climate', state: 'heat', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Heat },
     { domain: 'climate', state: 'cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Cool },
     { domain: 'climate', state: 'heat_cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
+
+    { domain: 'input_boolean', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
+    { domain: 'input_boolean', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
   ];
 
 // Update Home Assistant attributes to Matterbridge device attributes
@@ -129,13 +132,14 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
 // Convert Home Assistant domains to Matterbridge device types and clusterIds
 // prettier-ignore
 export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
-    { domain: 'switch',   deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
-    { domain: 'light',    deviceType: onOffLight,       clusterId: OnOff.Cluster.id },
-    { domain: 'lock',     deviceType: doorLockDevice,   clusterId: DoorLock.Cluster.id },
-    { domain: 'fan',      deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
-    { domain: 'cover',    deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
-    { domain: 'climate',  deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
-    { domain: 'sensor',   deviceType: null,             clusterId: null },
+    { domain: 'switch',         deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
+    { domain: 'light',          deviceType: onOffLight,       clusterId: OnOff.Cluster.id },
+    { domain: 'lock',           deviceType: doorLockDevice,   clusterId: DoorLock.Cluster.id },
+    { domain: 'fan',            deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
+    { domain: 'cover',          deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
+    { domain: 'climate',        deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
+    { domain: 'sensor',         deviceType: null,             clusterId: null },
+    { domain: 'input_boolean',  deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
   ];
 
 // Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
@@ -181,6 +185,10 @@ export const hassCommandConverter: { command: string; domain: string; service: s
     { command: 'downOrClose',             domain: 'cover', service: 'close_cover' },
     { command: 'stopMotion',              domain: 'cover', service: 'stop_cover' },
     { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request: any) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
+
+    { command: 'on',                      domain: 'input_boolean', service: 'turn_on' },
+    { command: 'off',                     domain: 'input_boolean', service: 'turn_off' },
+    { command: 'toggle',                  domain: 'input_boolean', service: 'toggle' },
   ];
 
 // Convert Home Assistant domains services and attributes to Matterbridge subscribed cluster / attributes.
