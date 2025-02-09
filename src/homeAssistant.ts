@@ -363,7 +363,7 @@ export class HomeAssistant extends EventEmitter {
           ...serviceData, // Additional data to send with the command
         },
         undefined,
-        true
+        false
       ))
   }
 }
