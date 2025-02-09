@@ -91,6 +91,7 @@
     "cleanBuildProduction": "npm run clean && npm run buildProduction"
   },
   "dependencies": {
+    "home-assistant-js-websocket": "^9.4.0",
     "node-ansi-logger": "3.0.0",
     "node-persist-manager": "1.0.8",
     "ws": "8.18.0"
