@@ -16,7 +16,7 @@ import type { ConnectionOptions } from 'home-assistant-js-websocket/dist/connect
 import * as messages from 'home-assistant-js-websocket/dist/messages.js';
 import { atLeastHaVersion } from 'home-assistant-js-websocket/dist/util.js';
 
-const DEBUG = true;
+const DEBUG = false;
 
 const MSG_TYPE_AUTH_REQUIRED = "auth_required";
 const MSG_TYPE_AUTH_INVALID = "auth_invalid";
