@@ -23,11 +23,6 @@
       "description": "Home Assistant Long-Lived Access Token",
       "type": "string"
     },
-    "reconnectTimeout": {
-      "description": "Reconnect timeout in seconds",
-      "type": "number",
-      "default": 60
-    },
     "individualEntityWhiteList": {
       "description": "White list of individual entities without associated device to be exposed. It allows to select scenes, scripts, automations and input_boolean. Enter the entity_id (i.e. automation.turn_off_all_switches) or the entity name (i.e. Turn off all switched).",
       "type": "array",

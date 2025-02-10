@@ -3,50 +3,42 @@
  * NodeJS implementation of https://github.com/home-assistant/home-assistant-js-websocket/blob/master/lib/socket.ts
  */
 
-import WebSocket = require('ws');
+import WebSocket from 'ws';
 
-import {
-    ERR_INVALID_AUTH,
-    ERR_CANNOT_CONNECT,
-    ERR_HASS_HOST_REQUIRED,
-} from 'home-assistant-js-websocket/dist/errors.js';
+export const ERR_CANNOT_CONNECT = 'Unable to connect to home assistant';
+export const ERR_INVALID_AUTH = 'Invalid home assistant authentication token.';
+export const ERR_HASS_HOST_REQUIRED = 'Home assistant URL not configured.';
 
-import { Error } from 'home-assistant-js-websocket/dist/types.js';
-import type { ConnectionOptions } from 'home-assistant-js-websocket/dist/connection.js';
-import * as messages from 'home-assistant-js-websocket/dist/messages.js';
-import { atLeastHaVersion } from 'home-assistant-js-websocket/dist/util.js';
+import type { ConnectionOptions } from './connection.js';
 
 const DEBUG = false;
 
-const MSG_TYPE_AUTH_REQUIRED = "auth_required";
-const MSG_TYPE_AUTH_INVALID = "auth_invalid";
-const MSG_TYPE_AUTH_OK = "auth_ok";
+const MSG_TYPE_AUTH_REQUIRED = 'auth_required';
+const MSG_TYPE_AUTH_INVALID = 'auth_invalid';
+const MSG_TYPE_AUTH_OK = 'auth_ok';
 
-interface HaWebSocket extends WebSocket {
+export interface HaWebSocket extends WebSocket {
   haVersion: string;
 }
 
 export function createSocket(options: ConnectionOptions): Promise<HaWebSocket> {
-  if (!options.auth) {
+  if (!options.url) {
     throw ERR_HASS_HOST_REQUIRED;
   }
 
-  const auth = options.auth;
-
-  // Convert from http:// -> ws://, https:// -> wss://
-  const url = auth.wsUrl;
+  const url = `${options.url}/api/websocket`;
 
   if (DEBUG) {
-    console.log("[Auth phase] Initializing", url);
+    console.log('[Auth phase] Initializing', url);
   }  
 
   function connect(
     triesLeft: number,
     promResolve: (socket: HaWebSocket) => void,
-    promReject: (err: Error) => void,
+    promReject: (err: string) => void,
   ) {
     if (DEBUG) {
-        console.log("[Auth Phase] New connection", url);
+        console.log('[Auth Phase] New connection', url);
     }
 
     const socket = new WebSocket(url) as HaWebSocket;
@@ -56,7 +48,7 @@ export function createSocket(options: ConnectionOptions): Promise<HaWebSocket> {
 
     const closeMessage = (event: WebSocket.CloseEvent | WebSocket.ErrorEvent) => {
       // If we are in error handler make sure close handler doesn't also fire.
-      socket.removeEventListener("close", closeMessage);
+      socket.removeEventListener('close', closeMessage);
 
       if (invalidAuth) {
         promReject(ERR_INVALID_AUTH);
@@ -78,11 +70,10 @@ export function createSocket(options: ConnectionOptions): Promise<HaWebSocket> {
     // Auth is mandatory, so we can send the auth message right away.
     const handleOpen = async (event: WebSocket.Event) => {
       try {
-        if (auth.expired) {
-          await auth.refreshAccessToken();
-        }
-        socket.send(JSON.stringify(messages.auth(auth.accessToken)),
-        );
+        socket.send(JSON.stringify({
+          type: 'auth',
+          access_token: options.accessToken,
+        }));
       } catch (err) {
         // Refresh token failed
         invalidAuth = err === ERR_INVALID_AUTH;
@@ -94,7 +85,7 @@ export function createSocket(options: ConnectionOptions): Promise<HaWebSocket> {
       const message = JSON.parse(event.data.toString());
 
       if (DEBUG) {
-        console.log("[Auth phase] Received", message);
+        console.log('[Auth phase] Received', message);
       }
 
       switch (message.type) {
@@ -104,14 +95,21 @@ export function createSocket(options: ConnectionOptions): Promise<HaWebSocket> {
           break;
 
         case MSG_TYPE_AUTH_OK:
-          socket.removeEventListener("open", handleOpen);
-          socket.removeEventListener("message", handleMessage);
-          socket.removeEventListener("close", closeMessage);
-          socket.removeEventListener("error", closeMessage);
+          socket.removeEventListener('open', handleOpen);
+          socket.removeEventListener('message', handleMessage);
+          socket.removeEventListener('close', closeMessage);
+          socket.removeEventListener('error', closeMessage);
           socket.haVersion = message.ha_version;
-          if (atLeastHaVersion(socket.haVersion, 2022, 9)) {
-            socket.send(JSON.stringify(messages.supportedFeatures()));
-          }
+          //if (atLeastHaVersion(socket.haVersion, 2022, 9)) {
+          //  socket.send(JSON.stringify(messages.supportedFeatures()));
+          //}
+
+          // Assume we are always on a home assistant newer than 2022.9
+          socket.send(JSON.stringify({
+            type: 'supported_features',
+            id: 1, // Always the first message after auth
+            features: { coalesce_messages: 1 },
+          }))
 
           promResolve(socket);
           break;
@@ -120,16 +118,16 @@ export function createSocket(options: ConnectionOptions): Promise<HaWebSocket> {
           if (DEBUG) {
             // We already send response to this message when socket opens
             if (message.type !== MSG_TYPE_AUTH_REQUIRED) {
-                console.warn("[Auth phase] Unhandled message", message);
+                console.warn('[Auth phase] Unhandled message', message);
             }
           }
       }
     };
 
-    socket.addEventListener("open", handleOpen);
-    socket.addEventListener("message", handleMessage);
-    socket.addEventListener("close", closeMessage);
-    socket.addEventListener("error", closeMessage);
+    socket.addEventListener('open', handleOpen);
+    socket.addEventListener('message', handleMessage);
+    socket.addEventListener('close', closeMessage);
+    socket.addEventListener('error', closeMessage);
   }
 
   return new Promise((resolve, reject) => 

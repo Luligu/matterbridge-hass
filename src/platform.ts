@@ -84,7 +84,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       throw new Error('Host and token must be defined in the configuration');
     }
 
-    this.ha = new HomeAssistant(config.host, config.token, (config.reconnectTimeout as number | undefined) ?? 60);
+    this.ha = new HomeAssistant(config.host, config.token);
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
