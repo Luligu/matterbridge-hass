@@ -381,7 +381,7 @@ export class Connection {
                     subscription: message.id,
                 }              
             ).catch((err) => {
-                this.log.warn(`Error unsubsribing from unknown subscription ${message.id}`, err);
+                this.log.warn(`Error unsubscribing from unknown subscription ${message.id}`, err);
             });
           }
           break;

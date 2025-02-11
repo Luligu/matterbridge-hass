@@ -297,7 +297,7 @@ export class HomeAssistant extends EventEmitter {
         this.emit('devices', devices);
         devices.forEach((device) => {
           this.hassDevices.set(device.id, device);
-        });  
+        });
       }, () => this.devicesReceived = false)
 
       this.fetch('config/entity_registry/list').then((response) => {
@@ -308,7 +308,6 @@ export class HomeAssistant extends EventEmitter {
         entities.forEach((entity) => {
           this.hassEntities.set(entity.entity_id, entity);
         });
-  
       }, () => this.entitiesReceived = false)
 
       this.fetch('get_states').then((response) => {
@@ -326,7 +325,7 @@ export class HomeAssistant extends EventEmitter {
 
         switch (event.event_type) {
           case 'state_changed':
-            // this.log.debug(`Event ${CYAN}${response.event.event_type}${db}`);
+            // this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received`);
             const entity = this.hassEntities.get(event.data.entity_id);
 
             if (!entity) {
@@ -356,7 +355,7 @@ export class HomeAssistant extends EventEmitter {
 
             break;
           case 'entity_registry_updated':
-            this.log.debug(`Event ${CYAN}${event.event_type}${db} received id ${CYAN}`);
+            this.log.debug(`Event ${CYAN}${event.event_type}${db} received`);
             const entities = (await this.fetch('config/entity_registry/list')) as HassEntity[]; 
             this.log.debug(`Received ${entities.length} entities.`);
             entities.forEach((entity) => {
@@ -393,6 +392,7 @@ export class HomeAssistant extends EventEmitter {
       this.connection.removeEventListener("ready", this.onConnected);
       this.connection.removeEventListener("disconnected", this.onDisconnected);
       this.connection.close();
+      this.connection = null;
     }
   }
 
@@ -428,7 +428,7 @@ export class HomeAssistant extends EventEmitter {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}) {
     this.log.debug(
-      `Calling service async ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} ...`,
+      `Calling service ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} ...`,
     );
 
     if (!this.connected) {
