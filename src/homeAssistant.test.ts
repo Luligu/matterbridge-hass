@@ -12,7 +12,7 @@ import { wait } from 'matterbridge/utils';
 
 // Spy on and mock the AnsiLogger.log method
 const loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
-   console.error(`Mocked AnsiLogger.log: ${level} - ${message}`, ...parameters);
+  // console.error(`Mocked AnsiLogger.log: ${level} - ${message}`, ...parameters);
 });
 // Spy on and mock console.log
 const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {  
