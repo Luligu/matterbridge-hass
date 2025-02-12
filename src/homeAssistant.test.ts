@@ -662,4 +662,35 @@ describe('HomeAssistant', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Entity id ${CYAN}unknown_entityid${db} not found processing event`);
   });
 
+  it('if messages are queued during suspended connection', async () => {
+
+    homeAssistant = new HomeAssistant(wsUrl, accessToken);
+
+    await Promise.all([
+      new Promise((resolve) => {
+
+        homeAssistant.on('subscribed', async () => {
+
+          homeAssistant.connection?.suspendReconnectUntil(wait(200));
+
+          try {
+            homeAssistant.connection?.suspend();
+            await homeAssistant.connection?.ping();
+          } catch (e) {
+            // Connection lost
+          }
+
+          resolve(null);
+        })
+      }),
+      homeAssistant.connect()
+    ]);
+
+    await wait(500);
+    await homeAssistant.close();
+    homeAssistant.removeAllListeners();
+
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Trying to reconnect.`);
+  });
+
 });
