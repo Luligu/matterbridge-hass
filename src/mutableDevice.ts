@@ -21,7 +21,7 @@
  * limitations under the License. *
  */
 
-import { createHash, randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import {
   colorTemperatureLight,
   colorTemperatureSwitch,

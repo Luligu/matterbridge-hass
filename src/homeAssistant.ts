@@ -22,7 +22,7 @@
  * limitations under the License. *
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify } from 'matterbridge/logger';
 
 import { Connection, SubscriptionUnsubscribe } from './connection.js';

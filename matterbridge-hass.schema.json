@@ -42,7 +42,7 @@
       "selectEntityFrom": "name"
     },
     "whiteList": {
-      "description": "Only the devices in the list will be exposed. Use the device name or the device id.",
+      "description": "Only the devices in the list will be exposed. Use the device name or the device id. If the list is empty, all the devices will be exposed.",
       "type": "array",
       "items": {
         "type": "string"
@@ -51,7 +51,7 @@
       "selectFrom": "name"
     },
     "blackList": {
-      "description": "The devices in the list will not be exposed. Use the device name or the device id.",
+      "description": "The devices in the list will not be exposed. Use the device name or the device id. If the list is empty, no devices will be excluded.",
       "type": "array",
       "items": {
         "type": "string"
@@ -65,7 +65,8 @@
       "items": {
         "type": "string"
       },
-      "uniqueItems": true
+      "uniqueItems": true,
+      "ui:widget": "hidden"
     },
     "deviceEntityBlackList": {
       "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device.",
@@ -100,7 +101,8 @@
     "unregisterOnShutdown": {
       "description": "Unregister all devices on shutdown (development only)",
       "type": "boolean",
-      "default": false
+      "default": false,
+      "ui:widget": "hidden"
     }
   }
 }

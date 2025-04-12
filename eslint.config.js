@@ -1,13 +1,15 @@
 // @ts-check
+
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import jesteslint from 'eslint-plugin-jest';
+import eslintPluginJest from 'eslint-plugin-jest';
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended';
+import eslintPluginN from 'eslint-plugin-n';
 
 export default [
   {
     name: 'global ignores',
-    ignores: ['**/dist/', '**/build/', '**/node_modules/', '**/coverage/', '**/frontend/', '**/rock-s0/'],
+    ignores: ['dist/', 'build/', 'node_modules/', 'coverage/', 'frontend/', 'rock-s0/'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.strict,
@@ -27,7 +29,6 @@ export default [
       'no-console': 'warn',
       'no-undef': 'off',
       'spaced-comment': ['error', 'always'],
-      'no-useless-constructor': 'off',
     },
   },
   {
@@ -51,18 +52,25 @@ export default [
     plugins: {
       '@typescript-eslint': tseslint.plugin,
     },
-    rules: {
-      '@typescript-eslint/no-useless-constructor': 'off',
-    },
   },
   {
     name: 'jest',
     files: ['**/__test__/*', '**/*.test.ts', '**/*.spec.ts'],
     plugins: {
       '@typescript-eslint': tseslint.plugin,
-      jest: jesteslint,
+      jest: eslintPluginJest,
     },
     ...tseslint.configs.disableTypeChecked,
-    ...jesteslint.configs['flat/recommended'],
+    ...eslintPluginJest.configs['flat/recommended'],
+  },
+  {
+    name: 'node',
+    files: ['**/*.ts'],
+    plugins: {
+      n: eslintPluginN,
+    },
+    rules: {
+      'n/prefer-node-protocol': 'error',
+    },
   },
 ];

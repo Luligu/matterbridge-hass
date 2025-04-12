@@ -10,8 +10,8 @@ import { Endpoint } from 'matterbridge/matter';
 import { HomeAssistantPlatform } from './platform';
 import { jest } from '@jest/globals';
 import { HassConfig, HassDevice, HassEntity, HassState, HomeAssistant } from './homeAssistant';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
@@ -50,7 +50,7 @@ describe('HassPlatform', () => {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '2.1.4',
+    matterbridgeVersion: '2.2.6',
     edge: true,
     log: mockLog,
     getDevices: jest.fn(() => {
@@ -204,7 +204,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '2.1.4';
+    mockMatterbridge.matterbridgeVersion = '2.2.6';
   });
 
   it('should validate with white and black list', () => {

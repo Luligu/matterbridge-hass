@@ -32,7 +32,7 @@ describe('initializePlugin', () => {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '2.1.4',
+    matterbridgeVersion: '2.2.6',
     edge: true,
     log: mockLog,
     getDevices: jest.fn(() => {

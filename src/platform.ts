@@ -40,8 +40,8 @@ import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 import { Thermostat, OnOff, ColorControl } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
-import path from 'path';
-import { promises as fs } from 'fs';
+import path from 'node:path';
+import { promises as fs } from 'node:fs';
 
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices } from './homeAssistant.js';
 import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
@@ -72,9 +72,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('2.1.4')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('2.2.6')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "2.1.4". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "2.2.6". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -165,13 +165,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.error('Error writing payload to file:', error);
       });
 
+    // Clean the selectDevice and selectEntity maps
+    await this.clearSelect();
+
     // Scan individual entities (domain automation, scene, script and helpers input_boolean) and create Matterbridge devices
     for (const entity of Array.from(this.ha.hassEntities.values())) {
       const [domain, name] = entity.entity_id.split('.');
       if (!['automation', 'scene', 'script', 'input_boolean'].includes(domain)) continue;
       const entityName = entity.name ?? entity.original_name;
       if (!isValidString(entityName)) continue;
-      if (entityName && this.selectEntity) this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
+      // this.selectEntity.set(entity.id, { name: entity.entity_id, description: entityName, icon: 'hub' });
+      this.setSelectEntity(entity.entity_id, entityName, 'hub');
       if (
         isValidArray(this.config.individualEntityWhiteList, 1) &&
         !this.config.individualEntityWhiteList.includes(entityName) &&
@@ -239,8 +243,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const device of Array.from(this.ha.hassDevices.values())) {
       const deviceName = device.name_by_user ?? device.name;
       const entitiesCount = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length;
-      if (deviceName && entitiesCount > 0 && this.selectDevice) this.selectDevice.set(device.id, { serial: device.id, name: deviceName, icon: 'hub' });
-      if (!isValidString(deviceName) || !this.validateDevice([deviceName, device.id], true)) continue;
+      if (deviceName && entitiesCount > 0) this.setSelectDevice(device.id, deviceName, undefined, 'hub');
+      if (!isValidString(deviceName, 1) || !this.validateDevice([deviceName, device.id], true)) continue;
       if (this.hasDeviceName(deviceName)) {
         this.log.warn(`Device ${CYAN}${deviceName}${nf} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
@@ -262,7 +266,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const matterbridgeDevice = await mutableDevice.createMainEndpoint();
       matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://')}/config/devices/device/${device.id}`;
 
-      // Scan entities for supported domains and services and add them to the Matterbridge device
+      // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
         if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
@@ -279,6 +283,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const hassDomains = hassDomainConverter.filter((d) => d.domain === domain);
         if (hassDomains.length > 0) {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}`);
+          this.setSelectDeviceEntity(device.id, entity.entity_id, entity.name ?? entity.original_name ?? '', 'component');
           hassDomains.forEach((hassDomain) => {
             if (hassDomain.deviceType) mutableDevice.addDeviceTypes(entity.entity_id, hassDomain.deviceType);
             if (hassDomain.clusterId) mutableDevice.addClusterServerIds(entity.entity_id, hassDomain.clusterId);
@@ -380,7 +385,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
-                localTemperature: hassState.attributes['current_temperature'] as number | undefined,
+                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
                 systemMode: Thermostat.SystemMode.Auto,
                 controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
                 // Thermostat.Feature.Heating
@@ -408,7 +413,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating), {
-                localTemperature: hassState.attributes['current_temperature'] as number | undefined,
+                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
                 systemMode: Thermostat.SystemMode.Heat,
                 controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.HeatingOnly,
                 // Thermostat.Feature.Heating
@@ -427,7 +432,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             mutableDevice.addClusterServerObjs(
               entity.entity_id,
               getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Cooling), {
-                localTemperature: hassState.attributes['current_temperature'] as number | undefined,
+                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
                 systemMode: Thermostat.SystemMode.Cool,
                 controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingOnly,
                 // Thermostat.Feature.Cooling

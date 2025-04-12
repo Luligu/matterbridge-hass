@@ -26,4 +26,6 @@ export default {
     ],
   },
   transformIgnorePatterns: ['/node_modules/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/frontend/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/frontend/', '/src/mock/'],
 };

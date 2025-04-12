@@ -1,8 +1,33 @@
-# <img src="https://github.com/Luligu/matterbridge/blob/main/frontend/public/matterbridge%2064x64.png" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge hass plugin changelog
+# <img src="matterbridge.svg" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge hass plugin changelog
 
 All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
+</a>
+
+## [0.0.10] - 2025-04-04
+
+### Added
+
+- [select]: Added calls to select API.
+
+### Changed
+
+- [package]: Update package.
+- [package]: Update dependencies.
+- [package]: Requires matterbridge 2.2.6.
+
+### Fixed
+
+- [device]: Fixed case where current_temperature is not available on thermostats.
+- [device]: Fixed case with device name empty.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
 
 ## [0.0.9] - 2025-02-07
 
@@ -21,7 +46,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [cover]: Fixed state closed on domain cover.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.8] - 2025-02-02
@@ -38,7 +63,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Requires matterbridge 2.1.0.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.7] - 2025-01-08
@@ -60,7 +85,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [config]: Fix the Matter serial number postfix.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.6] - 2024-12-24
@@ -76,7 +101,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Update dependencies.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.5] - 2024-12-16
@@ -93,7 +118,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Update dependencies.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.4] - 2024-12-12
@@ -110,7 +135,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Update dependencies.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.3] - 2024-12-07
@@ -124,7 +149,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [homeassistant]: Changed to debug the log of processing event.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.2] - 2024-12-06
@@ -141,7 +166,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [homeassistant]: Refactor HomeAssistant.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.1-dev.6] - 2024-12-05
@@ -153,7 +178,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [homeassistant]: Add reconnectTimeout configuration.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.1-dev.5] - 2024-12-05
@@ -163,7 +188,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [homeassistant]: Add cover domain to supported devices.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.1-dev.4] - 2024-12-04
@@ -174,7 +199,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [homeassistant]: Add callServiceAsync and reconnect timeout.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 ## [0.0.1-dev.2] - 2024-12-03
@@ -182,7 +207,7 @@ If you like this project and find it useful, please consider giving it a star on
 First published release.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="./yellow-button.png" alt="Buy me a coffee" width="120">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
 
 <!-- Commented out section

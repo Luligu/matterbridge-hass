@@ -1,4 +1,4 @@
-# <img src="https://github.com/Luligu/matterbridge/blob/main/frontend/public/matterbridge%2064x64.png" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge Home Assistant plugin
+# <img src="matterbridge.svg" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge Home Assistant plugin
 
 [![npm version](https://img.shields.io/npm/v/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
 [![npm downloads](https://img.shields.io/npm/dt/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
@@ -55,6 +55,10 @@ These entities are exposed as on/off outlets. When the outlet is turned on, it t
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
+</a>
 
 ## Prerequisites
 
