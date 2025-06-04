@@ -835,7 +835,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.once('error', (error) => {
       expect(error).toBe('WebSocket response error: undefined');
     });
-    await expect(homeAssistant.fetch('noresponse')).rejects.toThrow('Fetch api noresponse id 3 did not complete before the timeout');
+    await expect(homeAssistant.fetch('noresponse')).rejects.toThrow('Fetch type noresponse id 3 did not complete before the timeout');
     homeAssistant.responseTimeout = 10000; // Restore the default timeout
   });
 

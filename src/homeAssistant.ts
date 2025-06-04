@@ -835,13 +835,12 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Sends a request to Home Assistant and waits for a response.
    *
-   * @param {string} api - The type of request to send.
+   * @param {string} type - The type of request to send.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
-   * @throws {Error} - Throws an error if not connected to Home Assistant or if the WebSocket is not open.
    *
    * @example
    * // Example usage:
-   * fetchAsync('get_states')
+   * fetch('get_states')
    *   .then(response => {
    *     console.log('Received response:', response);
    *   })
@@ -850,7 +849,7 @@ export class HomeAssistant extends EventEmitter {
    *   });
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  fetch(api: string): Promise<any> {
+  fetch(type: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
         return reject(new Error('Fetch error: not connected to Home Assistant'));
@@ -863,7 +862,7 @@ export class HomeAssistant extends EventEmitter {
 
       const timer = setTimeout(() => {
         this.ws?.removeEventListener('message', handleMessage);
-        return reject(new Error(`Fetch api ${api} id ${requestId} did not complete before the timeout`));
+        return reject(new Error(`Fetch type ${type} id ${requestId} did not complete before the timeout`));
       }, this._responseTimeout).unref();
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
@@ -887,8 +886,8 @@ export class HomeAssistant extends EventEmitter {
 
       this.ws.addEventListener('message', handleMessage);
 
-      this.log.debug(`Fetching async ${CYAN}${api}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: api } as HassWebSocketMessageFetch));
+      this.log.debug(`Fetching async ${CYAN}${type}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
+      this.ws.send(JSON.stringify({ id: requestId, type: type } as HassWebSocketMessageFetch));
     });
   }
 
@@ -900,7 +899,6 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} entityId - The ID of the entity to target with the command.
    * @param {Record<string, any>} [serviceData={}] - Optional additional data to send with the command.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
-   * @throws {Error} - Throws an error if not connected to Home Assistant or if the WebSocket is not open.
    *
    * @example <caption>Example usage of the callService method.</caption>
    * await this.callService('switch', 'toggle', 'switch.living_room');
