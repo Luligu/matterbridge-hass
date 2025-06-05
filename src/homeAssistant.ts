@@ -298,10 +298,10 @@ export interface HassWebSocketResponseCallService {
   error?: { code: string; message: string }; // Error object for the response with success false
 }
 
-export interface HassWebSocketResponseSubscribeEvents {
+export interface HassWebSocketResponseResult {
   id: number; // The id of the subscribe_events request that this response is responding to
   type: 'result';
-  success: true;
+  success: boolean;
   result: null; // The result is null for subscribe_events responses
   error?: { code: string; message: string }; // Error object for the response with success false
 }
@@ -339,7 +339,7 @@ export interface HassWebSocketMessageSubscribeEvents {
   event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
 }
 
-export interface _HassWebSocketMessageUnsubscribeEvents {
+export interface HassWebSocketMessageUnsubscribeEvents {
   id: number;
   type: 'unsubscribe_events';
   subscription: number; // ID of the subscription to unsubscribe from
@@ -632,7 +632,7 @@ export class HomeAssistant extends EventEmitter {
 
             // Add the message event listeners
             if (this.ws) this.ws.onmessage = null; // Clear the current onmessage handler to avoid duplicate processing
-            this.ws?.on('message', this.onMessage.bind(this));
+            this.ws?.on('message', this.onMessage.bind(this)); // Set the new onmessage handler
 
             // Start ping interval
             this.startPing();
@@ -786,7 +786,7 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Fetches the initial data from Home Assistant.
-   * This method retrieves the configuration, services, devices, entities, states, and areas from Home Assistant.
+   * This method retrieves the config, services, devices, entities, states, and areas from Home Assistant.
    */
   async fetchData() {
     try {
@@ -833,7 +833,6 @@ export class HomeAssistant extends EventEmitter {
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
    *
    * @example
-   * // Example usage:
    * fetch('get_states')
    *   .then(response => {
    *     console.log('Received response:', response);
@@ -881,7 +880,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Fetching ${CYAN}${type}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: type } as HassWebSocketMessageFetch));
+      this.ws.send(JSON.stringify({ id: requestId, type } as HassWebSocketMessageFetch));
     });
   }
 
@@ -890,14 +889,12 @@ export class HomeAssistant extends EventEmitter {
    * @param {string | undefined} event - The event to subscribe to or all events if not specified.
    * @returns {Promise<number>} - A Promise that resolves with the subscribe id from Home Assistant or rejects with an error.
    *
-   * @example
-   * // Example usage:
-   * subscribe('state_changed')
+   * @example subscribe('state_changed')
    *   .then(response => {
-   *     console.log('Received response:', response);
+   *     console.log('Received response subscription id:', response);
    *   })
    *   .catch(error => {
-   *     console.error('Error:', error);
+   *     console.error('Error subscribing:', error);
    *   });
    */
   subscribe(event?: string): Promise<number> {
@@ -918,7 +915,7 @@ export class HomeAssistant extends EventEmitter {
 
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
-          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseSubscribeEvents;
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -940,6 +937,61 @@ export class HomeAssistant extends EventEmitter {
 
       this.log.debug(`Subscribing to ${CYAN}${event ?? 'all events'}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
       this.ws.send(JSON.stringify({ id: requestId, type: 'subscribe_events', event_type: event } as HassWebSocketMessageSubscribeEvents));
+    });
+  }
+
+  /**
+   * Sends a "subscribe_events" request to Home Assistant and waits for a response.
+   * @param {number} subscriptionId - The subscription id to unsubscribe from.
+   * @returns {Promise<void>} - A Promise that resolves or rejects with an error.
+   * @example unsubscribe('state_changed')
+   *    .then(() => {
+   *      console.log('Unsubscribed successfully');
+   *    })
+   *    .catch(error => {
+   *      console.error('Error unsubscribing:', error);
+   *    });
+   */
+  unsubscribe(subscriptionId: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.connected) {
+        return reject(new Error('Unsubscribe error: not connected to Home Assistant'));
+      }
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return reject(new Error('Unsubscribe error: WebSocket not open'));
+      }
+
+      const requestId = this.requestId++;
+
+      const timer = setTimeout(() => {
+        this.ws?.removeEventListener('message', handleMessage);
+        return reject(new Error(`Unsubscribe subscription ${subscriptionId} id ${requestId} did not complete before the timeout`));
+      }, this._responseTimeout).unref();
+
+      const handleMessage = (event: WebSocket.MessageEvent) => {
+        try {
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
+          if (response.type === 'result' && response.id === requestId) {
+            clearTimeout(timer);
+            this.ws?.removeEventListener('message', handleMessage);
+            if (response.success) {
+              this.log.debug(`Unsubscribed successfully with id ${CYAN}${requestId}${db}`);
+              return resolve();
+            } else {
+              return reject(new Error(response.error?.message));
+            }
+          }
+        } catch (error) {
+          clearTimeout(timer);
+          this.ws?.removeEventListener('message', handleMessage);
+          reject(error);
+        }
+      };
+
+      this.ws.addEventListener('message', handleMessage);
+
+      this.log.debug(`Unsubscribing from subscription ${CYAN}${subscriptionId}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
+      this.ws.send(JSON.stringify({ id: requestId, type: 'unsubscribe_events', subscription: subscriptionId } as HassWebSocketMessageUnsubscribeEvents));
     });
   }
 

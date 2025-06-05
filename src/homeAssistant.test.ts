@@ -14,7 +14,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseSubscribeEvents, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -702,13 +702,27 @@ describe('HomeAssistant with ssl', () => {
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: [] }));
         } else if (msg.type === 'subscribe_events') {
           if (msg.event_type === 'notanevent') {
-            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: { code: 'notanevent', message: 'Not a valid event type' } }));
+            socket.send(
+              JSON.stringify({ id: msg.id, type: 'result', success: false, error: { code: 'notanevent', message: 'Not a valid event type' } } as HassWebSocketResponseResult),
+            );
           } else if (msg.event_type === 'notajson') {
             socket.send('not a json');
           } else if (msg.event_type === 'noresponse') {
             // Do not send any response
           } else {
-            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true } as HassWebSocketResponseSubscribeEvents));
+            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true } as HassWebSocketResponseResult));
+          }
+        } else if (msg.type === 'unsubscribe_events') {
+          if (msg.subscription === -1) {
+            socket.send(
+              JSON.stringify({ id: msg.id, type: 'result', success: false, error: { code: 'notanid', message: 'Not a valid subscription id' } } as HassWebSocketResponseResult),
+            );
+          } else if (msg.subscription === -2) {
+            socket.send('not a json');
+          } else if (msg.subscription === -3) {
+            // Do not send any response
+          } else {
+            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true } as HassWebSocketResponseResult));
           }
         } else if (msg.type === 'call_service' && msg.domain === 'notajson') {
           socket.send('not a json');
@@ -973,6 +987,40 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.responseTimeout = 5000; // Restore default timeout
   });
 
+  it('should unsubscribe to Home Assistant', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    const subscriptionId = await homeAssistant.unsubscribe(123456);
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.DEBUG,
+      `Unsubscribing from subscription ${CYAN}123456${db} with id ${CYAN}${(homeAssistant as any).requestId - 1}${db} and timeout ${CYAN}${(homeAssistant as any)._responseTimeout}${db} ms ...`,
+    );
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Unsubscribed successfully with id ${CYAN}${(homeAssistant as any).requestId - 1}${db}`);
+  });
+
+  it('should unsubscribe to Home Assistant and fail for event not valid', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    await expect(homeAssistant.unsubscribe(-1)).rejects.toThrow('Not a valid subscription id');
+  });
+
+  it('should unsubscribe to Home Assistant and fail for Unexpected token', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    await expect(homeAssistant.unsubscribe(-2)).rejects.toThrow();
+  });
+
+  it('should unsubscribe to Home Assistant and fail not connected', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    homeAssistant.connected = false; // Simulate not connected
+    await expect(homeAssistant.unsubscribe(123456)).rejects.toThrow('Unsubscribe error: not connected to Home Assistant');
+    homeAssistant.connected = true; // Restore connection state
+  });
+
+  it('should unsubscribe to Home Assistant and fail for timeout', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    homeAssistant.responseTimeout = 1; // Set a short timeout for testing
+    await expect(homeAssistant.unsubscribe(-3)).rejects.toThrow(`Unsubscribe subscription -3 id ${(homeAssistant as any).requestId - 1} did not complete before the timeout`);
+    homeAssistant.responseTimeout = 5000; // Restore default timeout
+  });
+
   it('should close with Home Assistant with ssl', async () => {
     expect(homeAssistant.connected).toBe(true);
     await homeAssistant.close();
@@ -985,6 +1033,12 @@ describe('HomeAssistant with ssl', () => {
   it('should subscribe to Home Assistant and fail ws not opened', async () => {
     homeAssistant.connected = true; // Ensure connected state
     await expect(homeAssistant.subscribe()).rejects.toThrow('Subscribe error: WebSocket not open');
+    homeAssistant.connected = false; // Restore connection state
+  });
+
+  it('should unsubscribe to Home Assistant and fail ws not opened', async () => {
+    homeAssistant.connected = true; // Ensure connected state
+    await expect(homeAssistant.unsubscribe(123456)).rejects.toThrow('Unsubscribe error: WebSocket not open');
     homeAssistant.connected = false; // Restore connection state
   });
 
