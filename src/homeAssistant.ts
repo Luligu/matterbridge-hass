@@ -176,26 +176,21 @@ export interface HassStateFanAttributes {
  */
 export interface HassStateClimateAttributes {
   hvac_modes?: string[]; // List of supported HVAC modes (e.g., "off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only")
-  temperature?: number; // Current temperature setting
+  temperature?: number; // Target temperature setting
   current_temperature?: number; // Current temperature of the climate entity
   fan_modes?: string[]; // List of supported fan modes (e.g., "auto", "low", "medium", "high")
   fan_mode?: string | null; // Fan mode (e.g., "auto")
 }
 
 /**
- * Interface representing the data of a Home Assistant event.
- */
-export interface HassDataEvent {
-  entity_id: string;
-  new_state: HassState | null;
-  old_state: HassState | null;
-}
-
-/**
  * Interface representing a Home Assistant event.
  */
 export interface HassEvent {
-  data: HassDataEvent;
+  data: {
+  entity_id: string;
+  new_state: HassState | null;
+  old_state: HassState | null;
+  };
   event_type: string;
   time_fired: string;
   origin: string; // Origin of the event (e.g., "LOCAL")
@@ -254,74 +249,79 @@ export interface HassServices {
   [key: string]: HassService;
 }
 
-interface HassWebSocketResponse {
-  id: number;
-  type: string;
-  success: boolean;
-  ha_version?: string; // Home Assistant version, present in type "auth_required" and "auth_ok" responses
-  message?: string; // Message for the response, present in type "auth_invalid" error responses
-  error?: { code: string; message: string }; // Error object for the response, present in type "result" error responses with success false
-  event?: HassEvent;
-  result?: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[];
-}
-interface _HassWebSocketResponseAuthRequired {
+export type HassWebSocketResponse =
+  | HassWebSocketResponseAuthRequired
+  | HassWebSocketResponseAuthOk
+  | HassWebSocketResponseAuthInvalid
+  | HassWebSocketResponsePong
+  | HassWebSocketResponseEvent;
+
+export interface HassWebSocketResponseAuthRequired {
   type: 'auth_required';
   ha_version: string; // i.e. "2021.12.0"
 }
 
-interface _HassWebSocketResponseAuthOk {
+export interface HassWebSocketResponseAuthOk {
   type: 'auth_ok';
   ha_version: string; // i.e. "2021.12.0"
 }
-interface _HassWebSocketResponseAuthInvalid {
+
+export interface HassWebSocketResponseAuthInvalid {
   type: 'auth_invalid';
   message: string; // i.e. "Invalid access token"
 }
-interface _HassWebSocketResponseCommand {
-  id: number;
-  type: 'result';
-  success: boolean;
-  result: { context: HassContext; response?: unknown | null }; // The result of the command, can be null if the command does not return a result
+
+export interface HassWebSocketResponsePong {
+  type: 'pong';
+  id: number; // The id of the ping request that this pong is responding to
 }
-interface HassWebSocketResponseFetch {
-  id: number;
+
+export interface HassWebSocketResponseEvent {
+  id: number; // The id of the subscribe request that this event is responding to
+  type: 'event';
+  event: HassEvent;
+}
+
+export interface HassWebSocketResponseFetch {
+  id: number; // The id of the fetch request that this response is responding to
   type: 'result';
   success: boolean;
   result: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[] | null; // The result of the fetch command, can be null if the fetch fails or does not return a result
   error?: { code: string; message: string }; // Error object for the response with success false
 }
-interface HassWebSocketResponseCallService {
-  id: number;
+
+export interface HassWebSocketResponseCallService {
+  id: number; // The id of the call_service request that this response is responding to
   type: 'result';
   success: boolean;
-  result: { context: HassContext; response: unknown | null };
+  result: { context: HassContext; response?: unknown | null };
   error?: { code: string; message: string }; // Error object for the response with success false
 }
-interface _HassWebSocketResponseSubscribeEvents {
-  id: number;
+
+export interface HassWebSocketResponseSubscribeEvents {
+  id: number; // The id of the subscribe_events request that this response is responding to
   type: 'result';
   success: true;
   result: null; // The result is null for subscribe_events responses
+  error?: { code: string; message: string }; // Error object for the response with success false
 }
-interface _HassWebSocketResponseEvent {
-  id: number;
-  type: 'event';
-  event: HassEvent;
-}
-interface HassWebSocketMessageAuth {
+
+export interface HassWebSocketMessageAuth {
   type: 'auth';
   access_token: string;
 }
-interface HassWebSocketMessageFetch {
+
+export interface HassWebSocketMessagePing {
+  type: 'ping';
+  id: number;
+}
+
+export interface HassWebSocketMessageFetch {
   id: number;
   type: string; // The data to fetch: get_config, get_services, get_states...
 }
-interface _HassWebSocketMessageSubscribeEvents {
-  id: number;
-  type: 'subscribe_events';
-  event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
-}
-interface HassWebSocketMessageCallService {
+
+export interface HassWebSocketMessageCallService {
   id: number;
   type: 'call_service';
   domain: string;
@@ -332,7 +332,14 @@ interface HassWebSocketMessageCallService {
   };
   return_response?: boolean; // Optional flag to return a response from the service call, defaults to false
 }
-interface _HassWebSocketMessageUnsubscribeEvents {
+
+export interface HassWebSocketMessageSubscribeEvents {
+  id: number;
+  type: 'subscribe_events';
+  event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
+}
+
+export interface _HassWebSocketMessageUnsubscribeEvents {
   id: number;
   type: 'unsubscribe_events';
   subscription: number; // ID of the subscription to unsubscribe from
