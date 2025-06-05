@@ -33,12 +33,12 @@
       "type": "string"
     },
     "reconnectTimeout": {
-      "description": "Reconnect timeout in seconds",
+      "description": "Reconnect timeout in seconds (minimum 30 seconds). If the connection is lost, the plugin will try to reconnect after this timeout.",
       "type": "number",
       "default": 60
     },
     "reconnectRetries": {
-      "description": "Number of times to try to reconnect before giving up",
+      "description": "Number of times to try to reconnect before giving up. Set to 0 for no reconnects.",
       "type": "number",
       "default": 10
     },

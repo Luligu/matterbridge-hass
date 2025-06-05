@@ -98,7 +98,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
     this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
-    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 0) ? config.reconnectTimeout : undefined;
+    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 30) ? config.reconnectTimeout : undefined;
     this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
     this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : undefined;
     this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
@@ -127,8 +127,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       this.log.info(`Subscribing to Home Assistant events...`);
       try {
-        await this.ha.subscribe();
-        this.log.info(`Subscribed to Home Assistant events successfully`);
+        const subscriptionId = await this.ha.subscribe();
+        this.log.info(`Subscribed to Home Assistant events successfully with id ${subscriptionId}`);
       } catch (error) {
         this.log.error(`Error subscribing to Home Assistant events: ${error}`);
       }
