@@ -254,7 +254,8 @@ export type HassWebSocketResponse =
   | HassWebSocketResponseAuthOk
   | HassWebSocketResponseAuthInvalid
   | HassWebSocketResponsePong
-  | HassWebSocketResponseEvent;
+  | HassWebSocketResponseEvent
+  | HassWebSocketResponseResult;
 
 export interface HassWebSocketResponseAuthRequired {
   type: 'auth_required';
@@ -282,6 +283,28 @@ export interface HassWebSocketResponseEvent {
   event: HassEvent;
 }
 
+export interface HassWebSocketResponseResult {
+  id: number; // The id of the subscribe_events request that this response is responding to
+  type: 'result';
+  success: boolean;
+  result: null; // The result is null for subscribe_events responses
+  error?: { code: string; message: string }; // Error object for the response with success false
+}
+
+export interface HassWebSocketResponseSuccess {
+  id: number; // The id of the fetch request that this response is responding to
+  type: 'result';
+  success: true;
+  result: unknown;
+}
+
+export interface HassWebSocketResponseError {
+  id: number; // The id of the fetch request that this response is responding to
+  type: 'result';
+  success: false;
+  error: { code: string; message: string }; // Error object for the response with success false
+}
+
 export interface HassWebSocketResponseFetch {
   id: number; // The id of the fetch request that this response is responding to
   type: 'result';
@@ -298,30 +321,22 @@ export interface HassWebSocketResponseCallService {
   error?: { code: string; message: string }; // Error object for the response with success false
 }
 
-export interface HassWebSocketResponseResult {
-  id: number; // The id of the subscribe_events request that this response is responding to
-  type: 'result';
-  success: boolean;
-  result: null; // The result is null for subscribe_events responses
-  error?: { code: string; message: string }; // Error object for the response with success false
-}
-
-export interface HassWebSocketMessageAuth {
+export interface HassWebSocketRequestAuth {
   type: 'auth';
   access_token: string;
 }
 
-export interface HassWebSocketMessagePing {
+export interface HassWebSocketRequestPing {
   type: 'ping';
   id: number;
 }
 
-export interface HassWebSocketMessageFetch {
+export interface HassWebSocketRequestFetch {
   id: number;
   type: string; // The data to fetch: get_config, get_services, get_states...
 }
 
-export interface HassWebSocketMessageCallService {
+export interface HassWebSocketRequestCallService {
   id: number;
   type: 'call_service';
   domain: string;
@@ -330,16 +345,16 @@ export interface HassWebSocketMessageCallService {
   target?: {
     entity_id: string;
   };
-  return_response?: boolean; // Optional flag to return a response from the service call, defaults to false
+  return_response?: boolean; // Optional flag to return a response from the service call, defaults to false. Must be included for service actions that return response data. Fails for service actions that return response data.
 }
 
-export interface HassWebSocketMessageSubscribeEvents {
+export interface HassWebSocketRequestSubscribeEvents {
   id: number;
   type: 'subscribe_events';
   event_type?: string; // Optional event type to subscribe to specific events (i.e. state_changed), if not provided all events are subscribed
 }
 
-export interface HassWebSocketMessageUnsubscribeEvents {
+export interface HassWebSocketRequestUnsubscribeEvents {
   id: number;
   type: 'unsubscribe_events';
   subscription: number; // ID of the subscription to unsubscribe from
@@ -614,6 +629,7 @@ export class HomeAssistant extends EventEmitter {
           } catch (error) {
             return reject(new Error(`Error parsing WebSocket message: ${error}`));
           }
+          // console.log(`Received WebSocket message:`, response);
           if (response.type === 'auth_required') {
             this.log.debug(`Authentication required: ${debugStringify(response)}`);
             this.log.debug('Authentication required. Sending auth message...');
@@ -621,7 +637,7 @@ export class HomeAssistant extends EventEmitter {
               JSON.stringify({
                 type: 'auth',
                 access_token: this.wsAccessToken,
-              } as HassWebSocketMessageAuth),
+              } as HassWebSocketRequestAuth),
             );
           } else if (response.type === 'auth_ok') {
             // Handle successful authentication
@@ -671,7 +687,7 @@ export class HomeAssistant extends EventEmitter {
         JSON.stringify({
           id: this.requestId++,
           type: 'ping',
-        } as HassWebSocketMessagePing),
+        } as HassWebSocketRequestPing),
       );
       this.log.debug('Starting ping timeout...');
       this.pingTimeout = setTimeout(() => {
@@ -726,10 +742,10 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Stops the ping interval, closes the WebSocket connection to Home Assistant and emits a 'disconnected' event.
    * @param {number} [code=1000] - The WebSocket close code. Default is 1000 (Normal closure).
-   * @param {string | Buffer} [reason='Normal closure'] - The reason for closing the connection. Default is 'Normal closure'.
+   * @param {string} [reason='Normal closure'] - The reason for closing the connection. Default is 'Normal closure'.
    * @returns {Promise<void>} - A Promise that resolves when the connection is closed or rejects with an error if the connection could not be closed.
    */
-  close(code = 1000, reason: string | Buffer = 'Normal closure'): Promise<void> {
+  close(code = 1000, reason = 'Normal closure'): Promise<void> {
     return new Promise((resolve, reject) => {
       this.log.info('Closing Home Assistant connection...');
       this.stopPing();
@@ -756,6 +772,7 @@ export class HomeAssistant extends EventEmitter {
 
       const onClose = () => {
         this.log.debug('Close received closed event from Home Assistant');
+        this.emit('socket_closed', code, Buffer.from(reason));
         cleanup();
         return resolve();
       };
@@ -867,6 +884,7 @@ export class HomeAssistant extends EventEmitter {
             if (response.success) {
               return resolve(response.result);
             } else {
+              // console.error(`Fetch error:`, response);
               return reject(new Error(response.error?.message));
             }
           }
@@ -880,7 +898,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Fetching ${CYAN}${type}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type } as HassWebSocketMessageFetch));
+      this.ws.send(JSON.stringify({ id: requestId, type } as HassWebSocketRequestFetch));
     });
   }
 
@@ -936,7 +954,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Subscribing to ${CYAN}${event ?? 'all events'}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: 'subscribe_events', event_type: event } as HassWebSocketMessageSubscribeEvents));
+      this.ws.send(JSON.stringify({ id: requestId, type: 'subscribe_events', event_type: event } as HassWebSocketRequestSubscribeEvents));
     });
   }
 
@@ -991,7 +1009,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Unsubscribing from subscription ${CYAN}${subscriptionId}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: 'unsubscribe_events', subscription: subscriptionId } as HassWebSocketMessageUnsubscribeEvents));
+      this.ws.send(JSON.stringify({ id: requestId, type: 'unsubscribe_events', subscription: subscriptionId } as HassWebSocketRequestUnsubscribeEvents));
     });
   }
 
@@ -1056,10 +1074,14 @@ export class HomeAssistant extends EventEmitter {
           domain, // Domain of the entity (e.g., light, switch, media_player, etc.)
           service, // The specific service to call (e.g., turn_on, turn_off)
           service_data: {
-            entity_id: entityId, // The entity_id of the device (e.g., light.living_room)
+            // entity_id: entityId, // The entity_id of the device (e.g., light.living_room)
             ...serviceData, // Additional data to send with the command
           },
-        } as HassWebSocketMessageCallService),
+          target: {
+            entity_id: entityId, // Optional target entity_id to send the command to, if not provided it will use the service_data entity_id
+          },
+          // return_response: true, // Must be included for service actions that return response data. Fails for service actions that return response data.
+        } as HassWebSocketRequestCallService),
       );
     });
   }

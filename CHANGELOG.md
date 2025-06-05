@@ -17,6 +17,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [homeassistant]: Added unsubscribe() and Jest test.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'garage_door'. It creates a contactSensor with BooleanState cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'window'. It creates a contactSensor with BooleanState cluster.
+- [jest]: Added real test to test the HomeAssistant api.
 
 ### Changed
 

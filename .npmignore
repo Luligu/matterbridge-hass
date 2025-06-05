@@ -170,3 +170,4 @@ temp
 tsconfig.production.json
 jest
 mock
+certificates/ubuntuToken

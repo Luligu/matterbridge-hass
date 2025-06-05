@@ -1,6 +1,6 @@
-/* eslint-disable jest/no-conditional-expect */
 // Home Assistant WebSocket Client Tests
 
+/* eslint-disable jest/no-conditional-expect */
 /* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -14,7 +14,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
