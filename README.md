@@ -42,10 +42,17 @@ Features:
 
 ## Supported sensors:
 
-| Domain        | Supported state class | Supported device class                                    |
-| ------------- | --------------------- | --------------------------------------------------------- |
-| sensor        | measurement           | temperature, humidity, pressure, illuminance              |
-| binary_sensor |                       | door, vibration, motion, occupancy, cold, moisture, smoke |
+| Domain        | Supported state class | Supported device class               | Matter device type  |
+| ------------- | --------------------- | ------------------------------------ | ------------------- |
+| sensor        | measurement           | temperature                          | temperatureSensor   |
+| sensor        | measurement           | humidity                             | humiditySensor      |
+| sensor        | measurement           | pressure                             | pressureSensor      |
+| sensor        | measurement           | illuminance                          | lightSensor         |
+| binary_sensor |                       | window, garage_door, door, vibration | contactSensor       |
+| binary_sensor |                       | motion, occupancy                    | occupancySensor     |
+| binary_sensor |                       | cold                                 | waterFreezeDetector |
+| binary_sensor |                       | moisture                             | waterLeakDetector   |
+| binary_sensor |                       | smoke                                | smokeCoAlarm        |
 
 ## Supported individual entities:
 

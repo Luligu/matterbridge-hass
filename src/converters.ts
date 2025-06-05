@@ -37,6 +37,7 @@ import {
   occupancySensor,
   onOffLight,
   onOffOutlet,
+  pressureSensor,
   smokeCoAlarm,
   temperatureSensor,
   thermostatDevice,
@@ -171,7 +172,7 @@ export const hassDomainAttributeConverter: { domain: string; withAttribute: stri
 export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: any }[] = [
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',   deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,      attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value, -100, 100) ? Math.round(value * 100) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',      deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value * 100) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',      deviceType: temperatureSensor,  clusterId: PressureMeasurement.Cluster.id,         attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value) ? Math.round(value) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',      deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,         attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value) ? Math.round(value) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',   deviceType: lightSensor,        clusterId: IlluminanceMeasurement.Cluster.id,      attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value) ? Math.round(Math.max(Math.min(10000 * Math.log10(value), 0xfffe), 0)) : null) },
   ];
 
@@ -179,7 +180,9 @@ export const hassDomainSensorsConverter: { domain: string; withStateClass: strin
 // prettier-ignore
 export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: any }[] = [
     // { domain: 'binary_sensor',    withDeviceClass: 'battery',     deviceType: powerSource,          clusterId: PowerSource.Cluster.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
+    { domain: 'binary_sensor',    withDeviceClass: 'window',      deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? false : true) },
     { domain: 'binary_sensor',    withDeviceClass: 'door',        deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? false : true) },
+    { domain: 'binary_sensor',    withDeviceClass: 'garage_door', deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? false : true) },
     { domain: 'binary_sensor',    withDeviceClass: 'vibration',   deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? false : true) },
     { domain: 'binary_sensor',    withDeviceClass: 'cold',        deviceType: waterFreezeDetector,  clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? true : false) },
     { domain: 'binary_sensor',    withDeviceClass: 'moisture',    deviceType: waterLeakDetector,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? true : false) },
