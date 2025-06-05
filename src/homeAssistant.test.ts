@@ -14,7 +14,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseSubscribeEvents, HomeAssistant } from './homeAssistant'; // Adjust the import path as necessary
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -701,7 +701,15 @@ describe('HomeAssistant with ssl', () => {
         } else if (msg.type === 'get_states') {
           socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: [] }));
         } else if (msg.type === 'subscribe_events') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true }));
+          if (msg.event_type === 'notanevent') {
+            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: { code: 'notanevent', message: 'Not a valid event type' } }));
+          } else if (msg.event_type === 'notajson') {
+            socket.send('not a json');
+          } else if (msg.event_type === 'noresponse') {
+            // Do not send any response
+          } else {
+            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true } as HassWebSocketResponseSubscribeEvents));
+          }
         } else if (msg.type === 'call_service' && msg.domain === 'notajson') {
           socket.send('not a json');
         } else if (msg.type === 'call_service' && msg.domain === 'nosuccess') {
@@ -895,7 +903,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
-  it('should connectAsync to Home Assistant with ssl and rejectUnauthorized=false', async () => {
+  it('should connect to Home Assistant with ssl and rejectUnauthorized=false', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, undefined, undefined, undefined, false);
     await homeAssistant.connect();
     expect(homeAssistant.connected).toBe(true);
@@ -907,7 +915,7 @@ describe('HomeAssistant with ssl', () => {
     expect(homeAssistant.hassConfig).toBeNull();
   });
 
-  it('should not connectAsync a second time to Home Assistant with ssl', async () => {
+  it('should not connect a second time to Home Assistant with ssl', async () => {
     expect(homeAssistant.connected).toBe(true);
     await expect(homeAssistant.connect()).rejects.toThrow('Already connected to Home Assistant');
   });
@@ -931,19 +939,38 @@ describe('HomeAssistant with ssl', () => {
 
   it('should subscribe to Home Assistant', async () => {
     expect(homeAssistant.connected).toBe(true);
-    await homeAssistant.subscribe();
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Subscribing to events...');
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Subscribed to events.');
+    const subscriptionId = await homeAssistant.subscribe();
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.DEBUG,
+      `Subscribing to ${CYAN}all events${db} with id ${CYAN}${subscriptionId}${db} and timeout ${CYAN}${(homeAssistant as any)._responseTimeout}${db} ms ...`,
+    );
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Subscribed successfully with id ${CYAN}${subscriptionId}${db}`);
   });
 
-  it('should subscribe to Home Assistant and fail', async () => {
+  it('should subscribe to Home Assistant and fail for event not valid', async () => {
     expect(homeAssistant.connected).toBe(true);
-    jest.spyOn(homeAssistant, 'fetch').mockImplementationOnce(() => {
-      return Promise.reject(new Error('Failed to fetch data'));
-    });
-    await homeAssistant.subscribe();
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Subscribing to events...');
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error subscribing to events: Error: Failed to fetch data');
+    await expect(homeAssistant.subscribe('notanevent')).rejects.toThrow('Not a valid event type');
+  });
+
+  it('should subscribe to Home Assistant and fail for Unexpected token', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    await expect(homeAssistant.subscribe('notajson')).rejects.toThrow();
+  });
+
+  it('should subscribe to Home Assistant and fail not connected', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    homeAssistant.connected = false; // Simulate not connected
+    await expect(homeAssistant.subscribe()).rejects.toThrow('Subscribe error: not connected to Home Assistant');
+    homeAssistant.connected = true; // Restore connection state
+  });
+
+  it('should subscribe to Home Assistant and fail for timeout', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    homeAssistant.responseTimeout = 1; // Set a short timeout for testing
+    await expect(homeAssistant.subscribe('noresponse')).rejects.toThrow(
+      `Subscribe event noresponse id ${(homeAssistant as any).requestId - 1} did not complete before the timeout`,
+    );
+    homeAssistant.responseTimeout = 5000; // Restore default timeout
   });
 
   it('should close with Home Assistant with ssl', async () => {
@@ -952,6 +979,13 @@ describe('HomeAssistant with ssl', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, 'Closing Home Assistant connection...');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, 'Home Assistant connection closed');
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+    expect(homeAssistant.connected).toBe(false);
+  });
+
+  it('should subscribe to Home Assistant and fail ws not opened', async () => {
+    homeAssistant.connected = true; // Ensure connected state
+    await expect(homeAssistant.subscribe()).rejects.toThrow('Subscribe error: WebSocket not open');
+    homeAssistant.connected = false; // Restore connection state
   });
 
   it('should not connect if wsUrl is wss:// and certificate are not present', async () => {

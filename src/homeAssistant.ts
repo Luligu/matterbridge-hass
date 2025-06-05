@@ -187,9 +187,9 @@ export interface HassStateClimateAttributes {
  */
 export interface HassEvent {
   data: {
-  entity_id: string;
-  new_state: HassState | null;
-  old_state: HassState | null;
+    entity_id: string;
+    new_state: HassState | null;
+    old_state: HassState | null;
   };
   event_type: string;
   time_fired: string;
@@ -490,6 +490,7 @@ export class HomeAssistant extends EventEmitter {
       this.log.error(`Error parsing WebSocket message: ${error}`);
       return;
     }
+    // console.log(`Received WebSocket message:`, response);
     if (response.type === 'pong') {
       this.log.debug(`Home Assistant pong received with id ${response.id}`);
       if (this.pingTimeout) {
@@ -568,11 +569,11 @@ export class HomeAssistant extends EventEmitter {
   }
 
   /**
-   * Connects to Home Assistant WebSocket API. It establishes a WebSocket connection, authenticates, fetches initial data, and subscribes to events.
+   * Connects to Home Assistant WebSocket API. It establishes a WebSocket connection and authenticates.
    *
-   * @returns {Promise<void>}
+   * @returns {Promise<string>} - A Promise that resolves to the HA version when the connection is established and authenticated, or rejects with an error if the connection fails.
    */
-  connect(): Promise<void> {
+  connect(): Promise<string> {
     return new Promise((resolve, reject) => {
       if (this.connected) {
         return reject(new Error('Already connected to Home Assistant'));
@@ -635,8 +636,8 @@ export class HomeAssistant extends EventEmitter {
 
             // Start ping interval
             this.startPing();
-            this.emit('connected', response.ha_version || 'unknown');
-            return resolve();
+            this.emit('connected', response.ha_version);
+            return resolve(response.ha_version);
           }
         };
       } catch (error) {
@@ -670,7 +671,7 @@ export class HomeAssistant extends EventEmitter {
         JSON.stringify({
           id: this.requestId++,
           type: 'ping',
-        }),
+        } as HassWebSocketMessagePing),
       );
       this.log.debug('Starting ping timeout...');
       this.pingTimeout = setTimeout(() => {
@@ -826,20 +827,6 @@ export class HomeAssistant extends EventEmitter {
   }
 
   /**
-   * It subscribes to events to receive updates on state changes and other events.
-   */
-  async subscribe() {
-    try {
-      this.log.debug('Subscribing to events...');
-      await this.fetch('subscribe_events');
-      this.log.debug('Subscribed to events.');
-      this.emit('subscribed');
-    } catch (error) {
-      this.log.error(`Error subscribing to events: ${error}`);
-    }
-  }
-
-  /**
    * Sends a request to Home Assistant and waits for a response.
    *
    * @param {string} type - The type of request to send.
@@ -893,8 +880,66 @@ export class HomeAssistant extends EventEmitter {
 
       this.ws.addEventListener('message', handleMessage);
 
-      this.log.debug(`Fetching async ${CYAN}${type}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
+      this.log.debug(`Fetching ${CYAN}${type}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
       this.ws.send(JSON.stringify({ id: requestId, type: type } as HassWebSocketMessageFetch));
+    });
+  }
+
+  /**
+   * Sends a "subscribe_events" request to Home Assistant and waits for a response.
+   * @param {string} event - The event to subscribe to or all events if not specified.
+   * @returns {Promise<number>} - A Promise that resolves with the subscribe id from Home Assistant or rejects with an error.
+   *
+   * @example
+   * // Example usage:
+   * subscribe('state_changed')
+   *   .then(response => {
+   *     console.log('Received response:', response);
+   *   })
+   *   .catch(error => {
+   *     console.error('Error:', error);
+   *   });
+   */
+  subscribe(event?: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (!this.connected) {
+        return reject(new Error('Subscribe error: not connected to Home Assistant'));
+      }
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        return reject(new Error('Subscribe error: WebSocket not open'));
+      }
+
+      const requestId = this.requestId++;
+
+      const timer = setTimeout(() => {
+        this.ws?.removeEventListener('message', handleMessage);
+        return reject(new Error(`Subscribe event ${event} id ${requestId} did not complete before the timeout`));
+      }, this._responseTimeout).unref();
+
+      const handleMessage = (event: WebSocket.MessageEvent) => {
+        try {
+          const response = JSON.parse(event.data.toString()) as HassWebSocketResponseSubscribeEvents;
+          if (response.type === 'result' && response.id === requestId) {
+            clearTimeout(timer);
+            this.ws?.removeEventListener('message', handleMessage);
+            if (response.success) {
+              this.log.debug(`Subscribed successfully with id ${CYAN}${requestId}${db}`);
+              return resolve(response.id);
+            } else {
+              return reject(new Error(response.error?.message));
+            }
+          }
+        } catch (error) {
+          clearTimeout(timer);
+          this.ws?.removeEventListener('message', handleMessage);
+          reject(error);
+        }
+      };
+
+      this.ws.addEventListener('message', handleMessage);
+
+      this.log.debug(`Subscribing to ${CYAN}${event ?? 'all events'}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
+      this.ws.send(JSON.stringify({ id: requestId, type: 'subscribe_events', event_type: event } as HassWebSocketMessageSubscribeEvents));
     });
   }
 
@@ -950,7 +995,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(
-        `Calling service async ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`,
+        `Calling service ${CYAN}${domain}.${service}${db} for entity ${CYAN}${entityId}${db} with ${debugStringify(serviceData)}${db} id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`,
       );
       this.ws.send(
         JSON.stringify({
