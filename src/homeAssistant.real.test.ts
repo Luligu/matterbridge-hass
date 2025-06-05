@@ -115,27 +115,27 @@ describe('HomeAssistant real test on ubuntu', () => {
     expect(device_registry_response.length).toBeGreaterThan(0);
   });
 
-  it('should get the entities asyncronously from Home Assistant', async () => {
+  it('should get the entities from Home Assistant', async () => {
     entity_registry_response = await homeAssistant.fetch('config/entity_registry/list');
     expect(entity_registry_response.length).toBeGreaterThan(0);
   });
 
-  it('should get the areas asyncronously from Home Assistant', async () => {
+  it('should get the areas from Home Assistant', async () => {
     area_registry_response = await homeAssistant.fetch('config/area_registry/list');
     expect(area_registry_response.length).toBeGreaterThan(0);
   });
 
-  it('should get the states asyncronously from Home Assistant', async () => {
+  it('should get the states from Home Assistant', async () => {
     states_response = await homeAssistant.fetch('get_states');
     expect(states_response.length).toBeGreaterThan(0);
   });
 
-  it('should get the config asyncronously from Home Assistant', async () => {
+  it('should get the config  from Home Assistant', async () => {
     config_response = await homeAssistant.fetch('get_config');
     expect(typeof config_response).toBe('object');
   });
 
-  it('should get the services asyncronously from Home Assistant', async () => {
+  it('should get the services from Home Assistant', async () => {
     services_response = await homeAssistant.fetch('get_services');
     expect(typeof services_response).toBe('object');
   });
@@ -149,7 +149,7 @@ describe('HomeAssistant real test on ubuntu', () => {
     expect(subscriptionId).toBe(13);
   });
 
-  it('should fail to get fetch from Home Assistant', async () => {
+  it('should fail to fetch from Home Assistant', async () => {
     await expect(homeAssistant.fetch('notvalid')).rejects.toThrow('Unknown command.');
   });
 
