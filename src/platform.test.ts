@@ -134,7 +134,7 @@ describe('HassPlatform', () => {
 
   const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
     console.log(`Mocked connect`);
-    return Promise.resolve();
+    return Promise.resolve('2024.09.1');
   });
 
   const closeSpy = jest.spyOn(HomeAssistant.prototype, 'close').mockImplementation(() => {
@@ -142,9 +142,9 @@ describe('HassPlatform', () => {
     return Promise.resolve();
   });
 
-  const subscribeSpy = jest.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation(() => {
-    console.log(`Mocked subscribe`);
-    return Promise.resolve();
+  const subscribeSpy = jest.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation((event?: string) => {
+    console.log(`Mocked subscribe: ${event}`);
+    return Promise.resolve(15);
   });
 
   const fetchDataSpy = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
@@ -543,7 +543,7 @@ describe('HassPlatform', () => {
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
     expect(mockLog.notice).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
     expect(mockLog.info).toHaveBeenCalledWith(`Fetched data from Home Assistant successfully`);
-    expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events successfully`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events successfully with id 15`);
 
     jest.clearAllMocks();
     fetchDataSpy.mockImplementationOnce(() => {
