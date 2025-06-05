@@ -19,12 +19,12 @@ Since release 0.1.0:
 
 ### Added
 
-- [homeassistant]: Typed HassWebSocketResponses and HassWebSocketMessages.
+- [homeassistant]: Typed HassWebSocketResponses and HassWebSocketRequests.
 - [homeassistant]: Added subscribe() and Jest test.
 - [homeassistant]: Added unsubscribe() and Jest test.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'garage_door'. It creates a contactSensor with BooleanState cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'window'. It creates a contactSensor with BooleanState cluster.
-- [jest]: Added real test to test the HomeAssistant api.
+- [jest]: Added real Jest test to test the HomeAssistant api with a real Home Assistant setup.
 
 ### Changed
 

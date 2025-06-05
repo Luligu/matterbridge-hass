@@ -150,7 +150,7 @@ const mockConfig = {
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);
-  return Promise.resolve();
+  return Promise.resolve('2025.1.0'); // Simulate a successful connection with a version string
 });
 
 const closeSpy = jest.spyOn(HomeAssistant.prototype, 'close').mockImplementation(() => {
@@ -160,7 +160,7 @@ const closeSpy = jest.spyOn(HomeAssistant.prototype, 'close').mockImplementation
 
 const subscribeSpy = jest.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation(() => {
   console.log(`Mocked subscribe`);
-  return Promise.resolve();
+  return Promise.resolve(1); // Simulate a successful subscription with a subscription ID
 });
 
 const fetchDataSpy = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
