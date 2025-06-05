@@ -55,8 +55,6 @@ describe('HomeAssistant real test on ubuntu', () => {
   let services_response: HassServices = {} as HassServices;
   let config_response: HassConfig = {} as HassConfig;
 
-  if (!accessToken) return;
-
   beforeAll(async () => {
     //
   });
@@ -72,6 +70,12 @@ describe('HomeAssistant real test on ubuntu', () => {
   afterAll(async () => {
     //
   });
+
+  it('should have at least one test', () => {
+    expect(wsUrl).toBeDefined();
+  });
+
+  if (!accessToken) return;
 
   it('should create an instance of HomeAssistant', () => {
     homeAssistant = new HomeAssistant(wsUrl, accessToken);
