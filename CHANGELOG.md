@@ -12,7 +12,12 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
+- [homeassistant]: Typed HassWebSocketResponses and HassWebSocketMessages.
+- [homeassistant]: Added subscribe() and Jest test.
+
 ### Changed
+
+- [config]: Enhanced reconnect config description and set minimum value to 30 secs for reconnectTimeout.
 
 ### Fixed
 

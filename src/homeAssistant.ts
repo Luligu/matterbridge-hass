@@ -887,7 +887,7 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Sends a "subscribe_events" request to Home Assistant and waits for a response.
-   * @param {string} event - The event to subscribe to or all events if not specified.
+   * @param {string | undefined} event - The event to subscribe to or all events if not specified.
    * @returns {Promise<number>} - A Promise that resolves with the subscribe id from Home Assistant or rejects with an error.
    *
    * @example
