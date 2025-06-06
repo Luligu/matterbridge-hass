@@ -21,7 +21,8 @@ import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk } 
 // Home Assistant Plugin
 import { HomeAssistantPlatform } from './platform';
 import { HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
-import { BooleanState, FanControl, OnOff, SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat } from 'matterbridge/matter/clusters';
+import { MutableDevice } from './mutableDevice';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -183,6 +184,15 @@ const callServiceSpy = jest
 const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
 const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAttribute');
 const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
+
+const addClusterServerBooleanStateSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
+const addClusterServerSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerSmokeCoAlarm');
+const addClusterServerColorTemperatureColorControlSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerColorTemperatureColorControl');
+const addClusterServerColorControlSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerColorControl');
+const addClusterServerAutoModeThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
+const addClusterServerHeatingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
+const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
+
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
 let haPlatform: HomeAssistantPlatform;
@@ -355,6 +365,164 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.size).toBe(0);
   });
 
+  it('should call onStart and register an Color Temperature Light device', async () => {
+    const lightDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00cc6b',
+      labels: [],
+      name: 'Color Temperature Light',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const lightDeviceEntity = {
+      area_id: null,
+      device_id: lightDevice.id,
+      entity_category: null,
+      entity_id: 'light.light_ct',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450cc2b0aa',
+      labels: [],
+      name: null,
+      original_name: 'Color Temperature Light',
+    } as unknown as HassEntity;
+
+    const lightDeviceEntityState = {
+      entity_id: lightDeviceEntity.entity_id,
+      state: 'on',
+      attributes: {
+        device_class: 'light',
+        supported_color_modes: ['onoff', 'brightness', 'color_temp'],
+        color_mode: 'color_temp',
+        brightness: 100,
+        color_temp: 200, // Color temperature in mireds
+        min_mireds: 153, // Minimum mireds (6500K)
+        max_mireds: 400, // Maximum mireds (2500K)
+        friendly_name: 'Light Light Ct',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(lightDevice.id, lightDevice);
+    haPlatform.ha.hassEntities.set(lightDeviceEntity.entity_id, lightDeviceEntity);
+    haPlatform.ha.hassStates.set(lightDeviceEntityState.entity_id, lightDeviceEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(lightDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(lightDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(lightDeviceEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 200, 153, 400);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(
+      expect.stringContaining(`Configuring state ${CYAN}${lightDeviceEntityState.entity_id}${db} for device ${CYAN}${lightDevice.id}${db}`),
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.Cluster.id, 'currentLevel', 100, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.ColorTemperatureMireds, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorTemperatureMireds', 200, expect.anything());
+
+    haPlatform.matterbridgeDevices.delete(lightDevice.id);
+    haPlatform.ha.hassDevices.delete(lightDevice.id);
+    haPlatform.ha.hassEntities.delete(lightDeviceEntity.entity_id);
+    haPlatform.ha.hassStates.delete(lightDeviceEntityState.entity_id);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register an Rgb Light device', async () => {
+    const lightDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00ee6b',
+      labels: [],
+      name: 'Light',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const lightDeviceEntity = {
+      area_id: null,
+      device_id: lightDevice.id,
+      entity_category: null,
+      entity_id: 'light.light',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0aa',
+      labels: [],
+      name: null,
+      original_name: 'Light',
+    } as unknown as HassEntity;
+
+    const lightDeviceEntityState = {
+      entity_id: lightDeviceEntity.entity_id,
+      state: 'on',
+      attributes: {
+        device_class: 'light',
+        supported_color_modes: ['onoff', 'brightness', 'rgb'],
+        color_mode: 'hs',
+        brightness: 100,
+        hs_color: [180, 50], // Hue and Saturation
+        rgb_color: [255, 255, 255],
+        friendly_name: 'Light Light',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(lightDevice.id, lightDevice);
+    haPlatform.ha.hassEntities.set(lightDeviceEntity.entity_id, lightDeviceEntity);
+    haPlatform.ha.hassStates.set(lightDeviceEntityState.entity_id, lightDeviceEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(lightDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(lightDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(lightDeviceEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(addClusterServerColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 250, 147, 500);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(
+      expect.stringContaining(`Configuring state ${CYAN}${lightDeviceEntityState.entity_id}${db} for device ${CYAN}${lightDevice.id}${db}`),
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.Cluster.id, 'currentLevel', 100, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.CurrentHueAndCurrentSaturation, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentHue', 127, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentSaturation', 127, expect.anything());
+
+    haPlatform.matterbridgeDevices.delete(lightDevice.id);
+    haPlatform.ha.hassDevices.delete(lightDevice.id);
+    haPlatform.ha.hassEntities.delete(lightDeviceEntity.entity_id);
+    haPlatform.ha.hassStates.delete(lightDeviceEntityState.entity_id);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
   it('should call onStart and register a Fan device', async () => {
     const fanDevice = {
       area_id: null,
@@ -443,6 +611,98 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.size).toBe(0);
   });
 
+  it('should call onStart and register a Climate device', async () => {
+    const climateDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00ee7a',
+      labels: [],
+      name: 'Climate',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const climateDeviceEntity = {
+      area_id: null,
+      device_id: climateDevice.id,
+      entity_category: null,
+      entity_id: 'climate.climate_auto',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ab',
+      labels: [],
+      name: null,
+      original_name: 'Climate',
+    } as unknown as HassEntity;
+
+    const climateDeviceEntityState = {
+      entity_id: climateDeviceEntity.entity_id,
+      state: 'heat_cool',
+      attributes: { hvac_modes: ['heat_cool'], hvac_mode: 'heat_cool', current_temperature: 20, target_temp_low: 10, target_temp_high: 30, friendly_name: 'Climate Climate auto' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(climateDevice.id, climateDevice);
+    haPlatform.ha.hassEntities.set(climateDeviceEntity.entity_id, climateDeviceEntity);
+    haPlatform.ha.hassStates.set(climateDeviceEntityState.entity_id, climateDeviceEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(climateDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(climateDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(climateDeviceEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'systemMode', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedHeatingSetpoint', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedCoolingSetpoint', expect.anything(), expect.anything());
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}Thermostat${db}.${hk}systemMode$Changed${db}`),
+    );
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}Thermostat${db}.${hk}occupiedHeatingSetpoint$Changed${db}`),
+    );
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}Thermostat${db}.${hk}occupiedCoolingSetpoint$Changed${db}`),
+    );
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(
+      expect.stringContaining(`Configuring state ${CYAN}${climateDeviceEntityState.entity_id}${db} for device ${CYAN}${climateDevice.id}${db}`),
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'systemMode', Thermostat.SystemMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedHeatingSetpoint', 1000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedCoolingSetpoint', 3000, expect.anything());
+
+    // Simulate a not changed in fan mode and call the event handler
+    await child.act((agent) => agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Auto, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }));
+    // Simulate a change in fan mode and call the event handler
+    await child.act((agent) => agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Cool, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }));
+    // Simulate a change in fan mode and call the event handler with wrong parameter
+    await child.act((agent) =>
+      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Heat + 1, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
+    );
+
+    haPlatform.matterbridgeDevices.delete(climateDevice.id);
+    haPlatform.ha.hassDevices.delete(climateDevice.id);
+    haPlatform.ha.hassEntities.delete(climateDeviceEntity.entity_id);
+    haPlatform.ha.hassStates.delete(climateDeviceEntityState.entity_id);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
   it('should call onStart and register a Contact device', async () => {
     const contactDevice = {
       area_id: null,
@@ -493,6 +753,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(child.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactDeviceEntity.entity_id, false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -569,6 +830,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(child.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Water Leak Detector: true = leak, false = no leak
+    expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(leakDeviceEntity.entity_id, false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -642,6 +904,8 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(child.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(SmokeCoAlarm.ExpressedState.Normal);
+    expect(addClusterServerSmokeCoAlarmSpy).toHaveBeenCalledWith(smokeDeviceEntity.entity_id, SmokeCoAlarm.ExpressedState.Normal);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();

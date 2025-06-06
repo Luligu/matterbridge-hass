@@ -27,23 +27,20 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 // @matter imports
-import { Thermostat, OnOff, ColorControl, BridgedDeviceBasicInformation, SmokeCoAlarm, BooleanState } from 'matterbridge/matter/clusters';
+import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Matterbridge imports
 import {
   Matterbridge,
   PlatformConfig,
-  MatterbridgeColorControlServer,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
-  MatterbridgeThermostatServer,
   bridgedNode,
   colorTemperatureLight,
   extendedColorLight,
   onOffOutlet,
   smokeCoAlarm,
-  MatterbridgeSmokeCoAlarmServer,
   waterLeakDetector,
   waterFreezeDetector,
   contactSensor,
@@ -54,7 +51,7 @@ import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 // Plugin imports
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea } from './homeAssistant.js';
-import { MutableDevice, getClusterServerObj } from './mutableDevice.js';
+import { MutableDevice } from './mutableDevice.js';
 import {
   hassCommandConverter,
   hassDomainAttributeConverter,
@@ -65,7 +62,6 @@ import {
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
 } from './converters.js';
-import { BooleanStateServer } from 'matterbridge/matter/behaviors';
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // NodeStorageManager
@@ -427,84 +423,31 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
         const child = await mutableDevice.createChildEndpoint(entity.entity_id);
 
+        // For some clusters we need to set the features and to set the default values for the fixed attributes
+        const deviceTypeCodes = mutableDevice.get(entity.entity_id).deviceTypes.map((d) => d.code);
+
         // Special case for binary_sensor domain: configure the contactSensor cluster default values.
-        if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === contactSensor.code) {
-          mutableDevice.addClusterServerObjs(
-            entity.entity_id,
-            getClusterServerObj(
-              BooleanState.Cluster.id,
-              BooleanStateServer.enable({
-                events: { stateChange: true },
-              }),
-              {
-                stateValue: hassState.state === 'on' ? false : true,
-              },
-            ),
-          );
+        if (domain === 'binary_sensor' && deviceTypeCodes.includes(contactSensor.code)) {
+          this.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerBooleanState(entity.entity_id, hassState.state === 'on' ? false : true);
         }
 
         // Special case for binary_sensor domain: configure the BooleanState cluster default value.
-        if (
-          domain === 'binary_sensor' &&
-          (mutableDevice.get(entity.entity_id).deviceTypes[0].code === waterLeakDetector.code ||
-            mutableDevice.get(entity.entity_id).deviceTypes[0].code === waterFreezeDetector.code)
-        ) {
-          mutableDevice.addClusterServerObjs(
-            entity.entity_id,
-            getClusterServerObj(
-              BooleanState.Cluster.id,
-              BooleanStateServer.enable({
-                events: { stateChange: true },
-              }),
-              {
-                stateValue: hassState.state === 'on' ? true : false,
-              },
-            ),
-          );
+        if (domain === 'binary_sensor' && (deviceTypeCodes.includes(waterLeakDetector.code) || deviceTypeCodes.includes(waterFreezeDetector.code))) {
+          this.log.debug(`= waterLeakDetector/waterFreezeDetector device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerBooleanState(entity.entity_id, hassState.state === 'on' ? true : false);
         }
 
         // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm.
         if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
-          mutableDevice.addClusterServerObjs(
-            entity.entity_id,
-            getClusterServerObj(
-              SmokeCoAlarm.Cluster.id,
-              MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.SmokeAlarm).enable({
-                events: {
-                  smokeAlarm: true,
-                  interconnectSmokeAlarm: false,
-                  coAlarm: false,
-                  interconnectCoAlarm: false,
-                  lowBattery: true,
-                  hardwareFault: true,
-                  endOfService: true,
-                  selfTestComplete: true,
-                  alarmMuted: true,
-                  muteEnded: true,
-                  allClear: true,
-                },
-              }),
-              {
-                smokeState: hassState.state === 'on' ? SmokeCoAlarm.ExpressedState.SmokeAlarm : SmokeCoAlarm.ExpressedState.Normal,
-                expressedState: SmokeCoAlarm.ExpressedState.Normal,
-                batteryAlert: SmokeCoAlarm.AlarmState.Normal,
-                deviceMuted: SmokeCoAlarm.MuteState.NotMuted,
-                testInProgress: false,
-                hardwareFaultAlert: false,
-                endOfServiceAlert: SmokeCoAlarm.EndOfService.Normal,
-              },
-            ),
-          );
+          this.log.debug(`= smokeCoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerSmokeCoAlarm(entity.entity_id, hassState.state === 'on' ? SmokeCoAlarm.ExpressedState.SmokeAlarm : SmokeCoAlarm.ExpressedState.Normal);
         }
 
         // Special case for light domain: configure the ColorControl cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
-        if (
-          domain === 'light' &&
-          (mutableDevice.get(entity.entity_id).deviceTypes[0].code === colorTemperatureLight.code ||
-            mutableDevice.get(entity.entity_id).deviceTypes[0].code === extendedColorLight.code)
-        ) {
+        if (domain === 'light' && (deviceTypeCodes.includes(colorTemperatureLight.code) || deviceTypeCodes.includes(extendedColorLight.code))) {
           this.log.debug(
-            `= colorControl supported_color_modes: ${CYAN}${hassState.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${hassState.attributes['min_mireds']}${db} max_mireds: ${CYAN}${hassState.attributes['max_mireds']}${db}`,
+            `= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${hassState.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${hassState.attributes['min_mireds']}${db} max_mireds: ${CYAN}${hassState.attributes['max_mireds']}${db}`,
           );
           if (
             isValidArray(hassState.attributes['supported_color_modes']) &&
@@ -515,50 +458,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             !hassState.attributes['supported_color_modes'].includes('rgbww') &&
             hassState.attributes['supported_color_modes'].includes('color_temp')
           ) {
-            mutableDevice.addClusterServerObjs(
+            mutableDevice.addClusterServerColorTemperatureColorControl(
               entity.entity_id,
-              getClusterServerObj(ColorControl.Cluster.id, MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature), {
-                colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
-                enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
-                colorCapabilities: { xy: false, hueSaturation: false, colorLoop: false, enhancedHue: false, colorTemperature: true },
-                options: {
-                  executeIfOff: false,
-                },
-                numberOfPrimaries: null,
-                colorTemperatureMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 250,
-                colorTempPhysicalMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
-                colorTempPhysicalMaxMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 500,
-                coupleColorTempToLevelMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
-                remainingTime: 0,
-                startUpColorTemperatureMireds: null,
-              }),
+              hassState.attributes['color_temp'] ?? 250,
+              hassState.attributes['min_mireds'] ?? 147,
+              hassState.attributes['max_mireds'] ?? 500,
             );
           } else {
-            mutableDevice.addClusterServerObjs(
+            mutableDevice.addClusterServerColorControl(
               entity.entity_id,
-              getClusterServerObj(
-                ColorControl.Cluster.id,
-                MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature, ColorControl.Feature.HueSaturation, ColorControl.Feature.Xy),
-                {
-                  colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
-                  enhancedColorMode: ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
-                  colorCapabilities: { xy: true, hueSaturation: true, colorLoop: false, enhancedHue: false, colorTemperature: true },
-                  options: {
-                    executeIfOff: false,
-                  },
-                  numberOfPrimaries: null,
-                  currentX: 0,
-                  currentY: 0,
-                  currentHue: 0,
-                  currentSaturation: 0,
-                  colorTemperatureMireds: (hassState.attributes['color_temp'] as number | undefined) ?? 250,
-                  colorTempPhysicalMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
-                  colorTempPhysicalMaxMireds: (hassState.attributes['max_mireds'] as number | undefined) ?? 500,
-                  coupleColorTempToLevelMinMireds: (hassState.attributes['min_mireds'] as number | undefined) ?? 147,
-                  remainingTime: 0,
-                  startUpColorTemperatureMireds: null,
-                },
-              ),
+              hassState.attributes['color_temp'] ?? 250,
+              hassState.attributes['min_mireds'] ?? 147,
+              hassState.attributes['max_mireds'] ?? 500,
             );
           }
         }
@@ -566,66 +477,40 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Special case for climate domain: configure the Thermostat cluster default values and features. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.
         if (domain === 'climate') {
           if (isValidArray(hassState?.attributes['hvac_modes']) && hassState.attributes['hvac_modes'].includes('heat_cool')) {
-            mutableDevice.addClusterServerObjs(
+            this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+            mutableDevice.addClusterServerAutoModeThermostat(
               entity.entity_id,
-              getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
-                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
-                systemMode: Thermostat.SystemMode.Auto,
-                controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
-                // Thermostat.Feature.Heating
-                occupiedHeatingSetpoint: ((hassState.attributes['target_temp_low'] as number | undefined) ?? 21) * 100,
-                minHeatSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                absMinHeatSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                maxHeatSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-                absMaxHeatSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-                // Thermostat.Feature.Cooling
-                occupiedCoolingSetpoint: ((hassState.attributes['target_temp_high'] as number | undefined) ?? 25) * 100,
-                minCoolSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                absMinCoolSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                maxCoolSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-                absMaxCoolSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-                // Thermostat.Feature.AutoMode
-                minSetpointDeadBand: 1 * 100,
-                thermostatRunningMode: Thermostat.ThermostatRunningMode.Off,
-              }),
+              hassState.attributes['current_temperature'] ?? 23,
+              hassState.attributes['target_temp_low'] ?? 21,
+              hassState.attributes['target_temp_high'] ?? 25,
+              hassState.attributes['min_temp'] ?? 0,
+              hassState.attributes['max_temp'] ?? 50,
             );
           } else if (
             isValidArray(hassState?.attributes['hvac_modes']) &&
             hassState.attributes['hvac_modes'].includes('heat') &&
             !hassState.attributes['hvac_modes'].includes('cool')
           ) {
-            mutableDevice.addClusterServerObjs(
+            this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+            mutableDevice.addClusterServerHeatingThermostat(
               entity.entity_id,
-              getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating), {
-                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
-                systemMode: Thermostat.SystemMode.Heat,
-                controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.HeatingOnly,
-                // Thermostat.Feature.Heating
-                occupiedHeatingSetpoint: ((hassState.attributes['temperature'] as number | undefined) ?? 21) * 100,
-                minHeatSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                absMinHeatSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                maxHeatSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-                absMaxHeatSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-              }),
+              hassState.attributes['current_temperature'] ?? 23,
+              hassState.attributes['temperature'] ?? 21,
+              hassState.attributes['min_temp'] ?? 0,
+              hassState.attributes['max_temp'] ?? 50,
             );
           } else if (
             isValidArray(hassState?.attributes['hvac_modes']) &&
             hassState.attributes['hvac_modes'].includes('cool') &&
             !hassState.attributes['hvac_modes'].includes('heat')
           ) {
-            mutableDevice.addClusterServerObjs(
+            this.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.attributes['hvac_modes']}${db}`);
+            mutableDevice.addClusterServerCoolingThermostat(
               entity.entity_id,
-              getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Cooling), {
-                localTemperature: ((hassState.attributes['current_temperature'] as number | undefined) ?? 23) * 100,
-                systemMode: Thermostat.SystemMode.Cool,
-                controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingOnly,
-                // Thermostat.Feature.Cooling
-                occupiedCoolingSetpoint: ((hassState.attributes['temperature'] as number | undefined) ?? 25) * 100,
-                minCoolSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                absMinCoolSetpointLimit: ((hassState.attributes['min_temp'] as number | undefined) ?? 0) * 100,
-                maxCoolSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-                absMaxCoolSetpointLimit: ((hassState.attributes['max_temp'] as number | undefined) ?? 50) * 100,
-              }),
+              hassState.attributes['current_temperature'] ?? 23,
+              hassState.attributes['temperature'] ?? 21,
+              hassState.attributes['min_temp'] ?? 0,
+              hassState.attributes['max_temp'] ?? 50,
             );
           }
         }
@@ -651,7 +536,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             const check = child.hasAttributeServer(hassSubscribe.clusterId, hassSubscribe.attribute);
             this.log.debug(`- subscribe: ${CYAN}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${CYAN}${hassSubscribe.attribute}${db} check ${CYAN}${check}${db}`);
             if (!check) continue;
-
             child.subscribeAttribute(
               hassSubscribe.clusterId,
               hassSubscribe.attribute,
@@ -893,6 +777,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // console.error('Processing update attributes: ', hassUpdateAttributes.length);
         for (const update of hassUpdateAttributes) {
           // console.error('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
+          // @ts-expect-error: dynamic property access for Home Assistant state attribute
           const value = new_state.attributes[update.with];
           if (value !== null) {
             const convertedValue = update.converter(value, new_state);
