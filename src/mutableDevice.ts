@@ -4,7 +4,7 @@
  * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @date 2024-12-08
- * @version 0.0.1
+ * @version 1.0.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -21,28 +21,34 @@
  * limitations under the License. *
  */
 
+// Node.js imports
 import { createHash, randomBytes } from 'node:crypto';
+
+// Matterbridge imports
 import {
+  Matterbridge,
+  MatterbridgeEndpoint,
+  MatterbridgeSmokeCoAlarmServer,
+  DeviceTypeDefinition,
   colorTemperatureLight,
   colorTemperatureSwitch,
-  DeviceTypeDefinition,
   dimmableLight,
   dimmableOutlet,
   dimmableSwitch,
   extendedColorLight,
-  Matterbridge,
-  MatterbridgeEndpoint,
   onOffLight,
   onOffOutlet,
   onOffSwitch,
+  MatterbridgeColorControlServer,
+  MatterbridgeThermostatServer,
 } from 'matterbridge';
-import { db, debugStringify, idn, ign, rs } from 'matterbridge/logger';
+import { db, debugStringify, idn, ign, rs, CYAN } from 'matterbridge/logger';
 
+// @matter imorts
 import { AtLeastOne, Behavior } from 'matterbridge/matter';
 import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
-import { BridgedDeviceBasicInformation } from 'matterbridge/matter/clusters';
-import { BridgedDeviceBasicInformationServer } from 'matterbridge/matter/behaviors';
-import { CYAN } from 'node-ansi-logger';
+import { BooleanState, BridgedDeviceBasicInformation, ColorControl, SmokeCoAlarm, Thermostat } from 'matterbridge/matter/clusters';
+import { BooleanStateServer, BridgedDeviceBasicInformationServer } from 'matterbridge/matter/behaviors';
 
 interface ClusterServerObj {
   id: ClusterId;
@@ -159,6 +165,169 @@ export class MutableDevice {
   addClusterServerObjs(endpoint: string, ...clusterServerObj: ClusterServerObj[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(...clusterServerObj);
+  }
+
+  addClusterServerBooleanState(endpoint: string, stateValue: boolean) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        BooleanState.Cluster.id,
+        BooleanStateServer.enable({
+          events: { stateChange: true },
+        }),
+        {
+          stateValue,
+        },
+      ),
+    );
+  }
+
+  addClusterServerSmokeCoAlarm(endpoint: string, smokeState: SmokeCoAlarm.ExpressedState) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        SmokeCoAlarm.Cluster.id,
+        MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.SmokeAlarm).enable({
+          events: {
+            smokeAlarm: true,
+            interconnectSmokeAlarm: false,
+            coAlarm: false,
+            interconnectCoAlarm: false,
+            lowBattery: true,
+            hardwareFault: true,
+            endOfService: true,
+            selfTestComplete: true,
+            alarmMuted: true,
+            muteEnded: true,
+            allClear: true,
+          },
+        }),
+        {
+          smokeState,
+          expressedState: SmokeCoAlarm.ExpressedState.Normal,
+          batteryAlert: SmokeCoAlarm.AlarmState.Normal,
+          deviceMuted: SmokeCoAlarm.MuteState.NotMuted,
+          testInProgress: false,
+          hardwareFaultAlert: false,
+          endOfServiceAlert: SmokeCoAlarm.EndOfService.Normal,
+        },
+      ),
+    );
+  }
+
+  addClusterServerColorTemperatureColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(ColorControl.Cluster.id, MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature), {
+        colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
+        enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
+        colorCapabilities: { xy: false, hueSaturation: false, colorLoop: false, enhancedHue: false, colorTemperature: true },
+        options: {
+          executeIfOff: false,
+        },
+        numberOfPrimaries: null,
+        colorTemperatureMireds,
+        colorTempPhysicalMinMireds,
+        colorTempPhysicalMaxMireds,
+        coupleColorTempToLevelMinMireds: colorTempPhysicalMinMireds,
+        remainingTime: 0,
+        startUpColorTemperatureMireds: null,
+      }),
+    );
+  }
+
+  addClusterServerColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        ColorControl.Cluster.id,
+        MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature, ColorControl.Feature.HueSaturation, ColorControl.Feature.Xy),
+        {
+          colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
+          enhancedColorMode: ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
+          colorCapabilities: { xy: true, hueSaturation: true, colorLoop: false, enhancedHue: false, colorTemperature: true },
+          options: {
+            executeIfOff: false,
+          },
+          numberOfPrimaries: null,
+          currentX: 0,
+          currentY: 0,
+          currentHue: 0,
+          currentSaturation: 0,
+          colorTemperatureMireds,
+          colorTempPhysicalMinMireds,
+          colorTempPhysicalMaxMireds,
+          coupleColorTempToLevelMinMireds: colorTempPhysicalMinMireds,
+          remainingTime: 0,
+          startUpColorTemperatureMireds: null,
+        },
+      ),
+    );
+  }
+
+  addClusterServerAutoModeThermostat(
+    endpoint: string,
+    localTemperature: number,
+    occupiedHeatingSetpoint: number,
+    occupiedCoolingSetpoint: number,
+    minSetpointLimit: number,
+    maxSetpointLimit: number,
+  ) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
+        localTemperature: localTemperature * 100,
+        systemMode: Thermostat.SystemMode.Auto,
+        controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
+        // Thermostat.Feature.Heating
+        occupiedHeatingSetpoint: occupiedHeatingSetpoint * 100,
+        minHeatSetpointLimit: minSetpointLimit * 100,
+        absMinHeatSetpointLimit: minSetpointLimit * 100,
+        maxHeatSetpointLimit: maxSetpointLimit * 100,
+        absMaxHeatSetpointLimit: maxSetpointLimit * 100,
+        // Thermostat.Feature.Cooling
+        occupiedCoolingSetpoint: occupiedCoolingSetpoint * 100,
+        minCoolSetpointLimit: minSetpointLimit * 100,
+        absMinCoolSetpointLimit: minSetpointLimit * 100,
+        maxCoolSetpointLimit: maxSetpointLimit * 100,
+        absMaxCoolSetpointLimit: maxSetpointLimit * 100,
+        // Thermostat.Feature.AutoMode
+        minSetpointDeadBand: 1 * 100,
+        thermostatRunningMode: Thermostat.ThermostatRunningMode.Off,
+      }),
+    );
+  }
+  addClusterServerHeatingThermostat(endpoint: string, localTemperature: number, occupiedHeatingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating), {
+        localTemperature: localTemperature * 100,
+        systemMode: Thermostat.SystemMode.Heat,
+        controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.HeatingOnly,
+        // Thermostat.Feature.Heating
+        occupiedHeatingSetpoint: occupiedHeatingSetpoint * 100,
+        minHeatSetpointLimit: minSetpointLimit * 100,
+        absMinHeatSetpointLimit: minSetpointLimit * 100,
+        maxHeatSetpointLimit: maxSetpointLimit * 100,
+        absMaxHeatSetpointLimit: maxSetpointLimit * 100,
+      }),
+    );
+  }
+  addClusterServerCoolingThermostat(endpoint: string, localTemperature: number, occupiedCoolingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Cooling), {
+        localTemperature: localTemperature * 100,
+        systemMode: Thermostat.SystemMode.Cool,
+        controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingOnly,
+        // Thermostat.Feature.Cooling
+        occupiedCoolingSetpoint: occupiedCoolingSetpoint * 100,
+        minCoolSetpointLimit: minSetpointLimit * 100,
+        absMinCoolSetpointLimit: minSetpointLimit * 100,
+        maxCoolSetpointLimit: maxSetpointLimit * 100,
+        absMaxCoolSetpointLimit: maxSetpointLimit * 100,
+      }),
+    );
   }
 
   private createUniqueId(param1: string, param2: string, param3: string, param4: string) {
