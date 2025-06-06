@@ -5,7 +5,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @date 2024-09-14
- * @version 1.0.2
+ * @version 1.1.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -119,12 +119,12 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & Record<string, HomeAssistantPrimitive>;
+  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes;
   context: HassContext;
 }
 
 /**
- * Interface representing the attributes of a Home Assistant entity's state.
+ * Interface representing the generic attributes of a Home Assistant entity's state.
  */
 export interface HassStateAttributes {
   friendly_name?: string;
@@ -165,21 +165,28 @@ export interface HassStateLightAttributes {
  * Interface representing the attributes of a Home Assistant fan entity's state.
  */
 export interface HassStateFanAttributes {
-  preset_modes?: string[]; // List of supported fan modes (e.g., "low", "medium", "high", "auto")
-  preset_mode?: string; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity (e.g., "on", "off")
+  preset_modes?: ('auto' | 'low' | 'medium' | 'high')[]; // List of supported fan modes
+  preset_mode?: 'auto' | 'low' | 'medium' | 'high' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
   percentage?: number; // Current speed setting
-  percentage_step?: number; // Current speed of the fan entity
+  percentage_step?: number; // Current step speed setting of the fan entity
 }
 
 /**
  * Interface representing the attributes of a Home Assistant climate entity's state.
  */
 export interface HassStateClimateAttributes {
-  hvac_modes?: string[]; // List of supported HVAC modes (e.g., "off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only")
-  temperature?: number; // Target temperature setting
-  current_temperature?: number; // Current temperature of the climate entity
-  fan_modes?: string[]; // List of supported fan modes (e.g., "auto", "low", "medium", "high")
-  fan_mode?: string | null; // Fan mode (e.g., "auto")
+  hvac_modes?: ('off' | 'heat' | 'cool' | 'heat_cool' | 'auto' | 'dry' | 'fan_only')[]; // List of supported HVAC modes
+  hvac_mode?: 'off' | 'heat' | 'cool' | 'heat_cool' | 'auto' | 'dry' | 'fan_only' | null; // Current HVAC mode but also the state of the climate entity
+  preset_modes?: ('none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity')[]; // List of supported preset modes
+  preset_mode?: 'none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity' | null; // Current preset mode
+  fan_modes?: ('on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse')[]; // List of supported fan modes
+  fan_mode?: 'on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse' | null; // Fan mode
+  current_temperature?: number | null; // Current temperature of the climate entity
+  temperature?: number | null; // Target temperature setting for the climate entity (not in heat_cool thermostats)
+  target_temp_high?: number | null; // Target high temperature setting (for heat_cool thermostats)
+  target_temp_low?: number | null; // Target low temperature setting (for heat_cool thermostats)
+  min_temp?: number | null; // Minimum temperature setting
+  max_temp?: number | null; // Maximum temperature setting
 }
 
 /**
