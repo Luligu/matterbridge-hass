@@ -53,6 +53,7 @@ Features:
 | binary_sensor |                       | cold                                 | waterFreezeDetector |
 | binary_sensor |                       | moisture                             | waterLeakDetector   |
 | binary_sensor |                       | smoke                                | smokeCoAlarm        |
+| binary_sensor |                       | carbon_monoxide                      | smokeCoAlarm        |
 
 ## Supported individual entities:
 
@@ -167,11 +168,11 @@ Number of times to try to reconnect before giving up.
 
 ### filterByArea
 
-Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed.
+Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device.
 
 ### filterByLabel
 
-Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.
+Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device.
 
 ### whiteList
 
