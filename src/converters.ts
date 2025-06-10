@@ -188,6 +188,7 @@ export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass
     { domain: 'binary_sensor',    withDeviceClass: 'moisture',    deviceType: waterLeakDetector,    clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value: string) => (value === 'on' ? true : false) },
     { domain: 'binary_sensor',    withDeviceClass: 'occupancy',   deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',       converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
     { domain: 'binary_sensor',    withDeviceClass: 'motion',      deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',       converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
+    { domain: 'binary_sensor',    withDeviceClass: 'presence',    deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',       converter: (value: string) => ({occupied: value === 'on' ? true : false}) },
     { domain: 'binary_sensor',    withDeviceClass: 'smoke',       deviceType: smokeCoAlarm,         clusterId: SmokeCoAlarm.Cluster.id,       attribute: 'expressedState',  converter: (value: string) => (value === 'on' ?  SmokeCoAlarm.ExpressedState.SmokeAlarm :  SmokeCoAlarm.ExpressedState.Normal) },
   ];
 

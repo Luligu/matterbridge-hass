@@ -49,7 +49,7 @@ Features:
 | sensor        | measurement           | pressure                             | pressureSensor      |
 | sensor        | measurement           | illuminance                          | lightSensor         |
 | binary_sensor |                       | window, garage_door, door, vibration | contactSensor       |
-| binary_sensor |                       | motion, occupancy                    | occupancySensor     |
+| binary_sensor |                       | motion, occupancy, presence          | occupancySensor     |
 | binary_sensor |                       | cold                                 | waterFreezeDetector |
 | binary_sensor |                       | moisture                             | waterLeakDetector   |
 | binary_sensor |                       | smoke                                | smokeCoAlarm        |

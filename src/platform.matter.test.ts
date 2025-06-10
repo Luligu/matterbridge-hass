@@ -15,13 +15,13 @@ import { Endpoint, DeviceTypeId, VendorId, ServerNode, LogFormat as MatterLogFor
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 
 // Matterbridge
-import { capitalizeFirstLetter, Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
+import { capitalizeFirstLetter, Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk } from 'matterbridge/logger';
 
 // Home Assistant Plugin
 import { HomeAssistantPlatform } from './platform';
 import { HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
-import { BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat } from 'matterbridge/matter/clusters';
+import { BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat, OccupancySensing } from 'matterbridge/matter/clusters';
 import { MutableDevice } from './mutableDevice';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
@@ -855,6 +855,83 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.size).toBe(0);
   });
 
+  it('should call onStart and register a Presence device', async () => {
+    const presenceDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd83398f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Presence Sensor',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const presenceDeviceEntity = {
+      area_id: null,
+      device_id: presenceDevice.id,
+      entity_category: null,
+      entity_id: 'binary_sensor.door_contact',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Presence Sensor',
+    } as unknown as HassEntity;
+
+    const presenceDeviceEntityState = {
+      entity_id: presenceDeviceEntity.entity_id,
+      state: 'off', // 'on' for detected, 'off' for not detected
+      attributes: { device_class: 'presence', friendly_name: 'Presence Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(presenceDevice.id, presenceDevice);
+    haPlatform.ha.hassEntities.set(presenceDeviceEntity.entity_id, presenceDeviceEntity);
+    haPlatform.ha.hassStates.set(presenceDeviceEntityState.entity_id, presenceDeviceEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(presenceDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(presenceDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(presenceDeviceEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(child.deviceType).toBe(occupancySensor.code);
+    expect(child.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ 'occupied': false }); // Presence Sensor: true = detected, false = not detected
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(
+      expect.stringContaining(`Configuring state ${CYAN}${presenceDeviceEntityState.entity_id}${db} for device ${CYAN}${presenceDevice.id}${db}`),
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { 'occupied': false }, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(presenceDevice.id, presenceDeviceEntityState.entity_id, presenceDeviceEntityState, { ...presenceDeviceEntityState, state: 'on' }); // 'on' for detected, 'off' for not detected
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { 'occupied': true }, expect.anything()); // Presence Sensor: { occupied: boolean }
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(presenceDevice.id, presenceDeviceEntityState.entity_id, presenceDeviceEntityState, { ...presenceDeviceEntityState, state: 'off' }); // 'on' for detected, 'off' for not detected
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { 'occupied': false }, expect.anything()); // Presence Sensor: { occupied: boolean }
+
+    haPlatform.matterbridgeDevices.delete(presenceDevice.id);
+    haPlatform.ha.hassDevices.delete(presenceDevice.id);
+    haPlatform.ha.hassEntities.delete(presenceDeviceEntity.entity_id);
+    haPlatform.ha.hassStates.delete(presenceDeviceEntityState.entity_id);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
   it('should call onStart and register a Smoke device', async () => {
     const smokeDevice = {
       area_id: null,
@@ -946,6 +1023,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   test('close the server node', async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(server).toBeDefined();
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeTruthy();
@@ -957,5 +1035,6 @@ describe('Matterbridge ' + NAME, () => {
   test('stop the mDNS service', async () => {
     expect(server).toBeDefined();
     await server.env.get(MdnsService)[Symbol.asyncDispose]();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
   });
 });
