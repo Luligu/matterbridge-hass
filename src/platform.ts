@@ -439,9 +439,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
 
         // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm.
-        if (domain === 'binary_sensor' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
-          this.log.debug(`= smokeCoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
-          mutableDevice.addClusterServerSmokeCoAlarm(entity.entity_id, hassState.state === 'on' ? SmokeCoAlarm.ExpressedState.SmokeAlarm : SmokeCoAlarm.ExpressedState.Normal);
+        if (domain === 'binary_sensor' && hassState.attributes.device_class === 'smoke' && mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code) {
+          this.log.debug(`= smokeCoAlarm SmokeAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerSmokeAlarmSmokeCoAlarm(entity.entity_id, hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+        }
+
+        // Special case for binary_sensor domain: configure the SmokeCoAlarm cluster default values with feature SmokeAlarm.
+        if (
+          domain === 'binary_sensor' &&
+          hassState.attributes.device_class === 'carbon_monoxide' &&
+          mutableDevice.get(entity.entity_id).deviceTypes[0].code === smokeCoAlarm.code
+        ) {
+          this.log.debug(`= smokeCoAlarm CoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerCoAlarmSmokeCoAlarm(entity.entity_id, hassState.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
         }
 
         // Special case for light domain: configure the ColorControl cluster default values. Real values will be updated by the configure with the Home Assistant states. Here we need the fixed attributes to be set.

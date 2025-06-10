@@ -186,7 +186,8 @@ const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAtt
 const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
 const addClusterServerBooleanStateSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
-const addClusterServerSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerSmokeCoAlarm');
+const addClusterServerSmokeAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerSmokeAlarmSmokeCoAlarm');
+const addClusterServerCoAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoAlarmSmokeCoAlarm');
 const addClusterServerColorTemperatureColorControlSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerColorTemperatureColorControl');
 const addClusterServerColorControlSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerColorControl');
 const addClusterServerAutoModeThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
@@ -982,7 +983,8 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(child.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(SmokeCoAlarm.ExpressedState.Normal);
-    expect(addClusterServerSmokeCoAlarmSpy).toHaveBeenCalledWith(smokeDeviceEntity.entity_id, SmokeCoAlarm.ExpressedState.Normal);
+    expect(child.getAttribute(SmokeCoAlarm.Cluster.id, 'coState')).toBe(undefined);
+    expect(addClusterServerSmokeAlarmSmokeCoAlarmSpy).toHaveBeenCalledWith(smokeDeviceEntity.entity_id, SmokeCoAlarm.ExpressedState.Normal);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -990,20 +992,96 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockLog.debug).toHaveBeenCalledWith(
       expect.stringContaining(`Configuring state ${CYAN}${smokeDeviceEntityState.entity_id}${db} for device ${CYAN}${smokeDevice.id}${db}`),
     );
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'expressedState', SmokeCoAlarm.ExpressedState.Normal, expect.anything()); // SmokeCoAlarm.ExpressedState.Normal
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     jest.clearAllMocks();
     haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'on' }); // 'on' for smoke, 'off' for no smoke
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'expressedState', SmokeCoAlarm.ExpressedState.SmokeAlarm, expect.anything()); // SmokeCoAlarm.ExpressedState.SmokeAlarm
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
 
     jest.clearAllMocks();
     haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'off' }); // 'on' for smoke, 'off' for no smoke
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'expressedState', SmokeCoAlarm.ExpressedState.Normal, expect.anything()); // SmokeCoAlarm.ExpressedState.Normal
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     haPlatform.matterbridgeDevices.delete(smokeDevice.id);
     haPlatform.ha.hassDevices.delete(smokeDevice.id);
     haPlatform.ha.hassEntities.delete(smokeDeviceEntity.entity_id);
     haPlatform.ha.hassStates.delete(smokeDeviceEntityState.entity_id);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a Carbon Monoxide device', async () => {
+    const coDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Carbon Monoxide Sensor',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coDeviceEntity = {
+      area_id: null,
+      device_id: coDevice.id,
+      entity_category: null,
+      entity_id: 'binary_sensor.co_sensor',
+      has_entity_name: true,
+      id: '5625a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Carbon Monoxide Sensor',
+    } as unknown as HassEntity;
+
+    const coDeviceEntityState = {
+      entity_id: coDeviceEntity.entity_id,
+      state: 'off', // 'on' for co, 'off' for no co
+      attributes: { device_class: 'carbon_monoxide', friendly_name: 'Carbon Monoxide Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coDevice.id, coDevice);
+    haPlatform.ha.hassEntities.set(coDeviceEntity.entity_id, coDeviceEntity);
+    haPlatform.ha.hassStates.set(coDeviceEntityState.entity_id, coDeviceEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(coDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(coDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(coDeviceEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(child.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(undefined);
+    expect(child.getAttribute(SmokeCoAlarm.Cluster.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(addClusterServerCoAlarmSmokeCoAlarmSpy).toHaveBeenCalledWith(coDeviceEntity.entity_id, SmokeCoAlarm.AlarmState.Normal);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state ${CYAN}${coDeviceEntityState.entity_id}${db} for device ${CYAN}${coDevice.id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'on' }); // 'on' for co, 'off' for no co
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'off' }); // 'on' for co, 'off' for no co
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
+
+    haPlatform.matterbridgeDevices.delete(coDevice.id);
+    haPlatform.ha.hassDevices.delete(coDevice.id);
+    haPlatform.ha.hassEntities.delete(coDeviceEntity.entity_id);
+    haPlatform.ha.hassStates.delete(coDeviceEntityState.entity_id);
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);

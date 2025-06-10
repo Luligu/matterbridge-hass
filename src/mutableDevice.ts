@@ -182,7 +182,7 @@ export class MutableDevice {
     );
   }
 
-  addClusterServerSmokeCoAlarm(endpoint: string, smokeState: SmokeCoAlarm.ExpressedState) {
+  addClusterServerSmokeAlarmSmokeCoAlarm(endpoint: string, smokeState: SmokeCoAlarm.AlarmState) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
       getClusterServerObj(
@@ -204,6 +204,39 @@ export class MutableDevice {
         }),
         {
           smokeState,
+          expressedState: SmokeCoAlarm.ExpressedState.Normal,
+          batteryAlert: SmokeCoAlarm.AlarmState.Normal,
+          deviceMuted: SmokeCoAlarm.MuteState.NotMuted,
+          testInProgress: false,
+          hardwareFaultAlert: false,
+          endOfServiceAlert: SmokeCoAlarm.EndOfService.Normal,
+        },
+      ),
+    );
+  }
+
+  addClusterServerCoAlarmSmokeCoAlarm(endpoint: string, coState: SmokeCoAlarm.AlarmState) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        SmokeCoAlarm.Cluster.id,
+        MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.CoAlarm).enable({
+          events: {
+            smokeAlarm: false,
+            interconnectSmokeAlarm: false,
+            coAlarm: true,
+            interconnectCoAlarm: false,
+            lowBattery: true,
+            hardwareFault: true,
+            endOfService: true,
+            selfTestComplete: true,
+            alarmMuted: true,
+            muteEnded: true,
+            allClear: true,
+          },
+        }),
+        {
+          coState,
           expressedState: SmokeCoAlarm.ExpressedState.Normal,
           batteryAlert: SmokeCoAlarm.AlarmState.Normal,
           deviceMuted: SmokeCoAlarm.MuteState.NotMuted,

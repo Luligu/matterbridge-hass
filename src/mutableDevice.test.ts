@@ -17,6 +17,9 @@ import {
   temperatureSensor,
   optionsFor,
   extendedColorLight,
+  contactSensor,
+  smokeCoAlarm,
+  thermostatDevice,
 } from 'matterbridge';
 import { MutableDevice } from './mutableDevice';
 import { jest } from '@jest/globals';
@@ -36,6 +39,7 @@ import {
   LevelControl,
   FixedLabel,
   Descriptor,
+  SmokeCoAlarm,
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 
@@ -202,6 +206,86 @@ describe('MutableDevice', () => {
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerBooleanState', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, contactSensor);
+    mutableDevice.addClusterServerBooleanState('', false);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerSmokeAlarmSmokeCoAlarm', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, smokeCoAlarm);
+    mutableDevice.addClusterServerSmokeAlarmSmokeCoAlarm('', SmokeCoAlarm.AlarmState.Normal);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerCoAlarmSmokeCoAlarm', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, smokeCoAlarm);
+    mutableDevice.addClusterServerCoAlarmSmokeCoAlarm('', SmokeCoAlarm.AlarmState.Normal);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerColorTemperatureColorControl', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, colorTemperatureLight);
+    mutableDevice.addClusterServerColorTemperatureColorControl('', 250, 153, 500);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerColorControl', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, extendedColorLight);
+    mutableDevice.addClusterServerColorControl('', 250, 153, 500);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerAutoModeThermostat', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerAutoModeThermostat('', 22, 18, 26, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerHeatingThermostat', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerHeatingThermostat('', 22, 18, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
+  it('should addClusterServerCoolingThermostat', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerCoolingThermostat('', 22, 26, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
   });
 

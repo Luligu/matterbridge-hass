@@ -20,6 +20,7 @@ Since release 0.1.0:
 ### Added
 
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'presence'. It creates an occupancySensor with OccupancySensing cluster.
+- [binary_sensor]: Added domain binary_sensor with deviceClass 'carbon_monoxide'. It creates a smokeCoAlarm with SmokeCoAlarm cluster and feature CoAlarm.
 
 ### Changed
 
