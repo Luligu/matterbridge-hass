@@ -219,6 +219,17 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
   });
 
+  it('should addClusterServerPowerSource', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, contactSensor);
+    mutableDevice.addClusterServerPowerSource('', PowerSource.BatChargeLevel.Critical, 200);
+    mutableDevice.addClusterServerPowerSource('test', PowerSource.BatChargeLevel.Ok, null);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+  });
+
   it('should addClusterServerSmokeAlarmSmokeCoAlarm', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     mutableDevice.addDeviceTypes('', bridgedNode, smokeCoAlarm);

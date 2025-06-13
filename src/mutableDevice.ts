@@ -47,8 +47,8 @@ import { db, debugStringify, idn, ign, rs, CYAN } from 'matterbridge/logger';
 // @matter imorts
 import { AtLeastOne, Behavior } from 'matterbridge/matter';
 import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
-import { BooleanState, BridgedDeviceBasicInformation, ColorControl, SmokeCoAlarm, Thermostat } from 'matterbridge/matter/clusters';
-import { BooleanStateServer, BridgedDeviceBasicInformationServer } from 'matterbridge/matter/behaviors';
+import { BooleanState, BridgedDeviceBasicInformation, ColorControl, PowerSource, SmokeCoAlarm, Thermostat } from 'matterbridge/matter/clusters';
+import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
 
 interface ClusterServerObj {
   id: ClusterId;
@@ -165,6 +165,22 @@ export class MutableDevice {
   addClusterServerObjs(endpoint: string, ...clusterServerObj: ClusterServerObj[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(...clusterServerObj);
+  }
+
+  addClusterServerPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null) {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(PowerSource.Cluster.id, PowerSourceServer.with(PowerSource.Feature.Battery), {
+        status: PowerSource.PowerSourceStatus.Active,
+        order: 0,
+        description: 'Primary battery',
+        batReplacementNeeded: false,
+        batReplaceability: PowerSource.BatReplaceability.Unspecified,
+        batVoltage: null,
+        batPercentRemaining,
+        batChargeLevel,
+      }),
+    );
   }
 
   addClusterServerBooleanState(endpoint: string, stateValue: boolean) {
