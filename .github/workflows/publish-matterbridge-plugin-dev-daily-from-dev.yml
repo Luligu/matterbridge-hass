@@ -1,5 +1,5 @@
-# .github\workflows\publish-matterbridge-plugin-dev-daily.yml
-name: Plugin daily dev publish to npm
+# .github\workflows\publish-matterbridge-plugin-dev-daily-from-dev.yml
+name: Plugin daily dev publish to npm from dev branch
 
 on:
   # Daily at midnight UTC
@@ -31,8 +31,8 @@ jobs:
       - name: Clean npm cache
         run: npm cache clean --force
 
-      - name: Clone matterbridge repo
-        run: git clone https://github.com/Luligu/matterbridge.git ../matterbridge
+      - name: Clone matterbridge repo branch dev
+        run: git clone -b dev https://github.com/Luligu/matterbridge.git ../matterbridge
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge
