@@ -15,12 +15,15 @@ Since release 0.1.0:
 - the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
 - the config serialPostfix has been changed to postfix.
 
-## [0.1.3] - 2025-06-11
+## [0.1.3] - 2025-06-12
 
 ### Added
 
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'presence'. It creates an occupancySensor with OccupancySensing cluster.
 - [binary_sensor]: Added domain binary_sensor with deviceClass 'carbon_monoxide'. It creates a smokeCoAlarm with SmokeCoAlarm cluster and feature CoAlarm.
+- [sensor]: Added domain sensor with deviceClass 'atmospheric_pressure'. It creates a pressureSensor with PressureMeasurement cluster.
+- [sensor]: Added domain sensor with deviceClass 'battery'. It creates a powerSource with PowerSource cluster.
+- [binary_sensor]: Added domain sensor with deviceClass 'battery'. It creates a powerSource with PowerSource cluster.
 
 ### Changed
 

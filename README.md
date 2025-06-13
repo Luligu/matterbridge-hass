@@ -47,13 +47,16 @@ Features:
 | sensor        | measurement           | temperature                          | temperatureSensor   |
 | sensor        | measurement           | humidity                             | humiditySensor      |
 | sensor        | measurement           | pressure                             | pressureSensor      |
+| sensor        | measurement           | atmospheric_pressure                 | pressureSensor      |
 | sensor        | measurement           | illuminance                          | lightSensor         |
+| sensor        | measurement           | battery                              | powerSource         |
 | binary_sensor |                       | window, garage_door, door, vibration | contactSensor       |
 | binary_sensor |                       | motion, occupancy, presence          | occupancySensor     |
 | binary_sensor |                       | cold                                 | waterFreezeDetector |
 | binary_sensor |                       | moisture                             | waterLeakDetector   |
 | binary_sensor |                       | smoke                                | smokeCoAlarm        |
 | binary_sensor |                       | carbon_monoxide                      | smokeCoAlarm        |
+| binary_sensor |                       | battery                              | powerSource         |
 
 ## Supported individual entities:
 
