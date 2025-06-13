@@ -27,7 +27,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 // @matter imports
-import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Matterbridge imports
@@ -44,6 +44,7 @@ import {
   waterLeakDetector,
   waterFreezeDetector,
   contactSensor,
+  powerSource,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
@@ -426,6 +427,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
         // For some clusters we need to set the features and to set the default values for the fixed attributes
         const deviceTypeCodes = mutableDevice.get(entity.entity_id).deviceTypes.map((d) => d.code);
+
+        // Special case for powerSource.
+        if (deviceTypeCodes.includes(powerSource.code)) {
+          this.log.debug(`= powerSource battery device ${CYAN}${entity.entity_id}${db} state ${CYAN}${hassState.state}${db}`);
+          mutableDevice.addClusterServerPowerSource(entity.entity_id, PowerSource.BatChargeLevel.Ok, 200);
+        }
 
         // Special case for binary_sensor domain: configure the BooleanState cluster default values for contactSensor.
         if (domain === 'binary_sensor' && deviceTypeCodes.includes(contactSensor.code)) {

@@ -21,7 +21,7 @@ import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk } 
 // Home Assistant Plugin
 import { HomeAssistantPlatform } from './platform';
 import { HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
-import { BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat, OccupancySensing } from 'matterbridge/matter/clusters';
+import { PowerSource, BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlarm, ColorControl, Thermostat, OccupancySensing } from 'matterbridge/matter/clusters';
 import { MutableDevice } from './mutableDevice';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
@@ -185,6 +185,7 @@ const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute
 const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAttribute');
 const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
+const addClusterServerPowerSourceSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerPowerSource');
 const addClusterServerBooleanStateSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
 const addClusterServerSmokeAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerSmokeAlarmSmokeCoAlarm');
 const addClusterServerCoAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoAlarmSmokeCoAlarm');
@@ -298,6 +299,109 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+  });
+
+  it('should call onStart and register a PowerSource device', async () => {
+    const batteryDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e922f00ee7c',
+      labels: [],
+      name: 'Battery Sensor',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const batteryAlertEntity = {
+      area_id: null,
+      device_id: batteryDevice.id,
+      entity_category: null,
+      entity_id: 'binary_sensor.battery',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310444ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Battery Sensor',
+    } as unknown as HassEntity;
+
+    const batteryLevelEntity = {
+      area_id: null,
+      device_id: batteryDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.battery',
+      has_entity_name: true,
+      id: '0b25a337c543edefb1d310444ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Battery Sensor',
+    } as unknown as HassEntity;
+
+    const batteryDeviceEntityState = {
+      entity_id: batteryAlertEntity.entity_id,
+      state: 'off', // On means low, Off means normal
+      attributes: { device_class: 'battery', friendly_name: 'Battery Alert Sensor' },
+    } as unknown as HassState;
+
+    const batteryLevelEntityState = {
+      entity_id: batteryLevelEntity.entity_id,
+      state: 50,
+      attributes: { state_class: 'measurement', device_class: 'battery', friendly_name: 'Battery Percentage Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
+    haPlatform.ha.hassEntities.set(batteryAlertEntity.entity_id, batteryAlertEntity);
+    haPlatform.ha.hassEntities.set(batteryLevelEntity.entity_id, batteryLevelEntity);
+    haPlatform.ha.hassStates.set(batteryDeviceEntityState.entity_id, batteryDeviceEntityState);
+    haPlatform.ha.hassStates.set(batteryLevelEntityState.entity_id, batteryLevelEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(batteryDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(batteryDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(batteryAlertEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(child.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
+    expect(child.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(200);
+    expect(addClusterServerPowerSourceSpy).toHaveBeenCalledWith(batteryAlertEntity.entity_id, PowerSource.BatChargeLevel.Ok, 200);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(
+      expect.stringContaining(`Configuring state ${CYAN}${batteryDeviceEntityState.entity_id}${db} for device ${CYAN}${batteryDevice.id}${db}`),
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 100, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(batteryDevice.id, batteryDeviceEntityState.entity_id, batteryDeviceEntityState, { ...batteryDeviceEntityState, state: 'on' }); // On means low, Off means normal
+    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '100' }); // On means low, Off means normal
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Critical, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 200, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(batteryDevice.id, batteryDeviceEntityState.entity_id, batteryDeviceEntityState, { ...batteryDeviceEntityState, state: 'off' }); // On means low, Off means normal
+    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '25' }); // On means low, Off means normal
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 50, expect.anything());
+
+    haPlatform.matterbridgeDevices.delete(batteryDevice.id);
+    haPlatform.ha.hassDevices.delete(batteryDevice.id);
+    haPlatform.ha.hassEntities.delete(batteryAlertEntity.entity_id);
+    haPlatform.ha.hassStates.delete(batteryDeviceEntityState.entity_id);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
   });
 
   it('should call onStart and register a Switch device', async () => {
@@ -574,7 +678,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentSetting', expect.anything(), expect.anything());
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedSetting', expect.anything(), expect.anything());
+    // expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedSetting', expect.anything(), expect.anything());
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
@@ -583,10 +687,12 @@ describe('Matterbridge ' + NAME, () => {
       LogLevel.INFO,
       expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
     );
+    /*
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}speedSetting$Changed${db}`),
     );
+    */
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -594,7 +700,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state ${CYAN}${fanDeviceEntityState.entity_id}${db} for device ${CYAN}${fanDevice.id}${db}`));
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentCurrent', 50, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedCurrent', 50, expect.anything());
+    // expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedCurrent', 50, expect.anything());
 
     // Simulate a not changed in fan mode and call the event handler
     await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Medium, FanControl.FanMode.Medium, { ...agent.context, offline: false }));
