@@ -37,6 +37,7 @@ import {
   occupancySensor,
   onOffLight,
   onOffOutlet,
+  powerSource,
   pressureSensor,
   smokeCoAlarm,
   temperatureSensor,
@@ -61,6 +62,7 @@ import {
   BooleanState,
   OccupancySensing,
   SmokeCoAlarm,
+  PowerSource,
 } from 'matterbridge/matter/clusters';
 
 import { HassState } from './homeAssistant.js';
@@ -121,7 +123,7 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === 'xy' ? value[1] : null ) },
   
     { domain: 'fan', with: 'percentage', clusterId: FanControl.Cluster.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
-    { domain: 'fan', with: 'percentage', clusterId: FanControl.Cluster.id, attribute: 'speedCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
+    // { domain: 'fan', with: 'percentage', clusterId: FanControl.Cluster.id, attribute: 'speedCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
     { domain: 'fan', with: 'preset_mode', clusterId: FanControl.Cluster.id, attribute: 'fanMode', converter: (value: string) => {
       if( isValidString(value, 3, 6) ) {
         if (value === 'low') return FanControl.FanMode.Low;
@@ -170,16 +172,18 @@ export const hassDomainAttributeConverter: { domain: string; withAttribute: stri
 // Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds
 // prettier-ignore
 export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number) => any }[] = [
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',   deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,      attribute: 'measuredValue', converter: (value) => (isValidNumber(value, -100, 100) ? Math.round(value * 100) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',      deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id, attribute: 'measuredValue', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 100) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',      deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,         attribute: 'measuredValue', converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',   deviceType: lightSensor,        clusterId: IlluminanceMeasurement.Cluster.id,      attribute: 'measuredValue', converter: (value) => (isValidNumber(value) ? Math.round(Math.max(Math.min(10000 * Math.log10(value), 0xfffe), 0)) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'battery',               deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batPercentRemaining', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 2) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',           deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value) => (isValidNumber(value, -100, 100) ? Math.round(value * 100) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',              deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id,  attribute: 'measuredValue',   converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 100) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',              deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'atmospheric_pressure',  deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',           deviceType: lightSensor,        clusterId: IlluminanceMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(Math.max(Math.min(10000 * Math.log10(value), 0xfffe), 0)) : null) },
   ];
 
 // Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds
 // prettier-ignore
 export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: string) => any }[] = [
-    // { domain: 'binary_sensor',    withDeviceClass: 'battery',     deviceType: powerSource,          clusterId: PowerSource.Cluster.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
+    { domain: 'binary_sensor',    withDeviceClass: 'battery',         deviceType: powerSource,          clusterId: PowerSource.Cluster.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
     { domain: 'binary_sensor',    withDeviceClass: 'window',          deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
     { domain: 'binary_sensor',    withDeviceClass: 'door',            deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
     { domain: 'binary_sensor',    withDeviceClass: 'garage_door',     deviceType: contactSensor,        clusterId: BooleanState.Cluster.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
@@ -235,7 +239,7 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
       }
     }},
     { domain: 'fan',      service: 'turn_on',         with: 'percentage',   clusterId: FanControl.Cluster.id,  attribute: 'percentSetting' },
-    { domain: 'fan',      service: 'turn_on',         with: 'percentage',   clusterId: FanControl.Cluster.id,  attribute: 'speedSetting' },
+    // { domain: 'fan',      service: 'turn_on',         with: 'percentage',   clusterId: FanControl.Cluster.id,  attribute: 'speedSetting' },
   
     { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',    clusterId: Thermostat.Cluster.id,  attribute: 'systemMode', converter: (value) => {
       if( isValidNumber(value, Thermostat.SystemMode.Off, Thermostat.SystemMode.Heat) ) {

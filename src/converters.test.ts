@@ -10,6 +10,7 @@ import {
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
 } from './converters';
+import { HassState } from './homeAssistant';
 
 describe('HassPlatform', () => {
   beforeAll(() => {
@@ -33,68 +34,69 @@ describe('HassPlatform', () => {
     hassUpdateAttributeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.domain === 'light' && converter.with === 'brightness') {
-        expect(converter.converter(0)).toBe(null);
-        expect(converter.converter(1)).toBe(1);
-        expect(converter.converter(255)).toBe(254);
+        expect(converter.converter(0, {} as HassState)).toBe(null);
+        expect(converter.converter(1, {} as HassState)).toBe(1);
+        expect(converter.converter(255, {} as HassState)).toBe(254);
       }
       if (converter.domain === 'light' && converter.with === 'color_mode') {
-        converter.converter('');
-        converter.converter('unknown');
-        converter.converter('hs');
-        converter.converter('rgb');
-        converter.converter('xy');
-        converter.converter('color_temp');
+        converter.converter('', {} as HassState);
+        converter.converter('unknown', {} as HassState);
+        converter.converter('hs', {} as HassState);
+        converter.converter('rgb', {} as HassState);
+        converter.converter('xy', {} as HassState);
+        converter.converter('color_temp', {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'color_temp') {
-        converter.converter(2, { attributes: { color_mode: 'color_temp' } });
-        converter.converter(undefined, {});
+        converter.converter(2, { attributes: { color_mode: 'color_temp' } } as HassState);
+        converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'hs_color') {
-        converter.converter([0, 0], { attributes: { color_mode: 'hs' } });
-        converter.converter(undefined, {});
+        converter.converter([0, 0], { attributes: { color_mode: 'hs' } } as HassState);
+        converter.converter([0, 0], { attributes: { color_mode: 'rgb' } } as HassState);
+        converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'xy_color') {
-        converter.converter([0, 0], { attributes: { color_mode: 'xy' } });
-        converter.converter(undefined, {});
+        converter.converter([0, 0], { attributes: { color_mode: 'xy' } } as HassState);
+        converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'fan' && converter.with === 'percentage') {
-        converter.converter(0);
-        converter.converter(50);
+        converter.converter(0, {} as HassState);
+        converter.converter(50, {} as HassState);
       }
       if (converter.domain === 'fan' && converter.with === 'preset_mode') {
-        converter.converter('low');
-        converter.converter('medium');
-        converter.converter('high');
-        converter.converter('auto');
-        converter.converter('none');
-        converter.converter('on');
+        converter.converter('low', {} as HassState);
+        converter.converter('medium', {} as HassState);
+        converter.converter('high', {} as HassState);
+        converter.converter('auto', {} as HassState);
+        converter.converter('none', {} as HassState);
+        converter.converter('on', {} as HassState);
       }
       if (converter.domain === 'cover' && converter.with === 'current_position') {
-        converter.converter(0);
-        converter.converter(100);
-        converter.converter(-1);
+        converter.converter(0, {} as HassState);
+        converter.converter(100, {} as HassState);
+        converter.converter(-1, {} as HassState);
       }
       if (converter.domain === 'climate' && converter.with === 'temperature') {
-        converter.converter(20, { state: 'heat' });
-        converter.converter(20, { state: 'cool' });
-        converter.converter(20, { state: '' });
-        converter.converter('20', { state: '' });
+        converter.converter(20, { state: 'heat' } as HassState);
+        converter.converter(20, { state: 'cool' } as HassState);
+        converter.converter(20, { state: '' } as HassState);
+        converter.converter('20', { state: '' } as HassState);
       }
       if (converter.domain === 'climate' && converter.with === 'target_temp_high') {
-        converter.converter(20, { state: 'heat' });
-        converter.converter(20, { state: 'cool' });
-        converter.converter(20, { state: 'heat_cool' });
-        converter.converter('20');
+        converter.converter(20, { state: 'heat' } as HassState);
+        converter.converter(20, { state: 'cool' } as HassState);
+        converter.converter(20, { state: 'heat_cool' } as HassState);
+        converter.converter('20', { state: 'heat_cool' } as HassState);
       }
       if (converter.domain === 'climate' && converter.with === 'target_temp_low') {
-        converter.converter(20, { state: 'heat' });
-        converter.converter(20, { state: 'cool' });
-        converter.converter(20, { state: 'heat_cool' });
-        converter.converter('20');
+        converter.converter(20, { state: 'heat' } as HassState);
+        converter.converter(20, { state: 'cool' } as HassState);
+        converter.converter(20, { state: 'heat_cool' } as HassState);
+        converter.converter('20', { state: 'heat_cool' } as HassState);
       }
       if (converter.domain === 'climate' && converter.with === 'current_temperature') {
-        converter.converter(20);
-        converter.converter('20');
+        converter.converter(20, { state: 'heat' } as HassState);
+        converter.converter('20', { state: 'heat' } as HassState);
       }
     });
   });
@@ -113,7 +115,7 @@ describe('HassPlatform', () => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.domain === 'sensor' && converter.withStateClass === 'measurement') {
         expect(converter.converter(0)).not.toBe(null);
-        expect(converter.converter(undefined)).toBe(null);
+        expect(converter.converter(undefined as unknown as number)).toBe(null);
       }
     });
   });
@@ -129,10 +131,10 @@ describe('HassPlatform', () => {
   it('should verify the hassCommandConverter convertes', () => {
     hassCommandConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
-      if (converter.domain === 'cover' && converter.service === 'set_cover_position') {
-        converter.converter({ liftPercent100thsValue: 10000 });
+      if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
+        converter.converter({ liftPercent100thsValue: 10000 }, {});
       }
-      if (converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
+      if (converter.converter && converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
         converter.converter({ level: 1, colorTemperatureMireds: 200, colorX: 0, colorY: 0, hue: 0, saturation: 0 }, { currentHue: 0, currentSaturation: 0 });
       }
     });
