@@ -52,6 +52,11 @@
       "type": "string",
       "default": ""
     },
+    "applyFiltersToDeviceEntities": {
+      "description": "Apply the filters to device entities. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.",
+      "type": "boolean",
+      "default": false
+    },
     "whiteList": {
       "description": "Only the devices and individual entities in the list will be exposed. Use the name or the id. If the list is empty, all the devices and individual entities will be exposed.",
       "type": "array",

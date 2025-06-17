@@ -354,6 +354,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           continue;
         }
 
+        // Check if the entity is in the area and has the label if configured
+        if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
+          this.log.debug(
+            `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
+          );
+          continue;
+        }
+
         // Add device type and clusterIds for supported domains of the current entity. Skip the entity if no supported domains are found.
         const hassDomains = hassDomainConverter.filter((d) => d.domain === domain);
         if (hassDomains.length > 0) {
