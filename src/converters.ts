@@ -4,8 +4,8 @@
  *
  * @file src\converters.ts
  * @author Luca Liguori
- * @date 2024-09-13
- * @version 0.0.2
+ * created 2024-09-13
+ * version 1.0.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *

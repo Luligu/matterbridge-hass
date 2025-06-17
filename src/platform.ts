@@ -4,8 +4,8 @@
  *
  * @file src\platform.ts
  * @author Luca Liguori
- * @date 2024-09-13
- * @version 0.0.3
+ * created 2024-09-13
+ * version 0.0.3
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -26,11 +26,9 @@
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
-// @matter imports
+// matterbridge imports
 import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
-
-// Matterbridge imports
 import {
   Matterbridge,
   PlatformConfig,
@@ -683,6 +681,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     fs.writeFile(filename, JSON.stringify(payload, null, 2))
       .then(() => {
         this.log.debug(`Payload successfully written to ${filename}`);
+        return;
       })
       .catch((error) => {
         this.log.error(`Error writing payload to file ${filename}: ${error}`);
@@ -810,9 +809,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   /**
    * Validate the area and label of a device or an entity against the configured filters.
+   *
    * @param {string | null} areaId The area ID of the device / entity.
    * @param {string[]} labels The labels of the device / entity.
-   * @returns True if the area and label are valid according to the filters, false otherwise.
+   *
+   * @returns {boolean} True if the area and label are valid according to the filters, false otherwise.
    */
   isValidAreaLabel(areaId: string | null, labels: string[]): boolean {
     let areaMatch = true;

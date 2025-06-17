@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-inferrable-types */
 /**
  * This file contains the class HomeAssistant.
  *
  * @file src\homeAssistant.ts
  * @author Luca Liguori
- * @date 2024-09-14
- * @version 1.1.0
+ * created 2024-09-14
+ * version 1.1.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -24,6 +23,7 @@
 
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
+
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify } from 'matterbridge/logger';
 import WebSocket from 'ws';
 
@@ -246,12 +246,10 @@ export interface HassConfig {
   radius: number;
 }
 
-// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 export interface HassService {
   [key: string]: object;
 }
 
-// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 export interface HassServices {
   [key: string]: HassService;
 }
@@ -450,10 +448,10 @@ export class HomeAssistant extends EventEmitter {
    *
    * @param {string} url - The WebSocket URL for connecting to Home Assistant (i.e. ws://localhost:8123 or wss://localhost:8123).
    * @param {string} accessToken - The access token for authenticating with Home Assistant.
-   * @param {number} [reconnectTimeoutTime=60] - The timeout duration for reconnect attempts in seconds. Defaults to 60 seconds.
-   * @param {number} [reconnectRetries=10] - The number of reconnection attempts to make before giving up. Defaults to 10 attempts.
-   * @param {string | undefined} [certificatePath=undefined] - The path to the CA certificate for secure WebSocket connections. Defaults to undefined.
-   * @param {boolean | undefined} [rejectUnauthorized=undefined] - Whether to reject unauthorized certificates. Defaults to undefined.
+   * @param {number} [reconnectTimeoutTime] - The timeout duration for reconnect attempts in seconds. Defaults to 60 seconds.
+   * @param {number} [reconnectRetries] - The number of reconnection attempts to make before giving up. Defaults to 10 attempts.
+   * @param {string | undefined} [certificatePath] - The path to the CA certificate for secure WebSocket connections. Defaults to undefined.
+   * @param {boolean | undefined} [rejectUnauthorized] - Whether to reject unauthorized certificates. Defaults to undefined.
    */
   constructor(
     url: string,
@@ -470,7 +468,11 @@ export class HomeAssistant extends EventEmitter {
     this.reconnectRetries = reconnectRetries;
     this.certificatePath = certificatePath;
     this.rejectUnauthorized = rejectUnauthorized;
-    this.log = new AnsiLogger({ logName: 'HomeAssistant', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
+    this.log = new AnsiLogger({
+      logName: 'HomeAssistant',
+      logTimestampFormat: TimestampFormat.TIME_MILLIS,
+      logLevel: LogLevel.DEBUG,
+    });
   }
 
   private onOpen = () => {
@@ -548,6 +550,7 @@ export class HomeAssistant extends EventEmitter {
             this.log.debug(`Received ${devices.length} devices.`);
             devices.forEach((device) => this.hassDevices.set(device.id, device));
             this.emit('devices', devices);
+            return devices;
           })
           .catch((error) => {
             this.log.error(`Error fetching device registry: ${error}`);
@@ -559,6 +562,7 @@ export class HomeAssistant extends EventEmitter {
             this.log.debug(`Received ${entities.length} entities.`);
             entities.forEach((entity) => this.hassEntities.set(entity.entity_id, entity));
             this.emit('entities', entities);
+            return entities;
           })
           .catch((error) => {
             this.log.error(`Error fetching entity registry: ${error}`);
@@ -570,6 +574,7 @@ export class HomeAssistant extends EventEmitter {
             this.log.debug(`Received ${areas.length} areas.`);
             areas.forEach((area) => this.hassAreas.set(area.area_id, area));
             this.emit('areas', areas);
+            return areas;
           })
           .catch((error) => {
             this.log.error(`Error fetching area registry: ${error}`);
@@ -748,8 +753,9 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Stops the ping interval, closes the WebSocket connection to Home Assistant and emits a 'disconnected' event.
-   * @param {number} [code=1000] - The WebSocket close code. Default is 1000 (Normal closure).
-   * @param {string} [reason='Normal closure'] - The reason for closing the connection. Default is 'Normal closure'.
+   *
+   * @param {number} [code] - The WebSocket close code. Default is 1000 (Normal closure).
+   * @param {string} [reason] - The reason for closing the connection. Default is 'Normal closure'.
    * @returns {Promise<void>} - A Promise that resolves when the connection is closed or rejects with an error if the connection could not be closed.
    */
   close(code = 1000, reason = 'Normal closure'): Promise<void> {
@@ -855,7 +861,6 @@ export class HomeAssistant extends EventEmitter {
    *
    * @param {string} type - The type of request to send.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
-   *
    * @example
    * fetch('get_states')
    *   .then(response => {
@@ -911,9 +916,9 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Sends a "subscribe_events" request to Home Assistant and waits for a response.
+   *
    * @param {string | undefined} event - The event to subscribe to or all events if not specified.
    * @returns {Promise<number>} - A Promise that resolves with the subscribe id from Home Assistant or rejects with an error.
-   *
    * @example subscribe('state_changed')
    *   .then(response => {
    *     console.log('Received response subscription id:', response);
@@ -961,12 +966,19 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Subscribing to ${CYAN}${event ?? 'all events'}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: 'subscribe_events', event_type: event } as HassWebSocketRequestSubscribeEvents));
+      this.ws.send(
+        JSON.stringify({
+          id: requestId,
+          type: 'subscribe_events',
+          event_type: event,
+        } as HassWebSocketRequestSubscribeEvents),
+      );
     });
   }
 
   /**
    * Sends a "subscribe_events" request to Home Assistant and waits for a response.
+   *
    * @param {number} subscriptionId - The subscription id to unsubscribe from.
    * @returns {Promise<void>} - A Promise that resolves or rejects with an error.
    * @example unsubscribe('state_changed')
@@ -1016,7 +1028,13 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Unsubscribing from subscription ${CYAN}${subscriptionId}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type: 'unsubscribe_events', subscription: subscriptionId } as HassWebSocketRequestUnsubscribeEvents));
+      this.ws.send(
+        JSON.stringify({
+          id: requestId,
+          type: 'unsubscribe_events',
+          subscription: subscriptionId,
+        } as HassWebSocketRequestUnsubscribeEvents),
+      );
     });
   }
 
@@ -1026,9 +1044,8 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} domain - The domain of the Home Assistant service.
    * @param {string} service - The service to call on the Home Assistant domain.
    * @param {string} entityId - The ID of the entity to target with the command.
-   * @param {Record<string, any>} [serviceData={}] - Optional additional data to send with the command.
+   * @param {Record<string, any>} [serviceData] - Optional additional data to send with the command.
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
-   *
    * @example <caption>Example usage of the callService method.</caption>
    * await this.callService('switch', 'toggle', 'switch.living_room');
    * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });

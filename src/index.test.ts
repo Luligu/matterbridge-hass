@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { jest } from '@jest/globals';
 import { Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
 import { AnsiLogger } from 'matterbridge/logger';
+
 import { HomeAssistantPlatform } from './platform.js';
-import initializePlugin from './index';
+
+import initializePlugin from './index.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -32,6 +31,14 @@ if (!debug) {
 }
 
 describe('initializePlugin', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
+
   const mockLog = {
     fatal: jest.fn((message: string, ...parameters: any[]) => {}),
     error: jest.fn((message: string, ...parameters: any[]) => {}),
@@ -44,7 +51,12 @@ describe('initializePlugin', () => {
   const mockMatterbridge = {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
-    systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
+    systemInformation: {
+      ipv4Address: undefined,
+      ipv6Address: undefined,
+      osRelease: 'xx.xx.xx.xx.xx.xx',
+      nodeVersion: '22.1.10',
+    },
     matterbridgeVersion: '3.0.6',
     log: mockLog,
     getDevices: jest.fn(() => {
@@ -59,14 +71,14 @@ describe('initializePlugin', () => {
   } as unknown as Matterbridge;
 
   const mockConfig = {
-    'name': 'matterbridge-hass',
-    'type': 'DynamicPlatform',
-    'blackList': [],
-    'whiteList': [],
-    'host': 'http://homeassistant.local:8123',
-    'token': 'long-lived token',
-    'debug': false,
-    'unregisterOnShutdown': false,
+    name: 'matterbridge-hass',
+    type: 'DynamicPlatform',
+    blackList: [],
+    whiteList: [],
+    host: 'http://homeassistant.local:8123',
+    token: 'long-lived token',
+    debug: false,
+    unregisterOnShutdown: false,
   } as PlatformConfig;
 
   it('should return an instance of HomeAssistantPlatform', async () => {

@@ -1,15 +1,12 @@
 // Home Assistant Real WebSocket Client Tests
 
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import { jest } from '@jest/globals';
 import fs from 'node:fs';
 import path from 'node:path';
+
+import { jest } from '@jest/globals';
 import { AnsiLogger, LogLevel } from 'matterbridge/logger';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -55,20 +52,12 @@ describe('HomeAssistant real test on ubuntu', () => {
   let services_response: HassServices = {} as HassServices;
   let config_response: HassConfig = {} as HassConfig;
 
-  beforeAll(async () => {
-    //
-  });
-
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    //
-  });
-
   afterAll(async () => {
-    //
+    jest.restoreAllMocks();
   });
 
   it('should have at least one test', () => {

@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+import { jest } from '@jest/globals';
 import {
   Matterbridge,
   MatterbridgeEndpoint,
@@ -21,8 +20,6 @@ import {
   smokeCoAlarm,
   thermostatDevice,
 } from 'matterbridge';
-import { MutableDevice } from './mutableDevice';
-import { jest } from '@jest/globals';
 import { AnsiLogger } from 'matterbridge/logger';
 import {
   PowerSourceCluster,
@@ -43,60 +40,70 @@ import {
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 
+import { MutableDevice } from './mutableDevice.js';
+
+let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
+let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
+let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
+let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
+let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
+let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
+const debug = false; // Set to true to enable debug logging
+
+if (!debug) {
+  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
+  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
+  consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
+  consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
+} else {
+  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
+  consoleLogSpy = jest.spyOn(console, 'log');
+  consoleDebugSpy = jest.spyOn(console, 'debug');
+  consoleInfoSpy = jest.spyOn(console, 'info');
+  consoleWarnSpy = jest.spyOn(console, 'warn');
+  consoleErrorSpy = jest.spyOn(console, 'error');
+}
+
 describe('MutableDevice', () => {
   const mockLog = {
-    fatal: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.fatal', message, parameters);
-    }),
-    error: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.error', message, parameters);
-    }),
-    warn: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.warn', message, parameters);
-    }),
-    notice: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.notice', message, parameters);
-    }),
-    info: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.info', message, parameters);
-    }),
-    debug: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.debug', message, parameters);
-    }),
+    fatal: jest.fn((message: string, ...parameters: any[]) => {}),
+    error: jest.fn((message: string, ...parameters: any[]) => {}),
+    warn: jest.fn((message: string, ...parameters: any[]) => {}),
+    notice: jest.fn((message: string, ...parameters: any[]) => {}),
+    info: jest.fn((message: string, ...parameters: any[]) => {}),
+    debug: jest.fn((message: string, ...parameters: any[]) => {}),
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
-    systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
+    systemInformation: {
+      ipv4Address: undefined,
+      ipv6Address: undefined,
+      osRelease: 'xx.xx.xx.xx.xx.xx',
+      nodeVersion: '22.1.10',
+    },
     matterbridgeVersion: '2.1.0',
     log: mockLog,
     getDevices: jest.fn(() => {
-      // console.log('getDevices called');
       return [];
     }),
     getPlugins: jest.fn(() => {
-      // console.log('getDevices called');
       return [];
     }),
-    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      // console.log('addBridgedEndpoint called');
-    }),
-    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      // console.log('removeBridgedEndpoint called');
-    }),
-    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
-      // console.log('removeAllBridgedEndpoints called');
-    }),
+    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
+    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
+    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
   } as unknown as Matterbridge;
 
-  // Spy on and mock AnsiLogger.log
-  const loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
-    //
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  beforeAll(() => {
-    //
+  afterAll(() => {
+    jest.restoreAllMocks();
   });
 
   it('should initialize with an empty mutableDevice', () => {
@@ -127,7 +134,12 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('one', temperatureSensor);
     expect(await mutableDevice.createChildEndpoint('one')).toBeDefined();
     mutableDevice.addDeviceTypes('two', temperatureSensor);
-    mutableDevice.addTagLists('two', { mfgCode: null, namespaceId: 1, tag: 1, label: 'Test' });
+    mutableDevice.addTagLists('two', {
+      mfgCode: null,
+      namespaceId: 1,
+      tag: 1,
+      label: 'Test',
+    });
     await expect(mutableDevice.createClusters('two')).rejects.toThrow();
     expect(await mutableDevice.createChildEndpoint('two')).toBeDefined();
   });
@@ -161,7 +173,12 @@ describe('MutableDevice', () => {
 
   it('should add a tagList', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
-    mutableDevice.addTagLists('', { mfgCode: null, namespaceId: 1, tag: 1, label: 'Test' });
+    mutableDevice.addTagLists('', {
+      mfgCode: null,
+      namespaceId: 1,
+      tag: 1,
+      label: 'Test',
+    });
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().tagList).toHaveLength(1);
@@ -202,7 +219,11 @@ describe('MutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
-    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, {}) });
+    mutableDevice.addClusterServerObjs('', {
+      id: OnOff.Cluster.id,
+      type: OnOffServer,
+      options: optionsFor(OnOffServer, {}),
+    });
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
@@ -311,7 +332,11 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
-    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
+    mutableDevice.addClusterServerObjs('', {
+      id: OnOff.Cluster.id,
+      type: OnOffServer,
+      options: optionsFor(OnOffServer, { onOff: false }),
+    });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(13);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(3);
@@ -345,7 +370,11 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffLight, colorTemperatureLight, extendedColorLight);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
-    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
+    mutableDevice.addClusterServerObjs('', {
+      id: OnOff.Cluster.id,
+      type: OnOffServer,
+      options: optionsFor(OnOffServer, { onOff: false }),
+    });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(11);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(3);
@@ -379,7 +408,11 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffLight, extendedColorLight);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
-    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
+    mutableDevice.addClusterServerObjs('', {
+      id: OnOff.Cluster.id,
+      type: OnOffServer,
+      options: optionsFor(OnOffServer, { onOff: false }),
+    });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(10);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(3);
@@ -413,7 +446,11 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', dimmableLight, extendedColorLight);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
     mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
-    mutableDevice.addClusterServerObjs('', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
+    mutableDevice.addClusterServerObjs('', {
+      id: OnOff.Cluster.id,
+      type: OnOffServer,
+      options: optionsFor(OnOffServer, { onOff: false }),
+    });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(10);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(3);
@@ -446,16 +483,33 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
     mutableDevice.addClusterServerObjs(
       'child1',
-      { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) },
-      { id: LevelControl.Cluster.id, type: LevelControlServer, options: optionsFor(LevelControlServer, { currentLevel: 100 }) },
+      {
+        id: OnOff.Cluster.id,
+        type: OnOffServer,
+        options: optionsFor(OnOffServer, { onOff: false }),
+      },
+      {
+        id: LevelControl.Cluster.id,
+        type: LevelControlServer,
+        options: optionsFor(LevelControlServer, { currentLevel: 100 }),
+      },
     );
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(3);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
 
     mutableDevice.addDeviceTypes('child2', onOffOutlet);
-    mutableDevice.addClusterServerObjs('child2', { id: OnOff.Cluster.id, type: OnOffServer, options: optionsFor(OnOffServer, { onOff: false }) });
-    mutableDevice.addTagLists('child2', { mfgCode: null, namespaceId: 1, tag: 1, label: 'Test' });
+    mutableDevice.addClusterServerObjs('child2', {
+      id: OnOff.Cluster.id,
+      type: OnOffServer,
+      options: optionsFor(OnOffServer, { onOff: false }),
+    });
+    mutableDevice.addTagLists('child2', {
+      mfgCode: null,
+      namespaceId: 1,
+      tag: 1,
+      label: 'Test',
+    });
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child2').clusterServersObjs).toHaveLength(1);

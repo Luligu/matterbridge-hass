@@ -1,20 +1,18 @@
 // Home Assistant WebSocket Client Tests
 
 /* eslint-disable jest/no-conditional-expect */
-/* eslint-disable @typescript-eslint/no-empty-function */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 
-import { jest } from '@jest/globals';
 import fs from 'node:fs';
 import path from 'node:path';
 import https from 'node:https';
+
+import { jest } from '@jest/globals';
 import { WebSocket, WebSocketServer } from 'ws';
 import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant';
+import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -73,24 +71,87 @@ describe('HomeAssistant', () => {
         if (msg.type === 'auth' && msg.access_token === accessToken) {
           ws.send(JSON.stringify({ type: 'auth_ok' }));
         } else if (msg.type === 'ping') {
-          ws.send(JSON.stringify({ id: msg.id, type: 'pong', success: true, result: {} }));
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'pong',
+              success: true,
+              result: {},
+            }),
+          );
         } else if (msg.type === 'get_config') {
-          ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: config_response }));
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: config_response,
+            }),
+          );
         } else if (msg.type === 'get_services') {
-          ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: services_response }));
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: services_response,
+            }),
+          );
         } else if (msg.type === 'config/device_registry/list') {
-          ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: device_registry_response }));
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: device_registry_response,
+            }),
+          );
         } else if (msg.type === 'config/entity_registry/list') {
-          ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: entity_registry_response }));
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: entity_registry_response,
+            }),
+          );
         } else if (msg.type === 'config/area_registry/list') {
-          ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: area_registry_response }));
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: area_registry_response,
+            }),
+          );
         } else if (msg.type === 'get_states') {
-          ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: states_response }));
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: states_response,
+            }),
+          );
         } else if (msg.type === 'subscribe_events') {
           ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true }));
         } else if (msg.type === 'call_service') {
-          ws.send(JSON.stringify({ id: (homeAssistant as any).eventsSubscribeId, type: 'event', success: true, event: { event_type: 'call_service' } }));
-          ws.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: {} }));
+          ws.send(
+            JSON.stringify({
+              id: (homeAssistant as any).eventsSubscribeId,
+              type: 'event',
+              success: true,
+              event: { event_type: 'call_service' },
+            }),
+          );
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: {},
+            }),
+          );
         }
       });
     });
@@ -111,10 +172,6 @@ describe('HomeAssistant', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    //
-  });
-
   afterAll(async () => {
     for (const client of server.clients) {
       client.terminate();
@@ -126,6 +183,8 @@ describe('HomeAssistant', () => {
         resolve(undefined);
       });
     });
+
+    // jest.restoreAllMocks();
   });
 
   it('client should connect', async () => {
@@ -270,7 +329,13 @@ describe('HomeAssistant', () => {
     client.send(
       JSON.stringify({
         type: 'event',
-        event: { event_type: 'state_changed', data: { entity_id: 'myentityid', new_state: { entity_id: 'myentityid' } } },
+        event: {
+          event_type: 'state_changed',
+          data: {
+            entity_id: 'myentityid',
+            new_state: { entity_id: 'myentityid' },
+          },
+        },
         id: (homeAssistant as any).eventsSubscribeId,
       }),
     );
@@ -278,7 +343,10 @@ describe('HomeAssistant', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Entity id ${CYAN}myentityid${db} not found processing event`);
     jest.clearAllMocks();
 
-    homeAssistant.hassEntities.set('myentityid', { entity_id: 'myentityid', device_id: 'mydeviceid' } as any);
+    homeAssistant.hassEntities.set('myentityid', {
+      entity_id: 'myentityid',
+      device_id: 'mydeviceid',
+    } as any);
     await new Promise<void>((resolve) => {
       homeAssistant.once('event', () => {
         resolve();
@@ -286,12 +354,21 @@ describe('HomeAssistant', () => {
       client.send(
         JSON.stringify({
           type: 'event',
-          event: { event_type: 'state_changed', data: { entity_id: 'myentityid', old_state: { entity_id: 'myentityid' }, new_state: { entity_id: 'myentityid' } } },
+          event: {
+            event_type: 'state_changed',
+            data: {
+              entity_id: 'myentityid',
+              old_state: { entity_id: 'myentityid' },
+              new_state: { entity_id: 'myentityid' },
+            },
+          },
           id: (homeAssistant as any).eventsSubscribeId,
         }),
       );
     });
-    expect(homeAssistant.hassStates.get('myentityid')).toEqual({ entity_id: 'myentityid' });
+    expect(homeAssistant.hassStates.get('myentityid')).toEqual({
+      entity_id: 'myentityid',
+    });
   });
 
   it('should parse call_service event messages from Home Assistant', async () => {
@@ -299,18 +376,33 @@ describe('HomeAssistant', () => {
       homeAssistant.once('call_service', () => {
         resolve();
       });
-      client.send(JSON.stringify({ type: 'event', event: { event_type: 'call_service' }, id: (homeAssistant as any).eventsSubscribeId }));
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'call_service' },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}call_service${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
   });
 
   it('should parse device_registry_updated event messages from Home Assistant', async () => {
-    device_registry_response.push({ id: 'mydeviceid', name: 'My Device' } as HassDevice);
+    device_registry_response.push({
+      id: 'mydeviceid',
+      name: 'My Device',
+    } as HassDevice);
     await new Promise<void>((resolve) => {
       homeAssistant.once('devices', () => {
         resolve();
       });
-      client.send(JSON.stringify({ type: 'event', event: { event_type: 'device_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'device_registry_updated' },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}device_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 devices.`);
@@ -320,11 +412,20 @@ describe('HomeAssistant', () => {
   });
 
   it('should fail parsing device_registry_updated event messages from Home Assistant', async () => {
-    device_registry_response.push({ id: 'mydeviceid', name: 'My Device' } as HassDevice);
+    device_registry_response.push({
+      id: 'mydeviceid',
+      name: 'My Device',
+    } as HassDevice);
     const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
       return Promise.reject(new Error('Failed to fetch registry'));
     });
-    client.send(JSON.stringify({ type: 'event', event: { event_type: 'device_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    client.send(
+      JSON.stringify({
+        type: 'event',
+        event: { event_type: 'device_registry_updated' },
+        id: (homeAssistant as any).eventsSubscribeId,
+      }),
+    );
     await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}device_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     fetchSpy.mockRestore();
@@ -332,12 +433,21 @@ describe('HomeAssistant', () => {
   });
 
   it('should parse entity_registry_updated event messages from Home Assistant', async () => {
-    entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
+    entity_registry_response.push({
+      entity_id: 'myentityid',
+      device_id: 'mydeviceid',
+    } as HassEntity);
     await new Promise<void>((resolve) => {
       homeAssistant.once('entities', () => {
         resolve();
       });
-      client.send(JSON.stringify({ type: 'event', event: { event_type: 'entity_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'entity_registry_updated' },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}entity_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 entities.`);
@@ -347,11 +457,20 @@ describe('HomeAssistant', () => {
   });
 
   it('should fail parsing entity_registry_updated event messages from Home Assistant', async () => {
-    entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
+    entity_registry_response.push({
+      entity_id: 'myentityid',
+      device_id: 'mydeviceid',
+    } as HassEntity);
     const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
       return Promise.reject(new Error('Failed to fetch registry'));
     });
-    client.send(JSON.stringify({ type: 'event', event: { event_type: 'entity_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    client.send(
+      JSON.stringify({
+        type: 'event',
+        event: { event_type: 'entity_registry_updated' },
+        id: (homeAssistant as any).eventsSubscribeId,
+      }),
+    );
     await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}entity_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     fetchSpy.mockRestore();
@@ -359,12 +478,21 @@ describe('HomeAssistant', () => {
   });
 
   it('should parse area_registry_updated event messages from Home Assistant', async () => {
-    area_registry_response.push({ area_id: 'myareaid', name: 'My Area' } as HassArea);
+    area_registry_response.push({
+      area_id: 'myareaid',
+      name: 'My Area',
+    } as HassArea);
     await new Promise<void>((resolve) => {
       homeAssistant.once('areas', () => {
         resolve();
       });
-      client.send(JSON.stringify({ type: 'event', event: { event_type: 'area_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'area_registry_updated' },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}area_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 areas.`);
@@ -374,11 +502,20 @@ describe('HomeAssistant', () => {
   });
 
   it('should fail parsing area_registry_updated event messages from Home Assistant', async () => {
-    area_registry_response.push({ area_id: 'myareaid', name: 'My Area' } as HassArea);
+    area_registry_response.push({
+      area_id: 'myareaid',
+      name: 'My Area',
+    } as HassArea);
     const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
       return Promise.reject(new Error('Failed to fetch registry'));
     });
-    client.send(JSON.stringify({ type: 'event', event: { event_type: 'area_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    client.send(
+      JSON.stringify({
+        type: 'event',
+        event: { event_type: 'area_registry_updated' },
+        id: (homeAssistant as any).eventsSubscribeId,
+      }),
+    );
     await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}area_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     fetchSpy.mockRestore();
@@ -442,14 +579,20 @@ describe('HomeAssistant', () => {
   });
 
   it('should get the devices asyncronously from Home Assistant', async () => {
-    device_registry_response.push({ id: 'mydeviceid', name: 'My Device' } as HassDevice);
+    device_registry_response.push({
+      id: 'mydeviceid',
+      name: 'My Device',
+    } as HassDevice);
     const devices = await homeAssistant.fetch('config/device_registry/list');
     expect(devices).toEqual([{ id: 'mydeviceid', name: 'My Device' }]);
     device_registry_response.splice(0, device_registry_response.length); // Clear the response for next tests
   });
 
   it('should get the entities asyncronously from Home Assistant', async () => {
-    entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
+    entity_registry_response.push({
+      entity_id: 'myentityid',
+      device_id: 'mydeviceid',
+    } as HassEntity);
     const entities = await homeAssistant.fetch('config/entity_registry/list');
     expect(entities).toEqual([{ entity_id: 'myentityid', device_id: 'mydeviceid' }]);
     entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
@@ -687,58 +830,163 @@ describe('HomeAssistant with ssl', () => {
         } else if (msg.type === 'auth' && msg.access_token === 'notajson') {
           socket.send('auth_ok');
         } else if (msg.type === 'ping') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'pong', success: true, result: {} }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'pong',
+              success: true,
+              result: {},
+            }),
+          );
         } else if (msg.type === 'get_config') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: {} }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: {},
+            }),
+          );
         } else if (msg.type === 'get_services') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: {} }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: {},
+            }),
+          );
         } else if (msg.type === 'config/device_registry/list') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: [] }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: [],
+            }),
+          );
         } else if (msg.type === 'config/entity_registry/list') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: [] }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: [],
+            }),
+          );
         } else if (msg.type === 'config/area_registry/list') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: [] }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: [],
+            }),
+          );
         } else if (msg.type === 'get_states') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: [] }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: [],
+            }),
+          );
         } else if (msg.type === 'subscribe_events') {
           if (msg.event_type === 'notanevent') {
             socket.send(
-              JSON.stringify({ id: msg.id, type: 'result', success: false, error: { code: 'notanevent', message: 'Not a valid event type' } } as HassWebSocketResponseResult),
+              JSON.stringify({
+                id: msg.id,
+                type: 'result',
+                success: false,
+                error: {
+                  code: 'notanevent',
+                  message: 'Not a valid event type',
+                },
+              } as HassWebSocketResponseResult),
             );
           } else if (msg.event_type === 'notajson') {
             socket.send('not a json');
           } else if (msg.event_type === 'noresponse') {
             // Do not send any response
           } else {
-            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true } as HassWebSocketResponseResult));
+            socket.send(
+              JSON.stringify({
+                id: msg.id,
+                type: 'result',
+                success: true,
+              } as HassWebSocketResponseResult),
+            );
           }
         } else if (msg.type === 'unsubscribe_events') {
           if (msg.subscription === -1) {
             socket.send(
-              JSON.stringify({ id: msg.id, type: 'result', success: false, error: { code: 'notanid', message: 'Not a valid subscription id' } } as HassWebSocketResponseResult),
+              JSON.stringify({
+                id: msg.id,
+                type: 'result',
+                success: false,
+                error: {
+                  code: 'notanid',
+                  message: 'Not a valid subscription id',
+                },
+              } as HassWebSocketResponseResult),
             );
           } else if (msg.subscription === -2) {
             socket.send('not a json');
           } else if (msg.subscription === -3) {
             // Do not send any response
           } else {
-            socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true } as HassWebSocketResponseResult));
+            socket.send(
+              JSON.stringify({
+                id: msg.id,
+                type: 'result',
+                success: true,
+              } as HassWebSocketResponseResult),
+            );
           }
         } else if (msg.type === 'call_service' && msg.domain === 'notajson') {
           socket.send('not a json');
         } else if (msg.type === 'call_service' && msg.domain === 'nosuccess') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'nosuccess' }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: false,
+              error: 'nosuccess',
+            }),
+          );
         } else if (msg.type === 'call_service' && msg.domain === 'noresponse') {
           // Do not send any response
         } else if (msg.type === 'call_service') {
-          socket.send(JSON.stringify({ id: (homeAssistant as any).eventsSubscribeId, type: 'event', success: true, event: { event_type: 'call_service' } }));
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: true, result: {} }));
+          socket.send(
+            JSON.stringify({
+              id: (homeAssistant as any).eventsSubscribeId,
+              type: 'event',
+              success: true,
+              event: { event_type: 'call_service' },
+            }),
+          );
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: {},
+            }),
+          );
         } else if (msg.type === 'notajson') {
           socket.send('not a json');
         } else if (msg.type === 'noresponse') {
           // Do nothing, simulate no response
         } else if (msg.type === 'nosuccess') {
-          socket.send(JSON.stringify({ id: msg.id, type: 'result', success: false, error: 'nosuccess' }));
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: false,
+              error: 'nosuccess',
+            }),
+          );
         }
       });
     });

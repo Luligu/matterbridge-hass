@@ -43,15 +43,12 @@
     "ewelink"
   ],
   "engines": {
-    "node": ">=18.0.0 <19.0.0 || >=20.0.0 <21.0.0 || >=22.0.0"
+    "node": ">=18.0.0 <19.0.0 || >=20.0.0 <21.0.0 || >=22.0.0 <23.0.0 || >=24.0.0 <25.0.0"
   },
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "start": "matterbridge -profile Test",
-    "start:edge": "matterbridge -edge",
-    "start:bridge": "matterbridge -bridge",
-    "start:childbridge": "matterbridge -childbridge",
+    "start": "matterbridge",
     "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:verbose": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --verbose",
     "test:watch": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --watch -verbose",
@@ -63,9 +60,7 @@
     "test:mutableDevice": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js mutableDevice.test.ts --verbose --coverage",
     "test:homeAssistant": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js homeAssistant.test.ts --verbose --coverage",
     "lint": "eslint --max-warnings=0 .",
-    "lint:fix": "eslint --fix --max-warnings=0 .",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format": "prettier --write .",
     "clean": "npx rimraf tsconfig.tsbuildinfo ./dist",
     "cleanBuild": "npm run clean && npm run build",
     "deepClean": "npx rimraf tsconfig.tsbuildinfo package-lock.json npm-shrinkwrap.json ./dist ./node_modules",
@@ -109,7 +104,7 @@
     "eslint-config-prettier": "10.1.5",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-jest": "28.14.0",
-    "eslint-plugin-jsdoc": "51.0.1",
+    "eslint-plugin-jsdoc": "51.0.3",
     "eslint-plugin-n": "17.20.0",
     "eslint-plugin-prettier": "5.5.0",
     "eslint-plugin-promise": "7.2.1",

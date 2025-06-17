@@ -3,8 +3,8 @@
  *
  * @file src\mutableDevice.ts
  * @author Luca Liguori
- * @date 2024-12-08
- * @version 1.0.0
+ * created 2024-12-08
+ * version 1.0.1
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -43,8 +43,6 @@ import {
   MatterbridgeThermostatServer,
 } from 'matterbridge';
 import { db, debugStringify, idn, ign, rs, CYAN } from 'matterbridge/logger';
-
-// @matter imorts
 import { AtLeastOne, Behavior } from 'matterbridge/matter';
 import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
 import { BooleanState, BridgedDeviceBasicInformation, ColorControl, PowerSource, SmokeCoAlarm, Thermostat } from 'matterbridge/matter/clusters';
@@ -67,6 +65,16 @@ interface MutableDeviceInterface {
   clusterClientsObjs: ClusterServerObj[];
 }
 
+/**
+ * Creates a cluster server object with the specified cluster ID, type, and options.
+ *
+ * @template T - The type of the behavior.
+ * @param {ClusterId} clusterId - The unique identifier for the cluster.
+ * @param {T} type - The type of the behavior.
+ * @param {Behavior.Options<T>} options - The options associated with the behavior type.
+ *
+ * @returns {{ id: ClusterId, type: T, options: Behavior.Options<T> }} The constructed cluster server object.
+ */
 export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterId, type: T, options: Behavior.Options<T>) {
   return { id: clusterId, type, options };
 }
@@ -270,7 +278,13 @@ export class MutableDevice {
       getClusterServerObj(ColorControl.Cluster.id, MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature), {
         colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
         enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
-        colorCapabilities: { xy: false, hueSaturation: false, colorLoop: false, enhancedHue: false, colorTemperature: true },
+        colorCapabilities: {
+          xy: false,
+          hueSaturation: false,
+          colorLoop: false,
+          enhancedHue: false,
+          colorTemperature: true,
+        },
         options: {
           executeIfOff: false,
         },
@@ -294,7 +308,13 @@ export class MutableDevice {
         {
           colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
           enhancedColorMode: ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
-          colorCapabilities: { xy: true, hueSaturation: true, colorLoop: false, enhancedHue: false, colorTemperature: true },
+          colorCapabilities: {
+            xy: true,
+            hueSaturation: true,
+            colorLoop: false,
+            enhancedHue: false,
+            colorTemperature: true,
+          },
           options: {
             executeIfOff: false,
           },

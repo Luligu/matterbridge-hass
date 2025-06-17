@@ -1,58 +1,77 @@
-// @ts-check
-
-import eslint from '@eslint/js';
+// eslint.config.js
+// This ESLint configuration is designed for a TypeScript project.
+import { defineConfig } from 'eslint/config';
+import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
-import eslintPluginJest from 'eslint-plugin-jest';
-import eslintConfigPrettier from 'eslint-plugin-prettier/recommended';
-import eslintPluginN from 'eslint-plugin-n';
+import pluginImport from 'eslint-plugin-import';
+import pluginN from 'eslint-plugin-n';
+import pluginPromise from 'eslint-plugin-promise';
+import pluginJsdoc from 'eslint-plugin-jsdoc';
+import pluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import pluginJest from 'eslint-plugin-jest';
 
-export default [
+/** Jest */
+export default defineConfig([
   {
-    name: 'global ignores',
-    ignores: ['dist/', 'build/', 'node_modules/', 'coverage/', 'frontend/', 'rock-s0/'],
+    name: 'Global Ignores',
+    ignores: ['dist', 'node_modules', 'coverage'],
   },
-  eslint.configs.recommended,
+  js.configs.recommended,
   ...tseslint.configs.strict,
-  ...tseslint.configs.stylistic,
+  // Comment the previous line and uncomment the following line if you want to use strict with type checking
   // ...tseslint.configs.strictTypeChecked,
-  // ...tseslint.configs.stylisticTypeChecked,
-  eslintConfigPrettier,
+  pluginImport.flatConfigs.recommended,
+  pluginN.configs['flat/recommended-script'],
+  pluginPromise.configs['flat/recommended'],
+  pluginJsdoc.configs['flat/recommended'],
+  pluginPrettierRecommended, // Prettier plugin must be the last plugin in the list
   {
+    name: 'Global Configuration',
     languageOptions: {
-      ecmaVersion: 'latest',
       sourceType: 'module',
+      ecmaVersion: 'latest',
     },
     linterOptions: {
-      reportUnusedDisableDirectives: 'warn',
+      reportUnusedDisableDirectives: 'error', // Report unused eslint-disable directives
+      reportUnusedInlineConfigs: 'error', // Report unused eslint-disable-line directives
     },
     rules: {
-      'no-console': 'warn',
-      'no-undef': 'off',
-      'spaced-comment': ['error', 'always'],
+      'no-console': 'warn', // Warn on console usage
+      'spaced-comment': ['error', 'always'], // Require space after comment markers
+      'no-unused-vars': 'warn', // Use the base rule for unused variables
+      'import/order': ['warn', { 'newlines-between': 'always' }],
+      'import/no-unresolved': 'off', // Too many false errors with named exports
+      'import/named': 'off', // Too many false errors with named exports
+      'n/prefer-node-protocol': 'error', // Prefer using 'node:' protocol for built-in modules
+      'n/no-extraneous-import': 'off', // Allow imports from node_modules
+      'n/no-unpublished-import': 'off', // Allow imports from unpublished packages
+      'promise/always-return': 'warn', // Ensure promises always return a value
+      'promise/catch-or-return': 'warn', // Ensure promises are either caught or returned
+      'promise/no-nesting': 'warn', // Avoid nesting promises
+      'jsdoc/tag-lines': ['error', 'any', { startLines: 1, endLines: 0 }], // Require a blank line before JSDoc comments
+      'prettier/prettier': 'warn', // Use Prettier for formatting
     },
   },
   {
-    name: 'javascript',
+    name: 'JavaScript Source Files',
     files: ['**/*.js'],
-    ...tseslint.configs.disableTypeChecked,
+    extends: [tseslint.configs.disableTypeChecked],
   },
   {
-    name: 'typescript',
-    files: ['**/*.ts'],
-    ignores: ['**/__test__/*', '**/*.test.ts', '**/*.spec.ts'],
+    name: 'TypeScript Source Files',
+    files: ['src/**/*.ts'],
+    ignores: ['src/**/*.test.ts', 'src/**/*.spec.ts'], // Ignore test files
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
       parser: tseslint.parser,
       parserOptions: {
         project: './tsconfig.json',
-        tsconfigRootDir: import.meta.dirname,
+        sourceType: 'module',
+        ecmaVersion: 'latest',
       },
     },
-    plugins: {
-      '@typescript-eslint': tseslint.plugin,
-    },
     rules: {
+      // Override/add rules specific to typescript files here
+      'no-unused-vars': 'off', // Disable base rule for unused variables in test files
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -67,23 +86,27 @@ export default [
     },
   },
   {
-    name: 'jest',
-    files: ['**/__test__/*', '**/*.test.ts', '**/*.spec.ts'],
-    plugins: {
-      '@typescript-eslint': tseslint.plugin,
-      jest: eslintPluginJest,
+    name: 'Typescript Test Files',
+    files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        project: './tsconfig.jest.json', // Use a separate tsconfig for Jest tests with "isolatedModules": true
+        sourceType: 'module',
+        ecmaVersion: 'latest',
+      },
     },
-    ...tseslint.configs.disableTypeChecked,
-    ...eslintPluginJest.configs['flat/recommended'],
-  },
-  {
-    name: 'node',
-    files: ['**/*.ts', '**/*.js'],
     plugins: {
-      n: eslintPluginN,
+      jest: pluginJest, // Add Jest plugin for test files
     },
     rules: {
-      'n/prefer-node-protocol': 'error',
+      // Override/add rules specific to test files here
+      'no-unused-vars': 'off', // Disable base rule for unused variables in test files
+      '@typescript-eslint/no-unused-vars': 'off', // Disable TypeScript rule for unused variables in test files
+      '@typescript-eslint/no-explicit-any': 'off', // Allow 'any' type in test files
+      '@typescript-eslint/no-empty-function': 'off', // Allow empty functions in test files
+      // Recommended Jest plugin rules
+      ...pluginJest.configs.recommended.rules,
     },
   },
-];
+]);
