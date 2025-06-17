@@ -1,26 +1,41 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { bridgedNode, colorTemperatureLight, dimmableOutlet, Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
-import { AnsiLogger, BLUE, db, dn, hk, idn, LogLevel, nf, or, rs, YELLOW, CYAN, ign, wr, debugStringify, er } from 'matterbridge/logger';
-import { Endpoint } from 'matterbridge/matter';
+import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er } from 'matterbridge/logger';
 import { HomeAssistantPlatform } from './platform';
 import { jest } from '@jest/globals';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import {
-  BooleanState,
-  BridgedDeviceBasicInformation,
-  BridgedDeviceBasicInformationCluster,
-  FanControl,
-  FanControlCluster,
-  IlluminanceMeasurement,
-  OccupancySensing,
-  WindowCovering,
-} from 'matterbridge/matter/clusters';
+import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
+
+let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
+let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
+let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
+let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
+let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
+let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
+const debug = false; // Set to true to enable debug logging
+
+if (!debug) {
+  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
+  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
+  consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
+  consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
+} else {
+  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
+  consoleLogSpy = jest.spyOn(console, 'log');
+  consoleDebugSpy = jest.spyOn(console, 'debug');
+  consoleInfoSpy = jest.spyOn(console, 'info');
+  consoleWarnSpy = jest.spyOn(console, 'warn');
+  consoleErrorSpy = jest.spyOn(console, 'error');
+}
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
@@ -42,49 +57,29 @@ const readMockHomeAssistantFile = () => {
 
 describe('HassPlatform', () => {
   const mockLog = {
-    fatal: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.fatal', message, parameters);
-    }),
-    error: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.error', message, parameters);
-    }),
-    warn: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.warn', message, parameters);
-    }),
-    notice: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.notice', message, parameters);
-    }),
-    info: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.info', message, parameters);
-    }),
-    debug: jest.fn((message: string, ...parameters: any[]) => {
-      // console.log('mockLog.debug', message, parameters);
-    }),
+    fatal: jest.fn((message: string, ...parameters: any[]) => {}),
+    error: jest.fn((message: string, ...parameters: any[]) => {}),
+    warn: jest.fn((message: string, ...parameters: any[]) => {}),
+    notice: jest.fn((message: string, ...parameters: any[]) => {}),
+    info: jest.fn((message: string, ...parameters: any[]) => {}),
+    debug: jest.fn((message: string, ...parameters: any[]) => {}),
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
     matterbridgeDirectory: './jest/matterbridge',
     matterbridgePluginDirectory: './jest/plugins',
     systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-    matterbridgeVersion: '3.0.4',
+    matterbridgeVersion: '3.0.6',
     log: mockLog,
     getDevices: jest.fn(() => {
-      // console.log('getDevices called');
       return [];
     }),
     getPlugins: jest.fn(() => {
-      // console.log('getDevices called');
       return [];
     }),
-    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      // console.log('addBridgedEndpoint called');
-    }),
-    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      // console.log('removeBridgedEndpoint called');
-    }),
-    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
-      // console.log('removeAllBridgedEndpoints called');
-    }),
+    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
+    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
+    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
   } as unknown as Matterbridge;
 
   const mockConfig = {
@@ -114,46 +109,39 @@ describe('HassPlatform', () => {
     throw new Error('Failed to read or parse mock homeassistant.json file');
   }
 
-  let loggerLogSpy: jest.SpiedFunction<(level: LogLevel, message: string, ...parameters: any[]) => void>;
-  let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
-
   const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
 
   jest.spyOn(Matterbridge.prototype, 'addBridgedEndpoint').mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
-    console.log(`Mocked addBridgedDevice: ${pluginName} ${device.name}`);
+    console.log(`Mocked Matterbridge.addBridgedEndpoint: ${pluginName} ${device.name}`);
     return Promise.resolve();
   });
   jest.spyOn(Matterbridge.prototype, 'removeBridgedEndpoint').mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
-    // console.log(`Mocked unregisterDevice: ${pluginName} ${device.name}`);
+    console.log(`Mocked Matterbridge.removeBridgedEndpoint: ${pluginName} ${device.name}`);
     return Promise.resolve();
   });
   jest.spyOn(Matterbridge.prototype, 'removeAllBridgedEndpoints').mockImplementation((pluginName: string) => {
-    // console.log(`Mocked removeAllBridgedDevices: ${pluginName}`);
+    console.log(`Mocked Matterbridge.removeAllBridgedEndpoints: ${pluginName}`);
     return Promise.resolve();
   });
 
   const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
-    console.log(`Mocked connect`);
+    console.log(`Mocked HomeAssistant.connect`);
     return Promise.resolve('2024.09.1');
   });
-
   const closeSpy = jest.spyOn(HomeAssistant.prototype, 'close').mockImplementation(() => {
-    console.log(`Mocked close`);
+    console.log(`Mocked HomeAssistant.close`);
     return Promise.resolve();
   });
-
   const subscribeSpy = jest.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation((event?: string) => {
-    console.log(`Mocked subscribe: ${event}`);
+    console.log(`Mocked HomeAssistant.subscribe: ${event}`);
     return Promise.resolve(15);
   });
-
   const fetchDataSpy = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
-    console.log(`Mocked fetchData`);
+    console.log(`Mocked HomeAssistant.fetchData`);
     return Promise.resolve();
   });
-
   const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((type: string, timeout = 5000) => {
-    console.log(`Mocked fetchAsync: ${type}`);
+    console.log(`Mocked HomeAssistant.fetch: ${type}`);
     if (type === 'config/device_registry/list') {
       return Promise.resolve(mockData.devices);
     } else if (type === 'config/entity_registry/list') {
@@ -163,11 +151,10 @@ describe('HassPlatform', () => {
     }
     return Promise.resolve(mockData.config);
   });
-
   const callServiceSpy = jest
     .spyOn(HomeAssistant.prototype, 'callService')
     .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}, id?: number) => {
-      console.log(`Mocked callServiceAsync: domain ${domain} service ${service} entityId ${entityId}`);
+      console.log(`Mocked HomeAssistant.callService: domain ${domain} service ${service} entityId ${entityId}`);
       return Promise.resolve({});
     });
 
@@ -230,7 +217,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '3.0.4';
+    mockMatterbridge.matterbridgeVersion = '3.0.6';
   });
 
   it('should validate with white and black list', () => {
@@ -412,21 +399,21 @@ describe('HassPlatform', () => {
     expect(child3).toBeDefined();
     child3.number = EndpointNumber(3);
 
-    await haPlatform.commandHandler(device, child1, undefined, undefined, 'on');
+    await haPlatform.commandHandler(device, child1, {}, {}, 'on');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}on${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_on', 'switch.switch_switch_1', undefined);
 
-    await haPlatform.commandHandler(device, child2, undefined, undefined, 'off');
+    await haPlatform.commandHandler(device, child2, {}, {}, 'off');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}off${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_off', 'switch.switch_switch_2', undefined);
 
-    await haPlatform.commandHandler(device, child3, { level: 100 }, undefined, 'moveToLevel');
+    await haPlatform.commandHandler(device, child3, { level: 100 }, {}, 'moveToLevel');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevel${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
@@ -434,7 +421,7 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevel${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    await haPlatform.commandHandler(device, child3, { level: 100 }, undefined, 'moveToLevelWithOnOff');
+    await haPlatform.commandHandler(device, child3, { level: 100 }, {}, 'moveToLevelWithOnOff');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevelWithOnOff${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
@@ -442,10 +429,10 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    await haPlatform.commandHandler(device, child3, { colorTemperatureMireds: 300 }, undefined, 'moveToColorTemperature');
+    await haPlatform.commandHandler(device, child3, { colorTemperatureMireds: 300 }, {}, 'moveToColorTemperature');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp: 300 }));
 
-    await haPlatform.commandHandler(device, child3, { colorX: 0.5, colorY: 0.5 }, undefined, 'moveToColor');
+    await haPlatform.commandHandler(device, child3, { colorX: 0.5, colorY: 0.5 }, {}, 'moveToColor');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ xy_color: [0.5, 0.5] }));
 
     await haPlatform.commandHandler(device, child3, { hue: 50 }, { currentSaturation: { value: 50 } }, 'moveToHue');
@@ -454,16 +441,16 @@ describe('HassPlatform', () => {
     await haPlatform.commandHandler(device, child3, { saturation: 50 }, { currentHue: { value: 50 } }, 'moveToSaturation');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    await haPlatform.commandHandler(device, child3, { hue: 50, saturation: 50 }, undefined, 'moveToHueAndSaturation');
+    await haPlatform.commandHandler(device, child3, { hue: 50, saturation: 50 }, {}, 'moveToHueAndSaturation');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
     callServiceSpy.mockClear();
-    await haPlatform.commandHandler(undefined, child2, undefined, undefined, 'unknown');
+    await haPlatform.commandHandler(undefined, child2, {}, {}, 'unknown');
     expect(callServiceSpy).not.toHaveBeenCalled();
     expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining(`Command handler: Matterbridge device not found`));
 
     callServiceSpy.mockClear();
-    await haPlatform.commandHandler(device, child2, undefined, undefined, 'unknown');
+    await haPlatform.commandHandler(device, child2, {}, {}, 'unknown');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}unknown${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),

@@ -23,6 +23,7 @@ Since release 0.1.0:
 
 - [package]: Update package.
 - [package]: Update dependencies.
+- [package]: Requires matterbridge 3.0.6.
 
 ### Fixed
 

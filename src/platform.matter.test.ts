@@ -15,7 +15,7 @@ import { Endpoint, DeviceTypeId, VendorId, ServerNode, LogFormat as MatterLogFor
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 
 // Matterbridge
-import { capitalizeFirstLetter, Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
+import { Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk } from 'matterbridge/logger';
 
 // Home Assistant Plugin
@@ -81,27 +81,21 @@ async function waitForOnline(server: ServerNode<ServerNode.RootEndpoint>, timeou
 const mockLog = {
   fatal: jest.fn((message: string, ...parameters: any[]) => {
     log.fatal(message, ...parameters);
-    // console.log('mockLog.fatal', message, parameters);
   }),
   error: jest.fn((message: string, ...parameters: any[]) => {
     log.error(message, ...parameters);
-    // console.log('mockLog.error', message, parameters);
   }),
   warn: jest.fn((message: string, ...parameters: any[]) => {
     log.warn(message, ...parameters);
-    // console.log('mockLog.warn', message, parameters);
   }),
   notice: jest.fn((message: string, ...parameters: any[]) => {
     log.notice(message, ...parameters);
-    // console.log('mockLog.notice', message, parameters);
   }),
   info: jest.fn((message: string, ...parameters: any[]) => {
     log.info(message, ...parameters);
-    // console.log('mockLog.info', message, parameters);
   }),
   debug: jest.fn((message: string, ...parameters: any[]) => {
     log.debug(message, ...parameters);
-    // console.log('mockLog.debug', message, parameters);
   }),
 } as unknown as AnsiLogger;
 
@@ -109,25 +103,19 @@ const mockMatterbridge = {
   matterbridgeDirectory: './jest/matterbridge',
   matterbridgePluginDirectory: './jest/plugins',
   systemInformation: { ipv4Address: undefined, ipv6Address: undefined, osRelease: 'xx.xx.xx.xx.xx.xx', nodeVersion: '22.1.10' },
-  matterbridgeVersion: '3.0.4',
+  matterbridgeVersion: '3.0.6',
   log: mockLog,
   getDevices: jest.fn(() => {
-    // console.log('getDevices called');
     return [];
   }),
   getPlugins: jest.fn(() => {
-    // console.log('getDevices called');
     return [];
   }),
   addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
     await aggregator.add(device);
   }),
-  removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-    // console.log('removeBridgedEndpoint called');
-  }),
-  removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
-    // console.log('removeAllBridgedEndpoints called');
-  }),
+  removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
+  removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
 } as unknown as Matterbridge;
 
 const mockConfig = {
