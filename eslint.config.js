@@ -3,7 +3,7 @@
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import eslintPluginJest from 'eslint-plugin-jest';
-import eslintPluginPrettier from 'eslint-plugin-prettier/recommended';
+import eslintConfigPrettier from 'eslint-plugin-prettier/recommended';
 import eslintPluginN from 'eslint-plugin-n';
 
 export default [
@@ -16,7 +16,7 @@ export default [
   ...tseslint.configs.stylistic,
   // ...tseslint.configs.strictTypeChecked,
   // ...tseslint.configs.stylisticTypeChecked,
-  eslintPluginPrettier,
+  eslintConfigPrettier,
   {
     languageOptions: {
       ecmaVersion: 'latest',
@@ -78,7 +78,7 @@ export default [
   },
   {
     name: 'node',
-    files: ['**/*.ts'],
+    files: ['**/*.ts', '**/*.js'],
     plugins: {
       n: eslintPluginN,
     },

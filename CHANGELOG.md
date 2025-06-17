@@ -15,6 +15,21 @@ Since release 0.1.0:
 - the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
 - the config serialPostfix has been changed to postfix.
 
+## [0.1.4] - 2025-06-14
+
+### Added
+
+### Changed
+
+- [package]: Update package.
+- [package]: Update dependencies.
+
+### Fixed
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.1.3] - 2025-06-13
 
 ### Added
