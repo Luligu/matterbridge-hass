@@ -85,7 +85,7 @@
     "matterbridge:list": "matterbridge -list",
     "dev:link": "npm link matterbridge",
     "dev:unlink": "npm unlink matterbridge",
-    "install:dependencies": "npm install node-ansi-logger node-persist-manager ws && npm install --save-dev @types/ws",
+    "install:dependencies": "npm install node-ansi-logger node-persist-manager ws && npm install --save-dev npm-check-updates rimraf @types/ws",
     "install:typescript": "npm install --save-dev typescript @types/node @types/jest",
     "install:eslint": "npm install --save-dev @eslint/js typescript-eslint eslint-plugin-import eslint-plugin-n eslint-plugin-promise eslint-plugin-jsdoc",
     "install:jest": "npm install --save-dev jest ts-jest eslint-plugin-jest",
@@ -109,7 +109,9 @@
     "eslint-plugin-prettier": "5.5.0",
     "eslint-plugin-promise": "7.2.1",
     "jest": "30.0.0",
+    "npm-check-updates": "18.0.1",
     "prettier": "3.5.3",
+    "rimraf": "^6.0.1",
     "ts-jest": "29.4.0",
     "typescript": "5.8.3",
     "typescript-eslint": "8.34.1"
