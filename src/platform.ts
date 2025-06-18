@@ -46,7 +46,6 @@ import {
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
-import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 // Plugin imports
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
@@ -63,16 +62,14 @@ import {
 } from './converters.js';
 
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
-  // NodeStorageManager
-  nodeStorageManager?: NodeStorageManager;
-  nodeStorage?: NodeStorage;
-
-  // Home Assistant
+  /** Home Assistant instance */
   ha: HomeAssistant;
-  labelIdFilter: string = ''; // Convert the label filter in the config from name to label_id
 
-  // Matterbridge devices
-  matterbridgeDevices = new Map<string, MatterbridgeEndpoint>(); // Without the postfix
+  /** Convert the label filter in the config from name to label_id */
+  labelIdFilter: string = '';
+
+  /** Bridged devices map with key (without the postfix) device.id for devices and entity.entity_id for individual entities */
+  matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
 
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
@@ -191,16 +188,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   override async onStart(reason?: string) {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
-
-    // create NodeStorageManager
-    this.nodeStorageManager = new NodeStorageManager({
-      dir: path.join(this.matterbridge.matterbridgeDirectory, 'matterbridge-hass'),
-      writeQueue: false,
-      expiredInterval: undefined,
-      logging: false,
-      forgiveParseErrors: true,
-    });
-    this.nodeStorage = await this.nodeStorageManager.createStorage('devices');
 
     // Create the plugin directory inside the Matterbridge plugin directory
     await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
