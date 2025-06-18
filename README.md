@@ -177,6 +177,10 @@ Filter devices and individual entities by area. If enabled, only devices and ind
 
 Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device.
 
+### applyFiltersToDeviceEntities
+
+Apply the filters to device entities. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.
+
 ### whiteList
 
 If the whiteList is defined only the devices and the individual entities included are exposed to Matter. Use the device/entity name or the device/entity id.
