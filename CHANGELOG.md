@@ -20,7 +20,8 @@ Since release 0.1.0:
 ### Added
 
 - [homeassistant]: Added HassLabel.
-- [config]: Added applyFiltersToDeviceEntities option to schema and implement filtering logic.
+- [config]: Added applyFiltersToDeviceEntities option to schema.
+- [config]: Improved filtering logic for label. Now is possible to set lable id or label name in the label filter.
 
 ### Changed
 
