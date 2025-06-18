@@ -12,7 +12,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
+import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -51,6 +51,7 @@ describe('HomeAssistant', () => {
   const device_registry_response: HassDevice[] = [];
   const entity_registry_response: HassEntity[] = [];
   const area_registry_response: HassArea[] = [];
+  const label_registry_response: HassLabel[] = [];
   const states_response: HassState[] = [];
   const services_response: HassServices = {};
   const config_response: HassConfig = {} as HassConfig;
@@ -122,6 +123,15 @@ describe('HomeAssistant', () => {
               type: 'result',
               success: true,
               result: area_registry_response,
+            }),
+          );
+        } else if (msg.type === 'config/label_registry/list') {
+          ws.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: label_registry_response,
             }),
           );
         } else if (msg.type === 'get_states') {
@@ -428,6 +438,7 @@ describe('HomeAssistant', () => {
     );
     await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}device_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error fetching device registry`));
     fetchSpy.mockRestore();
     device_registry_response.splice(0, device_registry_response.length); // Clear the response for next tests
   });
@@ -473,6 +484,7 @@ describe('HomeAssistant', () => {
     );
     await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}entity_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error fetching entity registry`));
     fetchSpy.mockRestore();
     entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
   });
@@ -518,8 +530,55 @@ describe('HomeAssistant', () => {
     );
     await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}area_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error fetching area registry`));
     fetchSpy.mockRestore();
     area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
+  });
+
+  it('should parse label_registry_updated event messages from Home Assistant', async () => {
+    label_registry_response.push({
+      label_id: 'my_labelid',
+      name: 'My Label',
+    } as HassLabel);
+    await new Promise<void>((resolve) => {
+      homeAssistant.once('labels', () => {
+        resolve();
+      });
+      client.send(
+        JSON.stringify({
+          type: 'event',
+          event: { event_type: 'label_registry_updated' },
+          id: (homeAssistant as any).eventsSubscribeId,
+        }),
+      );
+    });
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}label_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 labels.`);
+    expect(homeAssistant.hassLabels.get('my_labelid')).toBeDefined();
+    expect(homeAssistant.hassLabels.get('my_labelid')?.name).toBe('My Label');
+    label_registry_response.splice(0, label_registry_response.length); // Clear the response for next tests
+  });
+
+  it('should fail parsing label_registry_updated event messages from Home Assistant', async () => {
+    label_registry_response.push({
+      label_id: 'my_labelid',
+      name: 'My Label',
+    } as HassLabel);
+    const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch registry'));
+    });
+    client.send(
+      JSON.stringify({
+        type: 'event',
+        event: { event_type: 'label_registry_updated' },
+        id: (homeAssistant as any).eventsSubscribeId,
+      }),
+    );
+    await wait(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}label_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error fetching label registry`));
+    fetchSpy.mockRestore();
+    label_registry_response.splice(0, label_registry_response.length); // Clear the response for next tests
   });
 
   it('should log error if unknown event messages from Home Assistant', async () => {
@@ -875,6 +934,15 @@ describe('HomeAssistant with ssl', () => {
             }),
           );
         } else if (msg.type === 'config/area_registry/list') {
+          socket.send(
+            JSON.stringify({
+              id: msg.id,
+              type: 'result',
+              success: true,
+              result: [],
+            }),
+          );
+        } else if (msg.type === 'config/label_registry/list') {
           socket.send(
             JSON.stringify({
               id: msg.id,

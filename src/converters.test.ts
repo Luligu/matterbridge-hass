@@ -157,13 +157,13 @@ describe('HassPlatform', () => {
     hassSubscribeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.domain === 'fan' && converter.service === 'turn_on' && converter.converter) {
-        converter.converter(FanControl.FanMode.Low);
-        converter.converter(FanControl.FanMode.Medium);
-        converter.converter(FanControl.FanMode.High);
-        converter.converter(FanControl.FanMode.Auto);
-        converter.converter(FanControl.FanMode.Smart);
-        converter.converter(FanControl.FanMode.On);
-        converter.converter(10);
+        expect(converter.converter(FanControl.FanMode.Low)).toBe('low');
+        expect(converter.converter(FanControl.FanMode.Medium)).toBe('medium');
+        expect(converter.converter(FanControl.FanMode.High)).toBe('high');
+        expect(converter.converter(FanControl.FanMode.Auto)).toBe('auto');
+        expect(converter.converter(FanControl.FanMode.Smart)).toBe('auto');
+        expect(converter.converter(FanControl.FanMode.On)).toBe('auto');
+        expect(converter.converter(10)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.service === 'set_hvac_mode' && converter.converter) {
         converter.converter(Thermostat.SystemMode.Auto);

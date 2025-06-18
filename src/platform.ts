@@ -49,7 +49,7 @@ import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, 
 import { NodeStorage, NodeStorageManager } from 'matterbridge/storage';
 
 // Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea } from './homeAssistant.js';
+import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
   hassCommandConverter,
@@ -69,6 +69,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   // Home Assistant
   ha: HomeAssistant;
+  labelIdFilter: string = ''; // Convert the label filter in the config from name to label_id
 
   // Matterbridge devices
   matterbridgeDevices = new Map<string, MatterbridgeEndpoint>(); // Without the postfix
@@ -159,6 +160,26 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.ha.on('areas', (_areas: HassArea[]) => {
       this.log.info('Areas received from Home Assistant');
+    });
+
+    this.ha.on('labels', (labels: HassLabel[]) => {
+      this.log.info('Labels received from Home Assistant');
+      // Convert the label filter from the name in the config to the corresponding label_id
+      if (isValidString(this.config.filterByLabel, 1)) {
+        // If the label_id is already set, use it
+        if (labels.find((label) => label.label_id === this.config.filterByLabel)) {
+          this.labelIdFilter = this.config.filterByLabel;
+          this.log.info(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          return;
+        }
+        // Look for the label_id by name
+        this.labelIdFilter = labels.find((label) => label.name === this.config.filterByLabel)?.label_id ?? '';
+        if (this.labelIdFilter) {
+          this.log.info(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          return;
+        }
+        this.log.warn(`Label "${this.config.filterByLabel}" not found in Home Assistant. Filter by label is disabled.`);
+      }
     });
 
     this.ha.on('states', (_states: HassState[]) => {
@@ -682,6 +703,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       devices: Array.from(this.ha.hassDevices.values()),
       entities: Array.from(this.ha.hassEntities.values()),
       areas: Array.from(this.ha.hassAreas.values()),
+      labels: Array.from(this.ha.hassLabels.values()),
       states: Array.from(this.ha.hassStates.values()),
       config: this.ha.hassConfig,
       services: this.ha.hassServices,
@@ -817,26 +839,29 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   /**
    * Validate the area and label of a device or an entity against the configured filters.
+   * For the label, it checks if the label ID matches the configured label filter.
    *
-   * @param {string | null} areaId The area ID of the device / entity.
-   * @param {string[]} labels The labels of the device / entity.
+   * @param {string | null} areaId The area ID of the device / entity. It is null if the device / entity is not in any area.
+   * @param {string[]} labels The labels ids of the device / entity. It is an empty array if the device / entity has no labels.
    *
    * @returns {boolean} True if the area and label are valid according to the filters, false otherwise.
    */
   isValidAreaLabel(areaId: string | null, labels: string[]): boolean {
     let areaMatch = true;
     let labelMatch = true;
+    // Filter by area if configured
     if (isValidString(this.config.filterByArea, 1)) {
-      if (!areaId) return false;
+      if (!areaId) return false; // If the areaId is null, the device / entity is not in any area, so we skip it.
       areaMatch = false;
       const area = this.ha.hassAreas.get(areaId);
-      if (!area) return false;
+      if (!area) return false; // If the area is not found, we skip it.
       if (area.name === this.config.filterByArea) areaMatch = true;
     }
-    if (isValidString(this.config.filterByLabel, 1)) {
-      if (labels.length === 0) return false;
+    // Filter by label if configured. The labelIdFilter is the label ID to filter by and it is set from the config to the label ID.
+    if (isValidString(this.labelIdFilter, 1)) {
+      if (labels.length === 0) return false; // If the labels array is empty, the device / entity has no labels, so we skip it.
       labelMatch = false;
-      if (labels.includes(this.config.filterByLabel)) labelMatch = true;
+      if (labels.includes(this.labelIdFilter)) labelMatch = true;
     }
     return areaMatch && labelMatch;
   }

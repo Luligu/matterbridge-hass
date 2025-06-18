@@ -135,7 +135,7 @@ describe('HomeAssistant real test on ubuntu', () => {
 
   it('should subscribe to Home Assistant', async () => {
     subscriptionId = await homeAssistant.subscribe();
-    expect(subscriptionId).toBe(13);
+    expect(subscriptionId).toBe(14);
   });
 
   it('should fail to fetch from Home Assistant', async () => {

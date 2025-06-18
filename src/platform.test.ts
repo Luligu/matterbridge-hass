@@ -11,7 +11,7 @@ import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er } from 'ma
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 
 import { HomeAssistantPlatform } from './platform.js';
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -45,6 +45,7 @@ const readMockHomeAssistantFile = () => {
       devices: HassDevice[];
       entities: HassEntity[];
       areas: HassArea[];
+      labels: HassLabel[];
       states: HassState[];
       config: HassConfig;
       services: HassServices;
@@ -183,7 +184,8 @@ describe('HassPlatform', () => {
       haPlatform.ha.hassServices = {} as HassServices;
       haPlatform.ha.hassDevices.clear();
       haPlatform.ha.hassEntities.clear();
-      haPlatform.ha.hassAreas.clear();
+      // haPlatform.ha.hassAreas.clear();
+      // haPlatform.ha.hassLabels.clear();
       haPlatform.ha.hassStates.clear();
     }
   });
@@ -318,145 +320,99 @@ describe('HassPlatform', () => {
     });
   });
 
+  it('should set labels', () => {
+    haPlatform.ha.hassLabels.clear();
+    haPlatform.ha.hassLabels.set('label1', {
+      label_id: 'label1',
+      name: 'Label 1',
+      description: 'This is label 1',
+    } as HassLabel);
+    haPlatform.ha.hassLabels.set('label2', {
+      label_id: 'label2',
+      name: 'Label 2',
+      description: 'This is label 2',
+    } as HassLabel);
+    expect(haPlatform.ha.hassLabels.size).toBe(2);
+    expect(haPlatform.ha.hassLabels.get('label1')).toEqual({
+      label_id: 'label1',
+      name: 'Label 1',
+      description: 'This is label 1',
+    });
+    expect(haPlatform.ha.hassLabels.get('label2')).toEqual({
+      label_id: 'label2',
+      name: 'Label 2',
+      description: 'This is label 2',
+    });
+  });
+
   it('returns true if no filters are set', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
     mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = '';
+    haPlatform.labelIdFilter = '';
     expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(true);
   });
 
-  it('returns false if filterByArea is set and areaId is missing', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
+  it('returns false if filterByArea is set and areaId is null', () => {
     mockConfig.filterByArea = 'Living Room';
+    haPlatform.labelIdFilter = '';
     expect(haPlatform.isValidAreaLabel(null, ['foo'])).toBe(false);
   });
 
   it('returns false if filterByArea is set and areaId does not match', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
     mockConfig.filterByArea = 'Living Room';
+    haPlatform.labelIdFilter = '';
     expect(haPlatform.isValidAreaLabel('area2', ['foo'])).toBe(false);
   });
 
   it('returns true if filterByArea is set and areaId matches', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
     mockConfig.filterByArea = 'Living Room';
+    haPlatform.labelIdFilter = '';
     expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(true);
   });
 
   it('returns false if filterByLabel is set and labels is empty', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
-    mockConfig.filterByLabel = 'important';
+    mockConfig.filterByArea = 'Living Room';
+    haPlatform.labelIdFilter = 'important';
     expect(haPlatform.isValidAreaLabel('area1', [])).toBe(false);
   });
 
   it('returns false if filterByLabel is set and label does not match', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
-    mockConfig.filterByLabel = 'important';
+    mockConfig.filterByArea = 'Living Room';
+    haPlatform.labelIdFilter = 'important';
     expect(haPlatform.isValidAreaLabel('area1', ['foo', 'bar'])).toBe(false);
   });
 
   it('returns true if filterByLabel is set and label matches', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
-    mockConfig.filterByLabel = 'important';
+    mockConfig.filterByArea = 'Living Room';
+    haPlatform.labelIdFilter = 'important';
     expect(haPlatform.isValidAreaLabel('area1', ['foo', 'important', 'bar'])).toBe(true);
   });
 
   it('returns true if both filters are set and both match', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
     mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = 'important';
+    haPlatform.labelIdFilter = 'important';
     expect(haPlatform.isValidAreaLabel('area1', ['important'])).toBe(true);
   });
 
   it('returns false if both filters are set and only area matches', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
     mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = 'important';
+    haPlatform.labelIdFilter = 'important';
     expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(false);
   });
 
   it('returns false if both filters are set and only label matches', () => {
-    haPlatform.ha.hassAreas.set('area1', {
-      area_id: 'area1',
-      name: 'Living Room',
-    } as HassArea);
-    haPlatform.ha.hassAreas.set('area2', {
-      area_id: 'area2',
-      name: 'Kitchen',
-    } as HassArea);
     mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = 'important';
+    haPlatform.labelIdFilter = 'important';
     expect(haPlatform.isValidAreaLabel('area2', ['important'])).toBe(false);
   });
 
-  it('should clear areas and reset filters', () => {
+  it('should clear areas, labels and reset filters', () => {
     haPlatform.ha.hassAreas.clear();
     expect(haPlatform.ha.hassAreas.size).toBe(0);
+    haPlatform.ha.hassLabels.clear();
+    expect(haPlatform.ha.hassLabels.size).toBe(0);
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = '';
+    haPlatform.labelIdFilter = '';
   });
 
   it('should call commandHandler', async () => {
@@ -639,18 +595,72 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Entities received from Home Assistant`);
     haPlatform.ha.emit('areas', []);
     expect(mockLog.info).toHaveBeenCalledWith(`Areas received from Home Assistant`);
+    haPlatform.ha.emit('labels', []);
+    expect(mockLog.info).toHaveBeenCalledWith(`Labels received from Home Assistant`);
   });
 
-  it('should not register any devices and individual entities with filters', async () => {
+  it('should not register any devices and individual entities with label filter name', async () => {
     expect(haPlatform).toBeDefined();
 
     (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
     (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
     (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
     (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
 
     mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'NotExistingLabel';
+    mockConfig.filterByLabel = 'not existing';
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = 'not existing';
+
+    haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    expect(mockLog.warn).toHaveBeenCalledWith(`Label "not existing" not found in Home Assistant. Filter by label is disabled.`);
+    jest.clearAllMocks();
+
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = 'label_id_1';
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = 'label_id_1';
+
+    haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
+
+    // Reset configuration and filters to test filter on device
+    jest.clearAllMocks();
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = 'Label 1';
+    mockConfig.applyFiltersToDeviceEntities = false;
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = 'Label 1';
+    haPlatform.config.applyFiltersToDeviceEntities = false;
+
+    haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
+    jest.clearAllMocks();
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+
+    // Reset configuration and filters to test filter on device entities
+    jest.clearAllMocks();
+    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, { ...d, labels: ['label_id_1'] }));
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = 'Label 1';
+    mockConfig.applyFiltersToDeviceEntities = true;
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = 'Label 1';
+    haPlatform.config.applyFiltersToDeviceEntities = true;
+
+    haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
+    jest.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
 
@@ -660,6 +670,11 @@ describe('HassPlatform', () => {
 
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = '';
+    mockConfig.applyFiltersToDeviceEntities = false;
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = '';
+    haPlatform.config.applyFiltersToDeviceEntities = false;
+    haPlatform.labelIdFilter = '';
   });
 
   it('should not register any devices and individual entities with white lists', async () => {

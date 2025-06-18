@@ -19,6 +19,9 @@ Since release 0.1.0:
 
 ### Added
 
+- [homeassistant]: Added HassLabel.
+- [config]: Added applyFiltersToDeviceEntities option to schema and implement filtering logic.
+
 ### Changed
 
 - [package]: Update package.

@@ -7718,6 +7718,17 @@
       "modified_at": 1748381702.532362
     }
   ],
+  "labels": [
+    {
+      "color": null,
+      "created_at": 1748876862.055812,
+      "description": null,
+      "icon": null,
+      "label_id": "label_id_1",
+      "name": "Label 1",
+      "modified_at": 1748876862.055821
+    }
+  ],
   "states": [
     {
       "entity_id": "climate.thermostat_heat",

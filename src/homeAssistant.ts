@@ -85,6 +85,19 @@ export interface HassEntity {
 }
 
 /**
+ * Interface representing a Home Assistant label.
+ */
+export interface HassLabel {
+  label_id: string;
+  color: string | null;
+  created_at: number;
+  description: string | null;
+  icon: string | null;
+  modified_at: number;
+  name: string;
+}
+
+/**
  * Interface representing a Home Assistant area.
  */
 export interface HassArea {
@@ -314,7 +327,7 @@ export interface HassWebSocketResponseFetch {
   id: number; // The id of the fetch request that this response is responding to
   type: 'result';
   success: boolean;
-  result: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[] | null; // The result of the fetch command, can be null if the fetch fails or does not return a result
+  result: HassConfig | HassServices | HassDevice[] | HassEntity[] | HassState[] | HassArea[] | HassLabel[] | null; // The result of the fetch command, can be null if the fetch fails or does not return a result
   error?: { code: string; message: string }; // Error object for the response with success false
 }
 
@@ -379,6 +392,7 @@ interface HomeAssistantEventEmitter {
   devices: [devices: HassDevice[]];
   entities: [entities: HassEntity[]];
   areas: [areas: HassArea[]];
+  labels: [labels: HassLabel[]];
   subscribed: [];
   event: [deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState];
   call_service: [];
@@ -396,6 +410,7 @@ export class HomeAssistant extends EventEmitter {
   hassEntities = new Map<string, HassEntity>();
   hassStates = new Map<string, HassState>();
   hassAreas = new Map<string, HassArea>();
+  hassLabels = new Map<string, HassLabel>();
   hassServices: HassServices | null = null;
   hassConfig: HassConfig | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
@@ -578,6 +593,18 @@ export class HomeAssistant extends EventEmitter {
           })
           .catch((error) => {
             this.log.error(`Error fetching area registry: ${error}`);
+          });
+      } else if (response.event.event_type === 'label_registry_updated') {
+        this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
+        this.fetch('config/label_registry/list')
+          .then((labels: HassLabel[]) => {
+            this.log.debug(`Received ${labels.length} labels.`);
+            labels.forEach((label) => this.hassLabels.set(label.label_id, label));
+            this.emit('labels', labels);
+            return labels;
+          })
+          .catch((error) => {
+            this.log.error(`Error fetching label registry: ${error}`);
           });
       } else {
         this.log.debug(`*Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
@@ -849,6 +876,11 @@ export class HomeAssistant extends EventEmitter {
       areas.forEach((area: HassArea) => this.hassAreas.set(area.area_id, area));
       this.log.debug(`Received ${areas.length} areas.`);
       this.emit('areas', areas);
+
+      const labels = (await this.fetch('config/label_registry/list')) as HassLabel[];
+      labels.forEach((label: HassLabel) => this.hassLabels.set(label.label_id, label));
+      this.log.debug(`Received ${labels.length} labels.`);
+      this.emit('labels', labels);
 
       this.log.debug('Initial data fetched successfully.');
     } catch (error) {
