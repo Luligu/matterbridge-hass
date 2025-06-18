@@ -53,7 +53,7 @@
       "default": ""
     },
     "applyFiltersToDeviceEntities": {
-      "description": "Apply the filters to device entities. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.",
+      "description": "Apply the filters to device entities too. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.",
       "type": "boolean",
       "default": false
     },
