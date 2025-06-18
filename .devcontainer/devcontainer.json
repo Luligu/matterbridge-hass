@@ -1,0 +1,32 @@
+// .devcontainer/devcontainer.json
+// This file defines the development container configuration for a Matterbridge Plugin.
+// WARNING: since the dev container doesn't have network host and ipv6, you can run matterbridge inside the container and test the plugin but is not possible to pair the Matterbridge instance.
+{
+  // Name of the dev container
+  "name": "Matterbridge Plugin",
+  // Use the pre-built image with Node+TypeScript
+  "image": "mcr.microsoft.com/vscode/devcontainers/typescript-node:latest",
+  // On startup, update npm, pnpm, install the dev of matterbridge and install the dependencies from package.json
+  "postCreateCommand": "npm install -g npm@latest pnpm@latest && chmod +x ./install-matterbridge-*.sh || true && ./install-matterbridge-dev.sh && npm install && npm link matterbridge && npm outdated || true",
+  "customizations": {
+    "vscode": {
+      // Extensions to install in the dev container
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "ms-azuretools.vscode-containers",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "github.vscode-github-actions",
+        "github.vscode-pull-request-github"
+      ],
+      // Settings for the VS Code environment
+      "settings": {
+        "eslint.format.enable": true,
+        "eslint.useFlatConfig": true,
+        "editor.formatOnSave": true,
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "terminal.integrated.scrollback": 10000
+      }
+    }
+  }
+}
