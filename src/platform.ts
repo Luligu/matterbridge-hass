@@ -73,8 +73,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   // Matterbridge devices
   matterbridgeDevices = new Map<string, MatterbridgeEndpoint>(); // Without the postfix
-  bridgedHassDevices = new Map<string, HassDevice>(); // Only the bridged devices from Home Assistant
-  bridgedHassEntities = new Map<string, HassEntity>(); // Only the bridged individual entities from Home Assistant
 
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
@@ -314,7 +312,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.logMutableDevice();
       await this.registerDevice(mutableDevice.getEndpoint());
       this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
-      this.bridgedHassEntities.set(entity.entity_id, entity);
     } // End of individual entities scan
 
     // Scan devices and entities and create Matterbridge devices
@@ -622,7 +619,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         mutableDevice.logMutableDevice();
         await this.registerDevice(mutableDevice.getEndpoint());
         this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
-        this.bridgedHassDevices.set(device.id, device);
       } else {
         this.log.debug(`Device ${CYAN}${device.name}${db} has no supported entities. Deleting device select...`);
         this.clearDeviceSelect(device.id);
@@ -637,7 +633,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       for (const state of Array.from(this.ha.hassStates.values())) {
         const entity = this.ha.hassEntities.get(state.entity_id);
         const deviceId = entity?.device_id;
-        if (deviceId && this.bridgedHassDevices.has(deviceId)) {
+        if (deviceId) {
           this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}`);
           this.updateHandler(deviceId, state.entity_id, state, state);
         } else {
@@ -673,8 +669,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
 
     this.matterbridgeDevices.clear();
-    this.bridgedHassDevices.clear();
-    this.bridgedHassEntities.clear();
   }
 
   async commandHandler(mbDevice: MatterbridgeEndpoint | undefined, endpoint: MatterbridgeEndpoint, request: Record<string, any>, attributes: Record<string, any>, command: string) {
