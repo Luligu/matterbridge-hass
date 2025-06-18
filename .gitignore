@@ -6,6 +6,7 @@
 coverage/
 dist/
 jest/
+matterbridge/
 node_modules/
 temp/
 

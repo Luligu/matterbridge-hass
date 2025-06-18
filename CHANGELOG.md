@@ -22,6 +22,8 @@ Since release 0.1.0:
 - [homeassistant]: Added HassLabel.
 - [config]: Added applyFiltersToDeviceEntities option to schema.
 - [config]: Improved filtering logic for label. Now is possible to set lable id or label name in the label filter.
+- [DevContainer]: Add Matterbridge Plugin Dev Container.
+- [DevContainer]: Add Named Volumes Instead of Bind Mounts for node_modules and matterbridge.
 
 ### Changed
 
@@ -29,8 +31,6 @@ Since release 0.1.0:
 - [package]: Update dependencies.
 - [package]: Requires matterbridge 3.0.6.
 - [worflows]: Removed workflows on node 18 since it has end-of-life as of April 2025.
-
-### Fixed
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

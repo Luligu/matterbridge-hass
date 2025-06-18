@@ -5,6 +5,7 @@
 coverage/
 dist/
 jest/
+matterbridge/
 node_modules/
 
 # Ignore specific files
