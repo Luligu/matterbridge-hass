@@ -736,7 +736,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       return;
     }
     // Set the device reachable attribute to false if the new state is unavailable
-    if (new_state.state === 'unavailable' && old_state.state !== 'unavailable') {
+    if ((new_state.state === 'unavailable' && old_state.state !== 'unavailable') || (new_state.state === 'unavailable' && old_state.state === 'unavailable')) {
       matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, matterbridgeDevice.log);
       return; // Skip the update if the device is unavailable
     }
