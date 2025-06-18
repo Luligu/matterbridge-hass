@@ -14,7 +14,7 @@ import { PowerSource, BooleanState, FanControl, OnOff, LevelControl, SmokeCoAlar
 
 // Home Assistant Plugin
 import { HomeAssistantPlatform } from './platform.js';
-import { HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
@@ -164,7 +164,7 @@ const callServiceSpy = jest
   .spyOn(HomeAssistant.prototype, 'callService')
   .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
     console.log(`Mocked callServiceAsync: domain ${domain} service ${service} entityId ${entityId}`);
-    return Promise.resolve({});
+    return Promise.resolve({ context: {} as HassContext, response: undefined });
   });
 
 const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
@@ -1221,7 +1221,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   test('close the server node', async () => {
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(server).toBeDefined();
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeTruthy();
@@ -1233,6 +1233,6 @@ describe('Matterbridge ' + NAME, () => {
   test('stop the mDNS service', async () => {
     expect(server).toBeDefined();
     await server.env.get(MdnsService)[Symbol.asyncDispose]();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations in matter.js to complete
   });
 });

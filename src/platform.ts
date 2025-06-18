@@ -5,7 +5,7 @@
  * @file src\platform.ts
  * @author Luca Liguori
  * created 2024-09-13
- * version 0.0.3
+ * version 1.0.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -27,8 +27,6 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 // matterbridge imports
-import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
-import { ClusterRegistry } from 'matterbridge/matter/types';
 import {
   Matterbridge,
   PlatformConfig,
@@ -46,6 +44,8 @@ import {
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
+import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
+import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
@@ -61,6 +61,12 @@ import {
   hassUpdateStateConverter,
 } from './converters.js';
 
+/**
+ * HomeAssistantPlatform class extends the MatterbridgeDynamicPlatform class.
+ * It initializes the Home Assistant connection, fetches data, subscribes to events,
+ * and creates Matterbridge devices based on Home Assistant entities and devices.
+ * It also handles updates from Home Assistant and converts them to Matterbridge commands.
+ */
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Home Assistant instance */
   ha: HomeAssistant;
@@ -71,6 +77,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Bridged devices map with key (without the postfix) device.id for devices and entity.entity_id for individual entities */
   matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
 
+  /**
+   * Constructor for the HomeAssistantPlatform class.
+   * It initializes the platform, verifies the Matterbridge version, and sets up the Home Assistant connection.
+   *
+   * @param {Matterbridge} matterbridge - The Matterbridge instance.
+   * @param {AnsiLogger} log - The logger instance.
+   * @param {PlatformConfig} config - The platform configuration.
+   */
   constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
     super(matterbridge, log, config);
 
@@ -679,26 +693,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  private savePayload(filename: string) {
-    const payload = {
-      devices: Array.from(this.ha.hassDevices.values()),
-      entities: Array.from(this.ha.hassEntities.values()),
-      areas: Array.from(this.ha.hassAreas.values()),
-      labels: Array.from(this.ha.hassLabels.values()),
-      states: Array.from(this.ha.hassStates.values()),
-      config: this.ha.hassConfig,
-      services: this.ha.hassServices,
-    };
-    fs.writeFile(filename, JSON.stringify(payload, null, 2))
-      .then(() => {
-        this.log.debug(`Payload successfully written to ${filename}`);
-        return;
-      })
-      .catch((error) => {
-        this.log.error(`Error writing payload to file ${filename}: ${error}`);
-      });
-  }
-
   /*
   subscribeHandler(
     child: MatterbridgeEndpoint,
@@ -819,8 +813,33 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   /**
-   * Validate the area and label of a device or an entity against the configured filters.
-   * For the label, it checks if the label ID matches the configured label filter.
+   * Save the Home Assistant payload to a file.
+   * The payload contains devices, entities, areas, labels, states, config and services.
+   *
+   * @param {string} filename The name of the file to save the payload to.
+   */
+  private savePayload(filename: string) {
+    const payload = {
+      devices: Array.from(this.ha.hassDevices.values()),
+      entities: Array.from(this.ha.hassEntities.values()),
+      areas: Array.from(this.ha.hassAreas.values()),
+      labels: Array.from(this.ha.hassLabels.values()),
+      states: Array.from(this.ha.hassStates.values()),
+      config: this.ha.hassConfig,
+      services: this.ha.hassServices,
+    };
+    fs.writeFile(filename, JSON.stringify(payload, null, 2))
+      .then(() => {
+        this.log.debug(`Payload successfully written to ${filename}`);
+        return;
+      })
+      .catch((error) => {
+        this.log.error(`Error writing payload to file ${filename}: ${error}`);
+      });
+  }
+
+  /**
+   * Validate the areaId and labels of a device or an entity against the configured filters.
    *
    * @param {string | null} areaId The area ID of the device / entity. It is null if the device / entity is not in any area.
    * @param {string[]} labels The labels ids of the device / entity. It is an empty array if the device / entity has no labels.

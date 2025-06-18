@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * This file contains the HomeAssistantPlatform converters.
  *
@@ -21,6 +20,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. *
  */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
   colorTemperatureLight,
@@ -67,7 +68,7 @@ import {
 
 import { HassState } from './homeAssistant.js';
 
-// Update Home Assistant state to Matterbridge device states
+/** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
     { domain: 'switch', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
@@ -101,7 +102,7 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'binary_sensor', state: 'off', clusterId: BooleanState.Cluster.id, attribute: 'stateValue', value: false },
   ];
 
-// Update Home Assistant attributes to Matterbridge device attributes
+/** Update Home Assistant attributes to Matterbridge device attributes */
 // prettier-ignore
 export const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: ClusterId; attribute: string; converter: (value: any, state: HassState) => any }[] = [
     { domain: 'light', with: 'brightness', clusterId: LevelControl.Cluster.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 1, 255) ? Math.round(value / 255 * 254) : null) },
@@ -123,7 +124,6 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === 'xy' ? value[1] : null ) },
   
     { domain: 'fan', with: 'percentage', clusterId: FanControl.Cluster.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
-    // { domain: 'fan', with: 'percentage', clusterId: FanControl.Cluster.id, attribute: 'speedCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
     { domain: 'fan', with: 'preset_mode', clusterId: FanControl.Cluster.id, attribute: 'fanMode', converter: (value: string) => {
       if( isValidString(value, 3, 6) ) {
         if (value === 'low') return FanControl.FanMode.Low;
@@ -146,8 +146,10 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? value * 100 : null) },
   ];
 
-// Convert Home Assistant domains to Matterbridge device types and clusterIds
-// If the device type is null, no device type will be added. It will use hassDomainSensorsConverter to determine the device type and clusterId.
+/**
+ * Convert Home Assistant domains to Matterbridge device types and clusterIds.
+ * If the device type is null, no device type will be added. It will use hassDomainSensorsConverter to determine the device type and clusterId.
+ */
 // prettier-ignore
 export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
     { domain: 'switch',         deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
@@ -160,7 +162,7 @@ export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefini
     { domain: 'binary_sensor',  deviceType: null,             clusterId: null },
   ];
 
-// Convert Home Assistant domains attributes to Matterbridge device types and clusterIds
+/** Convert Home Assistant domains attributes to Matterbridge device types and clusterIds */
 // prettier-ignore
 export const hassDomainAttributeConverter: { domain: string; withAttribute: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
     { domain: 'light',    withAttribute: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControl.Cluster.id },
@@ -169,7 +171,7 @@ export const hassDomainAttributeConverter: { domain: string; withAttribute: stri
     { domain: 'light',    withAttribute: 'xy_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
   ];
 
-// Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds
+/** Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds */
 // prettier-ignore
 export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number) => any }[] = [
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'battery',               deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batPercentRemaining', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 2) : null) },
@@ -180,7 +182,7 @@ export const hassDomainSensorsConverter: { domain: string; withStateClass: strin
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',           deviceType: lightSensor,        clusterId: IlluminanceMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(Math.max(Math.min(10000 * Math.log10(value), 0xfffe), 0)) : null) },
   ];
 
-// Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds
+/** Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds */
 // prettier-ignore
 export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: string) => any }[] = [
     { domain: 'binary_sensor',    withDeviceClass: 'battery',         deviceType: powerSource,          clusterId: PowerSource.Cluster.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
@@ -197,7 +199,7 @@ export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass
     { domain: 'binary_sensor',    withDeviceClass: 'carbon_monoxide', deviceType: smokeCoAlarm,         clusterId: SmokeCoAlarm.Cluster.id,       attribute: 'coState',         converter: (value) => (value === 'on' ?  SmokeCoAlarm.AlarmState.Critical :  SmokeCoAlarm.AlarmState.Normal) },
   ];
 
-// Convert Home Assistant domains services to Matterbridge commands for device types
+/** Convert Home Assistant domains services to Matterbridge commands for device types */
 // prettier-ignore
 export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands; domain: string; service: string; converter?: (request: Record<string, any>, attributes: Record<string, any>) => any }[] = [
     { command: 'on',                      domain: 'switch', service: 'turn_on' },
@@ -224,8 +226,10 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
   ];
 
-// Convert Home Assistant domains services and attributes to Matterbridge subscribed cluster / attributes.
-// Returning null will send turn_off service to Home Assistant instead of turn_on with attributes.
+/**
+ * Convert Home Assistant domains services and attributes to Matterbridge subscribed cluster / attributes.
+ * Returning null will send turn_off service to Home Assistant instead of turn_on with attributes.
+ */
 // prettier-ignore
 export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: number) => any }[] = [
     { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.Cluster.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {

@@ -4,7 +4,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * created 2024-09-14
- * version 1.1.0
+ * version 1.1.1
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -335,7 +335,7 @@ export interface HassWebSocketResponseCallService {
   id: number; // The id of the call_service request that this response is responding to
   type: 'result';
   success: boolean;
-  result: { context: HassContext; response?: unknown | null };
+  result: { context: HassContext; response: unknown };
   error?: { code: string; message: string }; // Error object for the response with success false
 }
 
@@ -785,7 +785,7 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} [reason] - The reason for closing the connection. Default is 'Normal closure'.
    * @returns {Promise<void>} - A Promise that resolves when the connection is closed or rejects with an error if the connection could not be closed.
    */
-  close(code = 1000, reason = 'Normal closure'): Promise<void> {
+  close(code: number = 1000, reason: string = 'Normal closure'): Promise<void> {
     return new Promise((resolve, reject) => {
       this.log.info('Closing Home Assistant connection...');
       this.stopPing();
@@ -843,7 +843,7 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Fetches the initial data from Home Assistant.
-   * This method retrieves the config, services, devices, entities, states, and areas from Home Assistant.
+   * This method retrieves the config, services, devices, entities, states, areas and labels from Home Assistant.
    */
   async fetchData() {
     try {
@@ -1077,13 +1077,14 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} service - The service to call on the Home Assistant domain.
    * @param {string} entityId - The ID of the entity to target with the command.
    * @param {Record<string, any>} [serviceData] - Optional additional data to send with the command.
+   *
    * @returns {Promise<any>} - A Promise that resolves with the response from Home Assistant or rejects with an error.
+   *
    * @example <caption>Example usage of the callService method.</caption>
    * await this.callService('switch', 'toggle', 'switch.living_room');
    * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}): Promise<any> {
+  callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}): Promise<{ context: HassContext; response: unknown }> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
         return reject(new Error('CallService error: not connected to Home Assistant'));

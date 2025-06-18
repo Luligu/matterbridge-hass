@@ -22,8 +22,8 @@ Features:
 - The plugin can be used with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
 - The connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
 - The connection with Home Assistant can be also made with ssl WebSocket (i.e. wss://homeassistant:8123). Self signed certificates are also supported.
-- It is possible to filter individual entities and devices by Area.
-- It is possible to filter individual entities and devices by Label.
+- It is possible to filter entities and devices by Area.
+- It is possible to filter entities and devices by Label.
 - It is possible to select from a list the individual entities to include in the white or black list. Select by name, id or entity_id.
 - It is possible to select from a list the devices to include in the white or black list. Select by name or id.
 - It is possible to select from a list the entities to include in the device entity black list.
@@ -113,7 +113,7 @@ npm install -g matterbridge-hass --omit=dev
 matterbridge -add matterbridge-hass
 ```
 
-On linux:
+On linux or macOS:
 
 ```
 cd ~/Matterbridge
@@ -141,9 +141,9 @@ You find these special entities in Home Assistant at http://localhost:8123/confi
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
 
-I suggest to always use the filters by Area and Label or the whiteList adding each individual entity or device you want to expose to Matter.
+I suggest to always use the filters by Area and Label or the whiteList adding each entity or device you want to expose to Matter.
 
-If any device or individual entity creates issues put it in the blackList.
+If any device or entity creates issues put it in the blackList.
 
 ### host
 
@@ -179,7 +179,7 @@ Filter devices and individual entities by label. If enabled, only devices and in
 
 ### applyFiltersToDeviceEntities
 
-Apply the filters to device entities. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.
+Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.
 
 ### whiteList
 
