@@ -14,7 +14,7 @@ import pluginJest from 'eslint-plugin-jest';
 export default defineConfig([
   {
     name: 'Global Ignores',
-    ignores: ['dist', 'node_modules', 'matterbridge', 'coverage'],
+    ignores: ['dist', 'node_modules', 'coverage'],
   },
   js.configs.recommended,
   ...tseslint.configs.strict,

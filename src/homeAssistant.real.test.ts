@@ -48,6 +48,7 @@ describe('HomeAssistant real test on ubuntu', () => {
   let device_registry_response: HassDevice[] = [];
   let entity_registry_response: HassEntity[] = [];
   let area_registry_response: HassArea[] = [];
+  let label_registry_response: HassArea[] = [];
   let states_response: HassState[] = [];
   let services_response: HassServices = {} as HassServices;
   let config_response: HassConfig = {} as HassConfig;
@@ -114,6 +115,11 @@ describe('HomeAssistant real test on ubuntu', () => {
     expect(area_registry_response.length).toBeGreaterThan(0);
   });
 
+  it('should get the labels from Home Assistant', async () => {
+    label_registry_response = await homeAssistant.fetch('config/label_registry/list');
+    expect(label_registry_response.length).toBeGreaterThan(0);
+  });
+
   it('should get the states from Home Assistant', async () => {
     states_response = await homeAssistant.fetch('get_states');
     expect(states_response.length).toBeGreaterThan(0);
@@ -135,7 +141,7 @@ describe('HomeAssistant real test on ubuntu', () => {
 
   it('should subscribe to Home Assistant', async () => {
     subscriptionId = await homeAssistant.subscribe();
-    expect(subscriptionId).toBe(14);
+    expect(subscriptionId).toBe(15);
   });
 
   it('should fail to fetch from Home Assistant', async () => {

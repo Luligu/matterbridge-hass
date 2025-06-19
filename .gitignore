@@ -6,11 +6,11 @@
 coverage/
 dist/
 jest/
-matterbridge/
 node_modules/
 temp/
 
 # Specific files that should be ignored
+*.backup
 *.tsbuildinfo
 *.tgz
 *.log
