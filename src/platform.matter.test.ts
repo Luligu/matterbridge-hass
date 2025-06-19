@@ -528,7 +528,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(
       expect.stringContaining(`Configuring state ${CYAN}${lightDeviceEntityState.entity_id}${db} for device ${CYAN}${lightDevice.id}${db}`),
     );
@@ -606,7 +606,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(
       expect.stringContaining(`Configuring state ${CYAN}${lightDeviceEntityState.entity_id}${db} for device ${CYAN}${lightDevice.id}${db}`),
     );
