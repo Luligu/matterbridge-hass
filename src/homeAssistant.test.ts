@@ -6,10 +6,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import https from 'node:https';
+import { clear } from 'node:console';
 
 import { jest } from '@jest/globals';
 import { WebSocket, WebSocketServer } from 'ws';
-import { AnsiLogger, CYAN, db, LogLevel } from 'matterbridge/logger';
+import { AnsiLogger, CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
@@ -400,29 +401,88 @@ describe('HomeAssistant', () => {
   it('should parse device_registry_updated event messages from Home Assistant', async () => {
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'device_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}device_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect((homeAssistant as any).fetchTimeout).not.toBeNull();
     expect((homeAssistant as any).fetchQueue.has('config/device_registry/list')).toBeTruthy();
+    clearTimeout((homeAssistant as any).fetchTimeout);
+
+    jest.clearAllMocks();
+    device_registry_response.push({ id: 'mydeviceid', name: 'My Device' } as HassDevice);
+    (homeAssistant as any).onFetchTimeout();
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 devices.`);
+    expect(homeAssistant.hassDevices.get('mydeviceid')).toBeDefined();
+    expect(homeAssistant.hassDevices.get('mydeviceid')?.name).toBe('My Device');
+    device_registry_response.splice(0, device_registry_response.length); // Clear the response for next tests
   });
 
   it('should parse entity_registry_updated event messages from Home Assistant', async () => {
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'entity_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}entity_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect((homeAssistant as any).fetchTimeout).not.toBeNull();
     expect((homeAssistant as any).fetchQueue.has('config/entity_registry/list')).toBeTruthy();
+    clearTimeout((homeAssistant as any).fetchTimeout);
+
+    jest.clearAllMocks();
+    entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
+    (homeAssistant as any).onFetchTimeout();
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 entities.`);
+    expect(homeAssistant.hassEntities.get('myentityid')).toBeDefined();
+    expect(homeAssistant.hassEntities.get('myentityid')?.device_id).toBe('mydeviceid');
+    entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
   });
 
   it('should parse area_registry_updated event messages from Home Assistant', async () => {
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'area_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}area_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect((homeAssistant as any).fetchTimeout).not.toBeNull();
     expect((homeAssistant as any).fetchQueue.has('config/area_registry/list')).toBeTruthy();
+    clearTimeout((homeAssistant as any).fetchTimeout);
+
+    jest.clearAllMocks();
+    area_registry_response.push({ area_id: 'myareaid', name: 'My Area' } as HassArea);
+    (homeAssistant as any).onFetchTimeout();
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 areas.`);
+    expect(homeAssistant.hassAreas.get('myareaid')).toBeDefined();
+    expect(homeAssistant.hassAreas.get('myareaid')?.name).toBe('My Area');
+    area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
   });
 
   it('should parse label_registry_updated event messages from Home Assistant', async () => {
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'label_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}label_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect((homeAssistant as any).fetchTimeout).not.toBeNull();
     expect((homeAssistant as any).fetchQueue.has('config/label_registry/list')).toBeTruthy();
+    clearTimeout((homeAssistant as any).fetchTimeout);
+
+    jest.clearAllMocks();
+    label_registry_response.push({ label_id: 'my_labelid', name: 'My Label' } as HassLabel);
+    (homeAssistant as any).onFetchTimeout();
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 labels.`);
+    expect(homeAssistant.hassLabels.get('my_labelid')).toBeDefined();
+    expect(homeAssistant.hassLabels.get('my_labelid')?.name).toBe('My Label');
+    label_registry_response.splice(0, label_registry_response.length); // Clear the response for next tests
+  });
+
+  it('should fail executing the fetch queue', async () => {
+    (homeAssistant as any).fetchQueue.clear();
+    (homeAssistant as any).fetchQueue.add('config/device_registry/list', 'test');
+    const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch registry'));
+    });
+    (homeAssistant as any).onFetchTimeout();
+    await wait(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, `Error fetching ${CYAN}config/device_registry/list${er}: Error: Failed to fetch registry`);
+    expect((homeAssistant as any).fetchQueue.size).toBe(0);
+    fetchSpy.mockRestore();
+    clearTimeout((homeAssistant as any).fetchTimeout);
+    (homeAssistant as any).fetchQueue.clear();
   });
   // eslint-disable-next-line jest/no-commented-out-tests
   /*
