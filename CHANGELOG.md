@@ -15,7 +15,7 @@ Since release 0.1.0:
 - the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
 - the config serialPostfix has been changed to postfix.
 
-## [0.1.4] - 2025-06-14
+## [0.1.4] - 2025-06-19
 
 ### Added
 
