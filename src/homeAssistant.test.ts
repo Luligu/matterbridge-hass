@@ -424,6 +424,7 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).fetchTimeout).not.toBeNull();
     expect((homeAssistant as any).fetchQueue.has('config/label_registry/list')).toBeTruthy();
   });
+  // eslint-disable-next-line jest/no-commented-out-tests
   /*
   it('should parse device_registry_updated event messages from Home Assistant', async () => {
     jest.useFakeTimers();
