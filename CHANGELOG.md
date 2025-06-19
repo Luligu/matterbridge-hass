@@ -35,7 +35,7 @@ Since release 0.1.0:
 
 ### Fixed
 
-- [state]: Fix state update when old and new state are unavailable.
+- [state]: Fix state update when both old and new state are unavailable.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
