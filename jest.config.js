@@ -4,8 +4,8 @@
 export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/matterbridge/'],
-  coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/matterbridge/'],
+  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/dist/'],
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
