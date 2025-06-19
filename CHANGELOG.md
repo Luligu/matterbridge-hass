@@ -20,6 +20,7 @@ Since release 0.1.0:
 ### Added
 
 - [homeassistant]: Added HassLabel.
+- [homeassistant]: Add queue for fetching updates.
 - [config]: Added applyFiltersToDeviceEntities option to schema.
 - [config]: Improved filtering logic for label. Now is possible to set lable id or label name in the label filter.
 - [DevContainer]: Add Matterbridge Plugin Dev Container.
@@ -31,6 +32,10 @@ Since release 0.1.0:
 - [package]: Update dependencies.
 - [package]: Requires matterbridge 3.0.6.
 - [worflows]: Removed workflows on node 18 since it has end-of-life as of April 2025.
+
+### Fixed
+
+- [state]: Fix state update when old and new state are unavailable.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

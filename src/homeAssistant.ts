@@ -24,7 +24,7 @@
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 
-import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er } from 'matterbridge/logger';
 import WebSocket from 'ws';
 
 /**
@@ -426,6 +426,9 @@ export class HomeAssistant extends EventEmitter {
   private reconnectRetry = 1; // Reconnect retry count. It is incremented each time a reconnect is attempted till the maximum number of retries is reached.
   private requestId = 1; // Next id for WebSocket requests. It has to be incremented for each request.
 
+  private fetchTimeout: NodeJS.Timeout | null = null;
+  private fetchQueue = new Set<string>();
+
   /**
    * Emits an event of the specified type with the provided arguments.
    *
@@ -560,52 +563,24 @@ export class HomeAssistant extends EventEmitter {
         this.emit('call_service');
       } else if (response.event.event_type === 'device_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        this.fetch('config/device_registry/list')
-          .then((devices: HassDevice[]) => {
-            this.log.debug(`Received ${devices.length} devices.`);
-            devices.forEach((device) => this.hassDevices.set(device.id, device));
-            this.emit('devices', devices);
-            return devices;
-          })
-          .catch((error) => {
-            this.log.error(`Error fetching device registry: ${error}`);
-          });
+        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        this.fetchQueue.add('config/device_registry/list');
       } else if (response.event.event_type === 'entity_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        this.fetch('config/entity_registry/list')
-          .then((entities: HassEntity[]) => {
-            this.log.debug(`Received ${entities.length} entities.`);
-            entities.forEach((entity) => this.hassEntities.set(entity.entity_id, entity));
-            this.emit('entities', entities);
-            return entities;
-          })
-          .catch((error) => {
-            this.log.error(`Error fetching entity registry: ${error}`);
-          });
+        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        this.fetchQueue.add('config/entity_registry/list');
       } else if (response.event.event_type === 'area_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        this.fetch('config/area_registry/list')
-          .then((areas: HassArea[]) => {
-            this.log.debug(`Received ${areas.length} areas.`);
-            areas.forEach((area) => this.hassAreas.set(area.area_id, area));
-            this.emit('areas', areas);
-            return areas;
-          })
-          .catch((error) => {
-            this.log.error(`Error fetching area registry: ${error}`);
-          });
+        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        this.fetchQueue.add('config/area_registry/list');
       } else if (response.event.event_type === 'label_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        this.fetch('config/label_registry/list')
-          .then((labels: HassLabel[]) => {
-            this.log.debug(`Received ${labels.length} labels.`);
-            labels.forEach((label) => this.hassLabels.set(label.label_id, label));
-            this.emit('labels', labels);
-            return labels;
-          })
-          .catch((error) => {
-            this.log.error(`Error fetching label registry: ${error}`);
-          });
+        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        this.fetchQueue.add('config/label_registry/list');
       } else {
         this.log.debug(`*Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
       }
@@ -620,6 +595,42 @@ export class HomeAssistant extends EventEmitter {
     this.emit('socket_closed', code, reason);
     this.emit('disconnected', `Code: ${code} Reason: ${reason.toString()}`);
     this.startReconnect();
+  }
+
+  private async onFetchTimeout() {
+    this.fetchTimeout = null;
+    this.log.debug(`Fetch timeout reached, processing fetch queue of ${this.fetchQueue.size} fetch id(s)...`);
+    for (const fetchId of this.fetchQueue) {
+      this.log.debug(`Fetching ${CYAN}${fetchId}${db}...`);
+      try {
+        const data = await this.fetch(fetchId);
+        this.log.debug(`Received data for ${CYAN}${fetchId}${db}`);
+        if (fetchId === 'config/device_registry/list') {
+          const devices = data as HassDevice[];
+          this.log.debug(`Received ${devices.length} devices.`);
+          devices.forEach((device) => this.hassDevices.set(device.id, device));
+          this.emit('devices', devices);
+        } else if (fetchId === 'config/entity_registry/list') {
+          const entities = data as HassEntity[];
+          this.log.debug(`Received ${entities.length} entities.`);
+          entities.forEach((entity) => this.hassEntities.set(entity.entity_id, entity));
+          this.emit('entities', entities);
+        } else if (fetchId === 'config/area_registry/list') {
+          const areas = data as HassArea[];
+          this.log.debug(`Received ${areas.length} areas.`);
+          areas.forEach((area) => this.hassAreas.set(area.area_id, area));
+          this.emit('areas', areas);
+        } else if (fetchId === 'config/label_registry/list') {
+          const labels = data as HassLabel[];
+          this.log.debug(`Received ${labels.length} labels.`);
+          labels.forEach((label) => this.hassLabels.set(label.label_id, label));
+          this.emit('labels', labels);
+        }
+      } catch (error) {
+        this.log.error(`Error fetching ${CYAN}${fetchId}${er}: ${error}`);
+      }
+      this.fetchQueue.delete(fetchId);
+    }
   }
 
   /**
