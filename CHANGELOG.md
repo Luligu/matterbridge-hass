@@ -31,7 +31,7 @@ Since release 0.1.0:
 - [package]: Update package.
 - [package]: Update dependencies.
 - [package]: Requires matterbridge 3.0.6.
-- [worflows]: Removed workflows on node 18 since it has end-of-life as of April 2025.
+- [worflows]: Removed workflows running on node 18 since it reached the end-of-life in April 2025.
 
 ### Fixed
 
