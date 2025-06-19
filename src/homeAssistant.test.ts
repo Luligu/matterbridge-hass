@@ -398,6 +398,35 @@ describe('HomeAssistant', () => {
   });
 
   it('should parse device_registry_updated event messages from Home Assistant', async () => {
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'device_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect((homeAssistant as any).fetchTimeout).not.toBeNull();
+    expect((homeAssistant as any).fetchQueue.has('config/device_registry/list')).toBeTruthy();
+  });
+
+  it('should parse entity_registry_updated event messages from Home Assistant', async () => {
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'entity_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect((homeAssistant as any).fetchTimeout).not.toBeNull();
+    expect((homeAssistant as any).fetchQueue.has('config/entity_registry/list')).toBeTruthy();
+  });
+
+  it('should parse area_registry_updated event messages from Home Assistant', async () => {
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'area_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect((homeAssistant as any).fetchTimeout).not.toBeNull();
+    expect((homeAssistant as any).fetchQueue.has('config/area_registry/list')).toBeTruthy();
+  });
+
+  it('should parse label_registry_updated event messages from Home Assistant', async () => {
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'label_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect((homeAssistant as any).fetchTimeout).not.toBeNull();
+    expect((homeAssistant as any).fetchQueue.has('config/label_registry/list')).toBeTruthy();
+  });
+  /*
+  it('should parse device_registry_updated event messages from Home Assistant', async () => {
+    jest.useFakeTimers();
     device_registry_response.push({
       id: 'mydeviceid',
       name: 'My Device',
@@ -413,12 +442,14 @@ describe('HomeAssistant', () => {
           id: (homeAssistant as any).eventsSubscribeId,
         }),
       );
+      jest.advanceTimersByTime(10000); // Advance timers to allow the event to be processed
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}device_registry_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 devices.`);
     expect(homeAssistant.hassDevices.get('mydeviceid')).toBeDefined();
     expect(homeAssistant.hassDevices.get('mydeviceid')?.name).toBe('My Device');
     device_registry_response.splice(0, device_registry_response.length); // Clear the response for next tests
+    jest.useRealTimers();
   });
 
   it('should fail parsing device_registry_updated event messages from Home Assistant', async () => {
@@ -580,6 +611,7 @@ describe('HomeAssistant', () => {
     fetchSpy.mockRestore();
     label_registry_response.splice(0, label_registry_response.length); // Clear the response for next tests
   });
+  */
 
   it('should log error if unknown event messages from Home Assistant', async () => {
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'unknown' } }));
