@@ -1,7 +1,9 @@
 #!/bin/bash
+
 # install-matterbridge-dev.sh
+
 # This script globally installs Matterbridge from the main branch.
-# To be used inside the Dev Container only with the mounted matterbridge volume.
+# To be used only inside the Dev Container with the mounted matterbridge volume.
 
 echo "Installing Matterbridge from the main branch..."
 set -e

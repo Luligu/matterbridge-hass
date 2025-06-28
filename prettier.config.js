@@ -1,5 +1,7 @@
 // prettier.config.js
-// Flat config for Prettier file matching
+
+// Config for Prettier
+
 export default {
   printWidth: 180, // default 80
   tabWidth: 2,

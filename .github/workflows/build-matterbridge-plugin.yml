@@ -1,4 +1,4 @@
-name: Build, lint and test
+name: Node.js CI
 
 on: [push, pull_request]
 

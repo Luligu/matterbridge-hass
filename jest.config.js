@@ -1,22 +1,20 @@
 // jest.config.js
+
 // This Jest configuration is designed for a TypeScript project using ESM modules with ts-jest.
-/** @type {import('jest').Config} */
-export default {
-  preset: 'ts-jest/presets/default-esm',
+
+import { createDefaultEsmPreset } from 'ts-jest';
+
+const presetConfig = createDefaultEsmPreset({
+  tsconfig: './tsconfig.jest.json',
+});
+
+const jestConfig = {
+  ...presetConfig,
   testEnvironment: 'node',
-  testPathIgnorePatterns: ['/node_modules/', '/dist/'],
-  coveragePathIgnorePatterns: ['/node_modules/', '/dist/'],
-  extensionsToTreatAsEsm: ['.ts'],
-  moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-  },
-  transform: {
-    '^.+\\.ts$': [
-      'ts-jest',
-      {
-        useESM: true,
-        tsconfig: './tsconfig.jest.json',
-      },
-    ],
-  },
+  moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' }, // Handle ESM imports by removing the .js extension
+  testPathIgnorePatterns: ['/node_modules/', '/dist/', '/vitest/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/dist/', '/vitest/'],
+  maxWorkers: '100%',
 };
+
+export default jestConfig;

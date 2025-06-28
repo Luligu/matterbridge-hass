@@ -11,6 +11,8 @@ temp/
 
 # Specific files that should be ignored
 *.backup
+*.heapsnapshot
+*.heapprofile
 *.tsbuildinfo
 *.tgz
 *.log

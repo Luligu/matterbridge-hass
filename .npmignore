@@ -1,5 +1,6 @@
 # .npmignore
 # This file specifies directories and files that should be ignored when publishing the package to npm.
+
 # Specific directories that should be ignored
 .devcontainer/
 .git/
@@ -28,7 +29,10 @@ nodemon.json
 prettier.config.*
 TODO.md
 tsconfig.*
+vite.config.*
 *.backup
+*.heapsnapshot
+*.heapprofile
 *.tsbuildinfo
 *.tgz
 *.log

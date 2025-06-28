@@ -1,0 +1,53 @@
+name: Codecov
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run tests and collect coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Clone matterbridge repo
+        run: git clone https://github.com/Luligu/matterbridge.git ../matterbridge
+
+      - name: Install matterbridge dependencies
+        working-directory: ../matterbridge
+        run: npm ci
+
+      - name: Build matterbridge
+        working-directory: ../matterbridge
+        run: npm run build
+
+      - name: Link matterbridge globally
+        working-directory: ../matterbridge
+        run: npm link
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Link matterbridge in the project
+        run: npm link matterbridge
+
+      - name: Run tests
+        run: npm run test:coverage
+
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
