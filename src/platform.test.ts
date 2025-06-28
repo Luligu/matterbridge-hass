@@ -75,7 +75,7 @@ describe('HassPlatform', () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.0.6',
+    matterbridgeVersion: '3.1.0',
     log: mockLog,
     getDevices: jest.fn(() => {
       return [];
@@ -161,7 +161,7 @@ describe('HassPlatform', () => {
     .spyOn(HomeAssistant.prototype, 'callService')
     .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}, id?: number) => {
       console.log(`Mocked HomeAssistant.callService: domain ${domain} service ${service} entityId ${entityId}`);
-      return Promise.resolve({});
+      return Promise.resolve({} as any);
     });
 
   beforeAll(() => {
@@ -223,7 +223,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '3.0.6';
+    mockMatterbridge.matterbridgeVersion = '3.1.0';
   });
 
   it('should validate with white and black list', () => {

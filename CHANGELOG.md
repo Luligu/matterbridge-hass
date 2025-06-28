@@ -15,7 +15,7 @@ Since release 0.1.0:
 - the config parameters individualEntityWhiteList and individualEntityBlackList have been removed. Use the normal white and black lists.
 - the config serialPostfix has been changed to postfix.
 
-## [0.1.4] - 2025-06-19
+## [0.1.4] - 2025-06-28
 
 ### Added
 
@@ -23,14 +23,21 @@ Since release 0.1.0:
 - [homeassistant]: Add queue for fetching updates.
 - [config]: Added applyFiltersToDeviceEntities option to schema.
 - [config]: Improved filtering logic for label. Now is possible to use the label id or the label name in the label filter.
-- [DevContainer]: Add Matterbridge Plugin Dev Container.
-- [DevContainer]: Add Named Volumes Instead of Bind Mounts for node_modules and matterbridge.
+- [DevContainer]: Added support for the **Matterbridge Dev Container** with an optimized named volume for `node_modules`.
+- [GitHub]: Added GitHub issue templates for bug reports and feature requests.
+- [ESLint]: Refactored the flat config.
+- [ESLint]: Added the plugins `eslint-plugin-promise`, `eslint-plugin-jsdoc`, and `@vitest/eslint-plugin`.
+- [Jest]: Refactored the flat config.
+- [Vitest]: Added Vitest for TypeScript project testing. It will replace Jest, which does not work correctly with ESM module mocks.
+- [JSDoc]: Added missing JSDoc comments, including `@param` and `@returns` tags.
+- [CodeQL]: Added CodeQL badge in the readme.
+- [Codecov]: Added Codecov badge in the readme.
 
 ### Changed
 
 - [package]: Update package.
 - [package]: Update dependencies.
-- [package]: Requires matterbridge 3.0.6.
+- [package]: Requires matterbridge 3.1.0.
 - [worflows]: Removed workflows running on node 18 since it reached the end-of-life in April 2025.
 
 ### Fixed

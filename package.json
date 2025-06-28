@@ -4,6 +4,7 @@
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
+  "homepage": "https://www.npmjs.com/package/matterbridge-hass",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
