@@ -282,6 +282,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   it('should call onStart', async () => {
+    haPlatform.haSubscriptionId = 1;
     haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
     haPlatform.ha.hassConfig = {} as HassConfig; // Simulate a Home Assistant configuration
     haPlatform.ha.hassServices = {} as HassServices; // Simulate a Home Assistant services

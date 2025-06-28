@@ -179,6 +179,7 @@ describe('HassPlatform', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     if (haPlatform) {
+      haPlatform.haSubscriptionId = 1;
       haPlatform.ha.connected = true;
       haPlatform.ha.hassConfig = {} as HassConfig;
       haPlatform.ha.hassServices = {} as HassServices;
