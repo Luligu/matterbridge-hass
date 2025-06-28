@@ -20,6 +20,7 @@ Since release 0.1.0:
 ### Added
 
 - [homeassistant]: Added HassLabel.
+- [homeassistant]: Added core_config_updated message handler to fetch the new config.
 - [homeassistant]: Add queue for fetching updates.
 - [config]: Added applyFiltersToDeviceEntities option to schema.
 - [config]: Improved filtering logic for label. Now is possible to use the label id or the label name in the label filter.

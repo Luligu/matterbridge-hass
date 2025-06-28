@@ -224,6 +224,7 @@ export interface HassUnitSystem {
   accumulated_precipitation: string;
   mass: string;
   pressure: string;
+  /** '°C' or '°F' */
   temperature: string;
   volume: string;
   wind_speed: string;
