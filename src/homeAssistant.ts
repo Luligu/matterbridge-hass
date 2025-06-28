@@ -560,6 +560,11 @@ export class HomeAssistant extends EventEmitter {
       } else if (response.event.event_type === 'call_service') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         this.emit('call_service');
+      } else if (response.event.event_type === 'core_config_updated') {
+        this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
+        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        this.fetchQueue.add('get_config');
       } else if (response.event.event_type === 'device_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
@@ -604,7 +609,12 @@ export class HomeAssistant extends EventEmitter {
       try {
         const data = await this.fetch(fetchId);
         this.log.debug(`Received data for ${CYAN}${fetchId}${db}`);
-        if (fetchId === 'config/device_registry/list') {
+        if (fetchId === 'get_config') {
+          const config = data as HassConfig;
+          this.log.debug(`Received config.`);
+          this.hassConfig = config;
+          this.emit('config', config);
+        } else if (fetchId === 'config/device_registry/list') {
           const devices = data as HassDevice[];
           this.log.debug(`Received ${devices.length} devices.`);
           devices.forEach((device) => this.hassDevices.set(device.id, device));

@@ -398,6 +398,20 @@ describe('HomeAssistant', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}call_service${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
   });
 
+  it('should parse core_config_updated event messages from Home Assistant', async () => {
+    client.send(JSON.stringify({ type: 'event', event: { event_type: 'core_config_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Event ${CYAN}core_config_updated${db} received id ${CYAN}${(homeAssistant as any).eventsSubscribeId}${db}`);
+    expect((homeAssistant as any).fetchTimeout).not.toBeNull();
+    expect((homeAssistant as any).fetchQueue.has('get_config')).toBeTruthy();
+    clearTimeout((homeAssistant as any).fetchTimeout);
+
+    jest.clearAllMocks();
+    (homeAssistant as any).onFetchTimeout();
+    await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received config.`);
+  });
+
   it('should parse device_registry_updated event messages from Home Assistant', async () => {
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'device_registry_updated' }, id: (homeAssistant as any).eventsSubscribeId }));
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
