@@ -71,6 +71,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Home Assistant instance */
   ha: HomeAssistant;
 
+  /** Home Assistant subscription ID */
+  haSubscriptionId: number | null = null;
+
   /** Convert the label filter in the config from name to label_id */
   labelIdFilter: string = '';
 
@@ -132,8 +135,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       this.log.info(`Subscribing to Home Assistant events...`);
       try {
-        const subscriptionId = await this.ha.subscribe();
-        this.log.info(`Subscribed to Home Assistant events successfully with id ${subscriptionId}`);
+        this.haSubscriptionId = await this.ha.subscribe();
+        this.log.info(`Subscribed to Home Assistant events successfully with id ${this.haSubscriptionId}`);
       } catch (error) {
         this.log.error(`Error subscribing to Home Assistant events: ${error}`);
       }
@@ -215,7 +218,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.error(`Error connecting to Home Assistant: ${error}`);
     }
     const check = () => {
-      return this.ha.connected && this.ha.hassConfig !== null && this.ha.hassServices !== null;
+      return this.ha.connected && this.ha.hassConfig !== null && this.ha.hassServices !== null && this.haSubscriptionId !== null;
     };
     await waiter('Home Assistant connected', check, true, 30000, 1000); // Wait for 30 seconds with 1 second interval and throw error if not connected
 
