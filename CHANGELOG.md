@@ -35,8 +35,10 @@ Since release 0.1.0:
 
 ### Changed
 
-- [package]: Update package.
+- [package]: Updated package to Automator v. 2.0.1.
 - [package]: Update dependencies.
+- [storage]: Bumped `node-storage-manager` to 2.0.0.
+- [logger]: Bumped `node-ansi-logger` to 3.1.1.
 - [package]: Requires matterbridge 3.1.0.
 - [worflows]: Removed workflows running on node 18 since it reached the end-of-life in April 2025.
 
