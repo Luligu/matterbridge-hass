@@ -23,7 +23,7 @@ Since release 0.1.0:
 - [homeassistant]: Add queue for fetching updates.
 - [config]: Added applyFiltersToDeviceEntities option to schema.
 - [config]: Improved filtering logic for label. Now is possible to use the label id or the label name in the label filter.
-- [DevContainer]: Added support for the **Matterbridge Dev Container** with an optimized named volume for `node_modules`.
+- [DevContainer]: Added support for the [**Matterbridge Plugin Dev Container**](https://github.com/Luligu/matterbridge/blob/dev/README-DEV.md#matterbridge-plugin-dev-container) with optimized named volumes for `matterbridge` and `node_modules`.
 - [GitHub]: Added GitHub issue templates for bug reports and feature requests.
 - [ESLint]: Refactored the flat config.
 - [ESLint]: Added the plugins `eslint-plugin-promise`, `eslint-plugin-jsdoc`, and `@vitest/eslint-plugin`.

@@ -1,13 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * This file contains the class HomeAssistantPlatform.
- *
+ * @description This file contains the class HomeAssistantPlatform.
  * @file src\platform.ts
  * @author Luca Liguori
- * created 2024-09-13
- * version 1.0.0
- *
- * Copyright 2024, 2025, 2026 Luca Liguori.
+ * @created 2024-09-13
+ * @version 1.0.0
+ * @license Apache-2.0
+ * @copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +19,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. *
  */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Node.js imports
 import path from 'node:path';

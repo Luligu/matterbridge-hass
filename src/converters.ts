@@ -1,12 +1,11 @@
 /**
- * This file contains the HomeAssistantPlatform converters.
- *
+ * @description This file contains the HomeAssistantPlatform converters.
  * @file src\converters.ts
  * @author Luca Liguori
- * created 2024-09-13
- * version 1.0.0
- *
- * Copyright 2024, 2025, 2026 Luca Liguori.
+ * @created 2024-09-13
+ * @version 1.0.0
+ * @license Apache-2.0
+ * @copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

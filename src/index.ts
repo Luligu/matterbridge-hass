@@ -1,13 +1,11 @@
 /**
- * This file contains the main entryPoint for the plugin.
- *
+ * @description This file contains the default entryPoint for the plugin.
  * @file src\index.ts
- *
  * @author Luca Liguori
- * created 2024-09-13
- * version 0.0.1
- *
- * Copyright 2024, 2025, 2026 Luca Liguori.
+ * @created 2024-09-13
+ * @version 1.0.0
+ * @license Apache-2.0
+ * @copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
