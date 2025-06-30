@@ -434,21 +434,21 @@ describe('HassPlatform', () => {
     expect(child3).toBeDefined();
     child3.number = EndpointNumber(3);
 
-    await haPlatform.commandHandler(device, child1, {}, {}, 'on');
+    await haPlatform.commandHandler(device, { endpoint: child1, request: {}, cluster: 'onOff', attributes: {} }, 'on');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}on${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_on', 'switch.switch_switch_1', undefined);
 
-    await haPlatform.commandHandler(device, child2, {}, {}, 'off');
+    await haPlatform.commandHandler(device, { endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'off');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}off${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_off', 'switch.switch_switch_2', undefined);
 
-    await haPlatform.commandHandler(device, child3, { level: 100 }, {}, 'moveToLevel');
+    await haPlatform.commandHandler(device, { endpoint: child3, request: { level: 100 }, cluster: 'onOff', attributes: {} }, 'moveToLevel');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevel${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
@@ -456,7 +456,7 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevel${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    await haPlatform.commandHandler(device, child3, { level: 100 }, {}, 'moveToLevelWithOnOff');
+    await haPlatform.commandHandler(device, { endpoint: child3, request: { level: 100 }, cluster: 'onOff', attributes: {} }, 'moveToLevelWithOnOff');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}moveToLevelWithOnOff${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
@@ -464,28 +464,28 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    await haPlatform.commandHandler(device, child3, { colorTemperatureMireds: 300 }, {}, 'moveToColorTemperature');
+    await haPlatform.commandHandler(device, { endpoint: child3, request: { colorTemperatureMireds: 300 }, cluster: 'onOff', attributes: {} }, 'moveToColorTemperature');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp: 300 }));
 
-    await haPlatform.commandHandler(device, child3, { colorX: 0.5, colorY: 0.5 }, {}, 'moveToColor');
+    await haPlatform.commandHandler(device, { endpoint: child3, request: { colorX: 0.5, colorY: 0.5 }, cluster: 'onOff', attributes: {} }, 'moveToColor');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ xy_color: [0.5, 0.5] }));
 
-    await haPlatform.commandHandler(device, child3, { hue: 50 }, { currentSaturation: { value: 50 } }, 'moveToHue');
+    await haPlatform.commandHandler(device, { endpoint: child3, request: { hue: 50 }, cluster: 'onOff', attributes: { currentSaturation: { value: 50 } } }, 'moveToHue');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    await haPlatform.commandHandler(device, child3, { saturation: 50 }, { currentHue: { value: 50 } }, 'moveToSaturation');
+    await haPlatform.commandHandler(device, { endpoint: child3, request: { saturation: 50 }, cluster: 'onOff', attributes: { currentHue: { value: 50 } } }, 'moveToSaturation');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    await haPlatform.commandHandler(device, child3, { hue: 50, saturation: 50 }, {}, 'moveToHueAndSaturation');
+    await haPlatform.commandHandler(device, { endpoint: child3, request: { hue: 50, saturation: 50 }, cluster: 'onOff', attributes: {} }, 'moveToHueAndSaturation');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
     callServiceSpy.mockClear();
-    await haPlatform.commandHandler(undefined, child2, {}, {}, 'unknown');
+    await haPlatform.commandHandler(undefined as any, { endpoint: child3, request: {}, cluster: 'onOff', attributes: {} }, 'unknown');
     expect(callServiceSpy).not.toHaveBeenCalled();
     expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining(`Command handler: Matterbridge device not found`));
 
     callServiceSpy.mockClear();
-    await haPlatform.commandHandler(device, child2, {}, {}, 'unknown');
+    await haPlatform.commandHandler(device, { endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'unknown');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Received matter command ${ign}unknown${rs}${db} from device ${idn}${device.deviceName}${rs}${db}`),
