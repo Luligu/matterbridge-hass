@@ -43,10 +43,11 @@ import {
   powerSource,
   PrimitiveTypes,
 } from 'matterbridge';
+import { ActionContext } from 'matterbridge/matter';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
 import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
-import { ClusterRegistry } from 'matterbridge/matter/types';
+import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
@@ -577,7 +578,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           hassCommands.forEach((hassCommand) => {
             this.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
             child.addCommandHandler(hassCommand.command, async (data) => {
-              this.commandHandler(matterbridgeDevice, data, hassCommand.command);
+              this.commandHandler(data, hassCommand.command);
             });
           });
         }
@@ -593,30 +594,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               hassSubscribe.clusterId,
               hassSubscribe.attribute,
               (newValue: any, oldValue: any, context) => {
-                if (context && context.offline === true) {
-                  matterbridgeDevice?.log.debug(
-                    `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-                      `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} changed for an offline update`,
-                  );
-                  return; // Skip offline updates
-                }
-                if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
-                  matterbridgeDevice?.log.debug(
-                    `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-                      `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} not changed`,
-                  );
-                  return;
-                }
-                matterbridgeDevice?.log.info(
-                  `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} ` +
-                    `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
-                );
-                const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
-                matterbridgeDevice?.log.debug(
-                  `Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
-                );
-                if (value !== null) this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
-                else this.ha.callService(domain, 'turn_off', entity.entity_id);
+                this.subscribeHandler(child, entity, hassSubscribe, newValue, oldValue, context);
               },
               child.log,
             );
@@ -682,32 +660,22 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.matterbridgeDevices.clear();
   }
 
-  async commandHandler(
-    mbDevice: MatterbridgeEndpoint,
-    data: { request: Record<string, any>; cluster: string; attributes: Record<string, PrimitiveTypes>; endpoint: MatterbridgeEndpoint },
-    command: string,
-  ) {
-    if (!mbDevice) {
-      this.log.error(`Command handler: Matterbridge device not found`);
-      return;
-    }
-    mbDevice.log.info(
-      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice.deviceName}${rs}${db} for endpoint ${or}${data.endpoint?.id}:${data.endpoint?.number}${db}`,
-    );
-    const entityId = data.endpoint?.number ? mbDevice.getChildEndpoint(data.endpoint.number)?.uniqueStorageKey : undefined;
+  async commandHandler(data: { request: Record<string, any>; cluster: string; attributes: Record<string, PrimitiveTypes>; endpoint: MatterbridgeEndpoint }, command: string) {
+    const entityId = data.endpoint.uniqueStorageKey;
     if (!entityId) return;
+    data.endpoint.log.info(
+      `${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${data.endpoint?.uniqueStorageKey}${db}:${or}${data.endpoint?.maybeNumber}${db}`,
+    );
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
-      // console.log('Command:', command, 'Domain:', domain, 'HassCommand:', hassCommand, 'Request:', request, 'Attributes:', attributes);
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes) : undefined;
       await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
     } else {
-      mbDevice.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
+      data.endpoint.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }
   }
 
-  /*
   subscribeHandler(
     child: MatterbridgeEndpoint,
     entity: HassEntity,
@@ -723,20 +691,32 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     oldValue: any,
     context: ActionContext,
   ) {
-    // Skip offline updates and unchanged values
-    if (context.offline === true || (typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) return;
+    if (context && context.offline === true) {
+      child.log.debug(
+        `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
+          `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} changed for an offline update`,
+      );
+      return; // Skip offline updates
+    }
+    if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
+      child.log.debug(
+        `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
+          `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} not changed`,
+      );
+      return; // Skip unchanged values
+    }
     child.log.info(
-      `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child.maybeId}${db}:${or}${child.maybeNumber}${db} ` +
+      `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} ` +
         `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
     );
     const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
-    if (value !== null) this.ha.callService(hassSubscribe.domain, 'turn_on', entity.entity_id, { [hassSubscribe.with]: value });
-    else this.ha.callService(hassSubscribe.domain, 'turn_off', entity.entity_id);
     child.log.debug(
-      `*Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
+      `Converter(${hassSubscribe.converter !== undefined}): ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`,
     );
+    const domain = entity.entity_id.split('.')[0];
+    if (value !== null) this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+    else this.ha.callService(domain, 'turn_off', entity.entity_id);
   }
-  */
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
     const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
