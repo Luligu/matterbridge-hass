@@ -18,8 +18,12 @@ test/
 # Specific files that should be ignored
 .gitattributes
 .gitignore
+.gitlocalignore
+.localignore
 .npmignore
+.npmlocalignore
 .prettierignore
+.prettierlocalignore
 CODEOWNERS
 eslint.config.*
 install-matterbridge-dev.sh

@@ -90,7 +90,7 @@ Follow these steps to install or update Matterbridge if it is not already instal
 npm install -g matterbridge --omit=dev
 ```
 
-on Linux you may need the necessary permissions:
+on Linux and macOS you may need the necessary permissions:
 
 ```
 sudo npm install -g matterbridge --omit=dev
@@ -148,7 +148,7 @@ If any device or entity creates issues put it in the blackList.
 
 ### host
 
-Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). You can also use the IP if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selefsigned certificate you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificate you don't need certificate rejectUnauthorized should be selected.
+Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). You can also use the IP if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selfsigned certificates you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificates you don't need ca certificate and rejectUnauthorized should be selected.
 
 ### token
 
