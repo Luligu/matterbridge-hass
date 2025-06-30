@@ -321,7 +321,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Scan devices and entities and create Matterbridge devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
       const deviceName = device.name_by_user ?? device.name;
-      const entitiesCount = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length;
       if (device.entry_type === 'service') {
         this.log.debug(`Device ${CYAN}${deviceName}${db} is a service. Skipping...`);
         continue;
@@ -330,7 +329,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has not valid name. Skipping...`);
         continue;
       }
-      if (entitiesCount === 0) {
+      if (Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length === 0) {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
         continue;
       }
@@ -403,12 +402,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           continue;
         }
 
-        // Add device types and clusterIds for supported attributes of the current entity state
+        // Look for supported attributes of the current entity state
         this.log.debug(`- state ${debugStringify(hassState)}`);
-
-        // Look for supported attributes of the current entity
-        for (const [key, value] of Object.entries(hassState.attributes)) {
-          this.log.debug(`- attribute ${CYAN}${key}${db} value ${typeof value === 'object' && value ? debugStringify(value) : value}`);
+        for (const [key, _value] of Object.entries(hassState.attributes)) {
+          // this.log.debug(`- attribute ${CYAN}${key}${db} value ${typeof value === 'object' && value ? debugStringify(value) : value}`);
           hassDomainAttributeConverter
             .filter((d) => d.domain === domain && d.withAttribute === key)
             .forEach((hassDomainAttribute) => {
@@ -424,8 +421,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         hassDomainSensorsConverter
           .filter((d) => d.domain === domain)
           .forEach((hassDomainSensor) => {
-            this.log.debug(`- sensor ${CYAN}${hassDomainSensor.domain}${db} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass}`);
+            // this.log.debug(`- sensor ${CYAN}${hassDomainSensor.domain}${db} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass}`);
             if (hassState.attributes['state_class'] === hassDomainSensor.withStateClass && hassState.attributes['device_class'] === hassDomainSensor.withDeviceClass) {
+              if (hassDomainSensor.endpoint)
+                this.log.warn(
+                  `- sensor domain ${hassDomainSensor.domain} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass} endpoint ${CYAN}${hassDomainSensor.endpoint}${wr}`,
+                );
+
               this.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
               mutableDevice.addDeviceTypes(entity.entity_id, hassDomainSensor.deviceType);
               mutableDevice.addClusterServerIds(entity.entity_id, hassDomainSensor.clusterId);
@@ -437,8 +439,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         hassDomainBinarySensorsConverter
           .filter((d) => d.domain === domain)
           .forEach((hassDomainBinarySensor) => {
-            this.log.debug(`- binary_sensor ${CYAN}${hassDomainBinarySensor.domain}${db} deviceClass ${hassDomainBinarySensor.withDeviceClass}`);
+            // this.log.debug(`- binary_sensor ${CYAN}${hassDomainBinarySensor.domain}${db} deviceClass ${hassDomainBinarySensor.withDeviceClass}`);
             if (hassState.attributes['device_class'] === hassDomainBinarySensor.withDeviceClass) {
+              if (hassDomainBinarySensor.endpoint)
+                this.log.warn(
+                  `- sensor domain ${hassDomainBinarySensor.domain} deviceClass ${hassDomainBinarySensor.withDeviceClass} endpoint ${CYAN}${hassDomainBinarySensor.endpoint}${wr}`,
+                );
               this.log.debug(
                 `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainBinarySensor.clusterId)?.name}${db}`,
               );
