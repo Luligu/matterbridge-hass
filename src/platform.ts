@@ -41,6 +41,7 @@ import {
   waterFreezeDetector,
   contactSensor,
   powerSource,
+  PrimitiveTypes,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
@@ -576,7 +577,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           hassCommands.forEach((hassCommand) => {
             this.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
             child.addCommandHandler(hassCommand.command, async (data) => {
-              this.commandHandler(matterbridgeDevice, data.endpoint, data.request, data.attributes, hassCommand.command);
+              this.commandHandler(matterbridgeDevice, data, hassCommand.command);
             });
           });
         }
@@ -681,21 +682,25 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.matterbridgeDevices.clear();
   }
 
-  async commandHandler(mbDevice: MatterbridgeEndpoint | undefined, endpoint: MatterbridgeEndpoint, request: Record<string, any>, attributes: Record<string, any>, command: string) {
+  async commandHandler(
+    mbDevice: MatterbridgeEndpoint,
+    data: { request: Record<string, any>; cluster: string; attributes: Record<string, PrimitiveTypes>; endpoint: MatterbridgeEndpoint },
+    command: string,
+  ) {
     if (!mbDevice) {
       this.log.error(`Command handler: Matterbridge device not found`);
       return;
     }
     mbDevice.log.info(
-      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice?.deviceName}${rs}${db} for endpoint ${or}${endpoint?.id}:${endpoint?.number}${db}`,
+      `${db}Received matter command ${ign}${command}${rs}${db} from device ${idn}${mbDevice.deviceName}${rs}${db} for endpoint ${or}${data.endpoint?.id}:${data.endpoint?.number}${db}`,
     );
-    const entityId = endpoint?.number ? mbDevice.getChildEndpoint(endpoint.number)?.uniqueStorageKey : undefined;
+    const entityId = data.endpoint?.number ? mbDevice.getChildEndpoint(data.endpoint.number)?.uniqueStorageKey : undefined;
     if (!entityId) return;
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
       // console.log('Command:', command, 'Domain:', domain, 'HassCommand:', hassCommand, 'Request:', request, 'Attributes:', attributes);
-      const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(request, attributes) : undefined;
+      const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes) : undefined;
       await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
     } else {
       mbDevice.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
