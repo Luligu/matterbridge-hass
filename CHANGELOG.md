@@ -20,6 +20,8 @@ Since release 0.1.0:
 ### Added
 
 - [converters]: Added endpoint to sensor and binary_sensor to merge HA entities.
+- [platform]: Add subscribeHandler.
+- [platform]: Refactor commandHandler with new Matterbridge API.
 
 ### Changed
 
