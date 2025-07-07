@@ -604,15 +604,11 @@ describe('MutableDevice', () => {
   });
 
   it('should create a MatterbridgeDevice with child endpoint', async () => {
-    const commandHandler = jest.fn(async (data, endpointName, command) => {
-      // Mock implementation
-    });
-    const subscribeHandler = jest.fn((newValue, oldValue, context, endpointName, clusterId, attribute) => {
-      // Mock implementation
-    });
+    const commandHandler = jest.fn(async (data, endpointName, command) => {});
+    const subscribeHandler = jest.fn((newValue, oldValue, context, endpointName, clusterId, attribute) => {});
 
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device', '01233456789abcdef');
-    mutableDevice.composedType = 'Hass Device';
+    mutableDevice.setComposedType('Hass Device');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
     mutableDevice.addCommandHandler('', 'identify', commandHandler);
     mutableDevice.addSubscribeHandler('', OnOff.Cluster.id, 'onOff', subscribeHandler);
@@ -624,6 +620,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().commandHandlers).toHaveLength(1);
     expect(mutableDevice.get().subscribeHandlers).toHaveLength(1);
 
+    mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
     mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
     mutableDevice.addClusterServerObjs(
@@ -649,6 +646,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get('child1').commandHandlers).toHaveLength(1);
     expect(mutableDevice.get('child1').subscribeHandlers).toHaveLength(1);
 
+    mutableDevice.setFriendlyName('child2', 'Child 2');
     mutableDevice.addDeviceTypes('child2', onOffOutlet);
     mutableDevice.addClusterServerObjs('child2', {
       id: OnOff.Cluster.id,

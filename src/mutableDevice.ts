@@ -3,7 +3,7 @@
  * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @created 2024-12-08
- * @version 1.2.0
+ * @version 1.2.1
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -173,24 +173,33 @@ export class MutableDevice {
     return this;
   }
 
+  setComposedType(composedType: string) {
+    this.composedType = composedType;
+    return this;
+  }
+
   addTagLists(endpoint: string, ...tagList: Semtag[]) {
     const device = this.initializeEndpoint(endpoint);
     device.tagList.push(...tagList);
+    return this;
   }
 
   addDeviceTypes(endpoint: string, ...deviceTypes: DeviceTypeDefinition[]) {
     const device = this.initializeEndpoint(endpoint);
     device.deviceTypes.push(...deviceTypes);
+    return this;
   }
 
   addClusterServerIds(endpoint: string, ...clusterServerIds: ClusterId[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersIds.push(...clusterServerIds);
+    return this;
   }
 
   addClusterServerObjs(endpoint: string, ...clusterServerObj: ClusterServerObj[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(...clusterServerObj);
+    return this;
   }
 
   addCommandHandler(
@@ -200,6 +209,7 @@ export class MutableDevice {
   ) {
     const device = this.initializeEndpoint(endpoint);
     device.commandHandlers.push({ endpointName: endpoint, command, handler });
+    return this;
   }
 
   addSubscribeHandler(
@@ -210,6 +220,7 @@ export class MutableDevice {
   ) {
     const device = this.initializeEndpoint(endpoint);
     device.subscribeHandlers.push({ endpointName: endpoint, clusterId, attribute, listener });
+    return this;
   }
 
   addClusterServerPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null) {
@@ -226,6 +237,7 @@ export class MutableDevice {
         batChargeLevel,
       }),
     );
+    return this;
   }
 
   addClusterServerBooleanState(endpoint: string, stateValue: boolean) {
@@ -241,6 +253,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerSmokeAlarmSmokeCoAlarm(endpoint: string, smokeState: SmokeCoAlarm.AlarmState) {
@@ -274,6 +287,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerCoAlarmSmokeCoAlarm(endpoint: string, coState: SmokeCoAlarm.AlarmState) {
@@ -307,6 +321,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerColorTemperatureColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number) {
@@ -334,6 +349,7 @@ export class MutableDevice {
         startUpColorTemperatureMireds: null,
       }),
     );
+    return this;
   }
 
   addClusterServerColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number) {
@@ -369,6 +385,7 @@ export class MutableDevice {
         },
       ),
     );
+    return this;
   }
 
   addClusterServerAutoModeThermostat(
@@ -402,6 +419,7 @@ export class MutableDevice {
         thermostatRunningMode: Thermostat.ThermostatRunningMode.Off,
       }),
     );
+    return this;
   }
   addClusterServerHeatingThermostat(endpoint: string, localTemperature: number, occupiedHeatingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number) {
     const device = this.initializeEndpoint(endpoint);
@@ -418,6 +436,7 @@ export class MutableDevice {
         absMaxHeatSetpointLimit: maxSetpointLimit * 100,
       }),
     );
+    return this;
   }
   addClusterServerCoolingThermostat(endpoint: string, localTemperature: number, occupiedCoolingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number) {
     const device = this.initializeEndpoint(endpoint);
@@ -434,6 +453,7 @@ export class MutableDevice {
         absMaxCoolSetpointLimit: maxSetpointLimit * 100,
       }),
     );
+    return this;
   }
 
   private createUniqueId(param1: string, param2: string, param3: string, param4: string) {
@@ -474,6 +494,7 @@ export class MutableDevice {
         reachable: true,
       }),
     );
+    return this;
   }
 
   async create() {
@@ -482,8 +503,7 @@ export class MutableDevice {
     for (const [endpoint] of this.mutableDevice) {
       await this.createClusters(endpoint);
     }
-    const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
-    return mainDevice.endpoint as MatterbridgeEndpoint;
+    return this.getEndpoint();
   }
 
   private removeDuplicateAndSupersetDeviceTypes() {
@@ -509,6 +529,7 @@ export class MutableDevice {
       if (deviceTypesMap.has(colorTemperatureLight.code) && deviceTypesMap.has(extendedColorLight.code)) deviceTypesMap.delete(colorTemperatureLight.code);
       device.deviceTypes = Array.from(deviceTypesMap.values());
     }
+    return this;
   }
 
   async createMainEndpoint() {
@@ -597,6 +618,7 @@ export class MutableDevice {
       device.clusterClientsObjs = Array.from(deviceClusterClientsObjMap.values());
       */
     }
+    return this;
   }
 
   async createClusters(endpoint: string) {
@@ -605,7 +627,7 @@ export class MutableDevice {
 
     if (endpoint === '') {
       // Get the main endpoint
-      const mainDevice = this.mutableDevice.get(endpoint) as MutableDeviceInterface;
+      const mainDevice = this.get(endpoint);
       if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined');
 
       // Add the cluster objects to the main endpoint
@@ -640,34 +662,34 @@ export class MutableDevice {
     }
 
     // Add clusters to the child endpoints
-    for (const [, device] of Array.from(this.mutableDevice.entries()).filter(([e]) => e === endpoint)) {
-      if (!device.endpoint) throw new Error('Child endpoint is not defined');
-      // Add the cluster objects to the child endpoint
-      for (const clusterServerObj of device.clusterServersObjs) {
-        device.endpoint.behaviors.require(clusterServerObj.type, clusterServerObj.options);
-      }
-      // Add the cluster ids to the child endpoint
-      device.endpoint.addClusterServers(device.clusterServersIds);
-      // Add the required clusters to the child endpoint
-      device.endpoint.addRequiredClusterServers();
-      // Add the command handlers
-      for (const commandHandler of device.commandHandlers) {
-        device.endpoint.addCommandHandler(commandHandler.command, async (data) => {
-          commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
-        });
-      }
-      // Add the subscribe handlers
-      for (const subscribeHandler of device.subscribeHandlers) {
-        device.endpoint.subscribeAttribute(
-          subscribeHandler.clusterId,
-          subscribeHandler.attribute,
-          (newValue: unknown, oldValue: unknown, context: ActionContext) => {
-            subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
-          },
-          device.endpoint.log,
-        );
-      }
+    const device = this.get(endpoint);
+    if (!device.endpoint) throw new Error('Child endpoint is not defined');
+    // Add the cluster objects to the child endpoint
+    for (const clusterServerObj of device.clusterServersObjs) {
+      device.endpoint.behaviors.require(clusterServerObj.type, clusterServerObj.options);
     }
+    // Add the cluster ids to the child endpoint
+    device.endpoint.addClusterServers(device.clusterServersIds);
+    // Add the required clusters to the child endpoint
+    device.endpoint.addRequiredClusterServers();
+    // Add the command handlers
+    for (const commandHandler of device.commandHandlers) {
+      device.endpoint.addCommandHandler(commandHandler.command, async (data) => {
+        commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
+      });
+    }
+    // Add the subscribe handlers
+    for (const subscribeHandler of device.subscribeHandlers) {
+      device.endpoint.subscribeAttribute(
+        subscribeHandler.clusterId,
+        subscribeHandler.attribute,
+        (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+          subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+        },
+        device.endpoint.log,
+      );
+    }
+
     return this;
   }
 
