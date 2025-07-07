@@ -1,3 +1,10 @@
+const MATTER_PORT = 6000;
+const NAME = 'MutableDevice';
+const HOMEDIR = path.join('jest', NAME);
+
+import path from 'node:path';
+import { rmSync } from 'node:fs';
+
 import { jest } from '@jest/globals';
 import {
   Matterbridge,
@@ -19,8 +26,9 @@ import {
   contactSensor,
   smokeCoAlarm,
   thermostatDevice,
+  invokeSubscribeHandler,
 } from 'matterbridge';
-import { AnsiLogger } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import {
   PowerSourceCluster,
   BridgedDeviceBasicInformationCluster,
@@ -39,6 +47,8 @@ import {
   SmokeCoAlarm,
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
+import { Endpoint, Environment, ServerNode, LogLevel as MatterLogLevel, LogFormat as MatterLogFormat, DeviceTypeId, VendorId, MdnsService } from 'matterbridge/matter';
+import { AggregatorEndpoint, RootEndpoint } from 'matterbridge/matter/endpoints';
 
 import { MutableDevice } from './mutableDevice.js';
 
@@ -67,6 +77,21 @@ if (!debug) {
 }
 
 describe('MutableDevice', () => {
+  const environment = Environment.default;
+  let server: ServerNode<ServerNode.RootEndpoint>;
+  let aggregator: Endpoint<AggregatorEndpoint>;
+  let device: MatterbridgeEndpoint;
+
+  // Cleanup the matter environment
+  rmSync(HOMEDIR, { recursive: true, force: true });
+
+  // Setup the matter environment
+  environment.vars.set('log.level', MatterLogLevel.DEBUG);
+  environment.vars.set('log.format', MatterLogFormat.ANSI);
+  environment.vars.set('path.root', HOMEDIR);
+  environment.vars.set('runtime.signals', false);
+  environment.vars.set('runtime.exitcode', false);
+
   const mockLog = {
     fatal: jest.fn((message: string, ...parameters: any[]) => {}),
     error: jest.fn((message: string, ...parameters: any[]) => {}),
@@ -77,16 +102,16 @@ describe('MutableDevice', () => {
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
-    matterbridgeDirectory: './jest/matterbridge',
-    matterbridgePluginDirectory: './jest/plugins',
+    matterbridgeDirectory: HOMEDIR + '/matterbridge',
+    matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
     systemInformation: {
       ipv4Address: undefined,
       ipv6Address: undefined,
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '2.1.0',
-    log: mockLog,
+    matterbridgeVersion: '3.0.0',
+    log: new AnsiLogger({ logName: 'Matterbridge', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG }),
     getDevices: jest.fn(() => {
       return [];
     }),
@@ -104,6 +129,70 @@ describe('MutableDevice', () => {
 
   afterAll(() => {
     jest.restoreAllMocks();
+  });
+
+  test('create the server node', async () => {
+    // Create the server node
+    server = await ServerNode.create({
+      id: NAME + 'ServerNode',
+
+      productDescription: {
+        name: NAME + 'ServerNode',
+        deviceType: DeviceTypeId(RootEndpoint.deviceType),
+        vendorId: VendorId(0xfff1),
+        productId: 0x8000,
+      },
+
+      // Provide defaults for the BasicInformation cluster on the Root endpoint
+      basicInformation: {
+        vendorId: VendorId(0xfff1),
+        vendorName: 'Matterbridge',
+        productId: 0x8000,
+        productName: 'Matterbridge ' + NAME,
+        nodeLabel: NAME + 'ServerNode',
+        hardwareVersion: 1,
+        softwareVersion: 1,
+        reachable: true,
+      },
+
+      network: {
+        port: MATTER_PORT,
+      },
+    });
+    expect(server).toBeDefined();
+    expect(server.lifecycle.isReady).toBeTruthy();
+  });
+
+  test('create the aggregator node', async () => {
+    aggregator = new Endpoint(AggregatorEndpoint, { id: NAME + 'AggregatorNode' });
+    expect(aggregator).toBeDefined();
+  });
+
+  test('add the aggregator node to the server', async () => {
+    expect(server).toBeDefined();
+    expect(aggregator).toBeDefined();
+    await server.add(aggregator);
+    expect(server.parts.has(aggregator.id)).toBeTruthy();
+    expect(server.parts.has(aggregator)).toBeTruthy();
+    expect(aggregator.lifecycle.isReady).toBeTruthy();
+  });
+
+  test('start the server node', async () => {
+    // Run the server
+    expect(server.lifecycle.isReady).toBeTruthy();
+    expect(server.lifecycle.isOnline).toBeFalsy();
+
+    // Wait for the server to be online
+    await new Promise<void>((resolve) => {
+      server.lifecycle.online.on(async () => {
+        resolve();
+      });
+      server.start();
+    });
+
+    // Check if the server is online
+    expect(server.lifecycle.isReady).toBeTruthy();
+    expect(server.lifecycle.isOnline).toBeTruthy();
   });
 
   it('should initialize with an empty mutableDevice', () => {
@@ -155,6 +244,7 @@ describe('MutableDevice', () => {
     const device = await mutableDevice.create();
     expect(device).toBeDefined();
     expect(device).toBeInstanceOf(MatterbridgeEndpoint);
+    mutableDevice.logMutableDevice();
   });
 
   it('should add a BridgedDeviceBasicInformationCluster', async () => {
@@ -169,6 +259,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.Cluster.id);
     expect(mutableDevice.get().clusterServersObjs[0].type).toBe(BridgedDeviceBasicInformationServer);
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
+    mutableDevice.logMutableDevice();
   });
 
   it('should add a tagList', () => {
@@ -182,6 +273,7 @@ describe('MutableDevice', () => {
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().tagList).toHaveLength(1);
+    mutableDevice.logMutableDevice();
   });
 
   it('should add a device type', () => {
@@ -192,6 +284,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().tagList).toHaveLength(0);
     expect(mutableDevice.get().deviceTypes).toContain(bridgedNode);
     expect(mutableDevice.get().deviceTypes).not.toContain(powerSource);
+    mutableDevice.logMutableDevice();
   });
 
   it('should add a device types', () => {
@@ -203,6 +296,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().deviceTypes).toContain(bridgedNode);
     expect(mutableDevice.get().deviceTypes).toContain(powerSource);
     expect(mutableDevice.get().deviceTypes).not.toContain(electricalSensor);
+    mutableDevice.logMutableDevice();
   });
 
   it('should add a cluster ids', () => {
@@ -213,6 +307,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toContain(PowerSource.Cluster.id);
     expect(mutableDevice.get().clusterServersIds).not.toContain(BridgedDeviceBasicInformation.Cluster.id);
+    mutableDevice.logMutableDevice();
   });
 
   it('should add a cluster objects', () => {
@@ -228,6 +323,40 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+    mutableDevice.logMutableDevice();
+  });
+
+  it('should add command handler', () => {
+    function mockCommandHandler(data) {
+      // Mock implementation
+    }
+
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
+    mutableDevice.addCommandHandler('', 'identify', mockCommandHandler);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().commandHandlers).toHaveLength(1);
+    expect(mutableDevice.get().commandHandlers[0].command).toBe('identify');
+    expect(mutableDevice.get().commandHandlers[0].handler).toBe(mockCommandHandler);
+    mutableDevice.logMutableDevice();
+  });
+
+  it('should add subscribe handler', () => {
+    function mockSubscribeHandler(newValue, oldValue, context) {
+      // Mock implementation
+    }
+
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
+    mutableDevice.addSubscribeHandler('', PowerSource.Cluster.id, 'batChargeLevel', mockSubscribeHandler);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().subscribeHandlers).toHaveLength(1);
+    expect(mutableDevice.get().subscribeHandlers[0].clusterId).toBe(PowerSource.Cluster.id);
+    expect(mutableDevice.get().subscribeHandlers[0].attribute).toBe('batChargeLevel');
+    expect(mutableDevice.get().subscribeHandlers[0].listener).toBe(mockSubscribeHandler);
+    mutableDevice.logMutableDevice();
   });
 
   it('should addClusterServerBooleanState', () => {
@@ -474,10 +603,22 @@ describe('MutableDevice', () => {
   });
 
   it('should create a MatterbridgeDevice with child endpoint', async () => {
+    const commandHandler = jest.fn((data) => {
+      // Mock implementation
+    });
+    const subscribeHandler = jest.fn((newValue, oldValue, context) => {
+      // Mock implementation
+    });
+
+    loggerLogSpy.mockReset();
+    consoleLogSpy.mockReset();
+
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
 
     mutableDevice.composedType = 'Switch';
-    mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
+    mutableDevice.addCommandHandler('', 'identify', commandHandler);
+    mutableDevice.addSubscribeHandler('', OnOff.Cluster.id, 'onOff', subscribeHandler);
 
     mutableDevice.addDeviceTypes('child1', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
     mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
@@ -494,9 +635,15 @@ describe('MutableDevice', () => {
         options: optionsFor(LevelControlServer, { currentLevel: 100 }),
       },
     );
+    mutableDevice.addCommandHandler('child1', 'identify', commandHandler);
+    mutableDevice.addSubscribeHandler('child1', OnOff.Cluster.id, 'onOff', subscribeHandler);
+    // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('Subscribed endpoint'));
+
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(3);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
+    expect(mutableDevice.get('child1').commandHandlers).toHaveLength(1);
+    expect(mutableDevice.get('child1').subscribeHandlers).toHaveLength(1);
 
     mutableDevice.addDeviceTypes('child2', onOffOutlet);
     mutableDevice.addClusterServerObjs('child2', {
@@ -510,17 +657,24 @@ describe('MutableDevice', () => {
       tag: 1,
       label: 'Test',
     });
+    mutableDevice.addCommandHandler('child2', 'identify', commandHandler);
+    mutableDevice.addSubscribeHandler('child2', OnOff.Cluster.id, 'onOff', subscribeHandler);
+
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child2').clusterServersObjs).toHaveLength(1);
+    expect(mutableDevice.get('child2').commandHandlers).toHaveLength(1);
+    expect(mutableDevice.get('child2').subscribeHandlers).toHaveLength(1);
 
     const device = await mutableDevice.create();
     expect(device).toBeDefined();
+    expect(device).toBeInstanceOf(MatterbridgeEndpoint);
+    await aggregator.add(device);
 
-    expect(mutableDevice.get().deviceTypes).toHaveLength(2);
+    expect(mutableDevice.get().deviceTypes).toHaveLength(3);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1); // BridgedDeviceBasicInformation
-    expect(Object.keys(device.behaviors.supported)).toHaveLength(5); // ["descriptor", "matterbridge", "bridgedDeviceBasicInformation", "powerSource", "fixedLabel"]
+    expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "onOff", "levelControl", "colorControl", "fixedLabel"]
     expect(device.hasClusterServer(Descriptor.Cluster.id)).toBeTruthy();
     expect(device.hasClusterServer(BridgedDeviceBasicInformation.Cluster.id)).toBeTruthy();
     expect(device.hasClusterServer(PowerSource.Cluster.id)).toBeTruthy();
@@ -540,6 +694,43 @@ describe('MutableDevice', () => {
     expect(mutableDevice.getEndpoint()).toBeDefined();
     expect(mutableDevice.getEndpoint('child1')).toBeDefined();
     expect(mutableDevice.getEndpoint('child2')).toBeDefined();
+
+    jest.clearAllMocks();
+    await mutableDevice.getEndpoint().executeCommandHandler('identify', {});
+    expect(commandHandler).toHaveBeenCalled();
+    jest.clearAllMocks();
+    await mutableDevice.getEndpoint('child1').executeCommandHandler('identify', {});
+    expect(commandHandler).toHaveBeenCalled();
+    jest.clearAllMocks();
+    await mutableDevice.getEndpoint('child2').executeCommandHandler('identify', {});
+    expect(commandHandler).toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    await invokeSubscribeHandler(mutableDevice.getEndpoint(), OnOff.Cluster.id, 'onOff', false, true);
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything());
+    jest.clearAllMocks();
+    await invokeSubscribeHandler(mutableDevice.getEndpoint('child1'), OnOff.Cluster.id, 'onOff', false, true);
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything());
+    jest.clearAllMocks();
+    await invokeSubscribeHandler(mutableDevice.getEndpoint('child2'), OnOff.Cluster.id, 'onOff', false, true);
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything());
+
     mutableDevice.logMutableDevice();
+  });
+
+  test('close the server node', async () => {
+    expect(server).toBeDefined();
+    expect(server.lifecycle.isReady).toBeTruthy();
+    expect(server.lifecycle.isOnline).toBeTruthy();
+    await server.close();
+    expect(server.lifecycle.isReady).toBeTruthy();
+    expect(server.lifecycle.isOnline).toBeFalsy();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  });
+
+  test('stop the mDNS service', async () => {
+    expect(server).toBeDefined();
+    await server.env.get(MdnsService)[Symbol.asyncDispose]();
+    await new Promise((resolve) => setTimeout(resolve, 250));
   });
 });

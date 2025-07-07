@@ -1,12 +1,11 @@
 /**
- * This file contains the class MutableDevice.
- *
+ * @description This file contains the class MutableDevice.
  * @file src\mutableDevice.ts
  * @author Luca Liguori
- * created 2024-12-08
- * version 1.0.1
- *
- * Copyright 2024, 2025, 2026 Luca Liguori.
+ * @created 2024-12-08
+ * @version 1.1.0
+ * @license Apache-2.0
+ * @copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +17,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. *
+ * limitations under the License.
  */
 
 // Node.js imports
@@ -41,9 +40,11 @@ import {
   onOffSwitch,
   MatterbridgeColorControlServer,
   MatterbridgeThermostatServer,
+  MatterbridgeEndpointCommands,
+  CommandHandlerFunction,
 } from 'matterbridge';
 import { db, debugStringify, idn, ign, rs, CYAN } from 'matterbridge/logger';
-import { AtLeastOne, Behavior } from 'matterbridge/matter';
+import { ActionContext, AtLeastOne, Behavior } from 'matterbridge/matter';
 import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
 import { BooleanState, BridgedDeviceBasicInformation, ColorControl, PowerSource, SmokeCoAlarm, Thermostat } from 'matterbridge/matter/clusters';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
@@ -52,6 +53,18 @@ interface ClusterServerObj {
   id: ClusterId;
   type: Behavior.Type;
   options: Behavior.Options;
+}
+
+interface CommandHandler {
+  command: keyof MatterbridgeEndpointCommands;
+  handler: CommandHandlerFunction;
+}
+
+interface SubscribeHandler {
+  endpointName: string;
+  clusterId: ClusterId;
+  attribute: string;
+  listener: (newValue: unknown, oldValue: unknown, context: ActionContext) => void;
 }
 
 interface MutableDeviceInterface {
@@ -63,6 +76,8 @@ interface MutableDeviceInterface {
   clusterServersObjs: ClusterServerObj[];
   clusterClientsIds: ClusterId[];
   clusterClientsObjs: ClusterServerObj[];
+  commandHandlers: CommandHandler[];
+  subscribeHandlers: SubscribeHandler[];
 }
 
 /**
@@ -75,7 +90,7 @@ interface MutableDeviceInterface {
  *
  * @returns {{ id: ClusterId, type: T, options: Behavior.Options<T> }} The constructed cluster server object.
  */
-export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterId, type: T, options: Behavior.Options<T>) {
+export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterId, type: T, options: Behavior.Options<T>): ClusterServerObj {
   return { id: clusterId, type, options };
 }
 
@@ -144,6 +159,8 @@ export class MutableDevice {
         clusterServersObjs: [],
         clusterClientsIds: [],
         clusterClientsObjs: [],
+        commandHandlers: [],
+        subscribeHandlers: [],
       });
     }
     return this.mutableDevice.get(endpoint) as MutableDeviceInterface;
@@ -173,6 +190,16 @@ export class MutableDevice {
   addClusterServerObjs(endpoint: string, ...clusterServerObj: ClusterServerObj[]) {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(...clusterServerObj);
+  }
+
+  addCommandHandler(endpoint: string, command: keyof MatterbridgeEndpointCommands, handler: CommandHandlerFunction) {
+    const device = this.initializeEndpoint(endpoint);
+    device.commandHandlers.push({ command, handler });
+  }
+
+  addSubscribeHandler(endpoint: string, clusterId: ClusterId, attribute: string, listener: (newValue: unknown, oldValue: unknown, context: ActionContext) => void) {
+    const device = this.initializeEndpoint(endpoint);
+    device.subscribeHandlers.push({ endpointName: endpoint, clusterId, attribute, listener });
   }
 
   addClusterServerPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null) {
@@ -523,6 +550,7 @@ export class MutableDevice {
         device.tagList.length ? { tagList: device.tagList } : {},
         true,
       );
+      device.endpoint.log.logName = device.friendlyName;
     }
     return this;
   }
@@ -581,6 +609,12 @@ export class MutableDevice {
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
       if (this.composedType) await mainDevice.endpoint.addFixedLabel('composed', this.composedType);
+      for (const commandHandler of mainDevice.commandHandlers) {
+        mainDevice.endpoint.addCommandHandler(commandHandler.command, commandHandler.handler);
+      }
+      for (const subscribeHandler of mainDevice.subscribeHandlers) {
+        mainDevice.endpoint.subscribeAttribute(subscribeHandler.clusterId, subscribeHandler.attribute, subscribeHandler.listener, mainDevice.endpoint.log);
+      }
       return this;
     }
 
@@ -595,6 +629,12 @@ export class MutableDevice {
       device.endpoint.addClusterServers(device.clusterServersIds);
       // Add the required clusters to the child endpoint
       device.endpoint.addRequiredClusterServers();
+      for (const commandHandler of device.commandHandlers) {
+        device.endpoint.addCommandHandler(commandHandler.command, commandHandler.handler);
+      }
+      for (const subscribeHandler of device.subscribeHandlers) {
+        device.endpoint.subscribeAttribute(subscribeHandler.clusterId, subscribeHandler.attribute, subscribeHandler.listener, device.endpoint.log);
+      }
     }
     return this;
   }
@@ -614,7 +654,8 @@ export class MutableDevice {
       this.matterbridge.log.debug(
         `- endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => friendlyName ${CYAN}${device.friendlyName}${db} ` +
           `${db}tagList: ${debugStringify(device.tagList)}${db} deviceTypes: ${debugStringify(deviceTypes)}${db} ` +
-          `clusterServersIds: ${debugStringify(clusterServersIds)}${db} clusterServersObjs: ${debugStringify(clusterServersObjsIds)}${db}`,
+          `clusterServersIds: ${debugStringify(clusterServersIds)}${db} clusterServersObjs: ${debugStringify(clusterServersObjsIds)}${db} ` +
+          `commandHandlers: ${debugStringify(device.commandHandlers.map((ch) => ch.command))}${db} subscribeHandlers: ${debugStringify(device.subscribeHandlers)}`,
       );
     }
     return this;
