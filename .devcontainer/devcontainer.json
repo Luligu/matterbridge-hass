@@ -4,7 +4,7 @@
 // WARNING: since the dev container doesn't have network host and ipv6, you can run matterbridge inside the container and test the plugin but is not possible to pair the Matterbridge instance.
 {
   // Name of the dev container
-  "name": "Matterbridge Plugin",
+  "name": "Matterbridge Plugin Dev Container",
   // Use the pre-built image with Node+TypeScript
   "image": "mcr.microsoft.com/vscode/devcontainers/typescript-node:latest",
   // Mount the local matterbridge and node_modules workspace folder to the container's workspace volumes to improve performance
@@ -13,7 +13,7 @@
     "source=matterbridge,target=/matterbridge,type=volume"
   ],
   // On startup, update npm, pnpm, install the dev of matterbridge and install the dependencies from package.json
-  "postCreateCommand": "sudo npm install -g npm@latest pnpm@latest npm-check-updates shx && sudo chmod +x ./install-matterbridge-*.sh && ./install-matterbridge-dev.sh && sudo chown -R node:node . && npm install && npm run build && npm link matterbridge && npm outdated || true",
+  "postCreateCommand": "sudo npm install -g npm@latest pnpm@latest npm-check-updates shx && sudo chmod +x ./install-matterbridge-*.sh && ./install-matterbridge-dev.sh && sudo chown -R node:node . && npm install && npm link matterbridge && npm run build && npm outdated || true",
   "customizations": {
     "vscode": {
       // Extensions to install in the dev container
