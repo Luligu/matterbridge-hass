@@ -27,6 +27,7 @@ import {
   smokeCoAlarm,
   thermostatDevice,
   invokeSubscribeHandler,
+  invokeBehaviorCommand,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import {
@@ -58,7 +59,7 @@ let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
 let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
 let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
 let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
-const debug = false; // Set to true to enable debug logging
+const debug = true; // Set to true to enable debug logging
 
 if (!debug) {
   loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
@@ -603,22 +604,25 @@ describe('MutableDevice', () => {
   });
 
   it('should create a MatterbridgeDevice with child endpoint', async () => {
-    const commandHandler = jest.fn((data) => {
+    const commandHandler = jest.fn(async (data, endpointName, command) => {
       // Mock implementation
     });
-    const subscribeHandler = jest.fn((newValue, oldValue, context) => {
+    const subscribeHandler = jest.fn((newValue, oldValue, context, endpointName, clusterId, attribute) => {
       // Mock implementation
     });
 
-    loggerLogSpy.mockReset();
-    consoleLogSpy.mockReset();
-
-    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
-
-    mutableDevice.composedType = 'Switch';
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device', '01233456789abcdef');
+    mutableDevice.composedType = 'Hass Device';
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
     mutableDevice.addCommandHandler('', 'identify', commandHandler);
     mutableDevice.addSubscribeHandler('', OnOff.Cluster.id, 'onOff', subscribeHandler);
+
+    expect(mutableDevice.get().deviceTypes).toHaveLength(6);
+    expect(mutableDevice.get().tagList).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(0);
+    expect(mutableDevice.get().commandHandlers).toHaveLength(1);
+    expect(mutableDevice.get().subscribeHandlers).toHaveLength(1);
 
     mutableDevice.addDeviceTypes('child1', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
     mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
@@ -637,9 +641,9 @@ describe('MutableDevice', () => {
     );
     mutableDevice.addCommandHandler('child1', 'identify', commandHandler);
     mutableDevice.addSubscribeHandler('child1', OnOff.Cluster.id, 'onOff', subscribeHandler);
-    // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('Subscribed endpoint'));
 
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(3);
+    expect(mutableDevice.get('child1').tagList).toHaveLength(0);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
     expect(mutableDevice.get('child1').commandHandlers).toHaveLength(1);
@@ -661,6 +665,7 @@ describe('MutableDevice', () => {
     mutableDevice.addSubscribeHandler('child2', OnOff.Cluster.id, 'onOff', subscribeHandler);
 
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
+    expect(mutableDevice.get('child2').tagList).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child2').clusterServersObjs).toHaveLength(1);
     expect(mutableDevice.get('child2').commandHandlers).toHaveLength(1);
@@ -672,9 +677,23 @@ describe('MutableDevice', () => {
     await aggregator.add(device);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
+    expect(mutableDevice.get().tagList).toHaveLength(0);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1); // BridgedDeviceBasicInformation
-    expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "onOff", "levelControl", "colorControl", "fixedLabel"]
+    expect(mutableDevice.get().commandHandlers).toHaveLength(1);
+    expect(mutableDevice.get().subscribeHandlers).toHaveLength(1);
+    expect(Object.keys(device.behaviors.supported)).toEqual([
+      'descriptor',
+      'matterbridge',
+      'bridgedDeviceBasicInformation',
+      'powerSource',
+      'identify',
+      'groups',
+      'onOff',
+      'levelControl',
+      'colorControl',
+      'fixedLabel',
+    ]);
     expect(device.hasClusterServer(Descriptor.Cluster.id)).toBeTruthy();
     expect(device.hasClusterServer(BridgedDeviceBasicInformation.Cluster.id)).toBeTruthy();
     expect(device.hasClusterServer(PowerSource.Cluster.id)).toBeTruthy();
@@ -682,38 +701,56 @@ describe('MutableDevice', () => {
     expect(device.getChildEndpoints()).toHaveLength(2);
 
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(1);
+    expect(mutableDevice.get('child1').tagList).toHaveLength(0);
     expect(mutableDevice.get('child1').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
-    expect(Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported)).toHaveLength(7); // ["descriptor", "matterbridge", "onOff", "levelControl", "identify", "groups", "colorControl"]
+    expect(mutableDevice.get('child1').commandHandlers).toHaveLength(1);
+    expect(mutableDevice.get('child1').subscribeHandlers).toHaveLength(1);
+    expect(Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported)).toEqual([
+      'descriptor',
+      'matterbridge',
+      'onOff',
+      'levelControl',
+      'identify',
+      'groups',
+      'colorControl',
+    ]);
 
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
+    expect(mutableDevice.get('child2').tagList).toHaveLength(1);
     expect(mutableDevice.get('child2').clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get('child2').clusterServersObjs).toHaveLength(1);
-    expect(Object.keys(mutableDevice.getEndpoint('child2').behaviors.supported)).toHaveLength(5); // ["descriptor", "matterbridge", "onOff", "identify", "groups"]
+    expect(mutableDevice.get('child2').commandHandlers).toHaveLength(1);
+    expect(mutableDevice.get('child2').subscribeHandlers).toHaveLength(1);
+    expect(Object.keys(mutableDevice.getEndpoint('child2').behaviors.supported)).toEqual(['descriptor', 'matterbridge', 'onOff', 'identify', 'groups']);
 
     expect(mutableDevice.getEndpoint()).toBeDefined();
     expect(mutableDevice.getEndpoint('child1')).toBeDefined();
     expect(mutableDevice.getEndpoint('child2')).toBeDefined();
 
     jest.clearAllMocks();
-    await mutableDevice.getEndpoint().executeCommandHandler('identify', {});
-    expect(commandHandler).toHaveBeenCalled();
+    await mutableDevice.getEndpoint('').executeCommandHandler('identify', { identifyTime: 10 });
+    expect(commandHandler).toHaveBeenCalledWith({ endpoint: undefined, cluster: undefined, attributes: undefined, request: { identifyTime: 10 } }, '', 'identify');
+
     jest.clearAllMocks();
-    await mutableDevice.getEndpoint('child1').executeCommandHandler('identify', {});
-    expect(commandHandler).toHaveBeenCalled();
+    await mutableDevice.getEndpoint('child1').executeCommandHandler('identify', { identifyTime: 10 });
+    expect(commandHandler).toHaveBeenCalledWith({ endpoint: undefined, cluster: undefined, attributes: undefined, request: { identifyTime: 10 } }, 'child1', 'identify');
+
     jest.clearAllMocks();
-    await mutableDevice.getEndpoint('child2').executeCommandHandler('identify', {});
-    expect(commandHandler).toHaveBeenCalled();
+    await mutableDevice.getEndpoint('child2').executeCommandHandler('identify', { identifyTime: 10 });
+    expect(commandHandler).toHaveBeenCalledWith({ endpoint: undefined, cluster: undefined, attributes: undefined, request: { identifyTime: 10 } }, 'child2', 'identify');
 
     jest.clearAllMocks();
     await invokeSubscribeHandler(mutableDevice.getEndpoint(), OnOff.Cluster.id, 'onOff', false, true);
-    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything());
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), '', OnOff.Cluster.id, 'onOff');
+
     jest.clearAllMocks();
     await invokeSubscribeHandler(mutableDevice.getEndpoint('child1'), OnOff.Cluster.id, 'onOff', false, true);
-    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything());
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child1', OnOff.Cluster.id, 'onOff');
+
     jest.clearAllMocks();
     await invokeSubscribeHandler(mutableDevice.getEndpoint('child2'), OnOff.Cluster.id, 'onOff', false, true);
-    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything());
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child2', OnOff.Cluster.id, 'onOff');
 
     mutableDevice.logMutableDevice();
   });

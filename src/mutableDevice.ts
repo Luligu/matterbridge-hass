@@ -3,7 +3,7 @@
  * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @created 2024-12-08
- * @version 1.1.0
+ * @version 1.2.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -41,7 +41,7 @@ import {
   MatterbridgeColorControlServer,
   MatterbridgeThermostatServer,
   MatterbridgeEndpointCommands,
-  CommandHandlerFunction,
+  CommandHandlerData,
 } from 'matterbridge';
 import { db, debugStringify, idn, ign, rs, CYAN } from 'matterbridge/logger';
 import { ActionContext, AtLeastOne, Behavior } from 'matterbridge/matter';
@@ -56,15 +56,16 @@ interface ClusterServerObj {
 }
 
 interface CommandHandler {
+  endpointName: string;
   command: keyof MatterbridgeEndpointCommands;
-  handler: CommandHandlerFunction;
+  handler: (data: CommandHandlerData, endpointName: string, command: keyof MatterbridgeEndpointCommands) => void | Promise<void>;
 }
 
 interface SubscribeHandler {
   endpointName: string;
   clusterId: ClusterId;
   attribute: string;
-  listener: (newValue: unknown, oldValue: unknown, context: ActionContext) => void;
+  listener: (newValue: unknown, oldValue: unknown, context: ActionContext, endpointName: string, clusterId: ClusterId, attribute: string) => void;
 }
 
 interface MutableDeviceInterface {
@@ -192,12 +193,21 @@ export class MutableDevice {
     device.clusterServersObjs.push(...clusterServerObj);
   }
 
-  addCommandHandler(endpoint: string, command: keyof MatterbridgeEndpointCommands, handler: CommandHandlerFunction) {
+  addCommandHandler(
+    endpoint: string,
+    command: keyof MatterbridgeEndpointCommands,
+    handler: (data: CommandHandlerData, endpointName: string, command: keyof MatterbridgeEndpointCommands) => void | Promise<void>,
+  ) {
     const device = this.initializeEndpoint(endpoint);
-    device.commandHandlers.push({ command, handler });
+    device.commandHandlers.push({ endpointName: endpoint, command, handler });
   }
 
-  addSubscribeHandler(endpoint: string, clusterId: ClusterId, attribute: string, listener: (newValue: unknown, oldValue: unknown, context: ActionContext) => void) {
+  addSubscribeHandler(
+    endpoint: string,
+    clusterId: ClusterId,
+    attribute: string,
+    listener: (newValue: unknown, oldValue: unknown, context: ActionContext, endpointName: string, clusterId: ClusterId, attribute: string) => void,
+  ) {
     const device = this.initializeEndpoint(endpoint);
     device.subscribeHandlers.push({ endpointName: endpoint, clusterId, attribute, listener });
   }
@@ -609,11 +619,22 @@ export class MutableDevice {
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
       if (this.composedType) await mainDevice.endpoint.addFixedLabel('composed', this.composedType);
+      // Add the command handlers
       for (const commandHandler of mainDevice.commandHandlers) {
-        mainDevice.endpoint.addCommandHandler(commandHandler.command, commandHandler.handler);
+        mainDevice.endpoint.addCommandHandler(commandHandler.command, async (data) => {
+          await commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
+        });
       }
+      // Add the subscribe handlers
       for (const subscribeHandler of mainDevice.subscribeHandlers) {
-        mainDevice.endpoint.subscribeAttribute(subscribeHandler.clusterId, subscribeHandler.attribute, subscribeHandler.listener, mainDevice.endpoint.log);
+        mainDevice.endpoint.subscribeAttribute(
+          subscribeHandler.clusterId,
+          subscribeHandler.attribute,
+          (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+            subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+          },
+          mainDevice.endpoint.log,
+        );
       }
       return this;
     }
@@ -629,11 +650,22 @@ export class MutableDevice {
       device.endpoint.addClusterServers(device.clusterServersIds);
       // Add the required clusters to the child endpoint
       device.endpoint.addRequiredClusterServers();
+      // Add the command handlers
       for (const commandHandler of device.commandHandlers) {
-        device.endpoint.addCommandHandler(commandHandler.command, commandHandler.handler);
+        device.endpoint.addCommandHandler(commandHandler.command, async (data) => {
+          commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
+        });
       }
+      // Add the subscribe handlers
       for (const subscribeHandler of device.subscribeHandlers) {
-        device.endpoint.subscribeAttribute(subscribeHandler.clusterId, subscribeHandler.attribute, subscribeHandler.listener, device.endpoint.log);
+        device.endpoint.subscribeAttribute(
+          subscribeHandler.clusterId,
+          subscribeHandler.attribute,
+          (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+            subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+          },
+          device.endpoint.log,
+        );
       }
     }
     return this;
@@ -655,7 +687,7 @@ export class MutableDevice {
         `- endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => friendlyName ${CYAN}${device.friendlyName}${db} ` +
           `${db}tagList: ${debugStringify(device.tagList)}${db} deviceTypes: ${debugStringify(deviceTypes)}${db} ` +
           `clusterServersIds: ${debugStringify(clusterServersIds)}${db} clusterServersObjs: ${debugStringify(clusterServersObjsIds)}${db} ` +
-          `commandHandlers: ${debugStringify(device.commandHandlers.map((ch) => ch.command))}${db} subscribeHandlers: ${debugStringify(device.subscribeHandlers)}`,
+          `commandHandlers: ${debugStringify(device.commandHandlers)}${db} subscribeHandlers: ${debugStringify(device.subscribeHandlers)}${db}`,
       );
     }
     return this;
