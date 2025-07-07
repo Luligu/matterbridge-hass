@@ -537,13 +537,14 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(mockLog.error).toHaveBeenCalledWith(`Error connecting to Home Assistant: Error: Connection failed`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Error connecting to Home Assistant at ${CYAN}http://homeassistant.local:8123${nf}: Error: Connection failed`);
   });
 
   it('should call onStart with reason', async () => {
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     await wait(100);
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Payload successfully written to`));
   });

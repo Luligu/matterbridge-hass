@@ -24,7 +24,7 @@ import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er } from 'matterbridge/logger';
-import WebSocket from 'ws';
+import WebSocket, { ErrorEvent } from 'ws';
 
 /**
  * Interface representing a Home Assistant device.
@@ -679,8 +679,13 @@ export class HomeAssistant extends EventEmitter {
         this.ws.on('open', this.onOpen.bind(this));
         this.ws.on('ping', this.onPing.bind(this));
         this.ws.on('pong', this.onPong.bind(this));
-        this.ws.on('error', this.onError.bind(this));
         this.ws.on('close', this.onClose.bind(this));
+
+        this.ws.onerror = (event: ErrorEvent) => {
+          this.log.error(`WebSocket error: ${event.message}`);
+          this.emit('error', `WebSocket error: ${event.message}`);
+          return reject(new Error(`WebSocket error: ${event.message}`));
+        };
 
         this.ws.onmessage = async (event: WebSocket.MessageEvent) => {
           let response;
@@ -709,6 +714,8 @@ export class HomeAssistant extends EventEmitter {
             // Add the message event listeners
             if (this.ws) this.ws.onmessage = null; // Clear the current onmessage handler to avoid duplicate processing
             this.ws?.on('message', this.onMessage.bind(this)); // Set the new onmessage handler
+            if (this.ws) this.ws.onerror = null; // Clear the current onerror handler to avoid duplicate processing
+            this.ws?.on('error', this.onError.bind(this));
 
             // Start ping interval
             this.startPing();

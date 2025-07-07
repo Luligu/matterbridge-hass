@@ -652,17 +652,19 @@ describe('HomeAssistant', () => {
   it('should not connect if wsUrl is wss:// and certificate are not correct', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, path.join('certificates', 'matterbridge-hass-ca.crt'));
 
-    await new Promise((resolve) => {
-      homeAssistant.once('error', () => {
-        homeAssistant.close();
-        resolve(undefined);
-      });
-      homeAssistant.connect();
+    homeAssistant.on('error', () => {
+      // Handle error event
     });
+
+    try {
+      await homeAssistant.connect();
+    } catch (error) {
+      expect(error).toBeDefined();
+    }
 
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ${path.join('certificates', 'matterbridge-hass-ca.crt')}...`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `CA certificate loaded successfully`);
-    // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`WebSocket error:`));
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`WebSocket error:`));
     expect(homeAssistant.connected).toBe(false);
     await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -1040,6 +1042,10 @@ describe('HomeAssistant with ssl', () => {
   it('should not connect to Home Assistant with ssl', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', 'notajson', reconnectTimeoutTime, reconnectRetries, undefined, false);
 
+    homeAssistant.on('error', () => {
+      //
+    });
+
     try {
       await homeAssistant.connect();
     } catch (error) {
@@ -1054,6 +1060,10 @@ describe('HomeAssistant with ssl', () => {
 
   it('should connect to Home Assistant with ssl', async () => {
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, undefined, false);
+
+    homeAssistant.on('error', () => {
+      //
+    });
 
     await new Promise<void>((resolve) => {
       homeAssistant.once('connected', () => {

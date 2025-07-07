@@ -220,12 +220,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       await this.ha.connect();
       this.log.info(`Connected to Home Assistant at ${CYAN}${this.config.host}${nf}`);
     } catch (error) {
-      this.log.error(`Error connecting to Home Assistant: ${error}`);
+      this.log.error(`Error connecting to Home Assistant at ${CYAN}${this.config.host}${nf}: ${error}`);
     }
     const check = () => {
+      this.log.debug(
+        `Checking Home Assistant connection: connected ${CYAN}${this.ha.connected}${db} config ${CYAN}${this.ha.hassConfig !== null}${db} services ${CYAN}${this.ha.hassServices !== null}${db} subscription ${CYAN}${this.haSubscriptionId !== null}${db}`,
+      );
       return this.ha.connected && this.ha.hassConfig !== null && this.ha.hassServices !== null && this.haSubscriptionId !== null;
     };
-    await waiter('Home Assistant connected', check, true, 30000, 1000); // Wait for 30 seconds with 1 second interval and throw error if not connected
+    await waiter('Home Assistant connected', check, true, 110000, 1000); // Wait for 110 seconds with 1 second interval and throw error if not connected
 
     // Save devices, entities, states, config and services to a local file without awaiting
     this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'));
@@ -644,6 +647,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.clearDeviceSelect(device.id);
       }
     } // hassDevices
+
+    this.log.info(`Started platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
   }
 
   override async onConfigure() {
