@@ -15,6 +15,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [converters]: Added endpoint to sensor and binary_sensor converters to merge HA entities.
 - [platform]: Add subscribeHandler.
 - [platform]: Refactor commandHandler with new Matterbridge API.
+- [temperature]: Added conversion from Fahrenheit to Celsius on single entity state for domain sensor and device class temperature.
 
 ### Changed
 

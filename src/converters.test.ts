@@ -2,6 +2,7 @@
 import { FanControl, Thermostat } from 'matterbridge/matter/clusters';
 
 import {
+  fahrenheitToCelsius,
   hassCommandConverter,
   hassDomainAttributeConverter,
   hassDomainBinarySensorsConverter,
@@ -14,6 +15,13 @@ import {
 import { HassState } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
+  it('should convert fahrenheit to Celsius', () => {
+    expect(fahrenheitToCelsius(32)).toBe(0);
+    expect(fahrenheitToCelsius(212)).toBe(100);
+    expect(fahrenheitToCelsius(-40)).toBe(-40);
+    expect(fahrenheitToCelsius(-148)).toBe(-100);
+  });
+
   it('should verify the hassUpdateStateConverter converter', () => {
     hassUpdateStateConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
@@ -117,6 +125,11 @@ describe('HassPlatform', () => {
       if (converter.domain === 'sensor' && converter.withStateClass === 'measurement') {
         expect(converter.converter(0)).not.toBe(null);
         expect(converter.converter(undefined as unknown as number)).toBe(null);
+      }
+      if (converter.domain === 'sensor' && converter.withStateClass === 'measurement' && converter.withDeviceClass === 'temperature') {
+        expect(converter.converter(32, '°F')).toBe(0);
+        expect(converter.converter(212, '°F')).toBe(10000);
+        expect(converter.converter(-40, '°C')).toBe(-4000);
       }
     });
   });

@@ -159,8 +159,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Subscribed to Home Assistant events`);
     });
 
-    this.ha.on('config', (_config: HassConfig) => {
-      this.log.info('Configuration received from Home Assistant');
+    this.ha.on('config', (config: HassConfig) => {
+      this.log.info(`Configuration received from Home Assistant: temperature unit '${config.unit_system.temperature}' pressure unit '${config.unit_system.pressure}'`);
     });
 
     this.ha.on('services', (_services: HassServices) => {
@@ -790,7 +790,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
       );
       if (hassSensorConverter) {
-        const convertedValue = hassSensorConverter.converter(parseFloat(new_state.state));
+        const convertedValue = hassSensorConverter.converter(parseFloat(new_state.state), new_state.attributes['unit_of_measurement']);
         endpoint.log.debug(
           `Converting sensor ${new_state.attributes['state_class']}:${new_state.attributes['device_class']} value "${new_state.state}" to ${CYAN}${convertedValue}${db}`,
         );

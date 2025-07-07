@@ -579,8 +579,8 @@ describe('HassPlatform', () => {
     expect(mockLog.warn).toHaveBeenCalledWith(`Disconnected from Home Assistant`);
     haPlatform.ha.emit('subscribed');
     expect(mockLog.info).toHaveBeenCalledWith(`Subscribed to Home Assistant events`);
-    haPlatform.ha.emit('config', {} as unknown as HassConfig);
-    expect(mockLog.info).toHaveBeenCalledWith(`Configuration received from Home Assistant`);
+    haPlatform.ha.emit('config', { unit_system: { temperature: '°C', pressure: 'Pa' } } as unknown as HassConfig);
+    expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(`Configuration received from Home Assistant`));
     haPlatform.ha.emit('services', {} as unknown as HassServices);
     expect(mockLog.info).toHaveBeenCalledWith(`Services received from Home Assistant`);
     haPlatform.ha.emit('states', []);

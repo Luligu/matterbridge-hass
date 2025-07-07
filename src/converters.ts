@@ -67,6 +67,15 @@ import {
 
 import { HassState } from './homeAssistant.js';
 
+/**
+ * Convert Fahrenheit to Celsius
+ *
+ * @param {number} fahrenheit - Temperature in Fahrenheit
+ * @returns {number} Temperature in Celsius
+ */
+export function fahrenheitToCelsius(fahrenheit: number): number {
+  return ((fahrenheit - 32) * 5) / 9;
+}
 /** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
@@ -172,10 +181,10 @@ export const hassDomainAttributeConverter: { domain: string; withAttribute: stri
 
 /** Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds */
 // prettier-ignore
-export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number) => any }[] = [
+export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number, unit?: string) => any }[] = [
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'battery',               endpoint: '',  deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batPercentRemaining', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 2) : null) },
     // { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: '',  deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batVoltage', converter: (value) => (isValidNumber(value, 0, 100000) ? Math.round(value) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',                                     deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value) => (isValidNumber(value, -100, 100) ? Math.round(value * 100) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',                                     deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value, unit) => (isValidNumber(value, unit==='°F'?-148:-100, unit==='°F'?212:100) ? Math.round(unit === '°F' ? fahrenheitToCelsius(value) * 100 : value * 100) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',                                        deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id,  attribute: 'measuredValue',   converter: (value) => (isValidNumber(value, 0, 100) ? Math.round(value * 100) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',                                        deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'atmospheric_pressure',                            deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
