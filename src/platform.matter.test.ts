@@ -299,9 +299,21 @@ describe('Matterbridge ' + NAME, () => {
       entry_type: null,
       id: 'd80898f83188759ed7329e922f00ee7c',
       labels: [],
-      name: 'Battery Sensor',
+      name: 'Temperature with Battery Sensor',
       name_by_user: null,
     } as unknown as HassDevice;
+
+    const batteryTemperatureEntity = {
+      area_id: null,
+      device_id: batteryDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.temperature',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310444ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Battery Temperature Sensor',
+    } as unknown as HassEntity;
 
     const batteryAlertEntity = {
       area_id: null,
@@ -312,7 +324,7 @@ describe('Matterbridge ' + NAME, () => {
       id: '0b25a337cb83edefb1d310444ad2b0ac',
       labels: [],
       name: null,
-      original_name: 'Battery Sensor',
+      original_name: 'Battery Low Sensor',
     } as unknown as HassEntity;
 
     const batteryLevelEntity = {
@@ -324,7 +336,19 @@ describe('Matterbridge ' + NAME, () => {
       id: '0b25a337c543edefb1d310444ad2b0ac',
       labels: [],
       name: null,
-      original_name: 'Battery Sensor',
+      original_name: 'Battery Level Sensor',
+    } as unknown as HassEntity;
+
+    const batteryVoltageEntity = {
+      area_id: null,
+      device_id: batteryDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.battery_voltage',
+      has_entity_name: true,
+      id: '0b25a337c543edefb1d310444ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Battery Voltage Sensor',
     } as unknown as HassEntity;
 
     const batteryDeviceEntityState = {
@@ -333,6 +357,16 @@ describe('Matterbridge ' + NAME, () => {
       attributes: {
         device_class: 'battery',
         friendly_name: 'Battery Alert Sensor',
+      },
+    } as unknown as HassState;
+
+    const batteryTemperatureEntityState = {
+      entity_id: batteryTemperatureEntity.entity_id,
+      state: 28.4,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'temperature',
+        friendly_name: 'Battery Temperature Sensor',
       },
     } as unknown as HassState;
 
@@ -346,11 +380,25 @@ describe('Matterbridge ' + NAME, () => {
       },
     } as unknown as HassState;
 
+    const batteryVoltageEntityState = {
+      entity_id: batteryVoltageEntity.entity_id,
+      state: 3050,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'voltage',
+        friendly_name: 'Battery Voltage Sensor',
+      },
+    } as unknown as HassState;
+
     haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
+    haPlatform.ha.hassEntities.set(batteryTemperatureEntity.entity_id, batteryTemperatureEntity);
     haPlatform.ha.hassEntities.set(batteryAlertEntity.entity_id, batteryAlertEntity);
     haPlatform.ha.hassEntities.set(batteryLevelEntity.entity_id, batteryLevelEntity);
+    haPlatform.ha.hassEntities.set(batteryVoltageEntity.entity_id, batteryVoltageEntity);
+    haPlatform.ha.hassStates.set(batteryTemperatureEntityState.entity_id, batteryTemperatureEntityState);
     haPlatform.ha.hassStates.set(batteryDeviceEntityState.entity_id, batteryDeviceEntityState);
     haPlatform.ha.hassStates.set(batteryLevelEntityState.entity_id, batteryLevelEntityState);
+    haPlatform.ha.hassStates.set(batteryVoltageEntityState.entity_id, batteryVoltageEntityState);
 
     await haPlatform.onStart('Test reason');
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
@@ -360,7 +408,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.get(batteryDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(batteryDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    const child = device?.getChildEndpointByName(batteryAlertEntity.entity_id.replace('.', ''));
+    const child = device?.getChildEndpointByName(batteryTemperatureEntity.entity_id.replace('.', ''));
     expect(child).toBeDefined();
     if (!child) return;
     await child.construction.ready;
@@ -368,9 +416,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(child.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
-    expect(child.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(200);
-    expect(addClusterServerPowerSourceSpy).toHaveBeenCalledWith(batteryAlertEntity.entity_id, PowerSource.BatChargeLevel.Ok, 200);
+    expect(device.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
+    expect(device.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(200);
+    expect(addClusterServerPowerSourceSpy).toHaveBeenCalledWith('', PowerSource.BatChargeLevel.Ok, 200);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
