@@ -17,7 +17,7 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. *
+ * limitations under the License.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -242,7 +242,7 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
 // prettier-ignore
 export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: number) => any }[] = [
     { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.Cluster.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {
-      if( isValidNumber(value, FanControl.FanMode.Off, FanControl.FanMode.Smart) ) {
+      if( isValidNumber(value, FanControl.FanMode.Low, FanControl.FanMode.Smart) ) {
         if (value === FanControl.FanMode.Low) return 'low';
         else if (value === FanControl.FanMode.Medium) return 'medium';
         else if (value === FanControl.FanMode.High) return 'high';

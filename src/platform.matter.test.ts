@@ -1,6 +1,9 @@
 // src\platform.matter.test.ts
-
 /* eslint-disable no-console */
+
+const MATTER_PORT = 6001;
+const NAME = 'Hass';
+const HOMEDIR = path.join('jest', NAME);
 
 import { rmSync } from 'node:fs';
 import path from 'node:path';
@@ -41,36 +44,6 @@ if (!debug) {
   consoleErrorSpy = jest.spyOn(console, 'error');
 }
 
-const MATTER_PORT = 6001;
-const NAME = 'Hass';
-
-/**
- * Waits for the `isOnline` property to become `true`.
- * This function checks the `isOnline` property of the provided server node at regular intervals until it becomes `true` or the specified timeout is reached.
- * If the timeout is reached before `isOnline` becomes `true`, the promise is rejected with an error.
- *
- * @param {ServerNode<ServerNode.RootEndpoint>} server - The server node to check for online status.
- * @param {number} timeout - The maximum time to wait in milliseconds.
- * @returns {Promise<void>} A promise that resolves when `isOnline` becomes `true` or rejects if the timeout is reached.
- */
-async function waitForOnline(server: ServerNode<ServerNode.RootEndpoint>, timeout = 10000): Promise<void> {
-  const start = Date.now();
-
-  return new Promise((resolve, reject) => {
-    const checkOnline = () => {
-      if (server.lifecycle.isOnline) {
-        resolve();
-      } else if (Date.now() - start >= timeout) {
-        reject(new Error('Timeout waiting for server.lifecycle.isOnline to become true'));
-      } else {
-        setTimeout(checkOnline, 100); // Check every 100ms
-      }
-    };
-    // Start checking immediately
-    checkOnline();
-  });
-}
-
 const mockLog = {
   fatal: jest.fn((message: string, ...parameters: any[]) => {
     log.fatal(message, ...parameters);
@@ -93,8 +66,8 @@ const mockLog = {
 } as unknown as AnsiLogger;
 
 const mockMatterbridge = {
-  matterbridgeDirectory: './jest/matterbridge',
-  matterbridgePluginDirectory: './jest/plugins',
+  matterbridgeDirectory: HOMEDIR + '/matterbridge',
+  matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
   systemInformation: {
     ipv4Address: undefined,
     ipv6Address: undefined,
@@ -184,11 +157,7 @@ const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype,
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
 let haPlatform: HomeAssistantPlatform;
-const log = new AnsiLogger({
-  logName: NAME,
-  logTimestampFormat: TimestampFormat.TIME_MILLIS,
-  logLevel: LogLevel.DEBUG,
-});
+const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
 const environment = Environment.default;
 let server: ServerNode<ServerNode.RootEndpoint>;
@@ -198,11 +167,11 @@ let device: MatterbridgeEndpoint;
 describe('Matterbridge ' + NAME, () => {
   beforeAll(async () => {
     // Cleanup the matter environment
-    rmSync(path.join('jest', NAME), { recursive: true, force: true });
+    rmSync(HOMEDIR, { recursive: true, force: true });
     // Setup the matter environment
     environment.vars.set('log.level', MatterLogLevel.DEBUG);
     environment.vars.set('log.format', MatterLogFormat.ANSI);
-    environment.vars.set('path.root', path.join('jest', NAME));
+    environment.vars.set('path.root', HOMEDIR);
     environment.vars.set('runtime.signals', false);
     environment.vars.set('runtime.exitcode', false);
   }, 30000);
@@ -267,11 +236,20 @@ describe('Matterbridge ' + NAME, () => {
 
   test('start the server node', async () => {
     // Run the server
-    await server.start();
+    expect(server.lifecycle.isReady).toBeTruthy();
+    expect(server.lifecycle.isOnline).toBeFalsy();
+
+    // Wait for the server to be online
+    await new Promise<void>((resolve) => {
+      server.lifecycle.online.on(async () => {
+        resolve();
+      });
+      server.start();
+    });
+
+    // Check if the server is online
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeTruthy();
-    // Wait for the server to be online
-    await waitForOnline(server);
   });
 
   it('should initialize the HomeAssistantPlatform', async () => {
@@ -289,6 +267,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 

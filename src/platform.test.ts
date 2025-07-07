@@ -68,7 +68,7 @@ describe('HassPlatform', () => {
 
   const mockMatterbridge = {
     matterbridgeDirectory: './jest/matterbridge',
-    matterbridgePluginDirectory: './jest/plugins',
+    matterbridgePluginDirectory: './jest/Matterbridge',
     systemInformation: {
       ipv4Address: undefined,
       ipv6Address: undefined,
