@@ -3,7 +3,7 @@
  * @file src\converters.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.0.0
+ * @version 1.0.1
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -23,12 +23,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
+  airQualitySensor,
   colorTemperatureLight,
   contactSensor,
   coverDevice,
   DeviceTypeDefinition,
   dimmableLight,
   doorLockDevice,
+  electricalSensor,
   extendedColorLight,
   fanDevice,
   humiditySensor,
@@ -63,6 +65,9 @@ import {
   OccupancySensing,
   SmokeCoAlarm,
   PowerSource,
+  ElectricalPowerMeasurement,
+  ElectricalEnergyMeasurement,
+  AirQuality,
 } from 'matterbridge/matter/clusters';
 
 import { HassState } from './homeAssistant.js';
@@ -189,6 +194,11 @@ export const hassDomainSensorsConverter: { domain: string; withStateClass: strin
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',                                        deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'atmospheric_pressure',                            deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(value) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'illuminance',                                     deviceType: lightSensor,        clusterId: IlluminanceMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value) => (isValidNumber(value) ? Math.round(Math.max(Math.min(10000 * Math.log10(value), 0xfffe), 0)) : null) },
+    { domain: 'sensor',     withStateClass: 'total_increasing', withDeviceClass: 'energy',            endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalEnergyMeasurement.Cluster.id,  attribute: 'cumulativeEnergyImported', converter: (value, unit) => (isValidNumber(value) && unit === 'kWh' ? { energy: value *1000000 }: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'power',                 endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalPowerMeasurement.Cluster.id,   attribute: 'activePower',     converter: (value, unit) => (isValidNumber(value) && unit === 'W' ? value * 1000: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'current',               endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalPowerMeasurement.Cluster.id,   attribute: 'activeCurrent',   converter: (value, unit) => (isValidNumber(value) && unit === 'A' ? value * 1000: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: 'PowerEnergy',  deviceType: electricalSensor,   clusterId: ElectricalPowerMeasurement.Cluster.id,   attribute: 'voltage',         converter: (value, unit) => (isValidNumber(value) && unit === 'V' ? value * 1000: null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'aqi',                   endpoint: 'AirQuality',   deviceType: airQualitySensor,   clusterId: AirQuality.Cluster.id,                   attribute: 'airQuality',      converter: (value, unit) => (isValidNumber(value, 0, 500) && unit === 'AQI' ? Math.round((value / 500 * 5) + 1) : null) },
   ];
 
 /** Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds */

@@ -2,7 +2,8 @@
 
 /* eslint-disable jest/no-conditional-expect */
 
-import { FanControl, Thermostat } from 'matterbridge/matter/clusters';
+import { airQualitySensor, electricalSensor, powerSource } from 'matterbridge';
+import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters';
 
 import {
   fahrenheitToCelsius,
@@ -125,14 +126,40 @@ describe('HassPlatform', () => {
   it('should verify the hassDomainSensorsConverter convertes', () => {
     hassDomainSensorsConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
-      if (converter.domain === 'sensor' && converter.withStateClass === 'measurement') {
-        expect(converter.converter(0)).not.toBe(null);
-        expect(converter.converter(undefined as unknown as number)).toBe(null);
-      }
-      if (converter.domain === 'sensor' && converter.withStateClass === 'measurement' && converter.withDeviceClass === 'temperature') {
+      if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'temperature') {
         expect(converter.converter(32, '°F')).toBe(0);
         expect(converter.converter(212, '°F')).toBe(10000);
         expect(converter.converter(-40, '°C')).toBe(-4000);
+      } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === powerSource) {
+        expect(converter.converter(32, 'mV')).toBe(32);
+        expect(converter.converter(-40, 'V')).toBe(null);
+      } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === electricalSensor) {
+        expect(converter.converter(32, 'V')).toBe(32000);
+        expect(converter.converter(212, 'mV')).toBe(null);
+      } else if (converter.withStateClass === 'total_increasing' && converter.withDeviceClass === 'energy' && converter.deviceType === electricalSensor) {
+        expect(converter.converter(32, 'kWh')).toEqual({ energy: 32000000 });
+        expect(converter.converter(212, 'Wh')).toBe(null);
+      } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'power' && converter.deviceType === electricalSensor) {
+        expect(converter.converter(32, 'W')).toBe(32000);
+        expect(converter.converter(212, 'Wh')).toBe(null);
+      } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'current' && converter.deviceType === electricalSensor) {
+        expect(converter.converter(32, 'A')).toBe(32000);
+        expect(converter.converter(212, 'Ah')).toBe(null);
+      } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'aqi' && converter.deviceType === airQualitySensor) {
+        expect(converter.converter(0, 'AQI')).toBe(AirQuality.AirQualityEnum.Good); // 1 -> 1
+        expect(converter.converter(1, 'AQI')).toBe(AirQuality.AirQualityEnum.Good); // 1 -> 1
+        expect(converter.converter(100, 'AQI')).toBe(AirQuality.AirQualityEnum.Fair); // 100 -> 2
+        expect(converter.converter(200, 'AQI')).toBe(AirQuality.AirQualityEnum.Moderate); // 200 -> 3
+        expect(converter.converter(300, 'AQI')).toBe(AirQuality.AirQualityEnum.Poor); // 300 -> 4
+        expect(converter.converter(400, 'AQI')).toBe(AirQuality.AirQualityEnum.VeryPoor); // 400 -> 5
+        expect(converter.converter(500, 'AQI')).toBe(AirQuality.AirQualityEnum.ExtremelyPoor); // 500 -> 6
+        expect(converter.converter(-1, 'AQI')).toBe(null);
+        expect(converter.converter(501, 'AQI')).toBe(null);
+        expect(converter.converter(10, 'other')).toBe(null);
+      } else if (converter.withStateClass === 'measurement') {
+        // console.warn(`Converter for ${converter.domain} with state class ${converter.withStateClass} and device class ${converter.withDeviceClass}`);
+        expect(converter.converter(0)).not.toBe(null);
+        expect(converter.converter(undefined as unknown as number)).toBe(null);
       }
     });
   });
