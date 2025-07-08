@@ -3,7 +3,7 @@
  * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @created 2024-12-08
- * @version 1.2.1
+ * @version 1.2.2
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -110,6 +110,7 @@ export class MutableDevice {
   hardwareVersionString: string;
 
   composedType: string | undefined = undefined;
+  configUrl: string | undefined = undefined;
 
   constructor(
     matterbridge: Matterbridge,
@@ -175,6 +176,11 @@ export class MutableDevice {
 
   setComposedType(composedType: string) {
     this.composedType = composedType;
+    return this;
+  }
+
+  setConfigUrl(configUrl: string) {
+    this.configUrl = configUrl;
     return this;
   }
 
@@ -641,6 +647,8 @@ export class MutableDevice {
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
       if (this.composedType) await mainDevice.endpoint.addFixedLabel('composed', this.composedType);
+      // Set the configUrl of the main endpoint
+      if (this.configUrl) mainDevice.endpoint.configUrl = this.configUrl;
       // Add the command handlers
       for (const commandHandler of mainDevice.commandHandlers) {
         mainDevice.endpoint.addCommandHandler(commandHandler.command, async (data) => {

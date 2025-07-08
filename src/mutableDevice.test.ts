@@ -202,6 +202,13 @@ describe('MutableDevice', () => {
     expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
     expect(mutableDevice.deviceName).toBe('Test Device');
     expect(mutableDevice.composedType).toBeUndefined();
+    expect(mutableDevice.configUrl).toBeUndefined();
+
+    mutableDevice.setComposedType('Hass Device');
+    expect(mutableDevice.composedType).toBe('Hass Device');
+
+    mutableDevice.setConfigUrl('http://example.com/config');
+    expect(mutableDevice.configUrl).toBe('http://example.com/config');
   });
 
   it('should throw error', async () => {
@@ -609,6 +616,7 @@ describe('MutableDevice', () => {
 
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device', '01233456789abcdef');
     mutableDevice.setComposedType('Hass Device');
+    mutableDevice.setConfigUrl('http://example.com/config');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
     mutableDevice.addCommandHandler('', 'identify', commandHandler);
     mutableDevice.addSubscribeHandler('', OnOff.Cluster.id, 'onOff', subscribeHandler);
@@ -672,6 +680,7 @@ describe('MutableDevice', () => {
     const device = await mutableDevice.create();
     expect(device).toBeDefined();
     expect(device).toBeInstanceOf(MatterbridgeEndpoint);
+    expect(device.configUrl).toBe('http://example.com/config');
     await aggregator.add(device);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
