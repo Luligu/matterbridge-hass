@@ -1,4 +1,6 @@
-// Home Assistant Real WebSocket Client Tests
+// src\homeAssistant.real.test.ts
+
+// Home Assistant Real WebSocket Client Tests on a local host
 
 import fs from 'node:fs';
 import path from 'node:path';

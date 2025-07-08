@@ -1,7 +1,12 @@
 /* eslint-disable no-console */
 
+const MATTER_PORT = 0;
+const NAME = 'Platform';
+const HOMEDIR = path.join('jest', NAME);
+
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { rmSync } from 'node:fs';
 
 import { jest } from '@jest/globals';
 import { bridgedNode, colorTemperatureLight, dimmableOutlet, Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
@@ -56,6 +61,9 @@ const readMockHomeAssistantFile = () => {
   }
 };
 
+// Cleanup the matter environment
+rmSync(HOMEDIR, { recursive: true, force: true });
+
 describe('HassPlatform', () => {
   const mockLog = {
     fatal: jest.fn((message: string, ...parameters: any[]) => {}),
@@ -67,8 +75,8 @@ describe('HassPlatform', () => {
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
-    matterbridgeDirectory: './jest/matterbridge',
-    matterbridgePluginDirectory: './jest/Matterbridge',
+    matterbridgeDirectory: HOMEDIR + '/.matterbridge',
+    matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
     systemInformation: {
       ipv4Address: undefined,
       ipv6Address: undefined,

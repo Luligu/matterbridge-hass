@@ -1,8 +1,9 @@
 // src\platform.matter.test.ts
+
 /* eslint-disable no-console */
 
 const MATTER_PORT = 6001;
-const NAME = 'Hass';
+const NAME = 'Matter';
 const HOMEDIR = path.join('jest', NAME);
 
 import { rmSync } from 'node:fs';
@@ -66,7 +67,7 @@ const mockLog = {
 } as unknown as AnsiLogger;
 
 const mockMatterbridge = {
-  matterbridgeDirectory: HOMEDIR + '/matterbridge',
+  matterbridgeDirectory: HOMEDIR + '/.matterbridge',
   matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
   systemInformation: {
     ipv4Address: undefined,
@@ -168,6 +169,7 @@ describe('Matterbridge ' + NAME, () => {
   beforeAll(async () => {
     // Cleanup the matter environment
     rmSync(HOMEDIR, { recursive: true, force: true });
+
     // Setup the matter environment
     environment.vars.set('log.level', MatterLogLevel.DEBUG);
     environment.vars.set('log.format', MatterLogFormat.ANSI);

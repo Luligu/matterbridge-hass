@@ -1,3 +1,5 @@
+// src\mutableDevice.test.ts
+
 const MATTER_PORT = 6000;
 const NAME = 'MutableDevice';
 const HOMEDIR = path.join('jest', NAME);
@@ -103,7 +105,7 @@ describe('MutableDevice', () => {
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
-    matterbridgeDirectory: HOMEDIR + '/matterbridge',
+    matterbridgeDirectory: HOMEDIR + '/.matterbridge',
     matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
     systemInformation: {
       ipv4Address: undefined,

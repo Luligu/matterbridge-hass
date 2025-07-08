@@ -1,3 +1,5 @@
+// src\homeAssistant.test.ts
+
 // Home Assistant WebSocket Client Tests
 
 /* eslint-disable jest/no-conditional-expect */
@@ -6,7 +8,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import https from 'node:https';
-import { clear } from 'node:console';
 
 import { jest } from '@jest/globals';
 import { WebSocket, WebSocketServer } from 'ws';
