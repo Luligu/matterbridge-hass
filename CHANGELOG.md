@@ -16,12 +16,12 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
-- [temperature]: Added conversion from Fahrenheit to Celsius on single entity state for domain sensor and device class temperature.
+- [temperature]: Added conversion from Fahrenheit to Celsius on single entity state for domain climate.
 
 ### Changed
 
 - [package]: Updated dependencies.
-- [storage]: Bumped `MutableDevice` to 1.2.2.
+- [storage]: Bumped `MutableDevice` to 1.2.3.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

@@ -3,7 +3,7 @@
  * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @created 2024-12-08
- * @version 1.2.2
+ * @version 1.2.3
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -135,6 +135,10 @@ export class MutableDevice {
     this.hardwareVersion = hardwareVersion ?? parseInt(this.matterbridge.systemInformation.nodeVersion.replace(/\D/g, ''));
     this.hardwareVersionString = hardwareVersionString ?? this.matterbridge.systemInformation.nodeVersion;
     this.initializeEndpoint('');
+  }
+
+  size(): number {
+    return this.mutableDevice.size;
   }
 
   has(endpoint: string): boolean {
