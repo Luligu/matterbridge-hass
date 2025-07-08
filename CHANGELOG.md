@@ -8,6 +8,25 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+## [0.1.6] - 2025-07-08
+
+### Breaking changes
+
+- [helpers]: All single entities are no more composed devices. This helps for the controllers that have issues with composed devices (i.e. Alexa).
+
+### Added
+
+- [temperature]: Added conversion from Fahrenheit to Celsius on single entity state for domain sensor and device class temperature.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [storage]: Bumped `MutableDevice` to 1.2.2.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.1.5] - 2025-07-07
 
 ### Added

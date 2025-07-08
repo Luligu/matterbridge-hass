@@ -79,10 +79,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Convert the label filter in the config from name to label_id */
   labelIdFilter: string = '';
 
-  /** Bridged devices map with key (without the postfix) device.id for devices and entity.entity_id for individual entities */
+  /** Bridged devices map. Key is device.id for devices and entity.entity_id for individual entities (without the postfix). Value is the MatterbridgeEndpoint */
   matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
 
-  /** Endpoint names remapping for entities with key entity.entity_id and value endpoint name ('' is the main endpoint) */
+  /** Endpoint names remapping for entities. Key is entity.entity_id. Value is the endpoint name ('' for the main endpoint) */
   endpointNames = new Map<string, string>();
 
   /**
@@ -279,28 +279,30 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         domain,
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
-      if (domain === 'automation') mutableDevice.composedType = `Hass Automation`;
-      else if (domain === 'scene') mutableDevice.composedType = `Hass Scene`;
-      else if (domain === 'script') mutableDevice.composedType = `Hass Script`;
-      else if (domain === 'input_boolean') mutableDevice.composedType = `Hass Boolean`;
-      else if (domain === 'input_button') mutableDevice.composedType = `Hass Button`;
-      else if (domain === 'switch') mutableDevice.composedType = `Hass Template`;
-      const matterbridgeDevice = await mutableDevice.createMainEndpoint();
-      if (domain === 'automation')
-        matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/automation/dashboard`;
-      else if (domain === 'scene')
-        matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/scene/dashboard`;
-      else if (domain === 'script')
-        matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/script/dashboard`;
-      else matterbridgeDevice.configUrl = `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`;
-      await mutableDevice.createClusters('');
 
-      // Create the child endpoint with onOffOutlet and the OnOffCluster
-      mutableDevice.addDeviceTypes(entity.entity_id, onOffOutlet);
-      mutableDevice.setFriendlyName(entity.entity_id, entityName);
-      const child = await mutableDevice.createChildEndpoint(entity.entity_id);
-      await mutableDevice.createClusters(entity.entity_id);
-      child.addCommandHandler('on', async () => {
+      // Set the composed type based on the domain
+      if (domain === 'automation') mutableDevice.setComposedType(`Hass Automation`);
+      else if (domain === 'scene') mutableDevice.setComposedType(`Hass Scene`);
+      else if (domain === 'script') mutableDevice.setComposedType(`Hass Script`);
+      else if (domain === 'input_boolean') mutableDevice.setComposedType(`Hass Boolean`);
+      else if (domain === 'input_button') mutableDevice.setComposedType(`Hass Button`);
+      else if (domain === 'switch') mutableDevice.setComposedType(`Hass Template`);
+
+      // Set the configUrl based on the domain
+      if (domain === 'automation')
+        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/automation/dashboard`);
+      else if (domain === 'scene')
+        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/scene/dashboard`);
+      else if (domain === 'script')
+        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/script/dashboard`);
+      else mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
+
+      // Add to the main endpoint onOffOutlet and the OnOffCluster
+      mutableDevice.addDeviceTypes('', onOffOutlet);
+      mutableDevice.addCommandHandler('', 'on', async (data, endpointName, command) => {
+        this.log.debug(
+          `*CommandHandler: ${command} for endpoint ${endpointName} with request ${debugStringify(data.request)}${db} on endpoint ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`,
+        );
         if (domain === 'automation') {
           await this.ha.callService(domain, 'trigger', entity.entity_id);
         } else if (domain === 'input_button') {
@@ -308,22 +310,37 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         } else {
           await this.ha.callService(domain, 'turn_on', entity.entity_id);
         }
+        // We revert the state after 500ms except for input_boolean and switch template that mantain the state
         if (domain !== 'input_boolean' && domain !== 'switch') {
-          // We revert the state after 500ms except for input_boolean and switch template
           setTimeout(() => {
-            child.setAttribute(OnOff.Cluster.id, 'onOff', false, child.log);
-          }, 500);
+            data.endpoint.setAttribute(OnOff.Cluster.id, 'onOff', false, data.endpoint.log);
+          }, 500).unref();
         }
       });
-      child.addCommandHandler('off', async () => {
+      mutableDevice.addCommandHandler('', 'off', async (data, endpointName, command) => {
+        this.log.debug(
+          `*CommandHandler: ${command} for endpoint ${endpointName} with request ${debugStringify(data.request)}${db} on endpoint ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`,
+        );
         // We don't revert only for input_boolean and switch template
         if (domain === 'input_boolean' || domain === 'switch') await this.ha.callService(domain, 'turn_off', entity.entity_id);
       });
+      mutableDevice.addSubscribeHandler(
+        '',
+        OnOff.Cluster.id,
+        'onOff',
+        (newValue: unknown, oldValue: unknown, context: ActionContext, endpointName: string, clusterId: ClusterId, attribute: string) => {
+          this.log.debug(
+            `*SubscribeHandler: local ${context.offline === true} on endpoint ${endpointName} cluster ${clusterId} attribute ${attribute} with oldValue ${oldValue} and newValue ${newValue}`,
+          );
+        },
+      );
 
-      this.log.debug(`Registering device ${dn}${entityName}${db}...`);
+      await mutableDevice.create();
       mutableDevice.logMutableDevice();
+      this.log.debug(`Registering device ${dn}${entityName}${db}...`);
       await this.registerDevice(mutableDevice.getEndpoint());
       this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
+      this.endpointNames.set(entity.entity_id, ''); // Set the endpoint name for the individual entity to the main endpoint
     } // End of individual entities scan
 
     // Scan devices and entities and create Matterbridge devices

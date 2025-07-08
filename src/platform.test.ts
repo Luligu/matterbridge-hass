@@ -770,18 +770,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
-    expect(haPlatform.matterbridgeDevices.get('scene.turn_off_all_lights')).toBeDefined();
-    await haPlatform.updateHandler('scene.turn_off_all_lights', 'scene.turn_off_all_lights', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('scene.turn_off_all_lights');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('sceneturn_off_all_lights');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -814,18 +812,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(2);
-    expect(haPlatform.matterbridgeDevices.get('script.increase_brightness')).toBeDefined();
-    await haPlatform.updateHandler('script.increase_brightness', 'script.increase_brightness', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('script.increase_brightness');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('scriptincrease_brightness');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Automation entity', async () => {
@@ -852,18 +848,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(3);
-    expect(haPlatform.matterbridgeDevices.get('automation.turn_off_all_switches')).toBeDefined();
-    await haPlatform.updateHandler('automation.turn_off_all_switches', 'automation.turn_off_all_switches', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('automation.turn_off_all_switches');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('automationturn_off_all_switches');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Boolean helper entity', async () => {
@@ -890,18 +884,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(4);
-    expect(haPlatform.matterbridgeDevices.get('input_boolean.boolean_helper')).toBeDefined();
-    await haPlatform.updateHandler('input_boolean.boolean_helper', 'input_boolean.boolean_helper', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('input_boolean.boolean_helper');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('input_booleanboolean_helper');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Button helper entity', async () => {
@@ -928,18 +920,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(5);
-    expect(haPlatform.matterbridgeDevices.get('input_button.button_helper')).toBeDefined();
-    await haPlatform.updateHandler('input_button.button_helper', 'input_button.button_helper', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('input_button.button_helper');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('input_buttonbutton_helper');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should register an Switch template entity', async () => {
@@ -966,18 +956,16 @@ describe('HassPlatform', () => {
 
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(6);
-    expect(haPlatform.matterbridgeDevices.get('switch.my_template_switch')).toBeDefined();
-    await haPlatform.updateHandler('switch.my_template_switch', 'switch.my_template_switch', { state: 'off' } as HassState, { state: 'on' } as HassState);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
-    const device = haPlatform.matterbridgeDevices.get('switch.my_template_switch');
+    const device = haPlatform.matterbridgeDevices.get(entity.entity_id);
     expect(device).toBeDefined();
     if (!device) return;
-    const child = device.getChildEndpointByName('switchmy_template_switch');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.executeCommandHandler('on', {});
-    await child.executeCommandHandler('off', {});
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
   });
 
   it('should not register a Switch device if entry_type is service', async () => {
