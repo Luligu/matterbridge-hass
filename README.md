@@ -51,6 +51,7 @@ Features:
 | sensor        | measurement           | atmospheric_pressure                 | pressureSensor      |
 | sensor        | measurement           | illuminance                          | lightSensor         |
 | sensor        | measurement           | battery                              | powerSource         |
+| sensor        | measurement           | voltage                              | powerSource         |
 | binary_sensor |                       | window, garage_door, door, vibration | contactSensor       |
 | binary_sensor |                       | motion, occupancy, presence          | occupancySensor     |
 | binary_sensor |                       | cold                                 | waterFreezeDetector |

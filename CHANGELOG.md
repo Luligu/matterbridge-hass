@@ -17,6 +17,7 @@ If you like this project and find it useful, please consider giving it a star on
 ### Added
 
 - [temperature]: Added conversion from Fahrenheit to Celsius on single entity state for domain climate.
+- [sensor]: Added domain sensor with deviceClass 'voltage' unit 'mV'. It sets the battery voltage of the Power Source cluster.
 
 ### Changed
 
