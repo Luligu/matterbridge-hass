@@ -301,7 +301,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.addDeviceTypes('', onOffOutlet);
       mutableDevice.addCommandHandler('', 'on', async (data, endpointName, command) => {
         this.log.debug(
-          `*CommandHandler: ${command} for endpoint ${endpointName} with request ${debugStringify(data.request)}${db} on endpoint ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`,
+          `*CommandHandler: ${command} for endpoint '${endpointName}' with request ${debugStringify(data.request)}${db} on endpoint id ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`,
         );
         if (domain === 'automation') {
           await this.ha.callService(domain, 'trigger', entity.entity_id);
@@ -319,7 +319,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       });
       mutableDevice.addCommandHandler('', 'off', async (data, endpointName, command) => {
         this.log.debug(
-          `*CommandHandler: ${command} for endpoint ${endpointName} with request ${debugStringify(data.request)}${db} on endpoint ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`,
+          `*CommandHandler: ${command} for endpoint '${endpointName}' with request ${debugStringify(data.request)}${db} on endpoint id ${data.endpoint.maybeId} cluster ${data.cluster} attribute ${data.attributes.onOff}`,
         );
         // We don't revert only for input_boolean and switch template
         if (domain === 'input_boolean' || domain === 'switch') await this.ha.callService(domain, 'turn_off', entity.entity_id);
@@ -330,7 +330,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         'onOff',
         (newValue: unknown, oldValue: unknown, context: ActionContext, endpointName: string, clusterId: ClusterId, attribute: string) => {
           this.log.debug(
-            `*SubscribeHandler: local ${context.offline === true} on endpoint ${endpointName} cluster ${clusterId} attribute ${attribute} with oldValue ${oldValue} and newValue ${newValue}`,
+            `*SubscribeHandler: local ${context.offline === true} on endpoint '${endpointName}' cluster ${clusterId} attribute ${attribute} with oldValue ${oldValue} and newValue ${newValue}`,
           );
         },
       );
