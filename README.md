@@ -43,22 +43,37 @@ Features:
 
 ## Supported sensors:
 
-| Domain        | Supported state class | Supported device class               | Matter device type  |
-| ------------- | --------------------- | ------------------------------------ | ------------------- |
-| sensor        | measurement           | temperature                          | temperatureSensor   |
-| sensor        | measurement           | humidity                             | humiditySensor      |
-| sensor        | measurement           | pressure                             | pressureSensor      |
-| sensor        | measurement           | atmospheric_pressure                 | pressureSensor      |
-| sensor        | measurement           | illuminance                          | lightSensor         |
-| sensor        | measurement           | battery                              | powerSource         |
-| sensor        | measurement           | voltage                              | powerSource         |
-| binary_sensor |                       | window, garage_door, door, vibration | contactSensor       |
-| binary_sensor |                       | motion, occupancy, presence          | occupancySensor     |
-| binary_sensor |                       | cold                                 | waterFreezeDetector |
-| binary_sensor |                       | moisture                             | waterLeakDetector   |
-| binary_sensor |                       | smoke                                | smokeCoAlarm        |
-| binary_sensor |                       | carbon_monoxide                      | smokeCoAlarm        |
-| binary_sensor |                       | battery                              | powerSource         |
+| Domain        | Supported state class | Supported device class               | Unit                 | Matter device type  |
+| ------------- | --------------------- | ------------------------------------ | -------------------- | ------------------- |
+| sensor        | measurement           | temperature                          | °C, °F               | temperatureSensor   |
+| sensor        | measurement           | humidity                             | %                    | humiditySensor      |
+| sensor        | measurement           | pressure                             | inHg, hPa, kPa       | pressureSensor      |
+| sensor        | measurement           | atmospheric_pressure                 | inHg, hPa, kPa       | pressureSensor      |
+| sensor        | measurement           | illuminance                          | lx                   | lightSensor         |
+| sensor        | measurement           | battery                              | %                    | powerSource         |
+| sensor        | measurement           | voltage (battery)                    | mV                   | powerSource         |
+| sensor        | measurement           | voltage                              | V                    | electricalSensor    |
+| sensor        | measurement           | current                              | A                    | electricalSensor    |
+| sensor        | measurement           | power                                | W                    | electricalSensor    |
+| sensor        | measurement           | energy                               | kWh                  | electricalSensor    |
+| sensor        | measurement           | aqi                                  | AQI (number or text) | airQualitySensor    |
+| sensor        | measurement           | volatile_organic_compounds           |                      | airQualitySensor    |
+| sensor        | measurement           | carbon_dioxide                       |                      | airQualitySensor    |
+| sensor        | measurement           | carbon_monoxide                      |                      | airQualitySensor    |
+| sensor        | measurement           | nitrogen_dioxide                     |                      | airQualitySensor    |
+| sensor        | measurement           | ozone                                |                      | airQualitySensor    |
+| sensor        | measurement           | formaldehyde                         |                      | airQualitySensor    |
+| sensor        | measurement           | radon                                |                      | airQualitySensor    |
+| sensor        | measurement           | pm1                                  |                      | airQualitySensor    |
+| sensor        | measurement           | pm25                                 |                      | airQualitySensor    |
+| sensor        | measurement           | pm10                                 |                      | airQualitySensor    |
+| binary_sensor |                       | window, garage_door, door, vibration |                      | contactSensor       |
+| binary_sensor |                       | motion, occupancy, presence          |                      | occupancySensor     |
+| binary_sensor |                       | cold                                 |                      | waterFreezeDetector |
+| binary_sensor |                       | moisture                             |                      | waterLeakDetector   |
+| binary_sensor |                       | smoke                                |                      | smokeCoAlarm        |
+| binary_sensor |                       | carbon_monoxide                      |                      | smokeCoAlarm        |
+| binary_sensor |                       | battery                              |                      | powerSource         |
 
 ## Supported individual entities:
 

@@ -8,7 +8,7 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-## [0.1.6] - 2025-07-08
+## [0.2.0] - 2025-07-09
 
 ### Breaking changes
 
@@ -16,8 +16,25 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
+- [platform]: Added the ability to merge HA entities in a single Matter device.
 - [temperature]: Added conversion from Fahrenheit to Celsius on single entity state for domain climate.
+- [pressure]: Added conversion from kPa and inHg to hPa.
 - [sensor]: Added domain sensor with deviceClass 'voltage' unit 'mV'. It sets the battery voltage of the Power Source cluster.
+- [sensor]: Added domain sensor with deviceClass 'voltage' unit 'V'. It sets the voltage of the Electrical Sensor cluster.
+- [sensor]: Added domain sensor with deviceClass 'current' unit 'A'. It sets the activeCurrent of the Electrical Sensor cluster.
+- [sensor]: Added domain sensor with deviceClass 'power' unit 'W'. It sets the activePower of the Electrical Sensor cluster.
+- [sensor]: Added domain sensor with deviceClass 'energy' unit 'kWh'. It sets the energy of the Electrical Sensor cluster.
+- [sensor]: Added domain sensor with deviceClass 'aqi' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'volatile_organic_compounds' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'carbon_dioxide' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'carbon_monoxide' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'nitrogen_dioxide' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'ozone' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'formaldehyde' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'radon' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'pm1' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'pm25' for the Air Quality clusters.
+- [sensor]: Added domain sensor with deviceClass 'pm10' for the Air Quality clusters.
 
 ### Changed
 

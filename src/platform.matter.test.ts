@@ -287,7 +287,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 
-  it('should call onStart and register an Air Quality Sensor device', async () => {
+  it('should call onStart and register an Air Quality Sensor device with numeric state', async () => {
     const airQualitySensorDevice = {
       area_id: null,
       disabled_by: null,
@@ -349,6 +349,105 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassDevices.delete(airQualitySensorDevice.id);
     haPlatform.ha.hassEntities.delete(airQualitySensorEntity.entity_id);
     haPlatform.ha.hassStates.delete(airQualitySensorEntityState.entity_id);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.ha.hassDevices.size).toBe(0);
+    expect(haPlatform.ha.hassEntities.size).toBe(0);
+    expect(haPlatform.ha.hassStates.size).toBe(0);
+
+    await device.delete();
+    expect(aggregator.parts.has(device)).toBeFalsy();
+    expect(aggregator.parts.has(device.id)).toBeFalsy();
+  });
+
+  it('should call onStart and register an Air Quality Sensor device with text state', async () => {
+    const airQualitySensorEnumDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: 'Air Quality Sensor Enum',
+      name_by_user: null,
+    } as unknown as HassDevice;
+    const airQualitySensorEnumEntity = {
+      area_id: null,
+      device_id: airQualitySensorEnumDevice.id,
+      entity_category: null,
+      entity_id: 'sensor.air_quality_sensor_enum',
+      has_entity_name: true,
+      id: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+      labels: [],
+      name: null,
+      original_name: 'Air Quality Sensor Enum',
+    } as unknown as HassEntity;
+    const airQualitySensorEnumEntityState = {
+      entity_id: airQualitySensorEnumEntity.entity_id,
+      state: 'moderate', // Text/enum state instead of numeric
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'aqi',
+        friendly_name: 'Air Quality Sensor Enum',
+        // Note: no unit_of_measurement for enum states
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(airQualitySensorEnumDevice.id, airQualitySensorEnumDevice);
+    haPlatform.ha.hassEntities.set(airQualitySensorEnumEntity.entity_id, airQualitySensorEnumEntity);
+    haPlatform.ha.hassStates.set(airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName('AirQuality');
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    await haPlatform.onConfigure();
+
+    expect(child.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+
+    /*
+    // With enum 'moderate', it should map to AirQuality.AirQualityEnum.Moderate
+    expect(child.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+
+    // Test different enum values
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'good',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Good, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'unhealthy',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+      ...airQualitySensorEnumEntityState,
+      state: 'hazardous',
+    });
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
+    */
+
+    haPlatform.matterbridgeDevices.delete(airQualitySensorEnumDevice.id);
+    haPlatform.ha.hassDevices.delete(airQualitySensorEnumDevice.id);
+    haPlatform.ha.hassEntities.delete(airQualitySensorEnumEntity.entity_id);
+    haPlatform.ha.hassStates.delete(airQualitySensorEnumEntityState.entity_id);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
     expect(haPlatform.ha.hassDevices.size).toBe(0);
     expect(haPlatform.ha.hassEntities.size).toBe(0);

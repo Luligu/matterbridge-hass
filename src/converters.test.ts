@@ -2,11 +2,11 @@
 
 /* eslint-disable jest/no-conditional-expect */
 
-import { airQualitySensor, electricalSensor, powerSource } from 'matterbridge';
+import { airQualitySensor, electricalSensor, powerSource, pressureSensor } from 'matterbridge';
 import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters';
 
 import {
-  fahrenheitToCelsius,
+  temp,
   hassCommandConverter,
   hassDomainAttributeConverter,
   hassDomainBinarySensorsConverter,
@@ -20,10 +20,10 @@ import { HassState } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
   it('should convert fahrenheit to Celsius', () => {
-    expect(fahrenheitToCelsius(32)).toBe(0);
-    expect(fahrenheitToCelsius(212)).toBe(100);
-    expect(fahrenheitToCelsius(-40)).toBe(-40);
-    expect(fahrenheitToCelsius(-148)).toBe(-100);
+    expect(temp(32)).toBe(32);
+    expect(temp(212, '°F')).toBe(100);
+    expect(temp(-40)).toBe(-40);
+    expect(temp(-148, '°F')).toBe(-100);
   });
 
   it('should verify the hassUpdateStateConverter converter', () => {
@@ -130,6 +130,12 @@ describe('HassPlatform', () => {
         expect(converter.converter(32, '°F')).toBe(0);
         expect(converter.converter(212, '°F')).toBe(10000);
         expect(converter.converter(-40, '°C')).toBe(-4000);
+      } else if (converter.withStateClass === 'measurement' && converter.deviceType === pressureSensor) {
+        expect(converter.converter(900, 'hPa')).toBe(900);
+        expect(converter.converter(90, 'kPa')).toBe(900);
+        expect(converter.converter(29.4, 'inHg')).toBe(996);
+        expect(converter.converter(29.4)).toBe(null);
+        expect(converter.converter(0, 'inHg')).toBe(null);
       } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === powerSource) {
         expect(converter.converter(32, 'mV')).toBe(32);
         expect(converter.converter(-40, 'V')).toBe(null);
@@ -146,6 +152,7 @@ describe('HassPlatform', () => {
         expect(converter.converter(32, 'A')).toBe(32000);
         expect(converter.converter(212, 'Ah')).toBe(null);
       } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'aqi' && converter.deviceType === airQualitySensor) {
+        // Test numeric AQI values
         expect(converter.converter(0, 'AQI')).toBe(AirQuality.AirQualityEnum.Good); // 1 -> 1
         expect(converter.converter(1, 'AQI')).toBe(AirQuality.AirQualityEnum.Good); // 1 -> 1
         expect(converter.converter(100, 'AQI')).toBe(AirQuality.AirQualityEnum.Fair); // 100 -> 2
@@ -156,6 +163,21 @@ describe('HassPlatform', () => {
         expect(converter.converter(-1, 'AQI')).toBe(null);
         expect(converter.converter(501, 'AQI')).toBe(null);
         expect(converter.converter(10, 'other')).toBe(null);
+
+        // Test enum/text AQI values
+        expect(converter.converter('healthy')).toBe(AirQuality.AirQualityEnum.Good);
+        expect(converter.converter('fine')).toBe(AirQuality.AirQualityEnum.Good);
+        expect(converter.converter('good')).toBe(AirQuality.AirQualityEnum.Good);
+        expect(converter.converter('fair')).toBe(AirQuality.AirQualityEnum.Fair);
+        expect(converter.converter('moderate')).toBe(AirQuality.AirQualityEnum.Moderate);
+        expect(converter.converter('poor')).toBe(AirQuality.AirQualityEnum.Poor);
+        expect(converter.converter('unhealthy_for_sensitive_groups')).toBe(AirQuality.AirQualityEnum.Poor);
+        expect(converter.converter('unhealthy')).toBe(AirQuality.AirQualityEnum.VeryPoor);
+        expect(converter.converter('very_unhealthy')).toBe(AirQuality.AirQualityEnum.ExtremelyPoor);
+        expect(converter.converter('hazardous')).toBe(AirQuality.AirQualityEnum.ExtremelyPoor);
+        expect(converter.converter('GOOD')).toBe(AirQuality.AirQualityEnum.Good); // Test case insensitive
+        expect(converter.converter('unknown')).toBe(null);
+        expect(converter.converter('invalid')).toBe(null);
       } else if (converter.withStateClass === 'measurement') {
         // console.warn(`Converter for ${converter.domain} with state class ${converter.withStateClass} and device class ${converter.withDeviceClass}`);
         expect(converter.converter(0)).not.toBe(null);
