@@ -57,16 +57,16 @@ Features:
 | sensor        | measurement           | power                                | W                    | electricalSensor    |
 | sensor        | measurement           | energy                               | kWh                  | electricalSensor    |
 | sensor        | measurement           | aqi (1)                              | AQI (number or text) | airQualitySensor    |
-| sensor        | measurement           | volatile_organic_compounds           |                      | airQualitySensor    |
-| sensor        | measurement           | carbon_dioxide                       |                      | airQualitySensor    |
-| sensor        | measurement           | carbon_monoxide                      |                      | airQualitySensor    |
-| sensor        | measurement           | nitrogen_dioxide                     |                      | airQualitySensor    |
-| sensor        | measurement           | ozone                                |                      | airQualitySensor    |
-| sensor        | measurement           | formaldehyde                         |                      | airQualitySensor    |
-| sensor        | measurement           | radon                                |                      | airQualitySensor    |
-| sensor        | measurement           | pm1                                  |                      | airQualitySensor    |
-| sensor        | measurement           | pm25                                 |                      | airQualitySensor    |
-| sensor        | measurement           | pm10                                 |                      | airQualitySensor    |
+| sensor        | measurement           | volatile_organic_compounds           | ppm (2)              | airQualitySensor    |
+| sensor        | measurement           | carbon_dioxide                       | ppm (2)              | airQualitySensor    |
+| sensor        | measurement           | carbon_monoxide                      | ppm (2)              | airQualitySensor    |
+| sensor        | measurement           | nitrogen_dioxide                     | ugm3 (2)             | airQualitySensor    |
+| sensor        | measurement           | ozone                                | ugm3 (2)             | airQualitySensor    |
+| sensor        | measurement           | formaldehyde                         | ppm (2)              | airQualitySensor    |
+| sensor        | measurement           | radon                                | ppm (2)              | airQualitySensor    |
+| sensor        | measurement           | pm1                                  | ppm (2)              | airQualitySensor    |
+| sensor        | measurement           | pm25                                 | ppm (2)              | airQualitySensor    |
+| sensor        | measurement           | pm10                                 | ppm (2)              | airQualitySensor    |
 | binary_sensor |                       | window, garage_door, door, vibration |                      | contactSensor       |
 | binary_sensor |                       | motion, occupancy, presence          |                      | occupancySensor     |
 | binary_sensor |                       | cold                                 |                      | waterFreezeDetector |
@@ -76,6 +76,7 @@ Features:
 | binary_sensor |                       | battery                              |                      | powerSource         |
 
 (1) - If the air quality entity is not standard (e.g. device class = aqi and unit AQI number or text), it is possible to set a regexp. See below.
+(2) - On the controller side.
 
 ## Supported individual entities:
 
