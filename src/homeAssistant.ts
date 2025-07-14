@@ -413,6 +413,7 @@ export class HomeAssistant extends EventEmitter {
   hassLabels = new Map<string, HassLabel>();
   hassServices: HassServices | null = null;
   hassConfig: HassConfig | null = null;
+  static hassConfig: HassConfig | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
   private pingTimeout: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -614,6 +615,7 @@ export class HomeAssistant extends EventEmitter {
           const config = data as HassConfig;
           this.log.debug(`Received config.`);
           this.hassConfig = config;
+          HomeAssistant.hassConfig = this.hassConfig;
           this.emit('config', config);
         } else if (fetchId === 'config/device_registry/list') {
           const devices = data as HassDevice[];
@@ -878,6 +880,7 @@ export class HomeAssistant extends EventEmitter {
       this.log.debug('Fetching initial data from Home Assistant...');
 
       this.hassConfig = (await this.fetch('get_config')) as HassConfig;
+      HomeAssistant.hassConfig = this.hassConfig;
       this.log.debug('Received config.');
       this.emit('config', this.hassConfig);
 

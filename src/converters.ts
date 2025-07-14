@@ -80,7 +80,7 @@ import {
   RadonConcentrationMeasurement,
 } from 'matterbridge/matter/clusters';
 
-import { HassState } from './homeAssistant.js';
+import { HassState, HomeAssistant } from './homeAssistant.js';
 
 /**
  * Convert Fahrenheit to Celsius
@@ -91,7 +91,7 @@ import { HassState } from './homeAssistant.js';
  */
 export function temp(value: number, unit?: string): number {
   if (unit === '°F') return ((value - 32) * 5) / 9;
-  return value; // If no unit is provided, return the value as is
+  return value; // If no unit is provided or it is not '°F', return the value as is
 }
 
 /**
@@ -217,12 +217,12 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     // Matter WindowCovering: 0 = open 10000 = closed
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
-  
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? value * 100 : null) },
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? value * 100 : null) },
-    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? value * 100 : null) },
-    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? value * 100 : null) },
-    { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? value * 100 : null) },
+
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+    { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
   ];
 
 /**
