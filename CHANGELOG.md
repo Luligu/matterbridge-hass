@@ -35,7 +35,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [sensor]: Added domain sensor with deviceClass 'pm1' for the Air Quality clusters.
 - [sensor]: Added domain sensor with deviceClass 'pm25' for the Air Quality clusters.
 - [sensor]: Added domain sensor with deviceClass 'pm10' for the Air Quality clusters.
-- [airquality]: Added
+- [airquality]: Added airQualityRegex to the config to match not standard air quality sensors entities (e.g., '^sensor\..\*\_air_quality$'). See the README.md.
 
 ### Changed
 
