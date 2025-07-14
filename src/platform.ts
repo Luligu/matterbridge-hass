@@ -43,11 +43,12 @@ import {
   powerSource,
   PrimitiveTypes,
   electricalSensor,
+  airQualitySensor,
 } from 'matterbridge';
 import { ActionContext } from 'matterbridge/matter';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
 import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
-import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource } from 'matterbridge/matter/clusters';
+import { OnOff, BridgedDeviceBasicInformation, SmokeCoAlarm, PowerSource, AirQuality } from 'matterbridge/matter/clusters';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
@@ -86,6 +87,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Endpoint names remapping for entities. Key is entity.entity_id. Value is the endpoint name ('' for the main endpoint) */
   endpointNames = new Map<string, string>();
 
+  /** Regex to match air quality sensors. It matches all domain sensor (sensor\.) with names ending in _air_quality */
+  airQualityRegex: RegExp | undefined;
+
   /**
    * Constructor for the HomeAssistantPlatform class.
    * It initializes the platform, verifies the Matterbridge version, and sets up the Home Assistant connection.
@@ -118,6 +122,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
     if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
     if (config.individualEntityBlackList) delete config.individualEntityBlackList;
+
+    // Initialize air quality regex from config or use default
+    this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex as string | undefined);
 
     this.ha = new HomeAssistant(
       config.host,
@@ -452,6 +459,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             });
         }
 
+        // Look for air_quality entity using airqualityRegex
+        if (this.airQualityRegex && this.airQualityRegex.test(entity.entity_id)) {
+          this.log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found for device ${CYAN}${device.name}${db}`);
+          this.endpointNames.set(entity.entity_id, 'AirQuality'); // Set the endpoint name for the entity
+          mutableDevice.addDeviceTypes('AirQuality', airQualitySensor); // Add the air quality sensor device type
+          mutableDevice.addClusterServerIds('AirQuality', AirQuality.Cluster.id); // Add the AirQuality cluster
+          if (isValidString(hassState.attributes['friendly_name'])) mutableDevice.setFriendlyName('AirQuality', hassState.attributes['friendly_name']); // Set the friendly name for the air quality sensor
+        }
+
         // Look for supported sensors of the current entity
         hassDomainSensorsConverter
           .filter((d) => d.domain === domain)
@@ -755,6 +771,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // No update for individual entities (automation, scene, script) only for input_boolean that maintains the state
       return;
     } else if (domain === 'sensor') {
+      // Convert to the airquality sensor if the entity is an air quality sensor with regex
+      if (this.airQualityRegex && this.airQualityRegex.test(entityId)) {
+        new_state.attributes['state_class'] = 'measurement';
+        new_state.attributes['device_class'] = 'aqi';
+      }
       // Update sensors of the device
       const hassSensorConverter =
         new_state.attributes['device_class'] === 'voltage' && new_state.attributes['unit_of_measurement'] === 'V'
@@ -876,5 +897,26 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (labels.includes(this.labelIdFilter)) labelMatch = true;
     }
     return areaMatch && labelMatch;
+  }
+
+  /**
+   * Create a RegExp from a config string with error handling
+   *
+   * @param {string | undefined} regexString - The regex pattern string from config
+   * @returns {RegExp | undefined} - Valid RegExp object
+   */
+  private createRegexFromConfig(regexString: string | undefined): RegExp | undefined {
+    if (!isValidString(regexString, 1)) {
+      this.log.debug(`No valid custom regex provided`);
+      return undefined; // Return undefined if no regex is provided or if it is an empty string
+    }
+    try {
+      const customRegex = new RegExp(regexString);
+      this.log.info(`Using air quality regex: ${CYAN}${regexString}${nf}`);
+      return customRegex;
+    } catch (error) {
+      this.log.warn(`Invalid regex pattern "${regexString}": ${error}`);
+      return undefined;
+    }
   }
 }

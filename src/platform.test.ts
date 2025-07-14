@@ -61,7 +61,7 @@ const readMockHomeAssistantFile = () => {
   }
 };
 
-// Cleanup the matter environment
+// Cleanup the test environment
 rmSync(HOMEDIR, { recursive: true, force: true });
 
 describe('HassPlatform', () => {
@@ -83,14 +83,10 @@ describe('HassPlatform', () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.1.0',
     log: mockLog,
-    getDevices: jest.fn(() => {
-      return [];
-    }),
-    getPlugins: jest.fn(() => {
-      return [];
-    }),
+    matterbridgeVersion: '3.1.0',
+    getDevices: jest.fn(() => []),
+    getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),

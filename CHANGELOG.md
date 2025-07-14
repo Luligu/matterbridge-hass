@@ -8,7 +8,7 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-## [0.2.0] - 2025-07-09
+## [0.2.0] - 2025-07-14
 
 ### Breaking changes
 
@@ -35,6 +35,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [sensor]: Added domain sensor with deviceClass 'pm1' for the Air Quality clusters.
 - [sensor]: Added domain sensor with deviceClass 'pm25' for the Air Quality clusters.
 - [sensor]: Added domain sensor with deviceClass 'pm10' for the Air Quality clusters.
+- [airquality]: Added
 
 ### Changed
 

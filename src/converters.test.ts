@@ -173,8 +173,10 @@ describe('HassPlatform', () => {
         expect(converter.converter('poor')).toBe(AirQuality.AirQualityEnum.Poor);
         expect(converter.converter('unhealthy_for_sensitive_groups')).toBe(AirQuality.AirQualityEnum.Poor);
         expect(converter.converter('unhealthy')).toBe(AirQuality.AirQualityEnum.VeryPoor);
+        expect(converter.converter('very_poor')).toBe(AirQuality.AirQualityEnum.VeryPoor);
         expect(converter.converter('very_unhealthy')).toBe(AirQuality.AirQualityEnum.ExtremelyPoor);
         expect(converter.converter('hazardous')).toBe(AirQuality.AirQualityEnum.ExtremelyPoor);
+        expect(converter.converter('extremely_poor')).toBe(AirQuality.AirQualityEnum.ExtremelyPoor);
         expect(converter.converter('GOOD')).toBe(AirQuality.AirQualityEnum.Good); // Test case insensitive
         expect(converter.converter('unknown')).toBe(null);
         expect(converter.converter('invalid')).toBe(null);

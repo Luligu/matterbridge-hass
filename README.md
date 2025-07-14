@@ -56,7 +56,7 @@ Features:
 | sensor        | measurement           | current                              | A                    | electricalSensor    |
 | sensor        | measurement           | power                                | W                    | electricalSensor    |
 | sensor        | measurement           | energy                               | kWh                  | electricalSensor    |
-| sensor        | measurement           | aqi                                  | AQI (number or text) | airQualitySensor    |
+| sensor        | measurement           | aqi (1)                              | AQI (number or text) | airQualitySensor    |
 | sensor        | measurement           | volatile_organic_compounds           |                      | airQualitySensor    |
 | sensor        | measurement           | carbon_dioxide                       |                      | airQualitySensor    |
 | sensor        | measurement           | carbon_monoxide                      |                      | airQualitySensor    |
@@ -74,6 +74,8 @@ Features:
 | binary_sensor |                       | smoke                                |                      | smokeCoAlarm        |
 | binary_sensor |                       | carbon_monoxide                      |                      | smokeCoAlarm        |
 | binary_sensor |                       | battery                              |                      | powerSource         |
+
+(1) - If the air quality entity is not standard (e.g. device class = aqi and unit AQI number or text), it is possible to set a regexp. See below.
 
 ## Supported individual entities:
 
@@ -209,6 +211,19 @@ If the blackList is defined the devices and the individual entities included wil
 ### deviceEntityBlackList
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
+
+### airQualityRegex
+
+Custom regex pattern to match air quality sensors that don't follow the standard naming convention.
+
+**Examples:**
+
+- For sensor entities ending with `_air_quality`: `^sensor\..*_air_quality$`
+- For sensor entities containing `air_quality` anywhere: `^sensor\..*air_quality.*$`
+- For a single specific entity: `sensor.air_quality_sensor` (exact entity ID)
+- For two specific entities: `^(sensor\.kitchen_air_quality|sensor\.living_room_aqi)$`
+
+If your setup has only one air quality sensor, you can simply put the exact entity ID here (e.g., `sensor.air_quality_sensor`) and it will match that specific entity.
 
 ### debug
 

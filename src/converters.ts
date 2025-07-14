@@ -134,7 +134,9 @@ export function aqi(value: number | string, unit?: string): number | null {
     if (value === 'moderate') return AirQuality.AirQualityEnum.Moderate;
     if (value === 'poor') return AirQuality.AirQualityEnum.Poor;
     if (value === 'unhealthy_for_sensitive_groups') return AirQuality.AirQualityEnum.Poor;
+    if (value === 'very_poor') return AirQuality.AirQualityEnum.VeryPoor;
     if (value === 'unhealthy') return AirQuality.AirQualityEnum.VeryPoor;
+    if (value === 'extremely_poor') return AirQuality.AirQualityEnum.ExtremelyPoor;
     if (value === 'very_unhealthy') return AirQuality.AirQualityEnum.ExtremelyPoor;
     if (value === 'hazardous') return AirQuality.AirQualityEnum.ExtremelyPoor;
     return null;

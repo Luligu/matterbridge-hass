@@ -39,7 +39,7 @@ if (!debug) {
   consoleErrorSpy = jest.spyOn(console, 'error');
 }
 
-// Cleanup the matter environment
+// Cleanup the test environment
 rmSync(HOMEDIR, { recursive: true, force: true });
 
 describe('initializePlugin', () => {
@@ -71,12 +71,8 @@ describe('initializePlugin', () => {
     },
     matterbridgeVersion: '3.1.0',
     log: mockLog,
-    getDevices: jest.fn(() => {
-      return [];
-    }),
-    getPlugins: jest.fn(() => {
-      return [];
-    }),
+    getDevices: jest.fn(() => []),
+    getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),

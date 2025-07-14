@@ -110,6 +110,11 @@
       "type": "string",
       "default": ""
     },
+    "airQualityRegex": {
+      "description": "Custom regex pattern to match not standard air quality sensors entities (e.g., '^sensor\\..*_air_quality$').",
+      "type": "string",
+      "default": "^sensor\\..*_air_quality$"
+    },
     "debug": {
       "description": "Enable the debug for the plugin (development only)",
       "type": "boolean",
