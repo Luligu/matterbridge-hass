@@ -16,7 +16,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
-- [airquality]: Refactor airQualityRegex to allow conversion from number in the range 0-500 and strings like 'good', 'fair' etc.
+- [airquality]: Refactor airQuality converter to allow conversion from number in the range 0-500 and strings like 'good', 'fair' etc.
 
 ### Changed
 
