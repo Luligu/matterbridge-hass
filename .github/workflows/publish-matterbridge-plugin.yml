@@ -61,3 +61,15 @@ jobs:
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Trigger Matterbridge Docker Build Main
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'Luligu',
+              repo: 'matterbridge',
+              workflow_id: 'docker-buildx-main.yml',
+              ref: 'main'
+            })

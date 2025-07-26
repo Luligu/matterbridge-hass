@@ -17,7 +17,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: dev
-          fetch-depth: 0
 
       - name: Set up Node.js & registry
         uses: actions/setup-node@v4
@@ -66,7 +65,7 @@ jobs:
           echo "DEV_TAG=$DEV_TAG" >> $GITHUB_ENV
           echo "ORIG_SHA=$SHA"    >> $GITHUB_ENV
 
-      - name: Bump to date-stamped dev version (no git tag)
+      - name: Bump to date-commit-stamped version --no-git-tag-version tag ${{ env.DEV_TAG }} sha ${{ env.ORIG_SHA }}
         run: npm version "${{ env.DEV_TAG }}" --no-git-tag-version
 
       - name: Check if a new dev-publish is needed
@@ -95,9 +94,11 @@ jobs:
 
           if [ "$PUBLISHED_SHA" = "$CURRENT_SHA" ]; then
             # nothing new → skip
+            echo "✅ No new commits since last dev publish - skipping"
             echo "should_publish=false" >> $GITHUB_OUTPUT
           else
             # new commit → proceed
+            echo "🚀 New commits detected - proceeding with dev publish"
             echo "should_publish=true"  >> $GITHUB_OUTPUT
           fi
 
@@ -106,3 +107,16 @@ jobs:
         run: npm publish --tag dev
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Trigger Matterbridge Docker Build Dev
+        if: steps.check_new.outputs.should_publish  == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.PAT_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'Luligu',
+              repo: 'matterbridge',
+              workflow_id: 'docker-buildx-dev.yml',
+              ref: 'dev'
+            })

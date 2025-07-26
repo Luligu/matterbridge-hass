@@ -162,9 +162,10 @@ describe('HassPlatform', () => {
         expect(converter.converter(500, 'AQI')).toBe(AirQuality.AirQualityEnum.ExtremelyPoor); // 500 -> 6
         expect(converter.converter(-1, 'AQI')).toBe(null);
         expect(converter.converter(501, 'AQI')).toBe(null);
-        expect(converter.converter(10, 'other')).toBe(null);
+        expect(converter.converter(10, 'other')).toBe(AirQuality.AirQualityEnum.Good);
 
         // Test enum/text AQI values
+        expect(converter.converter('excellent')).toBe(AirQuality.AirQualityEnum.Good);
         expect(converter.converter('healthy')).toBe(AirQuality.AirQualityEnum.Good);
         expect(converter.converter('fine')).toBe(AirQuality.AirQualityEnum.Good);
         expect(converter.converter('good')).toBe(AirQuality.AirQualityEnum.Good);

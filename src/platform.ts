@@ -775,6 +775,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (this.airQualityRegex && this.airQualityRegex.test(entityId)) {
         new_state.attributes['state_class'] = 'measurement';
         new_state.attributes['device_class'] = 'aqi';
+        this.log.debug(`***Converting entity ${CYAN}${entityId}${db} to air quality sensor`);
       }
       // Update sensors of the device
       const hassSensorConverter =

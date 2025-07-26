@@ -121,12 +121,14 @@ export function pressure(value: number, unit?: string): number | null {
  * If the value is a number, it will be checked against AQI ranges.
  *
  * @param {number | string} value - AQI value or string representation of AQI level
- * @param {string} unit - Unit of measurement, expected to be 'AQI'
+ * @param {string} _unit - Unit of measurement, expected to be 'AQI'
  * @returns {number | null} Corresponding AirQuality enum value or null if invalid
  */
-export function aqi(value: number | string, unit?: string): number | null {
+export function aqi(value: number | string, _unit?: string): number | null {
+  // console.log(`Converting AQI value(${typeof value}): ${value} with unit: ${unit}`);
   if (typeof value === 'string') {
     value = value.toLowerCase();
+    if (value === 'excellent') return AirQuality.AirQualityEnum.Good;
     if (value === 'healthy') return AirQuality.AirQualityEnum.Good;
     if (value === 'fine') return AirQuality.AirQualityEnum.Good;
     if (value === 'good') return AirQuality.AirQualityEnum.Good;
@@ -141,7 +143,7 @@ export function aqi(value: number | string, unit?: string): number | null {
     if (value === 'hazardous') return AirQuality.AirQualityEnum.ExtremelyPoor;
     return null;
   }
-  if (isValidNumber(value, 0, 500) && unit === 'AQI') {
+  if (isValidNumber(value, 0, 500)) {
     return Math.round(((value as number) / 500) * 5 + 1);
   }
   return null;

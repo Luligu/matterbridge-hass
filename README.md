@@ -43,39 +43,39 @@ Features:
 
 ## Supported sensors:
 
-| Domain        | Supported state class | Supported device class               | Unit                 | Matter device type  |
-| ------------- | --------------------- | ------------------------------------ | -------------------- | ------------------- |
-| sensor        | measurement           | temperature                          | °C, °F               | temperatureSensor   |
-| sensor        | measurement           | humidity                             | %                    | humiditySensor      |
-| sensor        | measurement           | pressure                             | inHg, hPa, kPa       | pressureSensor      |
-| sensor        | measurement           | atmospheric_pressure                 | inHg, hPa, kPa       | pressureSensor      |
-| sensor        | measurement           | illuminance                          | lx                   | lightSensor         |
-| sensor        | measurement           | battery                              | %                    | powerSource         |
-| sensor        | measurement           | voltage (battery)                    | mV                   | powerSource         |
-| sensor        | measurement           | voltage                              | V                    | electricalSensor    |
-| sensor        | measurement           | current                              | A                    | electricalSensor    |
-| sensor        | measurement           | power                                | W                    | electricalSensor    |
-| sensor        | measurement           | energy                               | kWh                  | electricalSensor    |
-| sensor        | measurement           | aqi (1)                              | AQI (number or text) | airQualitySensor    |
-| sensor        | measurement           | volatile_organic_compounds           | ppm (2)              | airQualitySensor    |
-| sensor        | measurement           | carbon_dioxide                       | ppm (2)              | airQualitySensor    |
-| sensor        | measurement           | carbon_monoxide                      | ppm (2)              | airQualitySensor    |
-| sensor        | measurement           | nitrogen_dioxide                     | ugm3 (2)             | airQualitySensor    |
-| sensor        | measurement           | ozone                                | ugm3 (2)             | airQualitySensor    |
-| sensor        | measurement           | formaldehyde                         | ppm (2)              | airQualitySensor    |
-| sensor        | measurement           | radon                                | ppm (2)              | airQualitySensor    |
-| sensor        | measurement           | pm1                                  | ppm (2)              | airQualitySensor    |
-| sensor        | measurement           | pm25                                 | ppm (2)              | airQualitySensor    |
-| sensor        | measurement           | pm10                                 | ppm (2)              | airQualitySensor    |
-| binary_sensor |                       | window, garage_door, door, vibration |                      | contactSensor       |
-| binary_sensor |                       | motion, occupancy, presence          |                      | occupancySensor     |
-| binary_sensor |                       | cold                                 |                      | waterFreezeDetector |
-| binary_sensor |                       | moisture                             |                      | waterLeakDetector   |
-| binary_sensor |                       | smoke                                |                      | smokeCoAlarm        |
-| binary_sensor |                       | carbon_monoxide                      |                      | smokeCoAlarm        |
-| binary_sensor |                       | battery                              |                      | powerSource         |
+| Domain        | Supported state class | Supported device class               | Unit           | Matter device type  |
+| ------------- | --------------------- | ------------------------------------ | -------------- | ------------------- |
+| sensor        | measurement           | temperature                          | °C, °F         | temperatureSensor   |
+| sensor        | measurement           | humidity                             | %              | humiditySensor      |
+| sensor        | measurement           | pressure                             | inHg, hPa, kPa | pressureSensor      |
+| sensor        | measurement           | atmospheric_pressure                 | inHg, hPa, kPa | pressureSensor      |
+| sensor        | measurement           | illuminance                          | lx             | lightSensor         |
+| sensor        | measurement           | battery                              | %              | powerSource         |
+| sensor        | measurement           | voltage (battery)                    | mV             | powerSource         |
+| sensor        | measurement           | voltage                              | V              | electricalSensor    |
+| sensor        | measurement           | current                              | A              | electricalSensor    |
+| sensor        | measurement           | power                                | W              | electricalSensor    |
+| sensor        | measurement           | energy                               | kWh            | electricalSensor    |
+| sensor        | measurement           | aqi (1)                              |                | airQualitySensor    |
+| sensor        | measurement           | volatile_organic_compounds           | ppm (2)        | airQualitySensor    |
+| sensor        | measurement           | carbon_dioxide                       | ppm (2)        | airQualitySensor    |
+| sensor        | measurement           | carbon_monoxide                      | ppm (2)        | airQualitySensor    |
+| sensor        | measurement           | nitrogen_dioxide                     | ugm3 (2)       | airQualitySensor    |
+| sensor        | measurement           | ozone                                | ugm3 (2)       | airQualitySensor    |
+| sensor        | measurement           | formaldehyde                         | ppm (2)        | airQualitySensor    |
+| sensor        | measurement           | radon                                | ppm (2)        | airQualitySensor    |
+| sensor        | measurement           | pm1                                  | ppm (2)        | airQualitySensor    |
+| sensor        | measurement           | pm25                                 | ppm (2)        | airQualitySensor    |
+| sensor        | measurement           | pm10                                 | ppm (2)        | airQualitySensor    |
+| binary_sensor |                       | window, garage_door, door, vibration |                | contactSensor       |
+| binary_sensor |                       | motion, occupancy, presence          |                | occupancySensor     |
+| binary_sensor |                       | cold                                 |                | waterFreezeDetector |
+| binary_sensor |                       | moisture                             |                | waterLeakDetector   |
+| binary_sensor |                       | smoke                                |                | smokeCoAlarm        |
+| binary_sensor |                       | carbon_monoxide                      |                | smokeCoAlarm        |
+| binary_sensor |                       | battery                              |                | powerSource         |
 
-(1) - If the air quality entity is not standard (e.g. device class = aqi and unit AQI number or text), it is possible to set a regexp. See below.
+(1) - If the air quality entity is not standard (e.g. state class = measurement, device class = aqi and state number range 0-500), it is possible to set a regexp. See below.
 (2) - On the controller side.
 
 ## Supported individual entities:
@@ -219,10 +219,10 @@ Custom regex pattern to match air quality sensors that don't follow the standard
 
 **Examples:**
 
-- For sensor entities ending with `_air_quality`: `^sensor\..*_air_quality$`
-- For sensor entities containing `air_quality` anywhere: `^sensor\..*air_quality.*$`
-- For a single specific entity: `sensor.air_quality_sensor` (exact entity ID)
-- For two specific entities: `^(sensor\.kitchen_air_quality|sensor\.living_room_aqi)$`
+- For sensor entities ending with `_air_quality`: `^sensor\..*_air_quality$`.
+- For sensor entities containing `air_quality` anywhere: `^sensor\..*air_quality.*$`.
+- For a single specific entity: `sensor.air_quality_sensor` (exact entity ID).
+- For two specific entities: `^(sensor\.kitchen_air_quality|sensor\.living_room_aqi)$`.
 
 If your setup has only one air quality sensor, you can simply put the exact entity ID here (e.g., `sensor.air_quality_sensor`) and it will match that specific entity.
 
