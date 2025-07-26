@@ -12,11 +12,11 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Breaking changes
 
-- [helpers]: All single entities are no more composed devices. This helps for the controllers that have issues with composed devices (i.e. Alexa).
+- [helpers]: All single entities are no more composed devices. This helps the controllers that have issues with composed devices (i.e. Alexa).
 
 ### Added
 
-- [airquality]: Refactor airQuality converter to allow conversion from number in the range 0-500 and strings like 'good', 'fair' etc.
+- [airquality]: Refactor the airQuality converter to allow conversion from numbers in the range 0-500 and strings like 'good', 'fair' etc.
 
 ### Changed
 
@@ -30,7 +30,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Breaking changes
 
-- [helpers]: All single entities are no more composed devices. This helps for the controllers that have issues with composed devices (i.e. Alexa).
+- [helpers]: All single entities are no more composed devices. This helps the controllers that have issues with composed devices (i.e. Alexa).
 
 ### Added
 
