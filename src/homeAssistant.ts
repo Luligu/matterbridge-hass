@@ -177,10 +177,12 @@ export interface HassStateLightAttributes {
  * Interface representing the attributes of a Home Assistant fan entity's state.
  */
 export interface HassStateFanAttributes {
-  preset_modes?: ('auto' | 'low' | 'medium' | 'high')[]; // List of supported fan modes
-  preset_mode?: 'auto' | 'low' | 'medium' | 'high' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
+  preset_modes?: ('auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind')[]; // List of supported fan modes
+  preset_mode?: 'auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
   percentage?: number; // Current speed setting
   percentage_step?: number; // Current step speed setting of the fan entity
+  direction?: 'forward' | 'reverse' | null; // Current direction of the fan
+  oscillating?: boolean | null; // Whether the fan is oscillating
 }
 
 /**
