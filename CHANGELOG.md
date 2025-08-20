@@ -8,6 +8,37 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+## [0.3.0] - 2025-08-??
+
+### Breaking changes
+
+### Roadmap
+
+This is the current roadmap to release 1.0.0
+
+- add rock wind direction attributes to fan domain
+- add fan cluster to climate domain
+- add vacuum domain
+- add water heater domain
+- add valve domain
+- support all single entities reusing the same code as device entities
+- add automatic 'remap' ability in MutableDevice: this will remove the not overlapping child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexxa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
+
+### Added
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Requires matterbridge 3.2.3.
+- [package]: Automator: update package v. 2.0.4
+
+### Fixed
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.2.1] - 2025-07-26
 
 ### Breaking changes

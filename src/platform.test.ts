@@ -84,7 +84,7 @@ describe('HassPlatform', () => {
       nodeVersion: '22.1.10',
     },
     log: mockLog,
-    matterbridgeVersion: '3.1.0',
+    matterbridgeVersion: '3.2.3',
     getDevices: jest.fn(() => []),
     getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
@@ -228,7 +228,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '3.1.0';
+    mockMatterbridge.matterbridgeVersion = '3.2.3';
   });
 
   it('should validate with white and black list', () => {

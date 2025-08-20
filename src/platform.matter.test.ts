@@ -88,7 +88,7 @@ const mockMatterbridge = {
     osRelease: 'xx.xx.xx.xx.xx.xx',
     nodeVersion: '22.1.10',
   },
-  matterbridgeVersion: '3.0.6',
+  matterbridgeVersion: '3.2.3',
   log: mockLog,
   getDevices: jest.fn(() => {
     return [];
@@ -345,18 +345,14 @@ describe('Matterbridge ' + NAME, () => {
 
     expect(child.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
 
-    haPlatform.matterbridgeDevices.delete(airQualitySensorDevice.id);
-    haPlatform.ha.hassDevices.delete(airQualitySensorDevice.id);
-    haPlatform.ha.hassEntities.delete(airQualitySensorEntity.entity_id);
-    haPlatform.ha.hassStates.delete(airQualitySensorEntityState.entity_id);
-    expect(haPlatform.matterbridgeDevices.size).toBe(0);
-    expect(haPlatform.ha.hassDevices.size).toBe(0);
-    expect(haPlatform.ha.hassEntities.size).toBe(0);
-    expect(haPlatform.ha.hassStates.size).toBe(0);
-
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
-    expect(aggregator.parts.has(device)).toBeFalsy();
-    expect(aggregator.parts.has(device.id)).toBeFalsy();
+    expect(aggregator.parts.size).toBe(0);
   });
 
   it('should call onStart and register an Air Quality Sensor device with text state', async () => {
@@ -439,18 +435,14 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(airQualitySensorEnumDevice.id);
-    haPlatform.ha.hassDevices.delete(airQualitySensorEnumDevice.id);
-    haPlatform.ha.hassEntities.delete(airQualitySensorEnumEntity.entity_id);
-    haPlatform.ha.hassStates.delete(airQualitySensorEnumEntityState.entity_id);
-    expect(haPlatform.matterbridgeDevices.size).toBe(0);
-    expect(haPlatform.ha.hassDevices.size).toBe(0);
-    expect(haPlatform.ha.hassEntities.size).toBe(0);
-    expect(haPlatform.ha.hassStates.size).toBe(0);
-
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
-    expect(aggregator.parts.has(device)).toBeFalsy();
-    expect(aggregator.parts.has(device.id)).toBeFalsy();
+    expect(aggregator.parts.size).toBe(0);
   });
 
   it('should call onStart and register an Air Quality Sensor device with regexp', async () => {
@@ -546,20 +538,17 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(airQualitySensorEnumDevice.id);
-    haPlatform.ha.hassDevices.delete(airQualitySensorEnumDevice.id);
-    haPlatform.ha.hassEntities.delete(airQualitySensorEnumEntity.entity_id);
-    haPlatform.ha.hassStates.delete(airQualitySensorEnumEntityState.entity_id);
-    expect(haPlatform.matterbridgeDevices.size).toBe(0);
-    expect(haPlatform.ha.hassDevices.size).toBe(0);
-    expect(haPlatform.ha.hassEntities.size).toBe(0);
-    expect(haPlatform.ha.hassStates.size).toBe(0);
     haPlatform.config.airQualityRegex = undefined; // Reset the regex configuration
     haPlatform.airQualityRegex = undefined; // Reset the regex
 
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
-    expect(aggregator.parts.has(device)).toBeFalsy();
-    expect(aggregator.parts.has(device.id)).toBeFalsy();
+    expect(aggregator.parts.size).toBe(0);
   });
 
   it('should call onStart and register an Electrical Sensor device', async () => {
@@ -700,17 +689,14 @@ describe('Matterbridge ' + NAME, () => {
     expect(child.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activePower')).toBe(23000);
     expect(child.getAttribute(ElectricalEnergyMeasurement.Cluster.id, 'cumulativeEnergyImported').energy).toBe(100000000);
 
-    haPlatform.matterbridgeDevices.delete(electricalSensorDevice.id);
-    haPlatform.ha.hassDevices.delete(electricalSensorDevice.id);
-    haPlatform.ha.hassEntities.delete(electricalSensorVoltageEntity.entity_id);
-    haPlatform.ha.hassEntities.delete(electricalSensorCurrentEntity.entity_id);
-    haPlatform.ha.hassEntities.delete(electricalSensorPowerEntity.entity_id);
-    haPlatform.ha.hassEntities.delete(electricalSensorEnergyEntity.entity_id);
-    haPlatform.ha.hassStates.delete(electricalSensorVoltageEntityState.entity_id);
-    haPlatform.ha.hassStates.delete(electricalSensorCurrentEntityState.entity_id);
-    haPlatform.ha.hassStates.delete(electricalSensorPowerEntityState.entity_id);
-    haPlatform.ha.hassStates.delete(electricalSensorEnergyEntityState.entity_id);
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
+    expect(aggregator.parts.size).toBe(0);
   });
 
   it('should call onStart and register a PowerSource device', async () => {
@@ -868,17 +854,12 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 50, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2900, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(batteryDevice.id);
-    haPlatform.ha.hassDevices.delete(batteryDevice.id);
-    haPlatform.ha.hassEntities.delete(batteryAlertEntity.entity_id);
-    haPlatform.ha.hassEntities.delete(batteryTemperatureEntity.entity_id);
-    haPlatform.ha.hassEntities.delete(batteryLevelEntity.entity_id);
-    haPlatform.ha.hassEntities.delete(batteryVoltageEntity.entity_id);
-    haPlatform.ha.hassStates.delete(batteryLevelEntityState.entity_id);
-    haPlatform.ha.hassStates.delete(batteryVoltageEntityState.entity_id);
-    haPlatform.ha.hassStates.delete(batteryAlertEntityState.entity_id);
-    haPlatform.ha.hassStates.delete(batteryTemperatureEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -940,11 +921,12 @@ describe('Matterbridge ' + NAME, () => {
     );
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(switchDevice.id);
-    haPlatform.ha.hassDevices.delete(switchDevice.id);
-    haPlatform.ha.hassEntities.delete(switchDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(switchDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1019,11 +1001,12 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.ColorTemperatureMireds, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorTemperatureMireds', 200, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(lightDevice.id);
-    haPlatform.ha.hassDevices.delete(lightDevice.id);
-    haPlatform.ha.hassEntities.delete(lightDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(lightDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1098,11 +1081,12 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentHue', 127, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentSaturation', 127, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(lightDevice.id);
-    haPlatform.ha.hassDevices.delete(lightDevice.id);
-    haPlatform.ha.hassEntities.delete(lightDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(lightDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1186,11 +1170,12 @@ describe('Matterbridge ' + NAME, () => {
     // Simulate a change in fan mode and call the event handler with wrong parameter
     await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Smart + 1, FanControl.FanMode.Auto, { ...agent.context, offline: false }));
 
-    haPlatform.matterbridgeDevices.delete(fanDevice.id);
-    haPlatform.ha.hassDevices.delete(fanDevice.id);
-    haPlatform.ha.hassEntities.delete(fanDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(fanDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1285,11 +1270,12 @@ describe('Matterbridge ' + NAME, () => {
       agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Heat + 1, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
     );
 
-    haPlatform.matterbridgeDevices.delete(climateDevice.id);
-    haPlatform.ha.hassDevices.delete(climateDevice.id);
-    haPlatform.ha.hassEntities.delete(climateDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(climateDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1362,11 +1348,12 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'on' }); // 'on' for open, 'off' for closed
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
-    haPlatform.matterbridgeDevices.delete(contactDevice.id);
-    haPlatform.ha.hassDevices.delete(contactDevice.id);
-    haPlatform.ha.hassEntities.delete(contactDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(contactDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1437,11 +1424,12 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.updateHandler(leakDevice.id, leakDeviceEntityState.entity_id, leakDeviceEntityState, { ...leakDeviceEntityState, state: 'off' }); // 'on' for leak, 'off' for no leak
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
-    haPlatform.matterbridgeDevices.delete(leakDevice.id);
-    haPlatform.ha.hassDevices.delete(leakDevice.id);
-    haPlatform.ha.hassEntities.delete(leakDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(leakDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1517,11 +1505,12 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.updateHandler(presenceDevice.id, presenceDeviceEntityState.entity_id, presenceDeviceEntityState, { ...presenceDeviceEntityState, state: 'off' }); // 'on' for detected, 'off' for not detected
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
-    haPlatform.matterbridgeDevices.delete(presenceDevice.id);
-    haPlatform.ha.hassDevices.delete(presenceDevice.id);
-    haPlatform.ha.hassEntities.delete(presenceDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(presenceDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1595,11 +1584,12 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'off' }); // 'on' for smoke, 'off' for no smoke
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(smokeDevice.id);
-    haPlatform.ha.hassDevices.delete(smokeDevice.id);
-    haPlatform.ha.hassEntities.delete(smokeDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(smokeDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
@@ -1674,11 +1664,12 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'off' }); // 'on' for co, 'off' for no co
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
-    haPlatform.matterbridgeDevices.delete(coDevice.id);
-    haPlatform.ha.hassDevices.delete(coDevice.id);
-    haPlatform.ha.hassEntities.delete(coDeviceEntity.entity_id);
-    haPlatform.ha.hassStates.delete(coDeviceEntityState.entity_id);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async storage number persist operations to complete
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
   });
