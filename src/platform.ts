@@ -262,13 +262,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
-      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
-      this.setSelectEntity(entityName, entity.entity_id, 'hub');
-      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (this.hasDeviceName(entityName)) {
         this.log.warn(`Individual entity ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
+      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
+      this.setSelectEntity(entityName, entity.entity_id, 'hub');
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
         this.log.debug(
           `Individual entity ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
@@ -361,12 +361,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
         continue;
       }
-      this.setSelectDevice(device.id, deviceName, undefined, 'hub');
-      if (!this.validateDevice([deviceName, device.id], true)) continue;
       if (this.hasDeviceName(deviceName)) {
         this.log.warn(`Device ${CYAN}${deviceName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
+      this.setSelectDevice(device.id, deviceName, undefined, 'hub');
+      if (!this.validateDevice([deviceName, device.id], true)) continue;
       if (!this.isValidAreaLabel(device.area_id, device.labels)) {
         this.log.debug(
           `Device ${CYAN}${deviceName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
