@@ -3,7 +3,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @created 2024-09-14
- * @version 1.1.1
+ * @version 1.1.2
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
