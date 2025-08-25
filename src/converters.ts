@@ -216,18 +216,8 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
         return null;
       }
     } },
-    { domain: 'fan', with: 'preset_mode', clusterId: FanControl.Cluster.id, attribute: 'windSetting', converter: (value: 'natural_wind' | 'sleep_wind') => {
-      if( isValidString(value, 10, 12) ) {
-        if (value === 'natural_wind') return { sleepWind: false, naturalWind: true };
-        else if (value === 'sleep_wind') return { sleepWind: true, naturalWind: false };
-        else return null;
-      } else {
-        return null;
-      }
-    } },
     { domain: 'fan', with: 'direction', clusterId: FanControl.Cluster.id, attribute: 'airflowDirection', converter: (value: 'forward' | 'reverse') => (isValidString(value, 7, 7) ? value === 'forward' ? FanControl.AirflowDirection.Forward : FanControl.AirflowDirection.Reverse : null) },
     { domain: 'fan', with: 'oscillating', clusterId: FanControl.Cluster.id, attribute: 'rockSetting', converter: (value: boolean) => (isValidBoolean(value) ? value === true ? { rockLeftRight: false, rockUpDown: false, rockRound: true } : { rockLeftRight: false, rockUpDown: false, rockRound: false } : null) },
-
 
     // Matter WindowCovering: 0 = open 10000 = closed
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
@@ -355,10 +345,11 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         return null;
       }
     }},
-    { domain: 'fan',      service: 'turn_on',         with: 'percentage',   clusterId: FanControl.Cluster.id,  attribute: 'percentSetting' },
-    // { domain: 'fan',      service: 'turn_on',         with: 'percentage',   clusterId: FanControl.Cluster.id,  attribute: 'speedSetting' },
+    { domain: 'fan',      service: 'turn_on',         with: 'percentage',  clusterId: FanControl.Cluster.id,  attribute: 'percentSetting' },
+    { domain: 'fan',      service: 'set_direction',   with: 'direction',   clusterId: FanControl.Cluster.id,  attribute: 'airflowDirection', converter: (value: any) => { return value === FanControl.AirflowDirection.Forward ? 'forward' : 'reverse' } },
+    { domain: 'fan',      service: 'oscillate',       with: 'oscillating', clusterId: FanControl.Cluster.id,  attribute: 'rockSetting', converter: (value: any) => { return value.rockRound === true } },
   
-    { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',    clusterId: Thermostat.Cluster.id,  attribute: 'systemMode', converter: (value) => {
+    { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',   clusterId: Thermostat.Cluster.id,  attribute: 'systemMode', converter: (value) => {
       if( isValidNumber(value, Thermostat.SystemMode.Off, Thermostat.SystemMode.Heat) ) {
         if (value === Thermostat.SystemMode.Auto) return 'auto';
         else if (value === Thermostat.SystemMode.Cool) return 'cool';

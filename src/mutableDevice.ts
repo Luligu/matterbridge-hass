@@ -599,21 +599,13 @@ export class MutableDevice {
     percentCurrent: number = 0,
     rockSupport: { rockLeftRight: boolean; rockUpDown: boolean; rockRound: boolean } = { rockLeftRight: false, rockUpDown: false, rockRound: true },
     rockSetting: { rockLeftRight: boolean; rockUpDown: boolean; rockRound: boolean } = { rockLeftRight: false, rockUpDown: false, rockRound: true },
-    windSupport: { sleepWind: boolean; naturalWind: boolean } = { sleepWind: true, naturalWind: true },
-    windSetting: { sleepWind: boolean; naturalWind: boolean } = { sleepWind: false, naturalWind: true },
     airflowDirection: FanControl.AirflowDirection = FanControl.AirflowDirection.Forward,
   ): this {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
       getClusterServerObj(
         FanControl.Cluster.id,
-        MatterbridgeFanControlServer.with(
-          FanControl.Feature.Auto,
-          FanControl.Feature.Step,
-          FanControl.Feature.Rocking,
-          FanControl.Feature.Wind,
-          FanControl.Feature.AirflowDirection,
-        ),
+        MatterbridgeFanControlServer.with(FanControl.Feature.Auto, FanControl.Feature.Step, FanControl.Feature.Rocking, FanControl.Feature.AirflowDirection),
         {
           // Base fan control attributes
           fanMode, // Writable and persistent attribute
@@ -623,9 +615,6 @@ export class MutableDevice {
           // Rocking feature
           rockSupport, // Fixed attribute
           rockSetting, // Writable attribute
-          // Wind feature
-          windSupport, // Fixed attribute
-          windSetting, // Writable attribute
           // AirflowDirection feature
           airflowDirection, // Writable attribute
         },

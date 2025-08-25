@@ -30,53 +30,18 @@ Features:
 - It is possible to select from a list the entities to include in the device entity black list.
 - It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.
 
-## Supported devices:
+## Supported device entities:
 
 | Domain  | Supported states                     | Supported attributes                                                |
 | ------- | ------------------------------------ | ------------------------------------------------------------------- |
 | switch  | on, off                              |                                                                     |
 | light   | on, off                              | brightness, color_mode, color_temp, hs_color, xy_color              |
 | lock    | locked, locking, unlocking, unlocked |                                                                     |
-| fan     | on, off                              | percentage, preset_mode                                             |
+| fan     | on, off                              | percentage, preset_mode, direction, oscillating                     |
 | cover   | open, closed, opening, closing       | current_position                                                    |
 | climate | off, heat, cool, heat_cool           | temperature, current_temperature, target_temp_low, target_temp_high |
 
-## Supported sensors:
-
-| Domain        | Supported state class | Supported device class               | Unit           | Matter device type  |
-| ------------- | --------------------- | ------------------------------------ | -------------- | ------------------- |
-| sensor        | measurement           | temperature                          | °C, °F         | temperatureSensor   |
-| sensor        | measurement           | humidity                             | %              | humiditySensor      |
-| sensor        | measurement           | pressure                             | inHg, hPa, kPa | pressureSensor      |
-| sensor        | measurement           | atmospheric_pressure                 | inHg, hPa, kPa | pressureSensor      |
-| sensor        | measurement           | illuminance                          | lx             | lightSensor         |
-| sensor        | measurement           | battery                              | %              | powerSource         |
-| sensor        | measurement           | voltage (battery)                    | mV             | powerSource         |
-| sensor        | measurement           | voltage                              | V              | electricalSensor    |
-| sensor        | measurement           | current                              | A              | electricalSensor    |
-| sensor        | measurement           | power                                | W              | electricalSensor    |
-| sensor        | measurement           | energy                               | kWh            | electricalSensor    |
-| sensor        | measurement           | aqi (1)                              |                | airQualitySensor    |
-| sensor        | measurement           | volatile_organic_compounds           | ppm (2)        | airQualitySensor    |
-| sensor        | measurement           | carbon_dioxide                       | ppm (2)        | airQualitySensor    |
-| sensor        | measurement           | carbon_monoxide                      | ppm (2)        | airQualitySensor    |
-| sensor        | measurement           | nitrogen_dioxide                     | ugm3 (2)       | airQualitySensor    |
-| sensor        | measurement           | ozone                                | ugm3 (2)       | airQualitySensor    |
-| sensor        | measurement           | formaldehyde                         | ppm (2)        | airQualitySensor    |
-| sensor        | measurement           | radon                                | ppm (2)        | airQualitySensor    |
-| sensor        | measurement           | pm1                                  | ppm (2)        | airQualitySensor    |
-| sensor        | measurement           | pm25                                 | ppm (2)        | airQualitySensor    |
-| sensor        | measurement           | pm10                                 | ppm (2)        | airQualitySensor    |
-| binary_sensor |                       | window, garage_door, door, vibration |                | contactSensor       |
-| binary_sensor |                       | motion, occupancy, presence          |                | occupancySensor     |
-| binary_sensor |                       | cold                                 |                | waterFreezeDetector |
-| binary_sensor |                       | moisture                             |                | waterLeakDetector   |
-| binary_sensor |                       | smoke                                |                | smokeCoAlarm        |
-| binary_sensor |                       | carbon_monoxide                      |                | smokeCoAlarm        |
-| binary_sensor |                       | battery                              |                | powerSource         |
-
-(1) - If the air quality entity is not standard (e.g. state class = measurement, device class = aqi and state number range 0-500), it is possible to set a regexp. See below.
-(2) - On the controller side.
+These domains are supported also like individual entities.
 
 ## Supported individual entities:
 
@@ -87,9 +52,50 @@ Features:
 | script        | Scripts     |
 | input_boolean | Helpers     |
 | input_button  | Helpers     |
-| switch        | Template    |
 
-These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helpers of domain input_boolean and the switch template maintain the on/off state.
+These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helper of domain input_boolean maintains the on/off state.
+
+## Supported sensors:
+
+| Domain | Supported state class | Supported device class     | Unit           | Matter device type |
+| ------ | --------------------- | -------------------------- | -------------- | ------------------ |
+| sensor | measurement           | temperature                | °C, °F         | temperatureSensor  |
+| sensor | measurement           | humidity                   | %              | humiditySensor     |
+| sensor | measurement           | pressure                   | inHg, hPa, kPa | pressureSensor     |
+| sensor | measurement           | atmospheric_pressure       | inHg, hPa, kPa | pressureSensor     |
+| sensor | measurement           | illuminance                | lx             | lightSensor        |
+| sensor | measurement           | battery                    | %              | powerSource        |
+| sensor | measurement           | voltage (battery)          | mV             | powerSource        |
+| sensor | measurement           | voltage                    | V              | electricalSensor   |
+| sensor | measurement           | current                    | A              | electricalSensor   |
+| sensor | measurement           | power                      | W              | electricalSensor   |
+| sensor | measurement           | energy                     | kWh            | electricalSensor   |
+| sensor | measurement           | aqi (1)                    |                | airQualitySensor   |
+| sensor | measurement           | volatile_organic_compounds | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | carbon_dioxide             | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | carbon_monoxide            | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | nitrogen_dioxide           | ugm3 (2)       | airQualitySensor   |
+| sensor | measurement           | ozone                      | ugm3 (2)       | airQualitySensor   |
+| sensor | measurement           | formaldehyde               | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | radon                      | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | pm1                        | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | pm25                       | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | pm10                       | ppm (2)        | airQualitySensor   |
+
+(1) - If the air quality entity is not standard (e.g. state class = measurement, device class = aqi and state number range 0-500), it is possible to set a regexp. See below.
+(2) - On the controller side.
+
+## Supported binary_sensors:
+
+| Domain        | Supported device class               | Matter device type  |
+| ------------- | ------------------------------------ | ------------------- |
+| binary_sensor | window, garage_door, door, vibration | contactSensor       |
+| binary_sensor | motion, occupancy, presence          | occupancySensor     |
+| binary_sensor | cold                                 | waterFreezeDetector |
+| binary_sensor | moisture                             | waterLeakDetector   |
+| binary_sensor | smoke                                | smokeCoAlarm        |
+| binary_sensor | carbon_monoxide                      | smokeCoAlarm        |
+| binary_sensor | battery                              | powerSource         |
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
@@ -121,7 +127,7 @@ See the complete guidelines on [Matterbridge](https://github.com/Luligu/matterbr
 
 ### With the frontend (preferred method)
 
-Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with Docker (I suggest you do it), all plugins are already loaded in the container so you just need to select and add it.
+Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with Docker (I suggest you do it), all plugins are already loaded in the container so you just need to select the matterbridge-hass plugin and add it.
 
 ### Without the frontend
 
@@ -155,9 +161,21 @@ There are 2 different source of Matter devices coming from matterbridge-hass plu
 
 You find them in Home Assistant at http://localhost:8123/config/devices/dashboard.
 
-- Individual entities with domain scene, script, automation and input_boolean, input_button helpers, switch template that use the main whiteList, blackList.
+- Individual entities with domain scene, script, automation.
 
-You find these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard, http://localhost:8123/config/script/dashboard and http://localhost:8123/config/helpers.
+You find these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard and http://localhost:8123/config/script/dashboard.
+
+- Individual entities (helpers) with domain input_boolean, input_button.
+
+You find these special entities in Home Assistant at http://localhost:8123/config/helpers.
+
+- Individual entities from template.
+
+You find these special entities in Home Assistant at http://localhost:8123/config/helpers.
+
+All the individual entities use the main whiteList, blackList.
+
+## Config
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
 

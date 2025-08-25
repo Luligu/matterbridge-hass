@@ -105,7 +105,7 @@
     "ws": "8.18.3"
   },
   "devDependencies": {
-    "@eslint/js": "9.33.0",
+    "@eslint/js": "9.34.0",
     "@jest/globals": "30.0.5",
     "@types/jest": "30.0.0",
     "@types/node": "24.3.0",

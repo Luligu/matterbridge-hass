@@ -1248,7 +1248,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(fanEntity.entity_id, fanEntity);
     haPlatform.ha.hassStates.set(fanState.entity_id, fanState);
 
-    // setDebug(true);
+    setDebug(true);
 
     await haPlatform.onStart('Test reason');
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
@@ -1275,7 +1275,6 @@ describe('Matterbridge ' + NAME, () => {
 
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentSetting', expect.anything(), expect.anything());
-    // expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedSetting', expect.anything(), expect.anything());
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
@@ -1284,6 +1283,14 @@ describe('Matterbridge ' + NAME, () => {
       LogLevel.INFO,
       expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
     );
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}airflowDirection$Changed${db}`),
+    );
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}rockSetting$Changed${db}`),
+    );
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1291,8 +1298,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state ${CYAN}${fanState.entity_id}${db} for device ${CYAN}${fanDevice.id}${db}`));
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentCurrent', 50, expect.anything());
-    // expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedCurrent', 50, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'airflowDirection', 0, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'airflowDirection', FanControl.AirflowDirection.Forward, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'rockSetting', { rockLeftRight: false, rockUpDown: false, rockRound: true }, expect.anything());
 
     // Simulate a not changed in fan mode and call the event handler
@@ -1301,8 +1307,20 @@ describe('Matterbridge ' + NAME, () => {
     await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Medium, FanControl.FanMode.Auto, { ...agent.context, offline: false }));
     // Simulate a change in fan mode and call the event handler with wrong parameter
     await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Smart + 1, FanControl.FanMode.Auto, { ...agent.context, offline: false }));
+    // Simulate a change in airflowDirection and call the event handler with wrong parameter
+    await child.act((agent) =>
+      agent['fanControl'].events['airflowDirection$Changed'].emit(FanControl.AirflowDirection.Reverse, FanControl.AirflowDirection.Forward, { ...agent.context, offline: false }),
+    );
+    // Simulate a change in rockSetting and call the event handler with wrong parameter
+    await child.act((agent) =>
+      agent['fanControl'].events['rockSetting$Changed'].emit(
+        { rockLeftRight: false, rockUpDown: false, rockRound: false },
+        { rockLeftRight: false, rockUpDown: false, rockRound: true },
+        { ...agent.context, offline: false },
+      ),
+    );
 
-    // setDebug(false);
+    setDebug(false);
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();

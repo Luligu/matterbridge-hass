@@ -81,12 +81,6 @@ describe('HassPlatform', () => {
         converter.converter('none', {} as HassState);
         converter.converter('on', {} as HassState);
       }
-      if (converter.domain === 'fan' && converter.with === 'preset_mode' && converter.attribute === 'windSetting') {
-        converter.converter('natural_wind', {} as HassState);
-        converter.converter('sleep_wind', {} as HassState);
-        converter.converter('wrong_wind', {} as HassState);
-        converter.converter('short', {} as HassState);
-      }
       if (converter.domain === 'fan' && converter.with === 'direction') {
         converter.converter('forward', {} as HassState);
         converter.converter('reverse', {} as HassState);

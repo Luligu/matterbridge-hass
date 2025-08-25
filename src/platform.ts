@@ -616,10 +616,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // prettier-ignore
         if (domain === 'fan') {
           this.log.debug(`= fanControl device ${CYAN}${entity.entity_id}${db} preset_modes: ${CYAN}${hassState.attributes['preset_modes']}${db} direction: ${CYAN}${hassState.attributes['direction']}${db} oscillating: ${CYAN}${hassState.attributes['oscillating']}${db}`);
-          if (
-            (isValidArray(hassState.attributes['preset_modes']) && (hassState.attributes['preset_modes'].includes('natural_wind') || hassState.attributes['preset_modes'].includes('sleep_wind'))) ||
-            (hassState.attributes['direction']) ||
-            (hassState.attributes['oscillating'])) {
+          if (hassState.attributes['direction'] || hassState.attributes['oscillating']) {
             mutableDevice.addClusterServerCompleteFanControl(entity.entity_id);
           } 
         }
