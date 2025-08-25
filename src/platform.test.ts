@@ -42,6 +42,30 @@ if (!debug) {
   consoleErrorSpy = jest.spyOn(console, 'error');
 }
 
+function setDebug(debug: boolean) {
+  if (debug) {
+    loggerLogSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
+    consoleInfoSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
+    consoleLogSpy = jest.spyOn(console, 'log');
+    consoleDebugSpy = jest.spyOn(console, 'debug');
+    consoleInfoSpy = jest.spyOn(console, 'info');
+    consoleWarnSpy = jest.spyOn(console, 'warn');
+    consoleErrorSpy = jest.spyOn(console, 'error');
+  } else {
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
+    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
+  }
+}
+
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
   try {
@@ -715,6 +739,21 @@ describe('HassPlatform', () => {
     mockConfig.whiteList = [];
   });
 
+  it('should not register an individual entity without state', async () => {
+    const entity = {
+      id: '0123456789abcdef',
+      entity_id: 'scene.turn_off_all_lights',
+      disabled_by: 'Jest',
+      original_name: 'Turn off all lights',
+      name: 'turn_off_all_lights',
+    } as unknown as HassEntity;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+  });
+
   it('should not register an individual entity with device_id', async () => {
     expect(haPlatform).toBeDefined();
 
@@ -722,11 +761,14 @@ describe('HassPlatform', () => {
       id: '0123456789abcdef',
       entity_id: 'scene.turn_off_all_lights',
       original_name: 'Turn off all lights',
-      // domain: 'scene',
       name: 'turn_off_all_lights',
       device_id: 'device1',
     } as unknown as HassEntity;
     haPlatform.ha.hassEntities.set(entity.id, entity);
+    const state = {
+      state: 'off',
+    } as HassState;
+    haPlatform.ha.hassStates.set(entity.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -742,6 +784,10 @@ describe('HassPlatform', () => {
       device_id: null,
     } as unknown as HassEntity;
     haPlatform.ha.hassEntities.set(entity.id, entity);
+    const state = {
+      state: 'off',
+    } as HassState;
+    haPlatform.ha.hassStates.set(entity.entity_id, state);
 
     await haPlatform.onStart('Test reason');
 
@@ -758,6 +804,10 @@ describe('HassPlatform', () => {
       name: 'Turn off all lights',
     } as unknown as HassEntity;
     haPlatform.ha.hassEntities.set(entity.id, entity);
+    const state = {
+      state: 'off',
+    } as HassState;
+    haPlatform.ha.hassStates.set(entity.entity_id, state);
     (haPlatform as any)._registeredEndpointsByName.set(entity.name, entity);
     await haPlatform.onStart('Test reason');
 
@@ -774,7 +824,6 @@ describe('HassPlatform', () => {
     });
     expect(entity).toBeDefined();
     if (!entity) return;
-    haPlatform.ha.hassDevices.clear();
     haPlatform.ha.hassEntities.set(entity.id, entity);
     haPlatform.ha.hassStates.set(entity.entity_id, {
       state: 'off',
@@ -792,6 +841,7 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
@@ -819,8 +869,9 @@ describe('HassPlatform', () => {
     expect(entity).toBeDefined();
     if (!entity) return;
     haPlatform.ha.hassEntities.set(entity.id, entity);
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -834,6 +885,7 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(2);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
@@ -855,8 +907,9 @@ describe('HassPlatform', () => {
     expect(entity).toBeDefined();
     if (!entity) return;
     haPlatform.ha.hassEntities.set(entity.id, entity);
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -870,6 +923,7 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(3);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
@@ -891,8 +945,9 @@ describe('HassPlatform', () => {
     expect(entity).toBeDefined();
     if (!entity) return;
     haPlatform.ha.hassEntities.set(entity.id, entity);
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -906,6 +961,7 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(4);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
@@ -927,8 +983,9 @@ describe('HassPlatform', () => {
     expect(entity).toBeDefined();
     if (!entity) return;
     haPlatform.ha.hassEntities.set(entity.id, entity);
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -942,6 +999,7 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(5);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 
@@ -963,8 +1021,9 @@ describe('HassPlatform', () => {
     expect(entity).toBeDefined();
     if (!entity) return;
     haPlatform.ha.hassEntities.set(entity.id, entity);
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassStates.clear();
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+    } as HassState);
 
     await haPlatform.onStart('Test reason');
 
@@ -978,6 +1037,7 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(6);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
 

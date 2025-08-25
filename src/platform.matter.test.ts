@@ -13,7 +13,7 @@ import { jest } from '@jest/globals';
 import { Endpoint, DeviceTypeId, VendorId, ServerNode, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Environment, MdnsService, Lifecycle } from 'matterbridge/matter';
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 import { Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
-import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk } from 'matterbridge/logger';
+import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
 import {
   PowerSource,
   BooleanState,
@@ -27,6 +27,7 @@ import {
   ElectricalPowerMeasurement,
   ElectricalEnergyMeasurement,
   AirQuality,
+  TemperatureMeasurement,
 } from 'matterbridge/matter/clusters';
 
 // Home Assistant Plugin
@@ -56,6 +57,30 @@ if (!debug) {
   consoleInfoSpy = jest.spyOn(console, 'info');
   consoleWarnSpy = jest.spyOn(console, 'warn');
   consoleErrorSpy = jest.spyOn(console, 'error');
+}
+
+function setDebug(debug: boolean) {
+  if (debug) {
+    loggerLogSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
+    consoleInfoSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
+    consoleLogSpy = jest.spyOn(console, 'log');
+    consoleDebugSpy = jest.spyOn(console, 'debug');
+    consoleInfoSpy = jest.spyOn(console, 'info');
+    consoleWarnSpy = jest.spyOn(console, 'warn');
+    consoleErrorSpy = jest.spyOn(console, 'error');
+  } else {
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
+    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
+  }
 }
 
 const mockLog = {
@@ -159,7 +184,7 @@ const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAtt
 const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 const addCommandHandlerSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'addCommandHandler');
 
-const addClusterServerPowerSourceSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerPowerSource');
+const addClusterServerBatteryPowerSourceSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBatteryPowerSource');
 const addClusterServerBooleanStateSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
 const addClusterServerSmokeAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerSmokeAlarmSmokeCoAlarm');
 const addClusterServerCoAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoAlarmSmokeCoAlarm');
@@ -808,6 +833,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(batteryLevelEntityState.entity_id, batteryLevelEntityState);
     haPlatform.ha.hassStates.set(batteryVoltageEntityState.entity_id, batteryVoltageEntityState);
 
+    // setDebug(true);
     await haPlatform.onStart('Test reason');
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
@@ -826,7 +852,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(device.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
     expect(device.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(200);
-    expect(addClusterServerPowerSourceSpy).toHaveBeenCalledWith('', PowerSource.BatChargeLevel.Ok, 200);
+    expect(addClusterServerBatteryPowerSourceSpy).toHaveBeenCalledWith('', PowerSource.BatChargeLevel.Ok, 200);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -862,6 +888,8 @@ describe('Matterbridge ' + NAME, () => {
     await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
+
+    // setDebug(false);
   });
 
   it('should call onStart and register a Switch device', async () => {
@@ -1169,6 +1197,112 @@ describe('Matterbridge ' + NAME, () => {
     await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Medium, FanControl.FanMode.Auto, { ...agent.context, offline: false }));
     // Simulate a change in fan mode and call the event handler with wrong parameter
     await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Smart + 1, FanControl.FanMode.Auto, { ...agent.context, offline: false }));
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a Complete Fan device', async () => {
+    const fanDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00ee7a',
+      labels: [],
+      name: 'Fan Complete',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const fanEntity = {
+      area_id: null,
+      device_id: fanDevice.id,
+      entity_category: null,
+      entity_id: 'fan.fan_complete',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ab',
+      labels: [],
+      name: null,
+      original_name: 'Fan Complete',
+    } as unknown as HassEntity;
+
+    const fanState = {
+      entity_id: fanEntity.entity_id,
+      state: 'on',
+      attributes: {
+        preset_mode: 'high',
+        preset_modes: ['low', 'medium', 'high', 'auto', 'natural_wind', 'sleep_wind'],
+        percentage: 50,
+        direction: 'forward',
+        oscillating: true,
+        friendly_name: 'Fan complete',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(fanDevice.id, fanDevice);
+    haPlatform.ha.hassEntities.set(fanEntity.entity_id, fanEntity);
+    haPlatform.ha.hassStates.set(fanState.entity_id, fanState);
+
+    // setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(fanDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(fanDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(fanEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    await child.construction.ready;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.DEBUG,
+      expect.stringContaining(
+        `= fanControl device ${CYAN}${fanEntity.entity_id}${db} preset_modes: ${CYAN}${fanState.attributes['preset_modes']}${db} direction: ${CYAN}${fanState.attributes['direction']}${db} oscillating: ${CYAN}${fanState.attributes['oscillating']}${db}`,
+      ),
+    );
+
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentSetting', expect.anything(), expect.anything());
+    // expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedSetting', expect.anything(), expect.anything());
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
+    );
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${child.id}${db}:${or}${child.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
+    );
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state ${CYAN}${fanState.entity_id}${db} for device ${CYAN}${fanDevice.id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentCurrent', 50, expect.anything());
+    // expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'speedCurrent', 50, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'airflowDirection', 0, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'rockSetting', { rockLeftRight: false, rockUpDown: false, rockRound: true }, expect.anything());
+
+    // Simulate a not changed in fan mode and call the event handler
+    await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Medium, FanControl.FanMode.Medium, { ...agent.context, offline: false }));
+    // Simulate a change in fan mode and call the event handler
+    await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Medium, FanControl.FanMode.Auto, { ...agent.context, offline: false }));
+    // Simulate a change in fan mode and call the event handler with wrong parameter
+    await child.act((agent) => agent['fanControl'].events['fanMode$Changed'].emit(FanControl.FanMode.Smart + 1, FanControl.FanMode.Auto, { ...agent.context, offline: false }));
+
+    // setDebug(false);
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();
@@ -1672,6 +1806,235 @@ describe('Matterbridge ' + NAME, () => {
     await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
     await device.delete();
     expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a single entity Contact device', async () => {
+    const contactEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'binary_sensor.door_contact',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Contact Sensor',
+    } as unknown as HassEntity;
+
+    const contactState = {
+      entity_id: contactEntity.entity_id,
+      state: 'on', // 'on' for open, 'off' for closed
+      attributes: { device_class: 'door', friendly_name: 'Contact Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(contactEntity.entity_id, contactEntity);
+    haPlatform.ha.hassStates.set(contactState.entity_id, contactState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(contactEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(device.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${contactEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'off' }); // 'on' for open, 'off' for closed
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'on' }); // 'on' for open, 'off' for closed
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+
+    // setDebug(false);
+  });
+
+  it('should call onStart and register a single entity Temperature device', async () => {
+    const temperatureEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'sensor.temperature',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Temperature Sensor',
+    } as unknown as HassEntity;
+
+    const temperatureState = {
+      entity_id: temperatureEntity.entity_id,
+      state: '22.6',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(temperatureEntity.entity_id, temperatureEntity);
+    haPlatform.ha.hassStates.set(temperatureState.entity_id, temperatureState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(null);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${temperatureEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.Cluster.id, 'measuredValue', 2260, expect.anything());
+    expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2260);
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(temperatureEntity.entity_id, temperatureState.entity_id, temperatureState, { ...temperatureState, state: '21.2' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.Cluster.id, 'measuredValue', 2120, expect.anything());
+    expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2120);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+
+    // setDebug(false);
+  });
+
+  it('should call onStart and register a single entity Aqi device', async () => {
+    const aqiEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'sensor.air_quality',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Air Quality Sensor',
+    } as unknown as HassEntity;
+
+    const aqiState = {
+      entity_id: aqiEntity.entity_id,
+      state: 'fair',
+      attributes: { state_class: 'measurement', device_class: 'aqi', friendly_name: 'Air Quality Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(aqiEntity.entity_id, aqiEntity);
+    haPlatform.ha.hassStates.set(aqiState.entity_id, aqiState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(aqiEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(aqiEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Unknown);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${aqiEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
+    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(aqiEntity.entity_id, aqiEntity.entity_id, aqiState, { ...aqiState, state: 'poor' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
+    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Poor);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+
+    // setDebug(false);
+  });
+
+  it('should call onStart and not register an unknown single entity', async () => {
+    const aqiEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'unknown.unknown',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Unknown',
+    } as unknown as HassEntity;
+
+    const aqiState = {
+      entity_id: aqiEntity.entity_id,
+      state: 'fair',
+      attributes: { state_class: 'measurement', device_class: 'aqi', friendly_name: 'Unknown Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(aqiEntity.entity_id, aqiEntity);
+    haPlatform.ha.hassStates.set(aqiState.entity_id, aqiState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Removing device ${dn}${aqiEntity.original_name}${db}...`));
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+
+    // setDebug(false);
   });
 
   it('should call onConfigure', async () => {
