@@ -682,8 +682,7 @@ export class MutableDevice {
         // console.log(`Remapping endpoint ${endpoint}...`);
         let remapEndpoint = true;
         for (const deviceType of device.deviceTypes) {
-          const duplicatedDeviceTypes = this.mutableDevice
-            .entries()
+          const duplicatedDeviceTypes = Array.from(this.mutableDevice.entries())
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.deviceTypes.includes(deviceType));
           if (duplicatedDeviceTypes) {
@@ -692,8 +691,7 @@ export class MutableDevice {
           }
         }
         for (const clusterServerId of device.clusterServersIds) {
-          const duplicatedClusterServersIds = this.mutableDevice
-            .entries()
+          const duplicatedClusterServersIds = Array.from(this.mutableDevice.entries())
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.clusterServersIds.includes(clusterServerId) || d.clusterServersObjs.find((obj) => obj.id === clusterServerId));
           if (duplicatedClusterServersIds) {
@@ -702,8 +700,7 @@ export class MutableDevice {
           }
         }
         for (const clusterServerObjs of device.clusterServersObjs) {
-          const duplicatedClusterServersObjs = this.mutableDevice
-            .entries()
+          const duplicatedClusterServersObjs = Array.from(this.mutableDevice.entries())
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.clusterServersIds.includes(clusterServerObjs.id) || d.clusterServersObjs.find((obj) => obj.id === clusterServerObjs.id));
           if (duplicatedClusterServersObjs) {
