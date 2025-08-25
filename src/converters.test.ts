@@ -73,13 +73,29 @@ describe('HassPlatform', () => {
         converter.converter(0, {} as HassState);
         converter.converter(50, {} as HassState);
       }
-      if (converter.domain === 'fan' && converter.with === 'preset_mode') {
+      if (converter.domain === 'fan' && converter.with === 'preset_mode' && converter.attribute === 'fanMode') {
         converter.converter('low', {} as HassState);
         converter.converter('medium', {} as HassState);
         converter.converter('high', {} as HassState);
         converter.converter('auto', {} as HassState);
         converter.converter('none', {} as HassState);
         converter.converter('on', {} as HassState);
+      }
+      if (converter.domain === 'fan' && converter.with === 'preset_mode' && converter.attribute === 'windSetting') {
+        converter.converter('natural_wind', {} as HassState);
+        converter.converter('sleep_wind', {} as HassState);
+        converter.converter('wrong_wind', {} as HassState);
+        converter.converter('short', {} as HassState);
+      }
+      if (converter.domain === 'fan' && converter.with === 'direction') {
+        converter.converter('forward', {} as HassState);
+        converter.converter('reverse', {} as HassState);
+        converter.converter('short', {} as HassState);
+      }
+      if (converter.domain === 'fan' && converter.with === 'oscillating') {
+        converter.converter(true, {} as HassState);
+        converter.converter(false, {} as HassState);
+        converter.converter('wrong', {} as HassState);
       }
       if (converter.domain === 'cover' && converter.with === 'current_position') {
         converter.converter(0, {} as HassState);

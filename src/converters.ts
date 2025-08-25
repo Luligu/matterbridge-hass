@@ -3,7 +3,7 @@
  * @file src\converters.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.1.0
+ * @version 1.1.2
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -47,7 +47,7 @@ import {
   waterFreezeDetector,
   waterLeakDetector,
 } from 'matterbridge';
-import { isValidArray, isValidNumber, isValidString } from 'matterbridge/utils';
+import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 import { ClusterId } from 'matterbridge/matter/types';
 import {
   WindowCovering,
@@ -216,6 +216,19 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
         return null;
       }
     } },
+    { domain: 'fan', with: 'preset_mode', clusterId: FanControl.Cluster.id, attribute: 'windSetting', converter: (value: 'natural_wind' | 'sleep_wind') => {
+      if( isValidString(value, 10, 12) ) {
+        if (value === 'natural_wind') return { sleepWind: false, naturalWind: true };
+        else if (value === 'sleep_wind') return { sleepWind: true, naturalWind: false };
+        else return null;
+      } else {
+        return null;
+      }
+    } },
+    { domain: 'fan', with: 'direction', clusterId: FanControl.Cluster.id, attribute: 'airflowDirection', converter: (value: 'forward' | 'reverse') => (isValidString(value, 7, 7) ? value === 'forward' ? FanControl.AirflowDirection.Forward : FanControl.AirflowDirection.Reverse : null) },
+    { domain: 'fan', with: 'oscillating', clusterId: FanControl.Cluster.id, attribute: 'rockSetting', converter: (value: boolean) => (isValidBoolean(value) ? value === true ? { rockLeftRight: false, rockUpDown: false, rockRound: true } : { rockLeftRight: false, rockUpDown: false, rockRound: false } : null) },
+
+
     // Matter WindowCovering: 0 = open 10000 = closed
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
@@ -229,7 +242,7 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
 
 /**
  * Convert Home Assistant domains to Matterbridge device types and clusterIds.
- * If the device type is null, no device type will be added. It will use hassDomainSensorsConverter to determine the device type and clusterId.
+ * If the device type is null, no device type will be added. It will use hassDomainSensorsConverter and hassDomainBinarySensorsConverter to determine the device type and clusterId.
  */
 // prettier-ignore
 export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
