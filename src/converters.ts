@@ -262,6 +262,7 @@ export const hassDomainAttributeConverter: { domain: string; withAttribute: stri
     { domain: 'light',    withAttribute: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControl.Cluster.id },
     { domain: 'light',    withAttribute: 'color_temp',  deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'hs_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
+    { domain: 'light',    withAttribute: 'rgb_color',   deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'xy_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
   ];
 
