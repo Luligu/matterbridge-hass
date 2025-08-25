@@ -1248,7 +1248,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(fanEntity.entity_id, fanEntity);
     haPlatform.ha.hassStates.set(fanState.entity_id, fanState);
 
-    setDebug(true);
+    // setDebug(true);
 
     await haPlatform.onStart('Test reason');
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
@@ -1320,7 +1320,7 @@ describe('Matterbridge ' + NAME, () => {
       ),
     );
 
-    setDebug(false);
+    // setDebug(false);
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();
