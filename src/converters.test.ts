@@ -118,6 +118,11 @@ describe('HassPlatform', () => {
         converter.converter(20, { state: 'heat' } as HassState);
         converter.converter('20', { state: 'heat' } as HassState);
       }
+      if (converter.domain === 'valve' && converter.with === 'current_position') {
+        converter.converter(0, {} as HassState);
+        converter.converter(100, {} as HassState);
+        converter.converter(-1, {} as HassState);
+      }
     });
   });
 
@@ -214,6 +219,9 @@ describe('HassPlatform', () => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
         converter.converter({ liftPercent100thsValue: 10000 }, {});
+      }
+      if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
+        converter.converter({ targetLevel: 100 }, {});
       }
       if (converter.converter && converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
         converter.converter(

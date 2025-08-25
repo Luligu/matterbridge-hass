@@ -131,7 +131,7 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes;
+  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & HassStateValveAttributes;
   context: HassContext;
 }
 
@@ -183,6 +183,13 @@ export interface HassStateFanAttributes {
   percentage_step?: number; // Current step speed setting of the fan entity
   direction?: 'forward' | 'reverse' | null; // Current direction of the fan
   oscillating?: boolean | null; // Whether the fan is oscillating
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant valve entity's state.
+ */
+export interface HassStateValveAttributes {
+  current_position?: number | null; // Current status percentage of the valve. Null is unknown, 0 is closed, 100 is fully open.
 }
 
 /**

@@ -46,6 +46,7 @@ import {
   thermostatDevice,
   waterFreezeDetector,
   waterLeakDetector,
+  waterValve,
 } from 'matterbridge';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 import { ClusterId } from 'matterbridge/matter/types';
@@ -78,6 +79,7 @@ import {
   OzoneConcentrationMeasurement,
   FormaldehydeConcentrationMeasurement,
   RadonConcentrationMeasurement,
+  ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
 
 import { HassState, HomeAssistant } from './homeAssistant.js';
@@ -176,6 +178,11 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'climate', state: 'cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Cool },
     { domain: 'climate', state: 'heat_cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
 
+    { domain: 'valve', state: 'opening', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
+    { domain: 'valve', state: 'open', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Open },
+    { domain: 'valve', state: 'closing', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
+    { domain: 'valve', state: 'closed', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Closed },
+
     { domain: 'input_boolean', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
     { domain: 'input_boolean', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
 
@@ -228,6 +235,8 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
     { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
     { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+
+    { domain: 'valve', with: 'current_position', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value) : null) },
   ];
 
 /**
@@ -242,6 +251,7 @@ export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefini
     { domain: 'fan',            deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
     { domain: 'cover',          deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
     { domain: 'climate',        deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
+    { domain: 'valve',          deviceType: waterValve,       clusterId: ValveConfigurationAndControl.Cluster.id },
     { domain: 'sensor',         deviceType: null,             clusterId: null },
     { domain: 'binary_sensor',  deviceType: null,             clusterId: null },
   ];
@@ -327,6 +337,9 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'downOrClose',             domain: 'cover', service: 'close_cover' },
     { command: 'stopMotion',              domain: 'cover', service: 'stop_cover' },
     { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
+
+    { command: 'open',                    domain: 'valve', service: 'set_valve_position', converter: (request) => { return { position: Math.round(request.targetLevel) } } },
+    { command: 'close',                   domain: 'valve', service: 'close_valve' },
   ];
 
 /**

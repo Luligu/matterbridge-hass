@@ -40,6 +40,7 @@ Features:
 | fan     | on, off                              | percentage, preset_mode, direction, oscillating                     |
 | cover   | open, closed, opening, closing       | current_position                                                    |
 | climate | off, heat, cool, heat_cool           | temperature, current_temperature, target_temp_low, target_temp_high |
+| valve   | open, closed, opening, closing       | current_position                                                    |
 
 These domains are supported also like individual entities.
 

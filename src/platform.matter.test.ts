@@ -28,6 +28,7 @@ import {
   ElectricalEnergyMeasurement,
   AirQuality,
   TemperatureMeasurement,
+  ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
 
 // Home Assistant Plugin
@@ -948,6 +949,71 @@ describe('Matterbridge ' + NAME, () => {
       expect.stringContaining(`Configuring state ${CYAN}${switchDeviceEntityState.entity_id}${db} for device ${CYAN}${switchDevice.id}${db}`),
     );
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a Valve device', async () => {
+    const valveDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00ee6a',
+      labels: [],
+      name: 'Valve',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const valveEntity = {
+      area_id: null,
+      device_id: valveDevice.id,
+      entity_category: null,
+      entity_id: 'valve.valve',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0aa',
+      labels: [],
+      name: null,
+      original_name: 'Valve',
+    } as unknown as HassEntity;
+
+    const valveState = {
+      entity_id: valveEntity.entity_id,
+      state: 'open',
+      attributes: { current_position: 50, friendly_name: 'Valve Valve' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(valveDevice.id, valveDevice);
+    haPlatform.ha.hassEntities.set(valveEntity.entity_id, valveEntity);
+    haPlatform.ha.hassStates.set(valveState.entity_id, valveState);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(valveDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(valveDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(valveEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state ${CYAN}${valveState.entity_id}${db} for device ${CYAN}${valveDevice.id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 50, expect.anything());
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();
