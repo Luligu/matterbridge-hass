@@ -14,6 +14,8 @@
   ],
   // On startup, update npm, pnpm, install the dev of matterbridge and install the dependencies from package.json
   "postCreateCommand": "sudo npm install -g npm@latest pnpm@latest npm-check-updates shx && sudo chmod +x ./install-matterbridge-*.sh && ./install-matterbridge-dev.sh && sudo chown -R node:node . && npm install && npm link matterbridge && npm run build && npm outdated || true",
+  // Give the Docker container the same name as the repository (must be unique on host)
+  "runArgs": ["--name", "${localWorkspaceFolderBasename}"],
   "customizations": {
     "vscode": {
       // Extensions to install in the dev container
