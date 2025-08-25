@@ -17,7 +17,7 @@ If you like this project and find it useful, please consider giving it a star on
 - ✅ add valve domain (Ludovic BOUÉ)
 - add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
 - ✅ support all single entities reusing the same code of the device entities
-- ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource and AirQuality clusters.
+- ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
 - ✅ add automatic 'remap' ability in MutableDevice: this will remap the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
 - add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexxa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
 
