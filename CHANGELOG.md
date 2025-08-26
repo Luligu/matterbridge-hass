@@ -11,7 +11,7 @@ If you like this project and find it useful, please consider giving it a star on
 ### Roadmap to release 1.0.0
 
 - ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
-- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility.
+- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility issue with AirConditioner.
 - add vacuum domain
 - add water heater domain
 - ✅ add valve domain (Ludovic BOUÉ)
@@ -37,6 +37,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [sensor]: Added addSensorEntity function to handle sensor domain in single entities and device entities.
 - [control]: Added addControlEntity function to handle all core domains in single entities and device entities.
 - [valve]: Added valve domain.
+- [platform]: Bumped HomeAssistantPlatform to v. 1.3.0.
 
 ### Changed
 
