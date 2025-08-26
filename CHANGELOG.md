@@ -11,17 +11,17 @@ If you like this project and find it useful, please consider giving it a star on
 ### Roadmap to release 1.0.0
 
 - ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
-- add fan cluster to climate domain or use AirConditioner for climate (Tamer)
+- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility.
 - add vacuum domain
 - add water heater domain
 - ✅ add valve domain (Ludovic BOUÉ)
-- add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
+- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
 - ✅ support all single entities reusing the same code of the device entities
 - ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
-- ✅ add automatic 'remap' ability in MutableDevice: this will remap the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- ✅ add automatic 'remap' ability in MutableDevice: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
 - add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexxa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
 
-## [0.3.0] - 2025-08-??
+## [0.3.0] - 2025-08-26
 
 ### Breaking changes
 
@@ -29,12 +29,13 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [fan]: Added rock direction attributes to fan domain. Creates a complete fan with feature Rocking, AirflowDirection.
 - [MutableDevice]: Added automatic 'remap' ability in MutableDevice: this remaps the not overlapping child endpoints to the device main endpoint. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- [SingleEntities]: Added support in single entities for the domains supported in the device entities. (so far sensor and binary_sensor the other domains will be added in the next dev)
+- [SingleEntities]: Added support in single entities for the domains supported in the device entities.
 - [HomeAssistant]: Bumped HomeAssistant to v. 1.1.2.
 - [MutableDevice]: Bumped MutableDevice to v. 1.3.0.
 - [converters]: Bumped converters to v. 1.1.2.
 - [binary_sensor]: Added addBinarySensorEntity function to handle binary_sensor domain in single entities and device entities.
 - [sensor]: Added addSensorEntity function to handle sensor domain in single entities and device entities.
+- [control]: Added addControlEntity function to handle all core domains in single entities and device entities.
 - [valve]: Added valve domain.
 
 ### Changed
@@ -42,7 +43,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Updated dependencies.
 - [package]: Requires matterbridge 3.2.3.
 - [package]: Automator: update package v. 2.0.4.
-- [devContainer]: Updated devContainer with repository name for the container and shallow clone matterbridge for speed and memory.
+- [devContainer]: Updated devContainer with repository name for the container and shallow clone matterbridge for speed and memory optimization.
 
 ### Fixed
 

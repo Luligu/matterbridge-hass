@@ -12,7 +12,7 @@ import path from 'node:path';
 import { jest } from '@jest/globals';
 import { Endpoint, DeviceTypeId, VendorId, ServerNode, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Environment, MdnsService, Lifecycle } from 'matterbridge/matter';
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
-import { Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
+import { invokeBehaviorCommand, Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
 import {
   PowerSource,
@@ -904,7 +904,7 @@ describe('Matterbridge ' + NAME, () => {
       name_by_user: null,
     } as unknown as HassDevice;
 
-    const switchDeviceEntity = {
+    const switchEntity = {
       area_id: null,
       device_id: switchDevice.id,
       entity_category: null,
@@ -916,15 +916,17 @@ describe('Matterbridge ' + NAME, () => {
       original_name: 'Switch',
     } as unknown as HassEntity;
 
-    const switchDeviceEntityState = {
-      entity_id: switchDeviceEntity.entity_id,
+    const switchState = {
+      entity_id: switchEntity.entity_id,
       state: 'on',
       attributes: { device_class: 'outlet', friendly_name: 'Switch Switch' },
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(switchDevice.id, switchDevice);
-    haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity);
-    haPlatform.ha.hassStates.set(switchDeviceEntityState.entity_id, switchDeviceEntityState);
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+
+    // setDebug(true);
 
     await haPlatform.onStart('Test reason');
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
@@ -934,21 +936,40 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.get(switchDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(switchDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    const child = device?.getChildEndpointByName(switchDeviceEntity.entity_id.replace('.', ''));
+    const child = device?.getChildEndpointByName(switchEntity.entity_id.replace('.', ''));
     expect(child).toBeDefined();
     if (!child) return;
     expect(child.construction.status).toBe(Lifecycle.Status.Active);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(3);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
-    expect(mockLog.debug).toHaveBeenCalledWith(
-      expect.stringContaining(`Configuring state ${CYAN}${switchDeviceEntityState.entity_id}${db} for device ${CYAN}${switchDevice.id}${db}`),
-    );
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state ${CYAN}${switchState.entity_id}${db} for device ${CYAN}${switchDevice.id}${db}`));
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(switchDevice.id, switchEntity.entity_id, switchState, { ...switchState, state: 'off' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(child.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    await invokeBehaviorCommand(child, 'onOff', 'on');
+    expect(child.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_on', switchEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(child, 'onOff', 'off');
+    expect(child.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_off', switchEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(child, 'onOff', 'toggle');
+    expect(child.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'toggle', switchEntity.entity_id, undefined);
+
+    // setDebug(false);
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();
@@ -1892,7 +1913,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.size).toBe(0);
   });
 
-  it('should call onStart and register a single entity Contact device', async () => {
+  it('should call onStart and register a single entity binary_sensor Contact device', async () => {
     const contactEntity = {
       area_id: null,
       device_id: null,
@@ -1956,7 +1977,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
   });
 
-  it('should call onStart and register a single entity Temperature device', async () => {
+  it('should call onStart and register a single entity sensor Temperature device', async () => {
     const temperatureEntity = {
       area_id: null,
       device_id: null,
@@ -2078,6 +2099,498 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.size).toBe(0);
 
     // setDebug(false);
+  });
+
+  it('should call onStart and register a single entity switch Switch template device', async () => {
+    const switchEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'switch.template_switch',
+      platform: 'template',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Switch Template',
+    } as unknown as HassEntity;
+
+    const switchState = {
+      entity_id: switchEntity.entity_id,
+      state: 'on',
+      attributes: { friendly_name: 'Switch Template' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+
+    // setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(switchEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(switchEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ switch device ${CYAN}MA-onoffpluginunit${db} cluster ${CYAN}OnOff${db}`);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(3);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${switchEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(switchEntity.entity_id, switchState.entity_id, switchState, { ...switchState, state: 'off' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_on', switchEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_off', switchEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'onOff', 'toggle');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'toggle', switchEntity.entity_id, undefined);
+
+    // setDebug(false);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a single entity light Light template device', async () => {
+    const lightEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'light.template_light',
+      platform: 'template',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Light Template',
+    } as unknown as HassEntity;
+
+    const lightState = {
+      entity_id: lightEntity.entity_id,
+      state: 'on',
+      attributes: { supported_color_modes: ['onoff'], friendly_name: 'Light Template' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
+    haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
+
+    // setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(lightEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(10);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${lightEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'toggle');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+
+    // setDebug(false);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a single entity light Dimmer template device', async () => {
+    const lightEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'light.template_dimmer',
+      platform: 'template',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Dimmer Template',
+    } as unknown as HassEntity;
+
+    const lightState = {
+      entity_id: lightEntity.entity_id,
+      state: 'on',
+      attributes: { supported_color_modes: ['brightness'], brightness: 255, friendly_name: 'Dimmer Template' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
+    haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(lightEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(10);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${lightEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'toggle');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
+      level: 100,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
+      level: 50,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
+
+    // setDebug(false);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a single entity light Color Temperature template device', async () => {
+    const lightEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'light.template_ct',
+      platform: 'template',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Color Temperature Template',
+    } as unknown as HassEntity;
+
+    const lightState = {
+      entity_id: lightEntity.entity_id,
+      state: 'on',
+      attributes: { supported_color_modes: ['color_temp'], brightness: 255, color_temp: 243, min_mireds: 153, max_mireds: 500, friendly_name: 'Color Temperature Template' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
+    haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(lightEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-colortemperaturelight${db} cluster ${CYAN}ColorControl${db}`);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(10);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${lightEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'toggle');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
+      level: 100,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
+      level: 50,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
+
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', {
+      colorTemperatureMireds: 200,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: true },
+      optionsOverride: { executeIfOff: true },
+    });
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp: 200 });
+
+    // setDebug(false);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a single entity light Rgb template device', async () => {
+    const lightEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      entity_id: 'light.template_rgb',
+      platform: 'template',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Rgb Template',
+    } as unknown as HassEntity;
+
+    const lightState = {
+      entity_id: lightEntity.entity_id,
+      state: 'on',
+      attributes: {
+        supported_color_modes: ['color_temp', 'xy', 'hs'],
+        brightness: 255,
+        color_temp: 243,
+        hs_color: [180, 50],
+        min_mireds: 153,
+        max_mireds: 500,
+        friendly_name: 'Rgb Template',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
+    haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
+
+    // setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(lightEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-colortemperaturelight${db} cluster ${CYAN}ColorControl${db}`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-extendedcolorlight${db} cluster ${CYAN}ColorControl${db}`);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(10);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Configuring state on individual entity ${CYAN}${lightEntity.entity_id}${db}`));
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+
+    jest.clearAllMocks();
+    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+    await invokeBehaviorCommand(device, 'onOff', 'toggle');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
+      level: 100,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
+      level: 50,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
+
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', {
+      colorTemperatureMireds: 200,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: true },
+      optionsOverride: { executeIfOff: true },
+    });
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp: 200 });
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToHueAndSaturation', {
+      hue: 120,
+      saturation: 100,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: true },
+      optionsOverride: { executeIfOff: true },
+    });
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(120);
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(100);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { hs_color: [170, 39] });
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColor', {
+      colorX: 13697,
+      colorY: 41877,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: true },
+      optionsOverride: { executeIfOff: true },
+    });
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(13697);
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(41877);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { xy_color: [13697, 41877] });
+
+    // setDebug(false);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
   });
 
   it('should call onStart and not register an unknown single entity', async () => {

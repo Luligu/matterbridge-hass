@@ -61,6 +61,7 @@ import {
 } from './converters.js';
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addSensorEntity } from './sensor.entity.js';
+import { addControlEntity } from './control.entity.js';
 
 /**
  * HomeAssistantPlatform class extends the MatterbridgeDynamicPlatform class.
@@ -244,6 +245,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // Scan individual entities (domain automation, scene, script and helpers input_boolean, input_button) and create Matterbridge devices
     const individualEntitiesDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
+    const supportedDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve'];
     for (const entity of Array.from(this.ha.hassEntities.values())) {
       const [domain, name] = entity.entity_id.split('.');
       /*
@@ -298,7 +300,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
 
-      if (individualEntitiesDomains.includes(domain) || (domain === 'switch' && entity.platform === 'template')) {
+      if (individualEntitiesDomains.includes(domain)) {
         // Set the composed type and configUrl based on the domain
         if (domain === 'automation') {
           mutableDevice.setComposedType(`Hass Automation`);
@@ -314,9 +316,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
         } else if (domain === 'input_button') {
           mutableDevice.setComposedType(`Hass Button`);
-          mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
-        } else if (entity.platform === 'template') {
-          mutableDevice.setComposedType(`Hass Template`);
           mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
         }
 
@@ -339,16 +338,22 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         });
         mutableDevice.addCommandHandler('', 'off', async (_data, _endpointName, _command) => {
           // We don't revert only for input_boolean and switch template
-          if (domain === 'input_boolean' || domain === 'switch') await this.ha.callService(domain, 'turn_off', entity.entity_id);
+          if (domain === 'input_boolean' /* || domain === 'switch'*/) await this.ha.callService(domain, 'turn_off', entity.entity_id);
         });
       }
 
+      if (supportedDomains.includes(domain)) addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, false, this.log);
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
 
+      if (entity.platform === 'template') {
+        mutableDevice.setComposedType(`Hass Template`);
+        mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
+      }
+
       // Register the device if we have found a supported domain
       if (mutableDevice.get().deviceTypes.length > 1 || mutableDevice.size() > 1) {
-        mutableDevice.create(true);
+        mutableDevice.create(true); // Use remap for individual entities
         mutableDevice.logMutableDevice();
         this.log.debug(`Registering device ${dn}${entityName}${db}...`);
         await this.registerDevice(mutableDevice.getEndpoint());
@@ -425,6 +430,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
         const [domain, _name] = entity.entity_id.split('.');
+        const entityName = entity.name ?? entity.original_name ?? deviceName;
         let endpointName = entity.entity_id;
 
         // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
@@ -434,7 +440,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           continue;
         }
 
-        // Check if the entity is in the area and has the label if applyFiltersToDeviceEntities is enabled
+        // Set the selects and validate.
+        this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
+        this.setSelectEntity(entityName, entity.entity_id, 'component');
+        if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
         if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
           this.log.debug(
             `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
@@ -445,11 +454,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Add device type and clusterIds for supported domains of the current entity. Skip the entity if no supported domains are found.
         const hassDomains = hassDomainConverter.filter((d) => d.domain === domain);
         if (hassDomains.length > 0) {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}`);
-          const entityName = entity.name ?? entity.original_name ?? deviceName;
-          this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
-          this.setSelectEntity(entityName, entity.entity_id, 'component');
-          if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
+          // this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}`);
           hassDomains.forEach((hassDomain) => {
             if (hassDomain.deviceType) mutableDevice.addDeviceTypes(entity.entity_id, hassDomain.deviceType);
             if (hassDomain.clusterId) mutableDevice.addClusterServerIds(entity.entity_id, hassDomain.clusterId);
@@ -457,7 +462,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               mutableDevice.setFriendlyName(entity.entity_id, hassState.attributes['friendly_name']);
           });
         } else {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}: domain not found`);
+          // this.log.debug(`Lookup device ${CYAN}${device.name}${db} domain ${CYAN}${CYAN}${domain}${db} entity ${CYAN}${entity.entity_id}${db}: domain not found`);
           continue;
         }
 
@@ -710,11 +715,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     endpointName: string,
     command: string,
   ) {
-    const entityId = data.endpoint.uniqueStorageKey;
+    const entityId = endpointName; // data.endpoint.uniqueStorageKey;
     if (!entityId) return;
-    data.endpoint.log.info(
-      `${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${data.endpoint?.uniqueStorageKey}${db}:${or}${data.endpoint?.maybeNumber}${db}`,
-    );
+    // data.endpoint.log.info(`${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${data.endpoint?.uniqueStorageKey}${db}:${or}${data.endpoint?.maybeNumber}${db}`);
+    data.endpoint.log.info(`${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${endpointName}${db}:${or}${data.endpoint?.maybeNumber}${db}`);
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
