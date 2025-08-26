@@ -25,6 +25,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Breaking changes
 
+With this release, all supported domains are available also in the single entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
+
 ### Added
 
 - [fan]: Added rock direction attributes to fan domain. Creates a complete fan with feature Rocking, AirflowDirection.
