@@ -40,11 +40,12 @@ With this release, all supported domains are available also in the single entiti
 - [control]: Added addControlEntity function to handle all core domains in single entities and device entities.
 - [valve]: Added valve domain.
 - [platform]: Bumped HomeAssistantPlatform to v. 1.3.0.
+- [configure]: Optimized configure loop.
 
 ### Changed
 
 - [package]: Updated dependencies.
-- [package]: Requires matterbridge 3.2.3.
+- [package]: Requires matterbridge v. 3.2.3.
 - [package]: Automator: update package v. 2.0.4.
 - [devContainer]: Updated devContainer with repository name for the container and shallow clone matterbridge for speed and memory optimization.
 

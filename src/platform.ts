@@ -75,10 +75,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   readonly endpointNames = new Map<string, string>();
 
   /** Battery voltage entities */
-  private readonly batteryVoltageEntities = new Set<string>();
+  readonly batteryVoltageEntities = new Set<string>();
 
   /** Regex to match air quality sensors. It matches all domain sensor (sensor\.) with names ending in _air_quality */
   airQualityRegex: RegExp | undefined;
+
+  readonly individualEntitiesDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
+  readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve'];
 
   /**
    * Constructor for the HomeAssistantPlatform class.
@@ -236,12 +239,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await this.clearSelect();
 
     // Scan individual entities (domain automation, scene, script and helpers input_boolean, input_button) and create Matterbridge devices
-    const individualEntitiesDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
-    const supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve'];
     for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null)) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
-      if (!individualEntitiesDomains.includes(domain) && !supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+      if (!this.individualEntitiesDomains.includes(domain) && !this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
         continue;
       }
@@ -285,7 +286,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
 
-      if (individualEntitiesDomains.includes(domain)) {
+      if (this.individualEntitiesDomains.includes(domain)) {
         // Set the composed type and configUrl based on the domain
         if (domain === 'automation') {
           mutableDevice.setComposedType(`Hass Automation`);
@@ -327,7 +328,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         });
       }
 
-      if (supportedCoreDomains.includes(domain)) addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
+      if (this.supportedCoreDomains.includes(domain))
+        addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, false, this.log);
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
 
@@ -390,11 +392,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         const state = this.ha.hassStates.get(entity.entity_id);
         if (state && state.attributes['device_class'] === 'battery') {
-          this.log.debug(`***Device ${CYAN}${device.name}${db} has a battery entity: ${CYAN}${entity.entity_id}${db}`);
+          this.log.debug(`Device ${CYAN}${device.name}${db} has a battery entity: ${CYAN}${entity.entity_id}${db}`);
           battery = true;
         }
         if (battery && state && state.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage') {
-          this.log.debug(`***Device ${CYAN}${device.name}${db} has a battery voltage entity: ${CYAN}${entity.entity_id}${db}`);
+          this.log.debug(`Device ${CYAN}${device.name}${db} has a battery voltage entity: ${CYAN}${entity.entity_id}${db}`);
           this.batteryVoltageEntities.add(entity.entity_id);
         }
       }
@@ -423,7 +425,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const entityName = entity.name ?? entity.original_name ?? deviceName;
         let endpointName = entity.entity_id;
         // Skip not supported domains.
-        if (!supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+        if (!this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
           continue;
         }
@@ -488,15 +490,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}...`);
     try {
       for (const state of Array.from(this.ha.hassStates.values())) {
+        // Skip states without entity
         const entity = this.ha.hassEntities.get(state.entity_id);
-        const deviceId = entity?.device_id;
-        if (deviceId) {
-          this.log.debug(`Configuring state ${CYAN}${state.entity_id}${db} for device ${CYAN}${deviceId}${db}`);
-          await this.updateHandler(deviceId, state.entity_id, state, state);
-        } else {
-          this.log.debug(`Configuring state on individual entity ${CYAN}${state.entity_id}${db}`);
-          await this.updateHandler(null, state.entity_id, state, state);
-        }
+        if (!entity) continue;
+        // Skip unregistered entities
+        if (this.endpointNames.get(entity.entity_id) === undefined) continue;
+        // Skip unsupported domains
+        const [domain, _name] = entity.entity_id.split('.');
+        if (!this.individualEntitiesDomains.includes(domain) && !this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') continue;
+
+        this.log.debug(`Configuring state of entity ${CYAN}${state.entity_id}${db}...`);
+        await this.updateHandler(entity.device_id, entity.entity_id, state, state);
       }
       this.log.info(`Configured platform ${idn}${this.config.name}${rs}${nf}`);
     } catch (error) {
@@ -526,6 +530,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
 
     this.matterbridgeDevices.clear();
+    this.batteryVoltageEntities.clear();
     this.endpointNames.clear();
   }
 
@@ -601,17 +606,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
     const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
-      this.log.debug(`Update handler: Matterbridge device ${deviceId} for ${entityId} not found`);
+      this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found`);
       return;
     }
     let endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
     if (!endpoint) {
       const mappedEndpoint = this.endpointNames.get(entityId);
       if (mappedEndpoint === '') {
-        this.log.debug(`***Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
+        this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice;
       } else if (mappedEndpoint) {
-        this.log.debug(`***Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
+        this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice.getChildEndpointByName(mappedEndpoint);
       }
     }
