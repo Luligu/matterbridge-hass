@@ -51,6 +51,7 @@ export function addSensorEntity(
   log: AnsiLogger,
 ): string | undefined {
   let endpointName: string | undefined = undefined;
+  const [domain, _name] = entity.entity_id.split('.');
 
   // Look for air_quality sensor entity using airqualityRegex
   if (airQualityRegex && airQualityRegex.test(entity.entity_id)) {
@@ -64,7 +65,7 @@ export function addSensorEntity(
 
   // Look for supported sensors of the current entity
   hassDomainSensorsConverter
-    .filter((d) => d.domain === 'sensor' && d.withStateClass === state.attributes['state_class'] && d.withDeviceClass === state.attributes['device_class'])
+    .filter((d) => d.domain === domain && d.withStateClass === state.attributes['state_class'] && d.withDeviceClass === state.attributes['device_class'])
     .forEach((hassDomainSensor) => {
       // prettier-ignore
       if (hassDomainSensor.deviceType === powerSource && state.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage' && !battery) return; // Skip powerSource voltage sensor if the device is not battery powered

@@ -131,7 +131,7 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & HassStateValveAttributes;
+  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & HassStateValveAttributes & HassStateVacuumAttributes;
   context: HassContext;
 }
 
@@ -190,6 +190,16 @@ export interface HassStateFanAttributes {
  */
 export interface HassStateValveAttributes {
   current_position?: number | null; // Current status percentage of the valve. Null is unknown, 0 is closed, 100 is fully open.
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant vacuum entity's state.
+ */
+export interface HassStateVacuumAttributes {
+  activity?: 'idle' | 'docked' | 'cleaning' | 'paused' | 'error' | 'returning' | null; // Current state of the vacuum.
+  cleaned_area?: number; // Total area cleaned in square meters.
+  fan_speed?: string; // Implementation-specific fan speed setting.
+  fan_speed_list?: string[]; // List of supported implementation-specific fan speed settings.
 }
 
 /**

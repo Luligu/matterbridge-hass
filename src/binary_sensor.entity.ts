@@ -42,8 +42,10 @@ import { hassDomainBinarySensorsConverter } from './converters.js';
  */
 export function addBinarySensorEntity(mutableDevice: MutableDevice, entity: HassEntity, state: HassState, log: AnsiLogger): string | undefined {
   let endpointName: string | undefined = undefined;
+  const [domain, _name] = entity.entity_id.split('.');
+
   hassDomainBinarySensorsConverter
-    .filter((d) => d.domain === 'binary_sensor' && d.withDeviceClass === state.attributes['device_class'])
+    .filter((d) => d.domain === domain && d.withDeviceClass === state.attributes['device_class'])
     .forEach((hassDomainBinarySensor) => {
       if (hassDomainBinarySensor.endpoint !== undefined) {
         endpointName = hassDomainBinarySensor.endpoint; // Remap the endpoint name for the entity

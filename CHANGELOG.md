@@ -12,7 +12,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 - ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility issue with AirConditioner.
-- add vacuum domain
+- add vacuum domain. On hold for Apple Home inssue with bridged rvc.
 - add water heater domain
 - ✅ add valve domain (Ludovic BOUÉ)
 - ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
@@ -54,6 +54,7 @@ With this release, all supported domains are available also in the single entiti
 
 - [domain]: Unsupported domain entities are no more in the select. Thanks David Spivey.
 - [battery]: Battery voltage conversion.
+- [domain]: Fix wrong pickup for carbon_monoxide.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

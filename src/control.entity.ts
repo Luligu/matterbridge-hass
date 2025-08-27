@@ -30,7 +30,7 @@ import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 import { HassEntity, HassState } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassCommandConverter, hassDomainAttributeConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
+import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter } from './converters.js';
 
 /**
  * Look for supported binary_sensors of the current entity
@@ -74,7 +74,7 @@ export function addControlEntity(
 
   // Add device type and clusterIds for supported domain of the current entity.
   hassDomainConverter
-    .filter((d) => d.domain === domain)
+    .filter((d) => d.domain === domain && d.withAttribute === undefined)
     .forEach((hassDomain) => {
       if (!hassDomain.deviceType || !hassDomain.clusterId) return;
       endpointName = entity.entity_id;
@@ -90,13 +90,14 @@ export function addControlEntity(
   // Add device type and clusterIds for supported attributes of the current entity domain.
   log.debug(`- state ${debugStringify(state)}`);
   for (const [key, _value] of Object.entries(state.attributes)) {
-    hassDomainAttributeConverter
+    hassDomainConverter
       .filter((d) => d.domain === domain && d.withAttribute === key)
-      .forEach((hassDomainAttribute) => {
+      .forEach((hassDomain) => {
+        if (!hassDomain.deviceType || !hassDomain.clusterId) return;
         endpointName = entity.entity_id;
-        log.debug(`+ attribute device ${CYAN}${hassDomainAttribute.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainAttribute.clusterId)?.name}${db}`);
-        mutableDevice.addDeviceTypes(endpointName, hassDomainAttribute.deviceType);
-        mutableDevice.addClusterServerIds(endpointName, hassDomainAttribute.clusterId);
+        log.debug(`+ attribute device ${CYAN}${hassDomain.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomain.clusterId)?.name}${db}`);
+        mutableDevice.addDeviceTypes(endpointName, hassDomain.deviceType);
+        mutableDevice.addClusterServerIds(endpointName, hassDomain.clusterId);
       });
   }
 

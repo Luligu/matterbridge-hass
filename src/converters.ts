@@ -41,6 +41,7 @@ import {
   onOffOutlet,
   powerSource,
   pressureSensor,
+  roboticVacuumCleaner,
   smokeCoAlarm,
   temperatureSensor,
   thermostatDevice,
@@ -80,6 +81,7 @@ import {
   FormaldehydeConcentrationMeasurement,
   RadonConcentrationMeasurement,
   ValveConfigurationAndControl,
+  RvcOperationalState,
 } from 'matterbridge/matter/clusters';
 
 import { HassState, HomeAssistant } from './homeAssistant.js';
@@ -240,30 +242,26 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
   ];
 
 /**
- * Convert Home Assistant domains to Matterbridge device types and clusterIds.
+ * Convert Home Assistant domains (with attributes) to Matterbridge device types and clusterIds.
  * If the device type is null, no device type will be added. It will use hassDomainSensorsConverter and hassDomainBinarySensorsConverter to determine the device type and clusterId.
  */
 // prettier-ignore
-export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
-    { domain: 'switch',         deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
-    { domain: 'light',          deviceType: onOffLight,       clusterId: OnOff.Cluster.id },
-    { domain: 'lock',           deviceType: doorLockDevice,   clusterId: DoorLock.Cluster.id },
-    { domain: 'fan',            deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
-    { domain: 'cover',          deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
-    { domain: 'climate',        deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
-    { domain: 'valve',          deviceType: waterValve,       clusterId: ValveConfigurationAndControl.Cluster.id },
-    { domain: 'sensor',         deviceType: null,             clusterId: null },
-    { domain: 'binary_sensor',  deviceType: null,             clusterId: null },
-  ];
-
-/** Convert Home Assistant domains attributes to Matterbridge device types and clusterIds */
-// prettier-ignore
-export const hassDomainAttributeConverter: { domain: string; withAttribute: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
+export const hassDomainConverter: { domain: string; withAttribute?: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
+    { domain: 'switch',                                 deviceType: onOffOutlet,            clusterId: OnOff.Cluster.id },
+    { domain: 'light',                                  deviceType: onOffLight,             clusterId: OnOff.Cluster.id },
     { domain: 'light',    withAttribute: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControl.Cluster.id },
     { domain: 'light',    withAttribute: 'color_temp',  deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'hs_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'rgb_color',   deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'xy_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
+    { domain: 'lock',                                   deviceType: doorLockDevice,         clusterId: DoorLock.Cluster.id },
+    { domain: 'fan',                                    deviceType: fanDevice,              clusterId: FanControl.Cluster.id },
+    { domain: 'cover',                                  deviceType: coverDevice,            clusterId: WindowCovering.Cluster.id },
+    { domain: 'climate',                                deviceType: thermostatDevice,       clusterId: Thermostat.Cluster.id },
+    { domain: 'valve',                                  deviceType: waterValve,             clusterId: ValveConfigurationAndControl.Cluster.id },
+    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
+    { domain: 'sensor',                                 deviceType: null,                   clusterId: null },
+    { domain: 'binary_sensor',                          deviceType: null,                   clusterId: null },
   ];
 
 /** Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds */

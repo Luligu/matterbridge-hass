@@ -7,11 +7,10 @@ import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters
 
 import {
   temp,
-  hassCommandConverter,
-  hassDomainAttributeConverter,
-  hassDomainBinarySensorsConverter,
   hassDomainConverter,
   hassDomainSensorsConverter,
+  hassDomainBinarySensorsConverter,
+  hassCommandConverter,
   hassSubscribeConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
@@ -128,12 +127,6 @@ describe('HassPlatform', () => {
 
   it('should verify the hassDomainConverter converter', () => {
     hassDomainConverter.forEach((converter) => {
-      expect(converter.domain.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('should verify the hassDomainAttributeConverter converter', () => {
-    hassDomainAttributeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
     });
   });
