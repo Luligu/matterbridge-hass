@@ -2594,11 +2594,11 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   it('should call onStart and not register an unknown single entity', async () => {
-    const aqiEntity = {
+    const sensorUnknownEntity = {
       area_id: null,
       device_id: null,
       entity_category: null,
-      entity_id: 'unknown.unknown',
+      entity_id: 'sensor.unknown',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       labels: [],
@@ -2606,14 +2606,14 @@ describe('Matterbridge ' + NAME, () => {
       original_name: 'Single Entity Unknown',
     } as unknown as HassEntity;
 
-    const aqiState = {
-      entity_id: aqiEntity.entity_id,
-      state: 'fair',
-      attributes: { state_class: 'measurement', device_class: 'aqi', friendly_name: 'Unknown Sensor' },
+    const sensorUnknownState = {
+      entity_id: sensorUnknownEntity.entity_id,
+      state: 'unknown',
+      attributes: { state_class: 'unknown', device_class: 'unknown', friendly_name: 'Unknown Sensor' },
     } as unknown as HassState;
 
-    haPlatform.ha.hassEntities.set(aqiEntity.entity_id, aqiEntity);
-    haPlatform.ha.hassStates.set(aqiState.entity_id, aqiState);
+    haPlatform.ha.hassEntities.set(sensorUnknownEntity.entity_id, sensorUnknownEntity);
+    haPlatform.ha.hassStates.set(sensorUnknownState.entity_id, sensorUnknownState);
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
@@ -2622,7 +2622,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
-    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Removing device ${dn}${aqiEntity.original_name}${db}...`));
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Removing device ${dn}${sensorUnknownEntity.original_name}${db}...`));
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();

@@ -234,18 +234,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // Scan individual entities (domain automation, scene, script and helpers input_boolean, input_button) and create Matterbridge devices
     const individualEntitiesDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
-    const supportedDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve'];
-    for (const entity of Array.from(this.ha.hassEntities.values())) {
+    const supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve'];
+    for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null)) {
       const [domain, name] = entity.entity_id.split('.');
+      // Skip not supported domains.
+      if (!individualEntitiesDomains.includes(domain) && !supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
+        continue;
+      }
       // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
       const hassState = this.ha.hassStates.get(entity.entity_id);
       if (!hassState) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
-        continue;
-      }
-      // If the entity belongs to a device, we skip it.
-      if (entity.device_id !== null) {
-        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} is a device entity. Skipping...`);
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
@@ -324,7 +324,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         });
       }
 
-      if (supportedDomains.includes(domain)) addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
+      if (supportedCoreDomains.includes(domain)) addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, false, this.log);
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
 
@@ -415,16 +415,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
+        const [domain, _name] = entity.entity_id.split('.');
         const entityName = entity.name ?? entity.original_name ?? deviceName;
         let endpointName = entity.entity_id;
-
+        // Skip not supported domains.
+        if (!supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
+          continue;
+        }
         // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (!hassState) {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
           continue;
         }
-
         // Set the entity selects and validate the entity.
         this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
         this.setSelectEntity(entityName, entity.entity_id, 'component');

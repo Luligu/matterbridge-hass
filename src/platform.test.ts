@@ -768,7 +768,8 @@ describe('HassPlatform', () => {
     const entity = {
       id: '0123456789abcdef',
       entity_id: 'scene.turn_off_all_lights',
-      disabled_by: 'Jest',
+      device_id: null,
+      disabled_by: null,
       original_name: 'Turn off all lights',
       name: 'turn_off_all_lights',
     } as unknown as HassEntity;
@@ -777,6 +778,22 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
 
     expect(mockLog.debug).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+  });
+
+  it('should not register an individual entity with unsupported domain', async () => {
+    const entity = {
+      id: '0123456789abcdef',
+      entity_id: 'timer.my_timer',
+      device_id: null,
+      disabled_by: null,
+      original_name: 'My Timer',
+      name: 'my_timer',
+    } as unknown as HassEntity;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}timer${db}. Skipping...`);
   });
 
   it('should not register an individual entity with device_id', async () => {
@@ -797,7 +814,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(mockLog.debug).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db} is a device entity. Skipping...`);
+    expect(mockLog.info).not.toHaveBeenCalledWith(expect.stringContaining(`Creating device for individual entity`));
   });
 
   it('should not register an individual entity with no name', async () => {

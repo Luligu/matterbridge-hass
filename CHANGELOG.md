@@ -30,7 +30,7 @@ With this release, all supported domains are available also in the single entiti
 ### Added
 
 - [fan]: Added rock direction attributes to fan domain. Creates a complete fan with feature Rocking, AirflowDirection.
-- [MutableDevice]: Added automatic 'remap' ability in MutableDevice: this remaps the not overlapping child endpoints to the device main endpoint. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- [MutableDevice]: Added automatic 'remap' ability in MutableDevice: this remaps the not overlapping child endpoints to the device main endpoint. Useful for Alexa users since Alexa is not able to deal with composed devices. At the moment this is active for single entities. Soon will be extended to device entities where is more needed for Alexa users.
 - [SingleEntities]: Added support in single entities for the domains supported in the device entities.
 - [HomeAssistant]: Bumped HomeAssistant to v. 1.1.2.
 - [MutableDevice]: Bumped MutableDevice to v. 1.3.0.
@@ -49,6 +49,8 @@ With this release, all supported domains are available also in the single entiti
 - [devContainer]: Updated devContainer with repository name for the container and shallow clone matterbridge for speed and memory optimization.
 
 ### Fixed
+
+- [domain]: Unsupported domain entities are no more in the select.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
