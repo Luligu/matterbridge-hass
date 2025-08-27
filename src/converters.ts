@@ -259,7 +259,7 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'cover',                                  deviceType: coverDevice,            clusterId: WindowCovering.Cluster.id },
     { domain: 'climate',                                deviceType: thermostatDevice,       clusterId: Thermostat.Cluster.id },
     { domain: 'valve',                                  deviceType: waterValve,             clusterId: ValveConfigurationAndControl.Cluster.id },
-    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
+    { domain: '___vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
     { domain: 'sensor',                                 deviceType: null,                   clusterId: null },
     { domain: 'binary_sensor',                          deviceType: null,                   clusterId: null },
   ];

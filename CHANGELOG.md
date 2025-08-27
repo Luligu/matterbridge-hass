@@ -53,7 +53,7 @@ With this release, all supported domains are available also in the single entiti
 ### Fixed
 
 - [domain]: Unsupported domain entities are no more in the select. Thanks David Spivey.
-- [battery]: Battery voltage conversion.
+- [battery]: Fix battery voltage conversion.
 - [domain]: Fix wrong pickup for carbon_monoxide.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
