@@ -41,6 +41,7 @@ With this release, all supported domains are available also in the single entiti
 - [valve]: Added valve domain.
 - [platform]: Bumped HomeAssistantPlatform to v. 1.3.0.
 - [configure]: Optimized configure loop.
+- [update]: Optimized updateHandler.
 
 ### Changed
 
