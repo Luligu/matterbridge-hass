@@ -153,6 +153,7 @@ describe('HassPlatform', () => {
         expect(converter.converter(0, 'inHg')).toBe(null);
       } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === powerSource) {
         expect(converter.converter(32, 'mV')).toBe(32);
+        expect(converter.converter(1.5, 'V')).toBe(1500);
         expect(converter.converter(-40, 'V')).toBe(null);
       } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === electricalSensor) {
         expect(converter.converter(32, 'V')).toBe(32000);

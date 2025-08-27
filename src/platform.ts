@@ -69,10 +69,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   labelIdFilter: string = '';
 
   /** Bridged devices map. Key is device.id for devices and entity.entity_id for individual entities (without the postfix). Value is the MatterbridgeEndpoint */
-  matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
+  readonly matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
 
   /** Endpoint names remapping for entities. Key is entity.entity_id. Value is the endpoint name ('' for the main endpoint) */
-  endpointNames = new Map<string, string>();
+  readonly endpointNames = new Map<string, string>();
+
+  /** Battery voltage entities */
+  private readonly batteryVoltageEntities = new Set<string>();
 
   /** Regex to match air quality sensors. It matches all domain sensor (sensor\.) with names ending in _air_quality */
   airQualityRegex: RegExp | undefined;
@@ -392,6 +395,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
         if (battery && state && state.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage') {
           this.log.debug(`***Device ${CYAN}${device.name}${db} has a battery voltage entity: ${CYAN}${entity.entity_id}${db}`);
+          this.batteryVoltageEntities.add(entity.entity_id);
         }
       }
 
@@ -647,7 +651,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 s.domain === domain &&
                 s.withStateClass === new_state.attributes['state_class'] &&
                 s.withDeviceClass === new_state.attributes['device_class'] &&
-                s.deviceType === electricalSensor,
+                s.deviceType === (this.batteryVoltageEntities.has(entityId) ? powerSource : electricalSensor),
             )
           : hassDomainSensorsConverter.find(
               (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],

@@ -50,7 +50,8 @@ With this release, all supported domains are available also in the single entiti
 
 ### Fixed
 
-- [domain]: Unsupported domain entities are no more in the select.
+- [domain]: Unsupported domain entities are no more in the select. Thanks David Spivey.
+- [battery]: Battery voltage conversion.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
