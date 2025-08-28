@@ -74,7 +74,7 @@ export function addSensorEntity(
       if (hassDomainSensor.endpoint !== undefined) {
         endpointName = hassDomainSensor.endpoint; // Remap the endpoint name for the entity
         log.debug(
-          `***- sensor domain ${hassDomainSensor.domain} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+          `- sensor domain ${hassDomainSensor.domain} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
         );
       } else {
         endpointName = entity.entity_id; // Use the entity ID as the endpoint name

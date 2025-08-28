@@ -60,6 +60,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [battery]: Fix battery voltage conversion.
 - [domain]: Fix wrong pickup for carbon_monoxide.
 - [remap]: Add edge cases.
+- [climate]: Fix auto -> heat_cool.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

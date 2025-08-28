@@ -50,7 +50,7 @@ export function addBinarySensorEntity(mutableDevice: MutableDevice, entity: Hass
       if (hassDomainBinarySensor.endpoint !== undefined) {
         endpointName = hassDomainBinarySensor.endpoint; // Remap the endpoint name for the entity
         log.debug(
-          `***- binary_sensor domain ${hassDomainBinarySensor.domain} deviceClass ${hassDomainBinarySensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+          `- binary_sensor domain ${hassDomainBinarySensor.domain} deviceClass ${hassDomainBinarySensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
         );
       } else {
         endpointName = entity.entity_id; // Use the entity ID as the endpoint name

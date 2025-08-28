@@ -384,7 +384,7 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
   
     { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',   clusterId: Thermostat.Cluster.id,  attribute: 'systemMode', converter: (value) => {
       if( isValidNumber(value, Thermostat.SystemMode.Off, Thermostat.SystemMode.Heat) ) {
-        if (value === Thermostat.SystemMode.Auto) return 'auto';
+        if (value === Thermostat.SystemMode.Auto) return 'heat_cool';
         else if (value === Thermostat.SystemMode.Cool) return 'cool';
         else if (value === Thermostat.SystemMode.Heat) return 'heat';
         else return null;

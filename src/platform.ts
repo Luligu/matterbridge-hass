@@ -275,8 +275,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
 
+      // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
-      // Create a Mutable device with bridgedNode and the BridgedDeviceBasicInformationCluster
       const mutableDevice = new MutableDevice(
         this.matterbridge,
         entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
@@ -332,10 +332,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Set the entity mode for the Rvc.
       if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
-
+      // Lookup and add core domains entity.
       if (this.supportedCoreDomains.includes(domain))
         addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
+      // Lookup and add sensor domain entity.
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, false, this.log);
+      // Lookup and add binary_sensor domain entity.
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
 
       if (entity.platform === 'template') {
@@ -376,7 +378,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
         continue;
       }
-      // If the entity has an already registered name, we skip it.
+      // If the device has an already registered name, we skip it.
       if (this.hasDeviceName(deviceName)) {
         this.log.warn(`Device ${CYAN}${deviceName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
@@ -546,9 +548,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     endpointName: string,
     command: string,
   ) {
-    const entityId = endpointName; // data.endpoint.uniqueStorageKey;
+    const entityId = endpointName;
     if (!entityId) return;
-    // data.endpoint.log.info(`${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${data.endpoint?.uniqueStorageKey}${db}:${or}${data.endpoint?.maybeNumber}${db}`);
     data.endpoint.log.info(`${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${endpointName}${db}:${or}${data.endpoint?.maybeNumber}${db}`);
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);

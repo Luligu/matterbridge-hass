@@ -760,7 +760,7 @@ export class MutableDevice {
       for (const [_endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
         device.deviceTypes.forEach((deviceType) => {
           deviceType.requiredServerClusters.forEach((clusterId) => {
-            this.matterbridge.log.debug(`Adding cluster ${ClusterRegistry.get(clusterId)?.name} to ${_endpoint}...`);
+            // this.matterbridge.log.debug(`Adding cluster ${ClusterRegistry.get(clusterId)?.name} to ${_endpoint}...`);
             device.clusterServersIds.push(clusterId);
           });
         });
@@ -772,7 +772,7 @@ export class MutableDevice {
     if (remap) {
       // Scan the child endpoints for the same device types and clusters
       for (const [endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
-        this.matterbridge.log.debug(`Remapping endpoint ${endpoint}...`);
+        // this.matterbridge.log.debug(`Remapping endpoint ${endpoint}...`);
         let remapEndpoint = true;
         // Check duplicated device types
         for (const deviceType of device.deviceTypes) {
@@ -780,7 +780,7 @@ export class MutableDevice {
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.deviceTypes.includes(deviceType));
           if (duplicatedDeviceTypes) {
-            this.matterbridge.log.debug(`Remapping endpoint ${endpoint} failed due to duplicated device type ${deviceType.code} in ${duplicatedDeviceTypes[0]}`);
+            // this.matterbridge.log.debug(`Remapping endpoint ${endpoint} failed due to duplicated device type ${deviceType.code} in ${duplicatedDeviceTypes[0]}`);
             remapEndpoint = false;
           }
         }
@@ -790,10 +790,7 @@ export class MutableDevice {
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.clusterServersIds.includes(clusterServerId) || d.clusterServersObjs.find((obj) => obj.id === clusterServerId));
           if (duplicatedClusterServersIds && clusterServerId !== Identify.Cluster.id) {
-            // Remove Identify cluster
-            this.matterbridge.log.debug(
-              `Remapping endpoint ${endpoint} failed due to duplicated cluster server id ${ClusterRegistry.get(clusterServerId)?.name} in ${duplicatedClusterServersIds[0]}`,
-            );
+            // this.matterbridge.log.debug(`Remapping endpoint ${endpoint} failed due to duplicated cluster server id ${ClusterRegistry.get(clusterServerId)?.name} in ${duplicatedClusterServersIds[0]}`);
             remapEndpoint = false;
           }
         }
@@ -803,9 +800,7 @@ export class MutableDevice {
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.clusterServersIds.includes(clusterServerObjs.id) || d.clusterServersObjs.find((obj) => obj.id === clusterServerObjs.id));
           if (duplicatedClusterServersObjs && clusterServerObjs.id !== Identify.Cluster.id) {
-            this.matterbridge.log.debug(
-              `Remapping endpoint ${endpoint} failed due to duplicated cluster server object id ${ClusterRegistry.get(clusterServerObjs.id)?.name} in ${duplicatedClusterServersObjs[0]}`,
-            );
+            // this.matterbridge.log.debug(`Remapping endpoint ${endpoint} failed due to duplicated cluster server object id ${ClusterRegistry.get(clusterServerObjs.id)?.name} in ${duplicatedClusterServersObjs[0]}`);
             remapEndpoint = false;
           }
         }
@@ -819,7 +814,9 @@ export class MutableDevice {
           mainDevice.commandHandlers.push(...device.commandHandlers);
           mainDevice.subscribeHandlers.push(...device.subscribeHandlers);
           this.mutableDevice.delete(endpoint);
-          // console.log(`Remapped endpoint ${endpoint} to main endpoint`);
+          this.matterbridge.log.debug(`*Remapped endpoint ${endpoint} of ${this.deviceName}`);
+        } else {
+          this.matterbridge.log.debug(`***Failed to remap endpoint ${endpoint} of ${this.deviceName}`);
         }
       }
     }

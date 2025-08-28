@@ -874,7 +874,7 @@ describe('MutableDevice', () => {
   });
 
   test('should remap child endpoints into main endpoint for climate device', () => {
-    setDebug(true);
+    // setDebug(true);
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Climate Device');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
@@ -907,7 +907,7 @@ describe('MutableDevice', () => {
       'pressureMeasurement',
     ]);
     expect(device.getChildEndpoints().length).toBe(0);
-    setDebug(false);
+    // setDebug(false);
   });
 
   test('should NOT remap child endpoint when duplicate device types exist', () => {
