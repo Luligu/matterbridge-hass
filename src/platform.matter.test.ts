@@ -29,6 +29,8 @@ import {
   AirQuality,
   TemperatureMeasurement,
   ValveConfigurationAndControl,
+  RvcRunMode,
+  RvcOperationalState,
 } from 'matterbridge/matter/clusters';
 
 // Home Assistant Plugin
@@ -144,6 +146,7 @@ const mockConfig = {
   blackList: [],
   entityBlackList: [],
   deviceEntityBlackList: {},
+  enableServerRvc: false,
   debug: false,
   unregisterOnShutdown: false,
 } as PlatformConfig;
@@ -1033,6 +1036,143 @@ describe('Matterbridge ' + NAME, () => {
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${valveEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 50, expect.anything());
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await device.delete();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a Vacuum device', async () => {
+    const vacuumDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00ee6a',
+      labels: [],
+      name: 'Vacuum',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const vacuumEntity = {
+      area_id: null,
+      device_id: vacuumDevice.id,
+      entity_category: null,
+      entity_id: 'vacuum.vacuum',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0aa',
+      labels: [],
+      name: null,
+      original_name: 'Vacuum',
+    } as unknown as HassEntity;
+
+    const vacuumState = {
+      entity_id: vacuumEntity.entity_id,
+      state: 'docked',
+      attributes: { current_position: 50, friendly_name: 'Vacuum' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(vacuumDevice.id, vacuumDevice);
+    haPlatform.ha.hassEntities.set(vacuumEntity.entity_id, vacuumEntity);
+    haPlatform.ha.hassStates.set(vacuumState.entity_id, vacuumState);
+
+    // setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(vacuumDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(vacuumDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const child = device?.getChildEndpointByName(vacuumEntity.entity_id.replace('.', ''));
+    expect(child).toBeDefined();
+    if (!child) return;
+    expect(child.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${vacuumDevice.name}${rs}${nf} id ${CYAN}${vacuumDevice.id}${nf}`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating endpoint ${CYAN}${vacuumEntity.entity_id}${nf} for device ${idn}${vacuumDevice.name}${rs}${nf} id ${CYAN}${vacuumDevice.id}${nf}`,
+    );
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(4);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    // The implementation has RvcRunMode currentMode 1 = Idle 2 = Cleaning
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${vacuumEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Docked, expect.anything());
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'idle' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Stopped, expect.anything());
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Stopped);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'cleaning' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 2, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Running, expect.anything());
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(2);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'paused' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Paused, expect.anything());
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'returning' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.SeekingCharger, expect.anything());
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'docked' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Docked, expect.anything());
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(child, 'RvcRunMode', 'changeToMode', { newMode: 2 });
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(2);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(child, 'RvcOperationalState', 'pause');
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'pause', vacuumEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(child, 'RvcOperationalState', 'resume');
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(2);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(child, 'RvcOperationalState', 'goHome');
+    expect(child.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
+    expect(child.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
+
+    // setDebug(false);
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();

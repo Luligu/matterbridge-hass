@@ -32,15 +32,19 @@ Features:
 
 ## Supported device entities:
 
-| Domain  | Supported states                     | Supported attributes                                                |
-| ------- | ------------------------------------ | ------------------------------------------------------------------- |
-| switch  | on, off                              |                                                                     |
-| light   | on, off                              | brightness, color_mode, color_temp, hs_color, xy_color              |
-| lock    | locked, locking, unlocking, unlocked |                                                                     |
-| fan     | on, off                              | percentage, preset_mode, direction, oscillating                     |
-| cover   | open, closed, opening, closing       | current_position                                                    |
-| climate | off, heat, cool, heat_cool           | temperature, current_temperature, target_temp_low, target_temp_high |
-| valve   | open, closed, opening, closing       | current_position                                                    |
+| Domain     | Supported states                          | Supported attributes                                                |
+| ---------- | ----------------------------------------- | ------------------------------------------------------------------- |
+| switch     | on, off                                   |                                                                     |
+| light      | on, off                                   | brightness, color_mode, color_temp, hs_color, xy_color              |
+| lock       | locked, locking, unlocking, unlocked      |                                                                     |
+| fan        | on, off                                   | percentage, preset_mode (1), direction, oscillating                 |
+| cover      | open, closed, opening, closing            | current_position                                                    |
+| climate    | off, heat, cool, heat_cool                | temperature, current_temperature, target_temp_low, target_temp_high |
+| valve      | open, closed, opening, closing            | current_position                                                    |
+| vacuum (2) | idle, cleaning, paused, docked, returning |                                                                     |
+
+(1) - Supported preset_modes: auto, low, medium, high.
+(2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config.
 
 These domains are supported also like individual entities.
 

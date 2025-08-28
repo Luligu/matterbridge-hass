@@ -30,6 +30,7 @@ import {
   thermostatDevice,
   invokeSubscribeHandler,
   invokeBehaviorCommand,
+  roboticVacuumCleaner,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import {
@@ -490,6 +491,16 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
   });
 
+  it('should addVacuum', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, roboticVacuumCleaner);
+    mutableDevice.addVacuum('');
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(3);
+  });
+
   it('should create a MatterbridgeDevice', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     expect(mutableDevice.composedType).toBeUndefined();
@@ -526,6 +537,43 @@ describe('MutableDevice', () => {
     expect(device.hasClusterServer(OnOffCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
+  });
+
+  it('should create a MatterbridgeDevice without server mode', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffSwitch);
+    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+
+    expect(mutableDevice.get().deviceTypes).toHaveLength(3);
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(2);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(0);
+
+    const device = mutableDevice.create();
+    expect(device).toBeDefined();
+    expect(device.deviceTypes.get(bridgedNode.code)).toBeDefined();
+    expect(device.deviceTypes.get(powerSource.code)).toBeDefined();
+    expect(device.deviceTypes.get(onOffSwitch.code)).toBeDefined();
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'powerSource', 'onOff', 'identify']);
+  });
+
+  it('should create a MatterbridgeDevice with server mode', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
+    mutableDevice.setMode('server');
+
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffSwitch);
+    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+
+    expect(mutableDevice.get().deviceTypes).toHaveLength(3);
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(2);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(0);
+
+    const device = mutableDevice.create();
+    expect(device).toBeDefined();
+    expect(device.deviceTypes.get(bridgedNode.code)).toBeUndefined();
+    expect(device.deviceTypes.get(powerSource.code)).toBeDefined();
+    expect(device.deviceTypes.get(onOffSwitch.code)).toBeDefined();
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'powerSource', 'onOff', 'identify']);
   });
 
   it('should create a MatterbridgeDevice without superset device types', async () => {

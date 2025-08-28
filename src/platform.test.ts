@@ -131,6 +131,7 @@ describe('HassPlatform', () => {
     blackList: [],
     entityBlackList: [],
     deviceEntityBlackList: {},
+    enableServerRvc: false,
     debug: false,
     unregisterOnShutdown: false,
   } as PlatformConfig;
@@ -552,10 +553,13 @@ describe('HassPlatform', () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
     haPlatform.matterbridgeDevices.set('123456789', device);
 
-    haPlatform.subscribeHandler({} as any, {} as any, undefined, undefined, {} as any);
-    expect(mockLog.debug).toHaveBeenCalledWith(`Subscribe handler: Matterbridge device undefined for undefined not found`);
+    haPlatform.subscribeHandler({ device_id: '123', entity_id: undefined } as any, {} as any, undefined, undefined, {} as any);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Subscribe handler: Matterbridge device 123 for undefined not found`);
 
     haPlatform.subscribeHandler({ device_id: '123456789', entity_id: 'notvalid' } as any, {} as any, undefined, undefined, {} as any);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Subscribe handler: Endpoint notvalid for device 123456789 not found`);
+
+    haPlatform.subscribeHandler({ entity_id: 'notvalid' } as any, {} as any, undefined, undefined, {} as any);
     expect(mockLog.debug).toHaveBeenCalledWith(`Subscribe handler: Endpoint notvalid for device 123456789 not found`);
 
     haPlatform.matterbridgeDevices.clear();

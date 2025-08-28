@@ -82,6 +82,8 @@ import {
   RadonConcentrationMeasurement,
   ValveConfigurationAndControl,
   RvcOperationalState,
+  RvcRunMode,
+  RvcCleanMode,
 } from 'matterbridge/matter/clusters';
 
 import { HassState, HomeAssistant } from './homeAssistant.js';
@@ -185,6 +187,18 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'valve', state: 'closing', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
     { domain: 'valve', state: 'closed', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Closed },
 
+    // The implementation has RvcRunMode currentMode 1 = Idle 2 = Cleaning
+    { domain: 'vacuum', state: 'idle', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'idle', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Stopped },
+    { domain: 'vacuum', state: 'paused', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'paused', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Paused },
+    { domain: 'vacuum', state: 'docked', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'docked', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Docked },
+    { domain: 'vacuum', state: 'returning', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'returning', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.SeekingCharger },
+    { domain: 'vacuum', state: 'cleaning', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 2 },
+    { domain: 'vacuum', state: 'cleaning', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Running },
+
     { domain: 'input_boolean', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
     { domain: 'input_boolean', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
 
@@ -259,7 +273,9 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'cover',                                  deviceType: coverDevice,            clusterId: WindowCovering.Cluster.id },
     { domain: 'climate',                                deviceType: thermostatDevice,       clusterId: Thermostat.Cluster.id },
     { domain: 'valve',                                  deviceType: waterValve,             clusterId: ValveConfigurationAndControl.Cluster.id },
-    { domain: '___vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
+    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcRunMode.Cluster.id },
+    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcCleanMode.Cluster.id },
+    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
     { domain: 'sensor',                                 deviceType: null,                   clusterId: null },
     { domain: 'binary_sensor',                          deviceType: null,                   clusterId: null },
   ];
@@ -339,6 +355,11 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
 
     { command: 'open',                    domain: 'valve', service: 'set_valve_position', converter: (request) => { return { position: Math.round(request.targetLevel) } } },
     { command: 'close',                   domain: 'valve', service: 'close_valve' },
+
+    { command: 'pause',                   domain: 'vacuum', service: 'pause' },
+    { command: 'resume',                  domain: 'vacuum', service: 'start' },
+    { command: 'goHome',                  domain: 'vacuum', service: 'return_to_base' },
+    { command: 'changeToMode',            domain: 'vacuum', service: 'start' },
   ];
 
 /**

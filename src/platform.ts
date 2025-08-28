@@ -81,7 +81,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   airQualityRegex: RegExp | undefined;
 
   readonly individualEntitiesDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
-  readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve'];
+  readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve', 'vacuum'];
 
   /**
    * Constructor for the HomeAssistantPlatform class.
@@ -282,6 +282,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         isValidString(this.config.postfix, 1, 3) ? entity.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : entity.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
+        0x8000,
         domain,
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
@@ -328,6 +329,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         });
       }
 
+      // Set the entity mode for the Rvc.
+      if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
+
       if (this.supportedCoreDomains.includes(domain))
         addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, false, this.log);
@@ -353,7 +357,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
     } // End of individual entities scan
 
-    // Scan devices and entities and create Matterbridge devices
+    // Scan the devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
       // Check if we have a valid device
       const deviceName = device.name_by_user ?? device.name;
@@ -408,6 +412,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         isValidString(this.config.postfix, 1, 3) ? device.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : device.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
+        0x8000,
         device.model ?? 'Unknown',
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
@@ -445,25 +450,26 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
           continue;
         }
-
+        // Set the entity mode for the Rvc.
+        if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
+        // Lookup and add core domains entity.
         const eControl = addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
         if (eControl !== undefined) {
           endpointName = eControl;
           this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
         }
-
+        // Lookup and add sensor domain entity.
         const eSensor = addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, battery, this.log);
         if (eSensor !== undefined) {
           endpointName = eSensor;
           this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
         }
-
+        // Lookup and add binary_sensor domain entity.
         const eBinarySensor = addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
         if (eBinarySensor !== undefined) {
           endpointName = eBinarySensor;
           this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
         }
-
         // Create a child endpoint for the entity if we found a supported entity domain
         if (!mutableDevice.has(endpointName)) continue;
         this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
@@ -567,38 +573,44 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     oldValue: any,
     context: ActionContext,
   ) {
-    const matterbridgeDevice = entity.device_id ? this.matterbridgeDevices.get(entity.device_id) : undefined;
-    if (!matterbridgeDevice) {
-      this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found`);
-      return;
+    let endpoint: MatterbridgeEndpoint | undefined;
+    if (entity.device_id) {
+      const matterbridgeDevice = this.matterbridgeDevices.get(entity.device_id);
+      if (!matterbridgeDevice) {
+        this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found`);
+        return;
+      }
+      endpoint = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
+    } else {
+      endpoint = this.matterbridgeDevices.get(entity.entity_id);
     }
-    const child = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
-    if (!child) {
+    if (!endpoint) {
       this.log.debug(`Subscribe handler: Endpoint ${entity.entity_id} for device ${entity.device_id} not found`);
       return;
     }
     if (context && context.offline === true) {
-      child.log.debug(
+      endpoint.log.debug(
         `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-          `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} changed for an offline update`,
+          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update`,
       );
       return; // Skip offline updates
     }
     if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
-      child.log.debug(
+      endpoint.log.debug(
         `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-          `on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} not changed`,
+          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} not changed`,
       );
       return; // Skip unchanged values
     }
-    child.log.info(
-      `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${child?.maybeId}${db}:${or}${child?.maybeNumber}${db} ` +
+    endpoint.log.info(
+      `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} ` +
         `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
     );
     const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
     if (hassSubscribe.converter)
-      child.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
+      endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
+    // const state = this.ha.hassStates.get(entity.entity_id);
     if (value !== null) this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
     else this.ha.callService(domain, 'turn_off', entity.entity_id);
   }
@@ -687,9 +699,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
     } else {
       // Update state of the device
-      const hassUpdateState = hassUpdateStateConverter.find((updateState) => updateState.domain === domain && updateState.state === new_state.state);
-      if (hassUpdateState) {
-        await endpoint.setAttribute(hassUpdateState.clusterId, hassUpdateState.attribute, hassUpdateState.value, matterbridgeDevice.log);
+      const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
+      if (hassUpdateState.length > 0) {
+        for (const update of hassUpdateState) {
+          await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
+        }
       } else {
         endpoint.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
       }

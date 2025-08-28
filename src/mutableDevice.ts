@@ -43,11 +43,24 @@ import {
   MatterbridgeEndpointCommands,
   CommandHandlerData,
   MatterbridgeFanControlServer,
+  bridgedNode,
 } from 'matterbridge';
+import { MatterbridgeRvcCleanModeServer, MatterbridgeRvcOperationalStateServer, MatterbridgeRvcRunModeServer } from 'matterbridge/devices';
 import { db, debugStringify, idn, ign, rs, CYAN } from 'matterbridge/logger';
 import { ActionContext, AtLeastOne, Behavior } from 'matterbridge/matter';
 import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
-import { BooleanState, BridgedDeviceBasicInformation, ColorControl, FanControl, PowerSource, SmokeCoAlarm, Thermostat } from 'matterbridge/matter/clusters';
+import {
+  BooleanState,
+  BridgedDeviceBasicInformation,
+  ColorControl,
+  FanControl,
+  PowerSource,
+  RvcCleanMode,
+  RvcOperationalState,
+  RvcRunMode,
+  SmokeCoAlarm,
+  Thermostat,
+} from 'matterbridge/matter/clusters';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
 
 interface ClusterServerObj {
@@ -104,6 +117,7 @@ export class MutableDevice {
   serialNumber: string;
   vendorId: VendorId;
   vendorName: string;
+  productId: number;
   productName: string;
   softwareVersion: number;
   softwareVersionString: string;
@@ -112,6 +126,7 @@ export class MutableDevice {
 
   composedType: string | undefined = undefined;
   configUrl: string | undefined = undefined;
+  private mode: 'server' | undefined = undefined;
 
   constructor(
     matterbridge: Matterbridge,
@@ -119,6 +134,7 @@ export class MutableDevice {
     serialNumber?: string,
     vendorId = 0xfff1,
     vendorName = 'Matterbridge',
+    productId = 0x8000,
     productName = 'Matterbridge Device',
     softwareVersion?: number,
     softwareVersionString?: string,
@@ -130,6 +146,7 @@ export class MutableDevice {
     this.serialNumber = serialNumber ?? '0x' + randomBytes(8).toString('hex');
     this.vendorId = VendorId(vendorId);
     this.vendorName = vendorName;
+    this.productId = productId;
     this.productName = productName;
     this.softwareVersion = softwareVersion ?? parseInt(matterbridge.matterbridgeVersion.replace(/\D/g, ''));
     this.softwareVersionString = softwareVersionString ?? matterbridge.matterbridgeVersion;
@@ -244,6 +261,17 @@ export class MutableDevice {
    */
   setConfigUrl(configUrl: string): this {
     this.configUrl = configUrl;
+    return this;
+  }
+
+  /**
+   * Sets the mode for the device.
+   *
+   * @param {string} mode The mode to set (either 'server' or undefined).
+   * @returns {this} The current instance for method chaining.
+   */
+  setMode(mode: 'server' | undefined): this {
+    this.mode = mode;
     return this;
   }
 
@@ -623,6 +651,58 @@ export class MutableDevice {
     return this;
   }
 
+  addVacuum(endpoint: string): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(RvcRunMode.Cluster.id, MatterbridgeRvcRunModeServer, {
+        supportedModes: [
+          { label: 'Idle', mode: 1, modeTags: [{ value: RvcRunMode.ModeTag.Idle }] },
+          { label: 'Cleaning', mode: 2, modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }] },
+        ],
+        currentMode: 1,
+      }),
+    );
+    device.clusterServersObjs.push(
+      getClusterServerObj(RvcCleanMode.Cluster.id, MatterbridgeRvcCleanModeServer, {
+        supportedModes: [{ label: 'Vacuum', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }] }],
+        currentMode: 1,
+      }),
+    );
+    device.clusterServersObjs.push(
+      getClusterServerObj(RvcOperationalState.Cluster.id, MatterbridgeRvcOperationalStateServer, {
+        operationalStateList: [
+          { operationalStateId: RvcOperationalState.OperationalState.Stopped, operationalStateLabel: 'Stopped' },
+          { operationalStateId: RvcOperationalState.OperationalState.Running, operationalStateLabel: 'Running' },
+          { operationalStateId: RvcOperationalState.OperationalState.Paused, operationalStateLabel: 'Paused' },
+          { operationalStateId: RvcOperationalState.OperationalState.Error, operationalStateLabel: 'Error' },
+          { operationalStateId: RvcOperationalState.OperationalState.SeekingCharger, operationalStateLabel: 'SeekingCharger' }, // Y RVC Pause Compatibility N RVC Resume Compatibility
+          { operationalStateId: RvcOperationalState.OperationalState.Charging, operationalStateLabel: 'Charging' }, // N RVC Pause Compatibility Y RVC Resume Compatibility
+          { operationalStateId: RvcOperationalState.OperationalState.Docked, operationalStateLabel: 'Docked' }, // N RVC Pause Compatibility Y RVC Resume Compatibility
+        ],
+        operationalState: RvcOperationalState.OperationalState.Docked,
+        operationalError: { errorStateId: RvcOperationalState.ErrorState.NoError, errorStateLabel: 'No Error', errorStateDetails: 'Fully operational' },
+      }),
+    );
+    return this;
+  }
+
+  addBasicInformationClusterServer(): this {
+    const device = this.getEndpoint('');
+    device.log.logName = this.deviceName;
+    device.deviceName = this.deviceName;
+    device.serialNumber = this.serialNumber;
+    device.uniqueId = this.createUniqueId(this.deviceName, this.serialNumber, this.vendorName, this.productName);
+    device.productId = this.productId;
+    device.productName = this.productName;
+    device.vendorId = this.vendorId;
+    device.vendorName = this.vendorName;
+    device.softwareVersion = this.softwareVersion;
+    device.softwareVersionString = this.softwareVersionString;
+    device.hardwareVersion = this.hardwareVersion;
+    device.hardwareVersionString = this.hardwareVersionString;
+    return this;
+  }
+
   addBridgedDeviceBasicInformationClusterServer(): this {
     const device = this.getEndpoint('');
     device.log.logName = this.deviceName;
@@ -674,8 +754,19 @@ export class MutableDevice {
   create(remap: boolean = false): MatterbridgeEndpoint {
     // Remove duplicates and superset device types on all endpoints
     this.removeDuplicatedAndSupersetDeviceTypes();
+    // With remap add all required cluster server to the child endpoints
+    if (remap) {
+      for (const [_endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
+        device.deviceTypes.forEach((deviceType) => {
+          deviceType.requiredServerClusters.forEach((cluster) => {
+            device.clusterServersIds.push(cluster);
+          });
+        });
+      }
+    }
     // Filter out duplicate clusters and clusters objects on all endpoints
     this.removeDuplicatedClusterServers();
+    // Remap the not overlapping child endpoints to the main endpoint
     if (remap) {
       // Scan the child endpoints for the same device types and clusters
       for (const [endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
@@ -762,8 +853,12 @@ export class MutableDevice {
 
     // Create the mutable device for the main endpoint
     const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
+    // Remove bridgedNode on server mode
+    if (this.mode === 'server') {
+      mainDevice.deviceTypes = mainDevice.deviceTypes.filter((deviceType) => deviceType.code !== bridgedNode.code);
+    }
     mainDevice.friendlyName = this.deviceName;
-    mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName }, true);
+    mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName, mode: this.mode }, true);
     mainDevice.endpoint.log.logName = this.deviceName;
     return mainDevice.endpoint;
   }
@@ -833,8 +928,10 @@ export class MutableDevice {
       const mainDevice = this.get(endpoint);
       if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined');
 
+      // Add the BasicInformationClusterServer or the BridgedDeviceBasicInformationClusterServer to the main endpoint
+      if (this.mode === 'server') this.addBasicInformationClusterServer();
+      else this.addBridgedDeviceBasicInformationClusterServer();
       // Add the cluster objects to the main endpoint
-      this.addBridgedDeviceBasicInformationClusterServer();
       for (const clusterServerObj of mainDevice.clusterServersObjs) {
         mainDevice.endpoint.behaviors.require(clusterServerObj.type, clusterServerObj.options);
       }

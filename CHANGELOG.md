@@ -12,20 +12,22 @@ If you like this project and find it useful, please consider giving it a star on
 
 - ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility issue with AirConditioner.
-- add vacuum domain. On hold for Apple Home inssue with bridged rvc.
+- ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
 - add water heater domain
 - ✅ add valve domain (Ludovic BOUÉ)
 - ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
 - ✅ support all single entities reusing the same code of the device entities
 - ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
 - ✅ add automatic 'remap' ability in MutableDevice: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexxa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
+- add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
 
 ## [0.3.0] - 2025-08-26
 
 ### Breaking changes
 
 With this release, all supported domains are available also in the single entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
+
+The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config.
 
 ### Added
 
@@ -42,6 +44,8 @@ With this release, all supported domains are available also in the single entiti
 - [platform]: Bumped HomeAssistantPlatform to v. 1.3.0.
 - [configure]: Optimized configure loop.
 - [update]: Optimized updateHandler.
+- [vacuum]: Added vacuum domain.
+- [config]: Added enableServerRvc to the config for the Apple Home issue with the rvc.
 
 ### Changed
 
@@ -55,6 +59,7 @@ With this release, all supported domains are available also in the single entiti
 - [domain]: Unsupported domain entities are no more in the select. Thanks David Spivey.
 - [battery]: Fix battery voltage conversion.
 - [domain]: Fix wrong pickup for carbon_monoxide.
+- [remap]: Add edge cases.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
