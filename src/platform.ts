@@ -113,6 +113,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
     this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : undefined;
     this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
+    this.config.enableServerRvc = this.config.enableServerRvc === undefined ? true : this.config.enableServerRvc;
     if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
     if (config.individualEntityBlackList) delete config.individualEntityBlackList;
 

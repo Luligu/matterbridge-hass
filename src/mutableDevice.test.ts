@@ -31,6 +31,8 @@ import {
   invokeSubscribeHandler,
   invokeBehaviorCommand,
   roboticVacuumCleaner,
+  humiditySensor,
+  pressureSensor,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import {
@@ -49,6 +51,9 @@ import {
   FixedLabel,
   Descriptor,
   SmokeCoAlarm,
+  TemperatureMeasurement,
+  RelativeHumidityMeasurement,
+  PressureMeasurement,
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 import { Endpoint, Environment, ServerNode, LogLevel as MatterLogLevel, LogFormat as MatterLogFormat, DeviceTypeId, VendorId, MdnsService } from 'matterbridge/matter';
@@ -862,20 +867,47 @@ describe('MutableDevice', () => {
     expect(mutableDevice.size()).toBe(3); // main + 2 children before remap
     const device = mutableDevice.create(true); // remap enabled
     expect(device).toBeDefined();
-    // All unique child endpoints should be merged into main
     expect(mutableDevice.size()).toBe(1);
-    expect(mutableDevice.has('child1')).toBeFalsy();
-    expect(mutableDevice.has('child2')).toBeFalsy();
-    const main = mutableDevice.get('');
-    // Device types should now include bridgedNode + onOffLight + powerSource (after duplicate/superset filtering)
-    const deviceTypeCodes = main.deviceTypes.map((d) => d.code).sort();
-    expect(deviceTypeCodes).toEqual([bridgedNode.code, onOffLight.code, powerSource.code].sort());
-    // Clusters should include OnOff (object) + PowerSource (id) + BridgedDeviceBasicInformation added automatically
-    const supportedClusters = Object.keys(device.behaviors.supported);
-    expect(supportedClusters).toContain('onOff');
-    expect(supportedClusters).toContain('powerSource');
-    expect(supportedClusters).toContain('bridgedDeviceBasicInformation');
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-onofflight', 'MA-powerSource']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'bridgedDeviceBasicInformation', 'powerSource', 'identify', 'groups']);
     expect(device.getChildEndpoints().length).toBe(0);
+  });
+
+  test('should remap child endpoints into main endpoint for climate device', () => {
+    setDebug(true);
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Climate Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
+    mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+
+    mutableDevice.addDeviceTypes('temperature', temperatureSensor);
+    mutableDevice.addClusterServerIds('temperature', TemperatureMeasurement.Cluster.id);
+    mutableDevice.setFriendlyName('temperature', 'Temperature Sensor');
+
+    mutableDevice.addDeviceTypes('humidity', humiditySensor);
+    mutableDevice.addClusterServerIds('humidity', RelativeHumidityMeasurement.Cluster.id);
+    mutableDevice.setFriendlyName('humidity', 'Humidity Sensor');
+
+    mutableDevice.addDeviceTypes('pressure', pressureSensor);
+    mutableDevice.addClusterServerIds('pressure', PressureMeasurement.Cluster.id);
+    mutableDevice.setFriendlyName('pressure', 'Pressure Sensor');
+
+    expect(mutableDevice.size()).toBe(4);
+    const device = mutableDevice.create(true);
+    expect(device).toBeDefined();
+    expect(mutableDevice.size()).toBe(1);
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-tempsensor', 'MA-humiditysensor', 'MA-pressuresensor']);
+    expect(device.getAllClusterServerNames()).toEqual([
+      'descriptor',
+      'matterbridge',
+      'powerSource',
+      'bridgedDeviceBasicInformation',
+      'identify',
+      'temperatureMeasurement',
+      'relativeHumidityMeasurement',
+      'pressureMeasurement',
+    ]);
+    expect(device.getChildEndpoints().length).toBe(0);
+    setDebug(false);
   });
 
   test('should NOT remap child endpoint when duplicate device types exist', () => {

@@ -27,7 +27,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 With this release, all supported domains are available also in the single entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
 
-The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config.
+The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
 
 ### Added
 
