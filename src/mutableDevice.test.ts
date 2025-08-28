@@ -598,6 +598,8 @@ describe('MutableDevice', () => {
 
     const device = mutableDevice.create();
     expect(device).toBeDefined();
+    expect(mutableDevice.size()).toBe(1);
+    expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(mutableDevice.get().deviceTypes).toHaveLength(5);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
@@ -634,6 +636,8 @@ describe('MutableDevice', () => {
 
     const device = mutableDevice.create();
     expect(device).toBeDefined();
+    expect(mutableDevice.size()).toBe(1);
+    expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(mutableDevice.get().deviceTypes).toHaveLength(5);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
@@ -756,6 +760,8 @@ describe('MutableDevice', () => {
     expect(device).toBeDefined();
     expect(device).toBeInstanceOf(MatterbridgeEndpoint);
     expect(device.configUrl).toBe('http://example.com/config');
+    expect(mutableDevice.size()).toBe(3);
+    expect(mutableDevice.getEndpoints().size).toBe(3);
     await aggregator.add(device);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
@@ -858,6 +864,7 @@ describe('MutableDevice', () => {
     const device = mutableDevice.create(true); // remap enabled
     expect(device).toBeDefined();
     expect(mutableDevice.size()).toBe(1);
+    expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-onofflight', 'MA-powerSource']);
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'bridgedDeviceBasicInformation', 'powerSource', 'identify', 'groups']);
     expect(device.getChildEndpoints().length).toBe(0);
@@ -885,6 +892,7 @@ describe('MutableDevice', () => {
     const device = mutableDevice.create(true);
     expect(device).toBeDefined();
     expect(mutableDevice.size()).toBe(1);
+    expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-tempsensor', 'MA-humiditysensor', 'MA-pressuresensor']);
     expect(device.getAllClusterServerNames()).toEqual([
       'descriptor',
@@ -918,6 +926,7 @@ describe('MutableDevice', () => {
     expect(device).toBeDefined();
     // Child should remain because of duplicate device type
     expect(mutableDevice.size()).toBe(2);
+    expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.has('child1')).toBeTruthy();
     // Verify child endpoint exists and retains its clusters
     const childEndpoint = mutableDevice.getEndpoint('child1');
@@ -944,6 +953,7 @@ describe('MutableDevice', () => {
     expect(device).toBeDefined();
     // Remap should be blocked by duplicate cluster server id
     expect(mutableDevice.size()).toBe(2);
+    expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.has('child1')).toBeTruthy();
     // Both endpoints should each expose an OnOff cluster (only once per endpoint)
     const mainSupported = Object.keys(device.behaviors.supported);
@@ -975,6 +985,7 @@ describe('MutableDevice', () => {
     expect(device).toBeDefined();
     // Remap should be blocked by duplicate cluster server object id
     expect(mutableDevice.size()).toBe(2);
+    expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.has('child1')).toBeTruthy();
     const mainSupported = Object.keys(device.behaviors.supported);
     expect(mainSupported.filter((c) => c === 'onOff').length).toBe(1);

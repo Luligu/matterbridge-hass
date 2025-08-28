@@ -111,7 +111,8 @@ export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterI
 }
 
 export class MutableDevice {
-  private readonly mutableDevice = new Map<string, MutableDeviceInterface>();
+  private readonly mutableDevices = new Map<string, MutableDeviceInterface>();
+  private readonly endpoints = new Map<string, MatterbridgeEndpoint>();
 
   private readonly matterbridge: Matterbridge;
   private readonly deviceName: string;
@@ -162,7 +163,7 @@ export class MutableDevice {
    * @returns {number} The size of the mutable device.
    */
   size(): number {
-    return this.mutableDevice.size;
+    return this.mutableDevices.size;
   }
 
   /**
@@ -173,7 +174,7 @@ export class MutableDevice {
    * @returns {boolean} `true` if the endpoint exists; otherwise, `false`.
    */
   has(endpoint: string): boolean {
-    return this.mutableDevice.has(endpoint);
+    return this.mutableDevices.has(endpoint);
   }
 
   /**
@@ -186,6 +187,15 @@ export class MutableDevice {
   }
 
   /**
+   * Retrieves the map of the Matterbridge endpoints of the device.
+   *
+   * @returns {Map<string, MatterbridgeEndpoint>} The map of the Matterbridge endpoints of the device.
+   */
+  getEndpoints(): Map<string, MatterbridgeEndpoint> {
+    return this.endpoints;
+  }
+
+  /**
    * Retrieves the mutable device interface for the specified endpoint.
    * Throws an error if the device for the given endpoint is not defined.
    *
@@ -195,8 +205,8 @@ export class MutableDevice {
    * @throws {Error} If the device for the specified endpoint is not defined.
    */
   get(endpoint: string = ''): MutableDeviceInterface {
-    if (this.mutableDevice.get(endpoint) === undefined) throw new Error(`Device ${endpoint} is not defined`);
-    return this.mutableDevice.get(endpoint) as MutableDeviceInterface;
+    if (this.mutableDevices.get(endpoint) === undefined) throw new Error(`Device ${endpoint} is not defined`);
+    return this.mutableDevices.get(endpoint) as MutableDeviceInterface;
   }
 
   /**
@@ -209,13 +219,13 @@ export class MutableDevice {
    * @throws {Error} If the endpoint is not defined.
    */
   getEndpoint(endpoint: string = ''): MatterbridgeEndpoint {
-    if (this.mutableDevice.get(endpoint)?.endpoint === undefined) throw new Error(`Device ${endpoint} endpoint is not defined`);
-    return this.mutableDevice.get(endpoint)?.endpoint as MatterbridgeEndpoint;
+    if (this.mutableDevices.get(endpoint)?.endpoint === undefined) throw new Error(`Device ${endpoint} endpoint is not defined`);
+    return this.mutableDevices.get(endpoint)?.endpoint as MatterbridgeEndpoint;
   }
 
   private initializeEndpoint(endpoint: string) {
-    if (!this.mutableDevice.has(endpoint)) {
-      this.mutableDevice.set(endpoint, {
+    if (!this.mutableDevices.has(endpoint)) {
+      this.mutableDevices.set(endpoint, {
         friendlyName: endpoint,
         tagList: [],
         deviceTypes: [],
@@ -227,7 +237,7 @@ export class MutableDevice {
         subscribeHandlers: [],
       });
     }
-    return this.mutableDevice.get(endpoint) as MutableDeviceInterface;
+    return this.mutableDevices.get(endpoint) as MutableDeviceInterface;
   }
 
   /**
@@ -766,7 +776,7 @@ export class MutableDevice {
     this.removeDuplicatedAndSupersetDeviceTypes();
     // With remap add all required cluster server to the child endpoints
     if (remap) {
-      for (const [_endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
+      for (const [_endpoint, device] of Array.from(this.mutableDevices.entries()).filter(([endpoint]) => endpoint !== '')) {
         device.deviceTypes.forEach((deviceType) => {
           deviceType.requiredServerClusters.forEach((clusterId) => {
             // this.matterbridge.log.debug(`Adding cluster ${ClusterRegistry.get(clusterId)?.name} to ${_endpoint}...`);
@@ -780,12 +790,12 @@ export class MutableDevice {
     // Remap the not overlapping child endpoints to the main endpoint
     if (remap) {
       // Scan the child endpoints for the same device types and clusters
-      for (const [endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
+      for (const [endpoint, device] of Array.from(this.mutableDevices.entries()).filter(([endpoint]) => endpoint !== '')) {
         // this.matterbridge.log.debug(`Remapping endpoint ${endpoint}...`);
         let remapEndpoint = true;
         // Check duplicated device types
         for (const deviceType of device.deviceTypes) {
-          const duplicatedDeviceTypes = Array.from(this.mutableDevice.entries())
+          const duplicatedDeviceTypes = Array.from(this.mutableDevices.entries())
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.deviceTypes.includes(deviceType));
           if (duplicatedDeviceTypes) {
@@ -795,7 +805,7 @@ export class MutableDevice {
         }
         // Check duplicated cluster servers ids
         for (const clusterServerId of device.clusterServersIds) {
-          const duplicatedClusterServersIds = Array.from(this.mutableDevice.entries())
+          const duplicatedClusterServersIds = Array.from(this.mutableDevices.entries())
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.clusterServersIds.includes(clusterServerId) || d.clusterServersObjs.find((obj) => obj.id === clusterServerId));
           if (duplicatedClusterServersIds && clusterServerId !== Identify.Cluster.id) {
@@ -805,7 +815,7 @@ export class MutableDevice {
         }
         // Check duplicated cluster server objects
         for (const clusterServerObjs of device.clusterServersObjs) {
-          const duplicatedClusterServersObjs = Array.from(this.mutableDevice.entries())
+          const duplicatedClusterServersObjs = Array.from(this.mutableDevices.entries())
             .filter(([e, _d]) => e !== endpoint)
             .find(([_e, d]) => d.clusterServersIds.includes(clusterServerObjs.id) || d.clusterServersObjs.find((obj) => obj.id === clusterServerObjs.id));
           if (duplicatedClusterServersObjs && clusterServerObjs.id !== Identify.Cluster.id) {
@@ -822,7 +832,7 @@ export class MutableDevice {
           mainDevice.clusterClientsObjs.push(...device.clusterClientsObjs);
           mainDevice.commandHandlers.push(...device.commandHandlers);
           mainDevice.subscribeHandlers.push(...device.subscribeHandlers);
-          this.mutableDevice.delete(endpoint);
+          this.mutableDevices.delete(endpoint);
           this.matterbridge.log.debug(`*Remapped endpoint ${endpoint} of ${this.deviceName}`);
         } else {
           this.matterbridge.log.debug(`***Failed to remap endpoint ${endpoint} of ${this.deviceName}`);
@@ -831,7 +841,7 @@ export class MutableDevice {
     }
     this.createMainEndpoint();
     this.createChildEndpoints();
-    for (const [endpoint] of this.mutableDevice) {
+    for (const [endpoint] of this.mutableDevices) {
       this.createClusters(endpoint);
     }
     return this.getEndpoint();
@@ -839,7 +849,7 @@ export class MutableDevice {
 
   private removeDuplicatedAndSupersetDeviceTypes() {
     // Remove duplicates and superset device types on all endpoints
-    for (const device of this.mutableDevice.values()) {
+    for (const device of this.mutableDevices.values()) {
       const deviceTypesMap = new Map<number, DeviceTypeDefinition>();
       device.deviceTypes.forEach((deviceType) => {
         deviceTypesMap.set(deviceType.code, deviceType);
@@ -868,7 +878,7 @@ export class MutableDevice {
     this.removeDuplicatedAndSupersetDeviceTypes();
 
     // Create the mutable device for the main endpoint
-    const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
+    const mainDevice = this.mutableDevices.get('') as MutableDeviceInterface;
     // Remove bridgedNode on server mode
     if (this.mode === 'server') {
       mainDevice.deviceTypes = mainDevice.deviceTypes.filter((deviceType) => deviceType.code !== bridgedNode.code);
@@ -876,6 +886,7 @@ export class MutableDevice {
     mainDevice.friendlyName = this.deviceName;
     mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName, mode: this.mode }, true);
     mainDevice.endpoint.log.logName = this.deviceName;
+    this.endpoints.set('', mainDevice.endpoint);
     return mainDevice.endpoint;
   }
 
@@ -884,11 +895,11 @@ export class MutableDevice {
     this.removeDuplicatedAndSupersetDeviceTypes();
 
     // Get the main endpoint
-    const mainDevice = this.mutableDevice.get('') as MutableDeviceInterface;
+    const mainDevice = this.mutableDevices.get('') as MutableDeviceInterface;
     if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined. Call createMainEndpoint() first.');
 
     // Create the child endpoints
-    for (const [endpoint, device] of Array.from(this.mutableDevice.entries()).filter(([endpoint]) => endpoint !== '')) {
+    for (const [endpoint, device] of Array.from(this.mutableDevices.entries()).filter(([endpoint]) => endpoint !== '')) {
       device.endpoint = mainDevice.endpoint.addChildDeviceType(
         endpoint,
         device.deviceTypes as AtLeastOne<DeviceTypeDefinition>,
@@ -896,13 +907,14 @@ export class MutableDevice {
         true,
       );
       device.endpoint.log.logName = device.friendlyName;
+      this.endpoints.set(endpoint, device.endpoint);
     }
     return this;
   }
 
   private removeDuplicatedClusterServers() {
     // Filter out duplicate clusters and clusters objects on all endpoints
-    for (const device of this.mutableDevice.values()) {
+    for (const device of this.mutableDevices.values()) {
       // Filter out duplicate server clusters and server clusters objects. Remove the cluster server id when a cluster server object is present.
       const deviceClusterServersIdMap = new Map<ClusterId, ClusterId>();
       device.clusterServersIds.forEach((clusterServerId) => {
@@ -998,14 +1010,15 @@ export class MutableDevice {
     }
     // Add the subscribe handlers
     for (const subscribeHandler of device.subscribeHandlers) {
-      device.endpoint.subscribeAttribute(
-        subscribeHandler.clusterId,
-        subscribeHandler.attribute,
-        (newValue: unknown, oldValue: unknown, context: ActionContext) => {
-          subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
-        },
-        device.endpoint.log,
-      );
+      if (device.endpoint.hasAttributeServer(subscribeHandler.clusterId, subscribeHandler.attribute))
+        device.endpoint.subscribeAttribute(
+          subscribeHandler.clusterId,
+          subscribeHandler.attribute,
+          (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+            subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+          },
+          device.endpoint.log,
+        );
     }
 
     return this;
@@ -1022,7 +1035,7 @@ export class MutableDevice {
         `vendor name ${CYAN}${this.vendorName}${rs}${db} product name ${CYAN}${this.productName}${rs}${db} software version ${CYAN}${this.softwareVersion}${rs}${db} ` +
         `software version string ${CYAN}${this.softwareVersionString}${rs}${db} hardware version ${CYAN}${this.hardwareVersion}${rs}${db} hardware version string ${CYAN}${this.hardwareVersionString}`,
     );
-    for (const [endpoint, device] of this.mutableDevice) {
+    for (const [endpoint, device] of this.mutableDevices) {
       const deviceTypes = device.deviceTypes.map((d) => '0x' + d.code.toString(16) + '-' + d.name);
       const clusterServersIds = device.clusterServersIds.map((clusterServerId) => '0x' + clusterServerId.toString(16) + '-' + ClusterRegistry.get(clusterServerId)?.name);
       const clusterServersObjsIds = device.clusterServersObjs.map(

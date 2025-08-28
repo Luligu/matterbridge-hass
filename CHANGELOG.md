@@ -21,7 +21,7 @@ If you like this project and find it useful, please consider giving it a star on
 - ✅ add automatic 'remap' ability in MutableDevice: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
 - add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
 
-## [0.3.0] - 2025-08-26
+## [0.3.0] - 2025-08-28
 
 ### Breaking changes
 
@@ -61,6 +61,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [domain]: Fix wrong pickup for carbon_monoxide.
 - [remap]: Add edge cases.
 - [climate]: Fix auto -> heat_cool.
+- [fan]: Fix subscribe for fan complete.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
