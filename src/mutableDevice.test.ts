@@ -232,16 +232,16 @@ describe('MutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     expect(mutableDevice).toBeInstanceOf(MutableDevice);
     expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
-    expect(mutableDevice.deviceName).toBe('Test Device');
+    expect(mutableDevice.name()).toBe('Test Device');
     expect(mutableDevice.size()).toBe(1);
-    expect(mutableDevice.composedType).toBeUndefined();
-    expect(mutableDevice.configUrl).toBeUndefined();
+    expect((mutableDevice as any).composedType).toBeUndefined();
+    expect((mutableDevice as any).configUrl).toBeUndefined();
 
     mutableDevice.setComposedType('Hass Device');
-    expect(mutableDevice.composedType).toBe('Hass Device');
+    expect((mutableDevice as any).composedType).toBe('Hass Device');
 
     mutableDevice.setConfigUrl('http://example.com/config');
-    expect(mutableDevice.configUrl).toBe('http://example.com/config');
+    expect((mutableDevice as any).configUrl).toBe('http://example.com/config');
   });
 
   it('should throw error', async () => {
@@ -273,9 +273,7 @@ describe('MutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
     expect(mutableDevice).toBeInstanceOf(MutableDevice);
     expect((mutableDevice as any).matterbridge).toBe(mockMatterbridge);
-    expect(mutableDevice.deviceName).toBe('Test Device');
-    expect(mutableDevice.composedType).toBeUndefined();
-
+    expect(mutableDevice.name()).toBe('Test Device');
     mutableDevice.addDeviceTypes('', bridgedNode);
     const device = mutableDevice.create();
     expect(device).toBeDefined();
@@ -508,8 +506,6 @@ describe('MutableDevice', () => {
 
   it('should create a MatterbridgeDevice', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
-    expect(mutableDevice.composedType).toBeUndefined();
-
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
@@ -583,8 +579,6 @@ describe('MutableDevice', () => {
 
   it('should create a MatterbridgeDevice without superset device types', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
-    expect(mutableDevice.composedType).toBeUndefined();
-
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', onOffSwitch, colorTemperatureSwitch);
@@ -621,8 +615,6 @@ describe('MutableDevice', () => {
 
   it('should create a MatterbridgeDevice without superset device types II', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
-    expect(mutableDevice.composedType).toBeUndefined();
-
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', onOffSwitch, colorTemperatureSwitch);
@@ -659,8 +651,6 @@ describe('MutableDevice', () => {
 
   it('should create a MatterbridgeDevice without superset device types III', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device');
-    expect(mutableDevice.composedType).toBeUndefined();
-
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addDeviceTypes('', onOffSwitch, colorTemperatureSwitch);

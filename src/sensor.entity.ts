@@ -55,7 +55,7 @@ export function addSensorEntity(
 
   // Look for air_quality sensor entity using airqualityRegex
   if (airQualityRegex && airQualityRegex.test(entity.entity_id)) {
-    log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found for device ${CYAN}${mutableDevice.deviceName}${db}`);
+    log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found for device ${CYAN}${mutableDevice.name()}${db}`);
     endpointName = 'AirQuality'; // Remap the endpoint name for the entity
     mutableDevice.addDeviceTypes('AirQuality', airQualitySensor); // Add the air quality sensor device type
     mutableDevice.addClusterServerIds('AirQuality', AirQuality.Cluster.id); // Add the AirQuality cluster

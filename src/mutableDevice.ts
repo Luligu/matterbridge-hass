@@ -111,22 +111,22 @@ export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterI
 }
 
 export class MutableDevice {
-  protected readonly mutableDevice = new Map<string, MutableDeviceInterface>();
-  protected readonly matterbridge: Matterbridge;
+  private readonly mutableDevice = new Map<string, MutableDeviceInterface>();
 
-  deviceName: string;
-  serialNumber: string;
-  vendorId: VendorId;
-  vendorName: string;
-  productId: number;
-  productName: string;
-  softwareVersion: number;
-  softwareVersionString: string;
-  hardwareVersion: number;
-  hardwareVersionString: string;
+  private readonly matterbridge: Matterbridge;
+  private readonly deviceName: string;
+  private readonly serialNumber: string;
+  private readonly vendorId: VendorId;
+  private readonly vendorName: string;
+  private readonly productId: number;
+  private readonly productName: string;
+  private readonly softwareVersion: number;
+  private readonly softwareVersionString: string;
+  private readonly hardwareVersion: number;
+  private readonly hardwareVersionString: string;
 
-  composedType: string | undefined = undefined;
-  configUrl: string | undefined = undefined;
+  private composedType: string | undefined = undefined;
+  private configUrl: string | undefined = undefined;
   private mode: 'server' | undefined = undefined;
 
   constructor(
@@ -174,6 +174,15 @@ export class MutableDevice {
    */
   has(endpoint: string): boolean {
     return this.mutableDevice.has(endpoint);
+  }
+
+  /**
+   * Retrieves the name of the device.
+   *
+   * @returns {string} The name of the device.
+   */
+  name(): string {
+    return this.deviceName;
   }
 
   /**

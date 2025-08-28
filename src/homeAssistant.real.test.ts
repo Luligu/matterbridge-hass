@@ -69,7 +69,7 @@ describe('HomeAssistant real test on ubuntu', () => {
   let homeAssistant: HomeAssistant;
   const wsUrl = 'ws://192.168.69.1:8123';
   let subscriptionId = 0;
-  const testEntityId = 'light.virtual_light';
+  const testEntityId = 'light.virtual_light_entity';
 
   let device_registry_response: HassDevice[] = [];
   let entity_registry_response: HassEntity[] = [];
