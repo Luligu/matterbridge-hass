@@ -1,0 +1,23 @@
+{
+  "name": "matterbridge-hass",
+  "type": "DynamicPlatform",
+  "host": "ws://homeassistant.local:8123",
+  "certificatePath": "",
+  "rejectUnauthorized": true,
+  "token": "",
+  "reconnectTimeout": 60,
+  "reconnectRetries": 10,
+  "filterByArea": "",
+  "filterByLabel": "",
+  "applyFiltersToDeviceEntities": false,
+  "whiteList": [],
+  "blackList": [],
+  "entityBlackList": [],
+  "deviceEntityBlackList": {},
+  "namePostfix": "",
+  "postfix": "",
+  "airQualityRegex": "",
+  "enableServerRvc": true,
+  "debug": false,
+  "unregisterOnShutdown": false
+}
