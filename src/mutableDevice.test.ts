@@ -33,6 +33,7 @@ import {
   roboticVacuumCleaner,
   humiditySensor,
   pressureSensor,
+  fanDevice,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import {
@@ -54,6 +55,7 @@ import {
   TemperatureMeasurement,
   RelativeHumidityMeasurement,
   PressureMeasurement,
+  FanControl,
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 import { Endpoint, Environment, ServerNode, LogLevel as MatterLogLevel, LogFormat as MatterLogFormat, DeviceTypeId, VendorId, MdnsService } from 'matterbridge/matter';
@@ -155,6 +157,8 @@ describe('MutableDevice', () => {
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
   } as unknown as Matterbridge;
+
+  const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -529,15 +533,25 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
-    expect(Object.keys(device.behaviors.supported)).toHaveLength(9); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "levelControl", "colorControl"]
-    expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(IdentifyCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(GroupsCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(OnOffCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual([
+      'MA-bridgedNode',
+      'MA-powerSource',
+      'MA-colortemperatureswitch',
+      'MA-dimmablepluginunit',
+      'MA-extendedcolorlight',
+    ]);
+    expect(device.getAllClusterServerNames()).toEqual([
+      'descriptor',
+      'matterbridge',
+      'onOff',
+      'bridgedDeviceBasicInformation',
+      'powerSource',
+      'identify',
+      'groups',
+      'levelControl',
+      'colorControl',
+    ]);
   });
 
   it('should create a MatterbridgeDevice without server mode', async () => {
@@ -575,6 +589,133 @@ describe('MutableDevice', () => {
     expect(device.deviceTypes.get(powerSource.code)).toBeDefined();
     expect(device.deviceTypes.get(onOffSwitch.code)).toBeDefined();
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'powerSource', 'onOff', 'identify']);
+  });
+
+  it('should create a simple fan device', async () => {
+    const subscribeHandler = jest.fn((newValue, oldValue, context, endpointName, clusterId, attribute) => {});
+
+    // setDebug(true);
+
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Simple Fan Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource, fanDevice);
+    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'fanMode', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'percentSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'rockSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'airflowDirection', subscribeHandler);
+
+    expect(mutableDevice.get().deviceTypes).toHaveLength(3);
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(0);
+
+    const device = mutableDevice.create();
+    expect(device).toBeDefined();
+    mutableDevice.logMutableDevice();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(2);
+
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-fan']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'powerSource', 'identify', 'groups', 'fanControl']);
+    expect(device.getChildEndpoints().length).toBe(0);
+
+    expect(await aggregator.add(device)).toBe(device);
+
+    expect(subscribeHandler).toHaveBeenCalledTimes(0);
+    await device.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
+    await device.setAttribute(FanControl.Cluster.id, 'percentSetting', 50);
+    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+
+    // setDebug(false);
+  });
+
+  it('should create a composed complete fan device', async () => {
+    const subscribeHandler = jest.fn((newValue, oldValue, context, endpointName, clusterId, attribute) => {});
+
+    // setDebug(true);
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Complete Fan Device');
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
+
+    mutableDevice.addDeviceTypes('fan', fanDevice);
+    mutableDevice.addClusterServerCompleteFanControl('fan');
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'fanMode', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'percentSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'rockSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'airflowDirection', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'windSetting', subscribeHandler); // WindSetting is not only available in complete mode
+
+    expect(mutableDevice.get('').deviceTypes).toHaveLength(2);
+    expect(mutableDevice.get('fan').deviceTypes).toHaveLength(1);
+    expect(mutableDevice.get('fan').clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get('fan').clusterServersObjs).toHaveLength(1);
+
+    const device = mutableDevice.create();
+    expect(device).toBeDefined();
+    mutableDevice.logMutableDevice();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(4);
+
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'powerSource']);
+    expect(device.getChildEndpoints().length).toBe(1);
+
+    // Verify child endpoint exists and retains its clusters
+    const childEndpoint = mutableDevice.getEndpoint('fan');
+    expect(childEndpoint).toBeDefined();
+    expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-fan']);
+    expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'fanControl', 'identify', 'groups']);
+
+    expect(await aggregator.add(device)).toBe(device);
+
+    expect(subscribeHandler).toHaveBeenCalledTimes(0);
+    await childEndpoint.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
+    await childEndpoint.setAttribute(FanControl.Cluster.id, 'percentSetting', 50);
+    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+
+    // setDebug(false);
+  });
+
+  it('should create a composed complete fan device and remap', async () => {
+    const subscribeHandler = jest.fn((newValue, oldValue, context, endpointName, clusterId, attribute) => {});
+
+    // setDebug(true);
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Complete Fan Device Remap');
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
+
+    mutableDevice.addDeviceTypes('fan', fanDevice);
+    mutableDevice.addClusterServerCompleteFanControl('fan');
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'fanMode', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'percentSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'rockSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'airflowDirection', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'windSetting', subscribeHandler); // WindSetting is not only available in complete mode
+
+    expect(mutableDevice.get('').deviceTypes).toHaveLength(2);
+    expect(mutableDevice.get('fan').deviceTypes).toHaveLength(1);
+    expect(mutableDevice.get('fan').clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get('fan').clusterServersObjs).toHaveLength(1);
+
+    const device = mutableDevice.create(true);
+    expect(device).toBeDefined();
+    mutableDevice.logMutableDevice();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(4);
+
+    // Verify the remap
+    expect(mutableDevice.size()).toBe(1);
+    expect(mutableDevice.getEndpoints().size).toBe(1);
+    expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['fan']);
+
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-fan']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'fanControl', 'bridgedDeviceBasicInformation', 'identify', 'groups', 'powerSource']);
+    expect(device.getChildEndpoints().length).toBe(0);
+
+    expect(await aggregator.add(device)).toBe(device);
+
+    expect(subscribeHandler).toHaveBeenCalledTimes(0);
+    await device.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
+    await device.setAttribute(FanControl.Cluster.id, 'percentSetting', 50);
+    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+
+    // setDebug(false);
   });
 
   it('should create a MatterbridgeDevice without superset device types', async () => {
@@ -845,9 +986,9 @@ describe('MutableDevice', () => {
 
   test('should remap child endpoints into main endpoint when no duplicates exist', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Test Device');
-    // Main endpoint only has bridgedNode
+
     mutableDevice.addDeviceTypes('', bridgedNode);
-    // child1 unique device types/clusters
+
     mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', onOffLight);
     mutableDevice.addClusterServerObjs('child1', {
@@ -855,18 +996,21 @@ describe('MutableDevice', () => {
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
-    // child2 different unique device types/clusters
+
     mutableDevice.setFriendlyName('child2', 'Child 2');
     mutableDevice.addDeviceTypes('child2', powerSource);
     mutableDevice.addClusterServerIds('child2', PowerSource.Cluster.id);
 
     expect(mutableDevice.size()).toBe(3); // main + 2 children before remap
+
     const device = mutableDevice.create(true); // remap enabled
     expect(device).toBeDefined();
-    expect(mutableDevice.size()).toBe(1);
+    expect(mutableDevice.size()).toBe(1); // only main endpoint remains
     expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(2);
     expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['child1', 'child2']);
+
+    // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-onofflight', 'MA-powerSource']);
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'bridgedDeviceBasicInformation', 'powerSource', 'identify', 'groups']);
     expect(device.getChildEndpoints().length).toBe(0);
@@ -875,6 +1019,7 @@ describe('MutableDevice', () => {
   test('should remap child endpoints into main endpoint for climate device', () => {
     // setDebug(true);
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Climate Device');
+
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
     mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
 
@@ -897,6 +1042,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(3);
     expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['temperature', 'humidity', 'pressure']);
+
+    // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-tempsensor', 'MA-humiditysensor', 'MA-pressuresensor']);
     expect(device.getAllClusterServerNames()).toEqual([
       'descriptor',
@@ -912,39 +1059,99 @@ describe('MutableDevice', () => {
     // setDebug(false);
   });
 
-  test('should NOT remap child endpoint when duplicate device types exist', () => {
-    const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Duplicate Device');
-    // Main endpoint has onOffLight already
+  test('should partially remap child endpoints into main endpoint for climate device', () => {
+    // setDebug(true);
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Climate Device');
+
+    mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
+    mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+
+    mutableDevice.addDeviceTypes('temperature', temperatureSensor);
+    mutableDevice.addClusterServerIds('temperature', TemperatureMeasurement.Cluster.id);
+    mutableDevice.setFriendlyName('temperature', 'Temperature Sensor');
+
+    mutableDevice.addDeviceTypes('humidity', humiditySensor);
+    mutableDevice.addClusterServerIds('humidity', RelativeHumidityMeasurement.Cluster.id);
+    mutableDevice.setFriendlyName('humidity', 'Humidity Sensor');
+
+    mutableDevice.addDeviceTypes('pressure', pressureSensor);
+    mutableDevice.addClusterServerIds('pressure', PressureMeasurement.Cluster.id);
+    mutableDevice.setFriendlyName('pressure', 'Pressure Sensor');
+
+    mutableDevice.addDeviceTypes('temperature out', temperatureSensor);
+    mutableDevice.addClusterServerIds('temperature out', TemperatureMeasurement.Cluster.id);
+    mutableDevice.setFriendlyName('temperature out', 'Temperature Out Sensor');
+
+    expect(mutableDevice.size()).toBe(5);
+    const device = mutableDevice.create(true);
+    expect(device).toBeDefined();
+    expect(mutableDevice.size()).toBe(3);
+    expect(mutableDevice.getEndpoints().size).toBe(3);
+    expect(mutableDevice.getRemappedEndpoints().size).toBe(2);
+    expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['humidity', 'pressure']);
+
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-humiditysensor', 'MA-pressuresensor']);
+    expect(device.getAllClusterServerNames()).toEqual([
+      'descriptor',
+      'matterbridge',
+      'powerSource',
+      'bridgedDeviceBasicInformation',
+      'identify',
+      'relativeHumidityMeasurement',
+      'pressureMeasurement',
+    ]);
+    expect(device.getChildEndpoints().length).toBe(2);
+
+    // Verify temperature endpoint exists and retains its clusters
+    const childEndpoint = mutableDevice.getEndpoint('temperature');
+    expect(childEndpoint).toBeDefined();
+    expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-tempsensor']);
+    expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'identify', 'temperatureMeasurement']);
+
+    // Verify temperature endpoint exists and retains its clusters
+    const childEndpoint2 = mutableDevice.getEndpoint('temperature out');
+    expect(childEndpoint2).toBeDefined();
+    expect(Array.from(childEndpoint2.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-tempsensor']);
+    expect(childEndpoint2.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'identify', 'temperatureMeasurement']);
+
+    // setDebug(false);
+  });
+
+  test('should NOT remap child endpoint when duplicate device types exist in main', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'No Remap Duplicate Device Types');
+
     mutableDevice.addDeviceTypes('', bridgedNode, onOffLight);
-    // Child endpoint has same device type (onOffLight) => should block remap
-    mutableDevice.setFriendlyName('child1', 'Child 1');
+
     mutableDevice.addDeviceTypes('child1', onOffLight);
     mutableDevice.addClusterServerObjs('child1', {
       id: OnOff.Cluster.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: true }),
     });
+    mutableDevice.setFriendlyName('child1', 'Child 1');
 
     expect(mutableDevice.size()).toBe(2); // main + child before remap
-    const device = mutableDevice.create(true); // attempt remap
+    const device = mutableDevice.create(true);
     expect(device).toBeDefined();
-    // Child should remain because of duplicate device type
-    expect(mutableDevice.size()).toBe(2);
+    expect(mutableDevice.size()).toBe(2); // child1 should remain because of duplicate device type
     expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(0);
     expect(mutableDevice.has('child1')).toBeTruthy();
+
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-onofflight']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'identify', 'groups', 'onOff']);
+
     // Verify child endpoint exists and retains its clusters
     const childEndpoint = mutableDevice.getEndpoint('child1');
     expect(childEndpoint).toBeDefined();
-    const childSupported = Object.keys(childEndpoint.behaviors.supported);
-    expect(childSupported).toContain('onOff');
-    // Main endpoint should not have absorbed child1's OnOff cluster twice
-    const mainSupported = Object.keys(device.behaviors.supported);
-    expect(mainSupported.filter((c) => c === 'onOff').length).toBe(1);
+    expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-onofflight']);
+    expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'identify', 'groups']);
   });
 
   test('should NOT remap child endpoint when duplicate cluster server ids exist', () => {
-    const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Duplicate ClusterId');
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'No Remap Duplicate ClusterId');
     // Main endpoint: only bridgedNode + OnOff cluster id
     mutableDevice.addDeviceTypes('', bridgedNode);
     mutableDevice.addClusterServerIds('', OnOff.Cluster.id);
@@ -956,28 +1163,32 @@ describe('MutableDevice', () => {
     expect(mutableDevice.size()).toBe(2);
     const device = mutableDevice.create(true);
     expect(device).toBeDefined();
-    // Remap should be blocked by duplicate cluster server id
-    expect(mutableDevice.size()).toBe(2);
+    expect(mutableDevice.size()).toBe(2); // Remap should be blocked by duplicate cluster server id
     expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(0);
     expect(mutableDevice.has('child1')).toBeTruthy();
-    // Both endpoints should each expose an OnOff cluster (only once per endpoint)
-    const mainSupported = Object.keys(device.behaviors.supported);
-    expect(mainSupported.filter((c) => c === 'onOff').length).toBe(1);
-    const childSupported = Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported);
-    expect(childSupported.filter((c) => c === 'onOff').length).toBe(1);
+
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'onOff']);
+
+    // Verify child endpoint exists and retains its clusters
+    const childEndpoint = mutableDevice.getEndpoint('child1');
+    expect(childEndpoint).toBeDefined();
+    expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-powerSource']);
+    expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'powerSource', 'onOff']);
   });
 
   test('should NOT remap child endpoint when duplicate cluster server objects exist', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Remap Duplicate ClusterObj');
-    // Main endpoint: bridgedNode + OnOff cluster object
+
     mutableDevice.addDeviceTypes('', bridgedNode);
     mutableDevice.addClusterServerObjs('', {
       id: OnOff.Cluster.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
-    // Child endpoint: unique device type (powerSource) but duplicate OnOff cluster object
+
     mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', powerSource);
     mutableDevice.addClusterServerObjs('child1', {
@@ -989,15 +1200,20 @@ describe('MutableDevice', () => {
     expect(mutableDevice.size()).toBe(2);
     const device = mutableDevice.create(true);
     expect(device).toBeDefined();
-    // Remap should be blocked by duplicate cluster server object id
-    expect(mutableDevice.size()).toBe(2);
+    expect(mutableDevice.size()).toBe(2); // Remap should be blocked by duplicate cluster server object id
     expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(0);
     expect(mutableDevice.has('child1')).toBeTruthy();
-    const mainSupported = Object.keys(device.behaviors.supported);
-    expect(mainSupported.filter((c) => c === 'onOff').length).toBe(1);
-    const childSupported = Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported);
-    expect(childSupported.filter((c) => c === 'onOff').length).toBe(1);
+
+    // Verify main endpoint
+    expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'bridgedDeviceBasicInformation']);
+
+    // Verify child endpoint exists and retains its clusters
+    const childEndpoint = mutableDevice.getEndpoint('child1');
+    expect(childEndpoint).toBeDefined();
+    expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-powerSource']);
+    expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'powerSource']);
   });
 
   test('close the server node', async () => {
