@@ -3,7 +3,7 @@
  * @file src\converters.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.1.0
+ * @version 1.1.2
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -41,13 +41,15 @@ import {
   onOffOutlet,
   powerSource,
   pressureSensor,
+  roboticVacuumCleaner,
   smokeCoAlarm,
   temperatureSensor,
   thermostatDevice,
   waterFreezeDetector,
   waterLeakDetector,
+  waterValve,
 } from 'matterbridge';
-import { isValidArray, isValidNumber, isValidString } from 'matterbridge/utils';
+import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 import { ClusterId } from 'matterbridge/matter/types';
 import {
   WindowCovering,
@@ -78,6 +80,10 @@ import {
   OzoneConcentrationMeasurement,
   FormaldehydeConcentrationMeasurement,
   RadonConcentrationMeasurement,
+  ValveConfigurationAndControl,
+  RvcOperationalState,
+  RvcRunMode,
+  RvcCleanMode,
 } from 'matterbridge/matter/clusters';
 
 import { HassState, HomeAssistant } from './homeAssistant.js';
@@ -176,6 +182,23 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'climate', state: 'cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Cool },
     { domain: 'climate', state: 'heat_cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
 
+    { domain: 'valve', state: 'opening', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
+    { domain: 'valve', state: 'open', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Open },
+    { domain: 'valve', state: 'closing', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
+    { domain: 'valve', state: 'closed', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Closed },
+
+    // The implementation has RvcRunMode currentMode 1 = Idle 2 = Cleaning
+    { domain: 'vacuum', state: 'idle', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'idle', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Stopped },
+    { domain: 'vacuum', state: 'paused', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'paused', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Paused },
+    { domain: 'vacuum', state: 'docked', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'docked', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Docked },
+    { domain: 'vacuum', state: 'returning', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 1 },
+    { domain: 'vacuum', state: 'returning', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.SeekingCharger },
+    { domain: 'vacuum', state: 'cleaning', clusterId: RvcRunMode.Cluster.id, attribute: 'currentMode', value: 2 },
+    { domain: 'vacuum', state: 'cleaning', clusterId: RvcOperationalState.Cluster.id, attribute: 'operationalState', value: RvcOperationalState.OperationalState.Running },
+
     { domain: 'input_boolean', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
     { domain: 'input_boolean', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
 
@@ -216,6 +239,9 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
         return null;
       }
     } },
+    { domain: 'fan', with: 'direction', clusterId: FanControl.Cluster.id, attribute: 'airflowDirection', converter: (value: 'forward' | 'reverse') => (isValidString(value, 7, 7) ? value === 'forward' ? FanControl.AirflowDirection.Forward : FanControl.AirflowDirection.Reverse : null) },
+    { domain: 'fan', with: 'oscillating', clusterId: FanControl.Cluster.id, attribute: 'rockSetting', converter: (value: boolean) => (isValidBoolean(value) ? value === true ? { rockLeftRight: false, rockUpDown: false, rockRound: true } : { rockLeftRight: false, rockUpDown: false, rockRound: false } : null) },
+
     // Matter WindowCovering: 0 = open 10000 = closed
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
@@ -225,38 +251,40 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
     { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
     { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
+
+    { domain: 'valve', with: 'current_position', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value) : null) },
   ];
 
 /**
- * Convert Home Assistant domains to Matterbridge device types and clusterIds.
- * If the device type is null, no device type will be added. It will use hassDomainSensorsConverter to determine the device type and clusterId.
+ * Convert Home Assistant domains (with attributes) to Matterbridge device types and clusterIds.
+ * If the device type is null, no device type will be added. It will use hassDomainSensorsConverter and hassDomainBinarySensorsConverter to determine the device type and clusterId.
  */
 // prettier-ignore
-export const hassDomainConverter: { domain: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
-    { domain: 'switch',         deviceType: onOffOutlet,      clusterId: OnOff.Cluster.id },
-    { domain: 'light',          deviceType: onOffLight,       clusterId: OnOff.Cluster.id },
-    { domain: 'lock',           deviceType: doorLockDevice,   clusterId: DoorLock.Cluster.id },
-    { domain: 'fan',            deviceType: fanDevice,        clusterId: FanControl.Cluster.id },
-    { domain: 'cover',          deviceType: coverDevice,      clusterId: WindowCovering.Cluster.id },
-    { domain: 'climate',        deviceType: thermostatDevice, clusterId: Thermostat.Cluster.id },
-    { domain: 'sensor',         deviceType: null,             clusterId: null },
-    { domain: 'binary_sensor',  deviceType: null,             clusterId: null },
-  ];
-
-/** Convert Home Assistant domains attributes to Matterbridge device types and clusterIds */
-// prettier-ignore
-export const hassDomainAttributeConverter: { domain: string; withAttribute: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId }[] = [
+export const hassDomainConverter: { domain: string; withAttribute?: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
+    { domain: 'switch',                                 deviceType: onOffOutlet,            clusterId: OnOff.Cluster.id },
+    { domain: 'light',                                  deviceType: onOffLight,             clusterId: OnOff.Cluster.id },
     { domain: 'light',    withAttribute: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControl.Cluster.id },
     { domain: 'light',    withAttribute: 'color_temp',  deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'hs_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
+    { domain: 'light',    withAttribute: 'rgb_color',   deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'xy_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
+    { domain: 'lock',                                   deviceType: doorLockDevice,         clusterId: DoorLock.Cluster.id },
+    { domain: 'fan',                                    deviceType: fanDevice,              clusterId: FanControl.Cluster.id },
+    { domain: 'cover',                                  deviceType: coverDevice,            clusterId: WindowCovering.Cluster.id },
+    { domain: 'climate',                                deviceType: thermostatDevice,       clusterId: Thermostat.Cluster.id },
+    { domain: 'valve',                                  deviceType: waterValve,             clusterId: ValveConfigurationAndControl.Cluster.id },
+    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcRunMode.Cluster.id },
+    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcCleanMode.Cluster.id },
+    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
+    { domain: 'sensor',                                 deviceType: null,                   clusterId: null },
+    { domain: 'binary_sensor',                          deviceType: null,                   clusterId: null },
   ];
 
 /** Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds */
 // prettier-ignore
 export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number | string, unit?: string) => any }[] = [
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'battery',               endpoint: '',             deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batPercentRemaining', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round((value) * 2) : null) },
-    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: '',             deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batVoltage',      converter: (value, unit) => (isValidNumber(value, 0, 100000) && unit === 'mV'? Math.round(value) : null) },
+    { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: '',             deviceType: powerSource,        clusterId: PowerSource.Cluster.id,                  attribute: 'batVoltage',      converter: (value, unit) => (isValidNumber(value, 0, 100000) ? Math.round(value * (unit === 'V' ? 1000 : 1)) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'temperature',                                     deviceType: temperatureSensor,  clusterId: TemperatureMeasurement.Cluster.id,       attribute: 'measuredValue',   converter: (value, unit) => (isValidNumber(value, unit==='°F'?-148:-100, unit==='°F'?212:100) ? Math.round(temp(value, unit) * 100) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'humidity',                                        deviceType: humiditySensor,     clusterId: RelativeHumidityMeasurement.Cluster.id,  attribute: 'measuredValue',   converter: (value) => (isValidNumber(value, 0, 100) ? Math.round((value) * 100) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'pressure',                                        deviceType: pressureSensor,     clusterId: PressureMeasurement.Cluster.id,          attribute: 'measuredValue',   converter: (value, unit) => (isValidNumber(value, 1) ? pressure(value, unit) : null) },
@@ -324,6 +352,14 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'downOrClose',             domain: 'cover', service: 'close_cover' },
     { command: 'stopMotion',              domain: 'cover', service: 'stop_cover' },
     { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
+
+    { command: 'open',                    domain: 'valve', service: 'set_valve_position', converter: (request) => { return { position: Math.round(request.targetLevel) } } },
+    { command: 'close',                   domain: 'valve', service: 'close_valve' },
+
+    { command: 'pause',                   domain: 'vacuum', service: 'pause' },
+    { command: 'resume',                  domain: 'vacuum', service: 'start' },
+    { command: 'goHome',                  domain: 'vacuum', service: 'return_to_base' },
+    { command: 'changeToMode',            domain: 'vacuum', service: 'start' },
   ];
 
 /**
@@ -342,12 +378,13 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         return null;
       }
     }},
-    { domain: 'fan',      service: 'turn_on',         with: 'percentage',   clusterId: FanControl.Cluster.id,  attribute: 'percentSetting' },
-    // { domain: 'fan',      service: 'turn_on',         with: 'percentage',   clusterId: FanControl.Cluster.id,  attribute: 'speedSetting' },
+    { domain: 'fan',      service: 'turn_on',         with: 'percentage',  clusterId: FanControl.Cluster.id,  attribute: 'percentSetting' },
+    { domain: 'fan',      service: 'set_direction',   with: 'direction',   clusterId: FanControl.Cluster.id,  attribute: 'airflowDirection', converter: (value: any) => { return value === FanControl.AirflowDirection.Forward ? 'forward' : 'reverse' } },
+    { domain: 'fan',      service: 'oscillate',       with: 'oscillating', clusterId: FanControl.Cluster.id,  attribute: 'rockSetting', converter: (value: any) => { return value.rockRound === true } },
   
-    { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',    clusterId: Thermostat.Cluster.id,  attribute: 'systemMode', converter: (value) => {
+    { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',   clusterId: Thermostat.Cluster.id,  attribute: 'systemMode', converter: (value) => {
       if( isValidNumber(value, Thermostat.SystemMode.Off, Thermostat.SystemMode.Heat) ) {
-        if (value === Thermostat.SystemMode.Auto) return 'auto';
+        if (value === Thermostat.SystemMode.Auto) return 'heat_cool';
         else if (value === Thermostat.SystemMode.Cool) return 'cool';
         else if (value === Thermostat.SystemMode.Heat) return 'heat';
         else return null;

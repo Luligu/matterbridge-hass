@@ -7,11 +7,10 @@ import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters
 
 import {
   temp,
-  hassCommandConverter,
-  hassDomainAttributeConverter,
-  hassDomainBinarySensorsConverter,
   hassDomainConverter,
   hassDomainSensorsConverter,
+  hassDomainBinarySensorsConverter,
+  hassCommandConverter,
   hassSubscribeConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
@@ -73,13 +72,23 @@ describe('HassPlatform', () => {
         converter.converter(0, {} as HassState);
         converter.converter(50, {} as HassState);
       }
-      if (converter.domain === 'fan' && converter.with === 'preset_mode') {
+      if (converter.domain === 'fan' && converter.with === 'preset_mode' && converter.attribute === 'fanMode') {
         converter.converter('low', {} as HassState);
         converter.converter('medium', {} as HassState);
         converter.converter('high', {} as HassState);
         converter.converter('auto', {} as HassState);
         converter.converter('none', {} as HassState);
         converter.converter('on', {} as HassState);
+      }
+      if (converter.domain === 'fan' && converter.with === 'direction') {
+        converter.converter('forward', {} as HassState);
+        converter.converter('reverse', {} as HassState);
+        converter.converter('short', {} as HassState);
+      }
+      if (converter.domain === 'fan' && converter.with === 'oscillating') {
+        converter.converter(true, {} as HassState);
+        converter.converter(false, {} as HassState);
+        converter.converter('wrong', {} as HassState);
       }
       if (converter.domain === 'cover' && converter.with === 'current_position') {
         converter.converter(0, {} as HassState);
@@ -108,17 +117,16 @@ describe('HassPlatform', () => {
         converter.converter(20, { state: 'heat' } as HassState);
         converter.converter('20', { state: 'heat' } as HassState);
       }
+      if (converter.domain === 'valve' && converter.with === 'current_position') {
+        converter.converter(0, {} as HassState);
+        converter.converter(100, {} as HassState);
+        converter.converter(-1, {} as HassState);
+      }
     });
   });
 
   it('should verify the hassDomainConverter converter', () => {
     hassDomainConverter.forEach((converter) => {
-      expect(converter.domain.length).toBeGreaterThan(0);
-    });
-  });
-
-  it('should verify the hassDomainAttributeConverter converter', () => {
-    hassDomainAttributeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
     });
   });
@@ -138,6 +146,7 @@ describe('HassPlatform', () => {
         expect(converter.converter(0, 'inHg')).toBe(null);
       } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === powerSource) {
         expect(converter.converter(32, 'mV')).toBe(32);
+        expect(converter.converter(1.5, 'V')).toBe(1500);
         expect(converter.converter(-40, 'V')).toBe(null);
       } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === electricalSensor) {
         expect(converter.converter(32, 'V')).toBe(32000);
@@ -204,6 +213,9 @@ describe('HassPlatform', () => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
         converter.converter({ liftPercent100thsValue: 10000 }, {});
+      }
+      if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
+        converter.converter({ targetLevel: 100 }, {});
       }
       if (converter.converter && converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
         converter.converter(

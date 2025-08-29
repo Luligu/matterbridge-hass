@@ -3,7 +3,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @created 2024-09-14
- * @version 1.1.1
+ * @version 1.1.2
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -131,7 +131,7 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes;
+  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & HassStateValveAttributes & HassStateVacuumAttributes;
   context: HassContext;
 }
 
@@ -177,10 +177,29 @@ export interface HassStateLightAttributes {
  * Interface representing the attributes of a Home Assistant fan entity's state.
  */
 export interface HassStateFanAttributes {
-  preset_modes?: ('auto' | 'low' | 'medium' | 'high')[]; // List of supported fan modes
-  preset_mode?: 'auto' | 'low' | 'medium' | 'high' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
+  preset_modes?: ('auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind')[]; // List of supported fan modes
+  preset_mode?: 'auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
   percentage?: number; // Current speed setting
   percentage_step?: number; // Current step speed setting of the fan entity
+  direction?: 'forward' | 'reverse' | null; // Current direction of the fan
+  oscillating?: boolean | null; // Whether the fan is oscillating
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant valve entity's state.
+ */
+export interface HassStateValveAttributes {
+  current_position?: number | null; // Current status percentage of the valve. Null is unknown, 0 is closed, 100 is fully open.
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant vacuum entity's state.
+ */
+export interface HassStateVacuumAttributes {
+  activity?: 'idle' | 'docked' | 'cleaning' | 'paused' | 'error' | 'returning' | null; // Current state of the vacuum.
+  cleaned_area?: number; // Total area cleaned in square meters.
+  fan_speed?: string; // Implementation-specific fan speed setting.
+  fan_speed_list?: string[]; // List of supported implementation-specific fan speed settings.
 }
 
 /**

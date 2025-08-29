@@ -39,6 +39,30 @@ if (!debug) {
   consoleErrorSpy = jest.spyOn(console, 'error');
 }
 
+function setDebug(debug: boolean) {
+  if (debug) {
+    loggerLogSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
+    consoleInfoSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
+    consoleLogSpy = jest.spyOn(console, 'log');
+    consoleDebugSpy = jest.spyOn(console, 'debug');
+    consoleInfoSpy = jest.spyOn(console, 'info');
+    consoleWarnSpy = jest.spyOn(console, 'warn');
+    consoleErrorSpy = jest.spyOn(console, 'error');
+  } else {
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
+    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
+  }
+}
+
 // Cleanup the test environment
 rmSync(HOMEDIR, { recursive: true, force: true });
 
@@ -69,7 +93,7 @@ describe('initializePlugin', () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.1.0',
+    matterbridgeVersion: '3.2.4',
     log: mockLog,
     getDevices: jest.fn(() => []),
     getPlugins: jest.fn(() => []),
@@ -81,10 +105,19 @@ describe('initializePlugin', () => {
   const mockConfig = {
     name: 'matterbridge-hass',
     type: 'DynamicPlatform',
-    blackList: [],
-    whiteList: [],
     host: 'http://homeassistant.local:8123',
     token: 'long-lived token',
+    certificatePath: undefined,
+    rejectUnauthorized: true,
+    reconnectTimeout: 60,
+    reconnectRetries: 10,
+    filterByArea: '',
+    filterByLabel: '',
+    whiteList: [],
+    blackList: [],
+    entityBlackList: [],
+    deviceEntityBlackList: {},
+    enableServerRvc: false,
     debug: false,
     unregisterOnShutdown: false,
   } as PlatformConfig;

@@ -15,10 +15,11 @@ fi
 sudo chown -R node:node matterbridge
 sudo chmod g+s matterbridge
 rm -rf matterbridge/* matterbridge/.[!.]* matterbridge/..?*
-git clone https://github.com/Luligu/matterbridge.git matterbridge
+# Shallow clone for speed (history not needed inside dev container). Remove --depth if full history required.
+git clone --depth 1 --single-branch --no-tags https://github.com/Luligu/matterbridge.git matterbridge
 cd matterbridge
-npm ci
+npm ci --no-fund --no-audit
 npm run build
-npm install . --global
-rm -rf .git .github .vscode docker screenshot
+npm install . --global --no-fund --no-audit
+rm -rf .git .github .vscode docker systemd docs public screenshot
 echo "Matterbridge has been installed from the main branch."

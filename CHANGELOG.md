@@ -8,6 +8,68 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
+### Roadmap to release 1.0.0
+
+- ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
+- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility issue with AirConditioner.
+- ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
+- add water heater domain (requested by Ludovic BOUÉ)
+- ✅ add valve domain (requested by Ludovic BOUÉ)
+- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
+- ✅ support all single entities reusing the same code of the device entities
+- ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
+- ✅ add automatic 'remap' ability in MutableDevice for single entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the single entity. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
+
+For the naming issues (expecially upsetting with Alexa) read the explanation and the possible future solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86)
+
+## [0.3.0] - 2025-08-28
+
+### Breaking changes
+
+With this release, all supported domains are available also in the single entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
+
+The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
+
+### Added
+
+- [fan]: Added rock direction attributes to fan domain. Creates a complete fan with feature Rocking, AirflowDirection.
+- [MutableDevice]: Added automatic 'remap' ability in MutableDevice for single entities: this remaps the not overlapping child endpoints to the device main endpoint.
+- [SingleEntities]: Added support in single entities for the domains supported in the device entities.
+- [HomeAssistant]: Bumped HomeAssistant to v. 1.1.2.
+- [MutableDevice]: Bumped MutableDevice to v. 1.3.0.
+- [converters]: Bumped converters to v. 1.1.2.
+- [binary_sensor]: Added addBinarySensorEntity function to handle binary_sensor domain in single entities and device entities.
+- [sensor]: Added addSensorEntity function to handle sensor domain in single entities and device entities.
+- [control]: Added addControlEntity function to handle all core domains in single entities and device entities.
+- [valve]: Added valve domain.
+- [platform]: Bumped HomeAssistantPlatform to v. 1.3.0.
+- [configure]: Optimized configure loop.
+- [update]: Optimized updateHandler.
+- [vacuum]: Added vacuum domain.
+- [config]: Added enableServerRvc to the config for the Apple Home issue with the rvc.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Requires matterbridge v. 3.2.4.
+- [package]: Automator: update package v. 2.0.4.
+- [devContainer]: Updated devContainer with repository name for the container and shallow clone matterbridge for speed and memory optimization.
+
+### Fixed
+
+- [domain]: Unsupported domain entities are no more in the select. Thanks David Spivey.
+- [battery]: Fix battery voltage conversion.
+- [domain]: Fix wrong pickup for carbon_monoxide.
+- [remap]: Add edge cases to remap.
+- [climate]: Fix auto -> heat_cool.
+- [fan]: Fix subscribe for fan complete.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.2.1] - 2025-07-26
 
 ### Breaking changes
