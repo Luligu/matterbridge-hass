@@ -95,9 +95,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.2.3')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.2.4')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.2.3". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "3.2.4". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -288,6 +288,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       mutableDevice.addDeviceTypes('', bridgedNode);
 
+      // Lookup and add individual entities domains.
       if (this.individualEntitiesDomains.includes(domain)) {
         // Set the composed type and configUrl based on the domain
         if (domain === 'automation') {
@@ -330,7 +331,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         });
       }
 
-      // Set the entity mode for the Rvc.
+      // Set the device mode for the Rvc.
       if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
       // Lookup and add core domains entity.
       if (this.supportedCoreDomains.includes(domain))
@@ -355,10 +356,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.endpointNames.set(entity.entity_id, ''); // Set the endpoint name for the individual entity to the main endpoint
       } else {
         this.log.debug(`Removing device ${dn}${entityName}${db}...`);
-        this.selectDevice.delete(entity.id);
-        this.selectEntity.delete(entityName);
+        this.clearDeviceSelect(entity.id);
+        this.clearEntitySelect(entityName);
       }
     } // End of individual entities scan
+
+    this.log.debug(`Single entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
+    for (const [entity, endpoint] of this.endpointNames) {
+      this.log.debug(
+        `- ${this.matterbridgeDevices.has(entity) ? 'individual' : 'unknown'} entity ${CYAN}${entity}${db} mapped to endpoint ${CYAN}${endpoint === '' ? 'main' : endpoint}${db}`,
+      );
+    }
 
     // Scan the devices
     for (const device of Array.from(this.ha.hassDevices.values())) {
@@ -392,7 +400,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         );
         continue;
       }
-      this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+      this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
       let battery = false;
@@ -473,9 +481,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           endpointName = eBinarySensor;
           this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
         }
-        // Create a child endpoint for the entity if we found a supported entity domain
-        if (!mutableDevice.has(endpointName)) continue;
-        this.log.info(`Creating endpoint ${CYAN}${entity.entity_id}${nf} for device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}`);
+        // Found a supported entity domain
+        if (mutableDevice.has(endpointName))
+          this.log.debug(`Creating endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
+        else this.clearEntitySelect(entityName);
       } // hassEntities
 
       // Register the device if we have found supported domains and entities
@@ -490,6 +499,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.clearDeviceSelect(device.id);
       }
     } // hassDevices
+
+    this.log.debug(`All entities endpoint map(${this.endpointNames.size}):`);
+    for (const [entity, endpoint] of this.endpointNames) {
+      this.log.debug(
+        `- ${this.matterbridgeDevices.has(entity) ? 'individual' : 'device'} entity ${CYAN}${entity}${db} mapped to endpoint ${CYAN}${endpoint === '' ? 'main' : endpoint}${db}`,
+      );
+    }
 
     this.log.info(`Started platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
   }

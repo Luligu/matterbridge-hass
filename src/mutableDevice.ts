@@ -113,6 +113,7 @@ export function getClusterServerObj<T extends Behavior.Type>(clusterId: ClusterI
 export class MutableDevice {
   private readonly mutableDevices = new Map<string, MutableDeviceInterface>();
   private readonly endpoints = new Map<string, MatterbridgeEndpoint>();
+  private readonly remappedEndpoints = new Set<string>();
 
   private readonly matterbridge: Matterbridge;
   private readonly deviceName: string;
@@ -196,6 +197,15 @@ export class MutableDevice {
   }
 
   /**
+   * Retrieves the set of the remapped Matterbridge endpoints of the device.
+   *
+   * @returns {Set<string>} The set of the remapped Matterbridge endpoints of the device.
+   */
+  getRemappedEndpoints(): Set<string> {
+    return this.remappedEndpoints;
+  }
+
+  /**
    * Retrieves the mutable device interface for the specified endpoint.
    * Throws an error if the device for the given endpoint is not defined.
    *
@@ -213,7 +223,7 @@ export class MutableDevice {
    * Retrieves the Matterbridge endpoint for the specified endpoint.
    * Throws an error if the endpoint is not defined.
    *
-   * @param {string} endpoint - The endpoint identifier. Defaults to an empty string if not provided.
+   * @param {string} endpoint - The endpoint identifier. Defaults to the main endpoint if not provided.
    *
    * @returns {MatterbridgeEndpoint} The `MatterbridgeEndpoint` associated with the endpoint.
    * @throws {Error} If the endpoint is not defined.
@@ -833,6 +843,7 @@ export class MutableDevice {
           mainDevice.commandHandlers.push(...device.commandHandlers);
           mainDevice.subscribeHandlers.push(...device.subscribeHandlers);
           this.mutableDevices.delete(endpoint);
+          this.remappedEndpoints.add(endpoint);
           this.matterbridge.log.debug(`*Remapped endpoint ${endpoint} of ${this.deviceName}`);
         } else {
           this.matterbridge.log.debug(`***Failed to remap endpoint ${endpoint} of ${this.deviceName}`);

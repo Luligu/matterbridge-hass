@@ -93,7 +93,7 @@ describe('initializePlugin', () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.2.3',
+    matterbridgeVersion: '3.2.4',
     log: mockLog,
     getDevices: jest.fn(() => []),
     getPlugins: jest.fn(() => []),

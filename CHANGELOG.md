@@ -13,13 +13,16 @@ If you like this project and find it useful, please consider giving it a star on
 - ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility issue with AirConditioner.
 - ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
-- add water heater domain
-- ✅ add valve domain (Ludovic BOUÉ)
+- add water heater domain (requested by Ludovic BOUÉ)
+- ✅ add valve domain (requested by Ludovic BOUÉ)
 - ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
 - ✅ support all single entities reusing the same code of the device entities
 - ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
-- ✅ add automatic 'remap' ability in MutableDevice: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- ✅ add automatic 'remap' ability in MutableDevice for single entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the single entity. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
 - add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
+
+For the naming issues (expecially upsetting with Alexa) read the explanation and the possible future solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86)
 
 ## [0.3.0] - 2025-08-28
 
@@ -32,7 +35,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 ### Added
 
 - [fan]: Added rock direction attributes to fan domain. Creates a complete fan with feature Rocking, AirflowDirection.
-- [MutableDevice]: Added automatic 'remap' ability in MutableDevice: this remaps the not overlapping child endpoints to the device main endpoint. Useful for Alexa users since Alexa is not able to deal with composed devices. At the moment this is active for single entities. Soon will be extended to device entities where is more needed for Alexa users.
+- [MutableDevice]: Added automatic 'remap' ability in MutableDevice for single entities: this remaps the not overlapping child endpoints to the device main endpoint.
 - [SingleEntities]: Added support in single entities for the domains supported in the device entities.
 - [HomeAssistant]: Bumped HomeAssistant to v. 1.1.2.
 - [MutableDevice]: Bumped MutableDevice to v. 1.3.0.
@@ -50,7 +53,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 ### Changed
 
 - [package]: Updated dependencies.
-- [package]: Requires matterbridge v. 3.2.3.
+- [package]: Requires matterbridge v. 3.2.4.
 - [package]: Automator: update package v. 2.0.4.
 - [devContainer]: Updated devContainer with repository name for the container and shallow clone matterbridge for speed and memory optimization.
 
@@ -59,7 +62,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [domain]: Unsupported domain entities are no more in the select. Thanks David Spivey.
 - [battery]: Fix battery voltage conversion.
 - [domain]: Fix wrong pickup for carbon_monoxide.
-- [remap]: Add edge cases.
+- [remap]: Add edge cases to remap.
 - [climate]: Fix auto -> heat_cool.
 - [fan]: Fix subscribe for fan complete.
 

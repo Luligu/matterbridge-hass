@@ -116,7 +116,7 @@ const mockMatterbridge = {
     osRelease: 'xx.xx.xx.xx.xx.xx',
     nodeVersion: '22.1.10',
   },
-  matterbridgeVersion: '3.2.3',
+  matterbridgeVersion: '3.2.4',
   log: mockLog,
   getDevices: jest.fn(() => {
     return [];
@@ -853,6 +853,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(child.construction.status).toBe(Lifecycle.Status.Active);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(device.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
     expect(device.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(200);
@@ -1029,13 +1030,37 @@ describe('Matterbridge ' + NAME, () => {
     expect(child.construction.status).toBe(Lifecycle.Status.Active);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(2);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${valveEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Open, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 50, expect.anything());
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(valveDevice.id, valveEntity.entity_id, valveState, { ...valveState, state: 'closing' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Transitioning, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 50, expect.anything());
+    expect(child.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Transitioning);
+    expect(child.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(50);
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(valveDevice.id, valveEntity.entity_id, valveState, { ...valveState, state: 'closed', attributes: { current_position: 0 } });
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Closed, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 0, expect.anything());
+    expect(child.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
+    expect(child.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(0);
+
+    await invokeBehaviorCommand(child, 'ValveConfigurationAndControl', 'open', { targetLevel: 100 });
+    expect(child.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Open);
+    expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'set_valve_position', valveEntity.entity_id, { position: 100 });
+
+    await invokeBehaviorCommand(child, 'ValveConfigurationAndControl', 'close');
+    expect(child.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
+    expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'close_valve', valveEntity.entity_id, undefined);
 
     // Clean the test environment
     haPlatform.matterbridgeDevices.clear();
@@ -1097,9 +1122,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
 
-    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${vacuumDevice.name}${rs}${nf} id ${CYAN}${vacuumDevice.id}${nf}`);
-    expect(mockLog.info).toHaveBeenCalledWith(
-      `Creating endpoint ${CYAN}${vacuumEntity.entity_id}${nf} for device ${idn}${vacuumDevice.name}${rs}${nf} id ${CYAN}${vacuumDevice.id}${nf}`,
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${vacuumDevice.name}${rs}${nf} id ${CYAN}${vacuumDevice.id}${nf}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(
+      `Creating endpoint ${CYAN}${vacuumEntity.entity_id}${db} for device ${idn}${vacuumDevice.name}${rs}${db} id ${CYAN}${vacuumDevice.id}${db}...`,
     );
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(4);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
