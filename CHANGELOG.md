@@ -20,9 +20,11 @@ If you like this project and find it useful, please consider giving it a star on
 - ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
 - ✅ add automatic 'remap' ability in MutableDevice for single entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the single entity. Useful for Alexa users since Alexa is not able to deal with composed devices.
 - ✅ add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
+- add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device with the Friendly name of the original entity. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
 
-For the naming issues (expecially upsetting with Alexa) read the explanation and the possible future solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86)
+### Naming issues explained
+
+For the naming issues (expecially upsetting with Alexa) read the explanation and the three possible actual solutions [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
 ## [0.4.0] - 2025-09-??
 
