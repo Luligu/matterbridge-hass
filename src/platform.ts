@@ -3,7 +3,7 @@
  * @file src\platform.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.3.0
+ * @version 1.4.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -359,6 +359,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.clearDeviceSelect(entity.id);
         this.clearEntitySelect(entityName);
       }
+      mutableDevice.destroy();
     } // End of individual entities scan
 
     this.log.debug(`Single entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
@@ -484,20 +485,38 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Found a supported entity domain
         if (mutableDevice.has(endpointName))
           this.log.debug(`Creating endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
-        else this.clearEntitySelect(entityName);
+        else {
+          this.clearEntitySelect(entityName);
+          this.log.debug(`Deleting endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
+        }
       } // hassEntities
 
       // Register the device if we have found supported domains and entities
       if (mutableDevice.size() > 1) {
         this.log.debug(`Registering device ${dn}${device.name}${db}...`);
-        mutableDevice.create();
+        mutableDevice.create(true); // Use remap for device entities
         mutableDevice.logMutableDevice();
         await this.registerDevice(mutableDevice.getEndpoint());
         this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
+        // Log all the remapped endpoints
+        for (const remappedEndpoint of mutableDevice.getRemappedEndpoints()) {
+          this.log.debug(`**- Device ${CYAN}${device.name}${db} remapped endpoint ${CYAN}${remappedEndpoint}${db}`);
+        }
+        // Check if some entities are mapped to remapped endpoints and set them to the main endpoint
+        for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
+          const endpoint = this.endpointNames.get(entity.entity_id);
+          if (endpoint && mutableDevice.getRemappedEndpoints().has(endpoint)) {
+            this.log.debug(`**- Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} remapped to endpoint ${CYAN}${'main'}${db}`);
+            this.endpointNames.set(entity.entity_id, '');
+          } else if (endpoint && !mutableDevice.getRemappedEndpoints().has(endpoint)) {
+            this.log.debug(`**- Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} mapped to endpoint ${CYAN}${endpoint}${db}`);
+          }
+        }
       } else {
         this.log.debug(`Device ${CYAN}${device.name}${db} has no supported entities. Deleting device select...`);
         this.clearDeviceSelect(device.id);
       }
+      mutableDevice.destroy();
     } // hassDevices
 
     this.log.debug(`All entities endpoint map(${this.endpointNames.size}):`);
@@ -593,13 +612,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   ) {
     let endpoint: MatterbridgeEndpoint | undefined;
     if (entity.device_id) {
+      // Device entity
       const matterbridgeDevice = this.matterbridgeDevices.get(entity.device_id);
       if (!matterbridgeDevice) {
         this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found`);
         return;
       }
+      // If it has not been remapped to the main endpoint
       endpoint = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
+      // If it has been remapped to the main endpoint
+      if (!endpoint && this.endpointNames.get(entity.entity_id) === '') endpoint = matterbridgeDevice;
     } else {
+      // Individual entity
       endpoint = this.matterbridgeDevices.get(entity.entity_id);
     }
     if (!endpoint) {
@@ -646,7 +670,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice;
       } else if (mappedEndpoint) {
+        // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
+        // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
         endpoint = matterbridgeDevice.getChildEndpointByName(mappedEndpoint);
       }
     }

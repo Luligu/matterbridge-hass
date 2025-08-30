@@ -14,7 +14,7 @@
 
 ---
 
-This plugin allows you to expose the Home Assistant devices and entities to Matter.
+This plugin allows you to expose the Home Assistant devices and individual entities to Matter.
 
 It is the ideal companion of the official [Matterbridge Home Assistant Add-on](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
 
@@ -28,7 +28,7 @@ Features:
 - It is possible to select from a list the individual entities to include in the white or black list. Select by name, id or entity_id.
 - It is possible to select from a list the devices to include in the white or black list. Select by name or id.
 - It is possible to select from a list the entities to include in the device entity black list.
-- It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.
+- It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
 
 ## Supported device entities:
 

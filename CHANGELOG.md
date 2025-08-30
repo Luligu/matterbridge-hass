@@ -19,10 +19,41 @@ If you like this project and find it useful, please consider giving it a star on
 - ✅ support all single entities reusing the same code of the device entities
 - ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
 - ✅ add automatic 'remap' ability in MutableDevice for single entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the single entity. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- ✅ add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
 - add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the possible future solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86)
+
+## [0.4.0] - 2025-09-??
+
+### Breaking changes
+
+**The 'remap' has been activated for the device entities too. This will cause the resulting Matter devices to be differently composed, so the controller can have issues to show the changed devices.**
+
+**If this is the case with your controller try to power it off, wait 5 minutes, then power it again.**
+
+On the Matterbridge log you should see after a while this line.
+
+[22:35:38.583] [ServerSubscription] Sending update failed 3 times in a row, canceling subscription 3926576955 and let controller subscribe again.
+
+When you see this message in the log, you can power again the controller.
+
+**If this still doesn't solve the issue, you may need to reset all the registered devices (from the frontend) or repair the bridge.**
+
+With this release, all supported domains are available also in the single entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
+
+The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
+
+### Added
+
+- [MutableDevice]: Bumped MutableDevice to v. 1.3.1.
+- [MutableDevice]: Optimize memory with destroy().
+- [Platform]: Optimize memory calling destroy() on MutableDevice.
+- [MutableDevice]: Added automatic 'remap' ability in MutableDevice for devicee entities: this remaps the not overlapping child endpoints to the device main endpoint.
+
+### Changed
+
+### Fixed
 
 ## [0.3.0] - 2025-08-28
 

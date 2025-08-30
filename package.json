@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",

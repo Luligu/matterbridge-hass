@@ -245,6 +245,14 @@ describe('HassPlatform', () => {
         expect(converter.converter(FanControl.FanMode.On)).toBe('auto');
         expect(converter.converter(10)).toBe(null);
       }
+      if (converter.domain === 'fan' && converter.service === 'set_direction' && converter.converter) {
+        expect(converter.converter(FanControl.AirflowDirection.Forward)).toBe('forward');
+        expect(converter.converter(FanControl.AirflowDirection.Reverse)).toBe('reverse');
+      }
+      if (converter.domain === 'fan' && converter.service === 'oscillate' && converter.converter) {
+        expect(converter.converter({ rockRound: true } as any)).toBe(true);
+        expect(converter.converter({ rockRound: false } as any)).toBe(false);
+      }
       if (converter.domain === 'climate' && converter.service === 'set_hvac_mode' && converter.converter) {
         converter.converter(Thermostat.SystemMode.Auto);
         converter.converter(Thermostat.SystemMode.Cool);

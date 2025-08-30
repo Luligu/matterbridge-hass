@@ -1264,14 +1264,16 @@ describe('HassPlatform', () => {
       }
     }
 
-    const mbdevice = haPlatform.matterbridgeDevices.get('85476b52c919e7d58a779155c476fdb0');
+    const mbdevice = haPlatform.matterbridgeDevices.get(device.id);
     expect(mbdevice).toBeDefined();
     if (!mbdevice) return;
+    /*
     const child = mbdevice.getChildEndpointByName('switchswitch_switch');
     expect(child).toBeDefined();
     if (!child) return;
-    await child.executeCommandHandler('on', {}, 'onOff', {}, child);
-    await child.executeCommandHandler('off', {}, 'onOff', {}, child);
+    */
+    await mbdevice.executeCommandHandler('on', {}, 'onOff', {}, mbdevice);
+    await mbdevice.executeCommandHandler('off', {}, 'onOff', {}, mbdevice);
   });
 
   it('should register a Light (on/off) device from ha', async () => {
@@ -1559,8 +1561,10 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Update state ${CYAN}fan${wr}:${CYAN}unknownstate${wr} not supported for entity fan.fan_fan`));
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
 
+    /*
     const child = mbDevice?.getChildEndpointByName('fanfan_fan');
     expect(child).toBeDefined();
+    */
   });
 
   it('should register a Thermostat heat_cool device from ha', async () => {
