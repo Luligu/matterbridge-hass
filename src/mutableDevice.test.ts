@@ -160,6 +160,12 @@ describe('MutableDevice', () => {
 
   const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
+  // Helper to flush pending macrotask + multiple microtask queues
+  async function flushAsync(depth = 10) {
+    await new Promise((resolve) => setImmediate(resolve));
+    for (let i = 0; i < depth; i++) await Promise.resolve();
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
   });

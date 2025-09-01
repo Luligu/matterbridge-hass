@@ -601,9 +601,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (this.supportedCoreDomains.includes(domain))
         addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
       // Lookup and add sensor domain entity.
-      if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, false, this.log);
+      if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, name.includes('battery'), this.log);
       // Lookup and add binary_sensor domain entity.
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
+
+      if (mutableDevice.get().deviceTypes.includes(powerSource)) {
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200); // Add PowerSource with battery feature if the entity is a battery
+      }
 
       // Register the device if we have found a supported domain
       if (mutableDevice.get().deviceTypes.length > 1 || mutableDevice.size() > 1) {

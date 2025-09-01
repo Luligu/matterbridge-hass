@@ -210,6 +210,12 @@ let aggregator: Endpoint<AggregatorEndpoint>;
 let device: MatterbridgeEndpoint;
 
 describe('Matterbridge ' + NAME, () => {
+  // Helper to flush pending macrotask + multiple microtask queues
+  async function flushAsync(depth = 10) {
+    await new Promise((resolve) => setImmediate(resolve));
+    for (let i = 0; i < depth; i++) await Promise.resolve();
+  }
+
   beforeAll(async () => {
     // Cleanup the matter environment
     rmSync(HOMEDIR, { recursive: true, force: true });
@@ -228,9 +234,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   afterEach(async () => {
-    // DrainEventLoop
-    await new Promise((resolve) => setImmediate(resolve));
-    for (let i = 0; i < 10; i++) await Promise.resolve();
+    await flushAsync(10);
   });
 
   afterAll(async () => {
@@ -248,6 +252,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.clear();
     for (const device of aggregator.parts) {
       await device.delete();
+      await flushAsync(10);
     }
     expect(aggregator.parts.size).toBe(0);
 
@@ -2835,6 +2840,18 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassDevice;
 
     // binary_sensor
+    const batteryLowEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.battery_low',
+      id: 'battery-low-entity-id',
+      name: 'Battery Low Sensor',
+    } as unknown as HassEntity;
+    const batteryLowState = {
+      entity_id: batteryLowEntity.entity_id,
+      state: 'on', // 'on' = battery low, 'off' = battery okay
+      attributes: { device_class: 'battery', friendly_name: batteryLowEntity.name },
+    } as unknown as HassState;
+
     const contactEntity = {
       device_id: multisensorDevice.id,
       entity_id: 'binary_sensor.door_contact',
@@ -2967,18 +2984,284 @@ describe('Matterbridge ' + NAME, () => {
       attributes: { device_class: 'carbon_monoxide', friendly_name: coEntity.name },
     } as unknown as HassState;
 
+    // sensor
+    const batteryLevelEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.battery_level',
+      id: 'battery-level-entity-id',
+      name: 'Battery Level Sensor',
+    } as unknown as HassEntity;
+    const batteryLevelState = {
+      entity_id: batteryLevelEntity.entity_id,
+      state: '85',
+      attributes: { state_class: 'measurement', device_class: 'battery', unit_of_measurement: '%', friendly_name: batteryLevelEntity.name },
+    } as unknown as HassState;
+
+    const batteryVoltageEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.battery_voltage',
+      id: 'battery-voltage-entity-id',
+      name: 'Battery Voltage Sensor',
+    } as unknown as HassEntity;
+    const batteryVoltageState = {
+      entity_id: batteryVoltageEntity.entity_id,
+      state: '3.7',
+      attributes: { state_class: 'measurement', device_class: 'voltage', unit_of_measurement: 'V', friendly_name: batteryVoltageEntity.name },
+    } as unknown as HassState;
+
     const temperatureEntity = {
       device_id: multisensorDevice.id,
       entity_id: 'sensor.temperature',
-      id: '0b25a337cb83edefb1d310450ad2b0ac',
-      name: 'Single Entity Temperature Sensor',
+      id: 'temperature-entity-id',
+      name: 'Temperature Sensor',
     } as unknown as HassEntity;
     const temperatureState = {
       entity_id: temperatureEntity.entity_id,
       state: '22.6',
-      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: temperatureEntity.name },
+      attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C', friendly_name: temperatureEntity.name },
     } as unknown as HassState;
 
+    const humidityEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.humidity',
+      id: 'humidity-entity-id',
+      name: 'Humidity Sensor',
+    } as unknown as HassEntity;
+    const humidityState = {
+      entity_id: humidityEntity.entity_id,
+      state: '56.3',
+      attributes: { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%', friendly_name: humidityEntity.name },
+    } as unknown as HassState;
+
+    const pressureEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.pressure',
+      id: 'pressure-entity-id',
+      name: 'Pressure Sensor',
+    } as unknown as HassEntity;
+    const pressureState = {
+      entity_id: pressureEntity.entity_id,
+      state: '1013',
+      attributes: { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa', friendly_name: pressureEntity.name },
+    } as unknown as HassState;
+
+    const atmosphericPressureEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.atmospheric_pressure',
+      id: 'atmospheric-pressure-entity-id',
+      name: 'Atmospheric Pressure Sensor',
+    } as unknown as HassEntity;
+    const atmosphericPressureState = {
+      entity_id: atmosphericPressureEntity.entity_id,
+      state: '1013',
+      attributes: { state_class: 'measurement', device_class: 'atmospheric_pressure', unit_of_measurement: 'hPa', friendly_name: atmosphericPressureEntity.name },
+    } as unknown as HassState;
+
+    const illuminanceEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.illuminance',
+      id: 'illuminance-entity-id',
+      name: 'Illuminance Sensor',
+    } as unknown as HassEntity;
+    const illuminanceState = {
+      entity_id: illuminanceEntity.entity_id,
+      state: '500',
+      attributes: { state_class: 'measurement', device_class: 'illuminance', unit_of_measurement: 'lx', friendly_name: illuminanceEntity.name },
+    } as unknown as HassState;
+
+    const energyEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.energy_total',
+      id: 'energy-entity-id',
+      name: 'Energy Total Sensor',
+    } as unknown as HassEntity;
+    const energyState = {
+      entity_id: energyEntity.entity_id,
+      state: '12.34',
+      attributes: { state_class: 'total_increasing', device_class: 'energy', unit_of_measurement: 'kWh', friendly_name: energyEntity.name },
+    } as unknown as HassState;
+
+    const powerEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.power',
+      id: 'power-entity-id',
+      name: 'Power Sensor',
+    } as unknown as HassEntity;
+    const powerState = {
+      entity_id: powerEntity.entity_id,
+      state: '100',
+      attributes: { state_class: 'measurement', device_class: 'power', unit_of_measurement: 'W', friendly_name: powerEntity.name },
+    } as unknown as HassState;
+
+    const currentEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.current',
+      id: 'current-entity-id',
+      name: 'Current Sensor',
+    } as unknown as HassEntity;
+    const currentState = {
+      entity_id: currentEntity.entity_id,
+      state: '0.5',
+      attributes: { state_class: 'measurement', device_class: 'current', unit_of_measurement: 'A', friendly_name: currentEntity.name },
+    } as unknown as HassState;
+
+    const voltageEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.voltage',
+      id: 'voltage-entity-id',
+      name: 'Voltage Sensor',
+    } as unknown as HassEntity;
+    const voltageState = {
+      entity_id: voltageEntity.entity_id,
+      state: '230',
+      attributes: { state_class: 'measurement', device_class: 'voltage', unit_of_measurement: 'V', friendly_name: voltageEntity.name },
+    } as unknown as HassState;
+
+    const aqiEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.air_quality',
+      id: 'aqi-entity-id',
+      name: 'Air Quality Sensor Multi',
+    } as unknown as HassEntity;
+    const aqiState = {
+      entity_id: aqiEntity.entity_id,
+      state: 'fair',
+      attributes: { state_class: 'measurement', device_class: 'aqi', friendly_name: aqiEntity.name },
+    } as unknown as HassState;
+
+    const vocEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.voc',
+      id: 'voc-entity-id',
+      name: 'VOC Sensor',
+    } as unknown as HassEntity;
+    const vocState = {
+      entity_id: vocEntity.entity_id,
+      state: '100',
+      attributes: { state_class: 'measurement', device_class: 'volatile_organic_compounds', friendly_name: vocEntity.name },
+    } as unknown as HassState;
+
+    const vocPartsEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.voc_parts',
+      id: 'voc-parts-entity-id',
+      name: 'VOC Parts Sensor',
+    } as unknown as HassEntity;
+    const vocPartsState = {
+      entity_id: vocPartsEntity.entity_id,
+      state: '150',
+      attributes: { state_class: 'measurement', device_class: 'volatile_organic_compounds_parts', friendly_name: vocPartsEntity.name },
+    } as unknown as HassState;
+
+    const co2Entity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.co2',
+      id: 'co2-entity-id',
+      name: 'CO2 Sensor',
+    } as unknown as HassEntity;
+    const co2State = {
+      entity_id: co2Entity.entity_id,
+      state: '600',
+      attributes: { state_class: 'measurement', device_class: 'carbon_dioxide', friendly_name: co2Entity.name },
+    } as unknown as HassState;
+
+    const coSensorEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.co_multi',
+      id: 'co-sensor-entity-id',
+      name: 'CO Sensor Multi Level',
+    } as unknown as HassEntity;
+    const coSensorState = {
+      entity_id: coSensorEntity.entity_id,
+      state: '30',
+      attributes: { state_class: 'measurement', device_class: 'carbon_monoxide', friendly_name: coSensorEntity.name },
+    } as unknown as HassState;
+
+    const no2Entity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.no2',
+      id: 'no2-entity-id',
+      name: 'NO2 Sensor',
+    } as unknown as HassEntity;
+    const no2State = {
+      entity_id: no2Entity.entity_id,
+      state: '15',
+      attributes: { state_class: 'measurement', device_class: 'nitrogen_dioxide', friendly_name: no2Entity.name },
+    } as unknown as HassState;
+
+    const ozoneEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.ozone',
+      id: 'ozone-entity-id',
+      name: 'Ozone Sensor',
+    } as unknown as HassEntity;
+    const ozoneState = {
+      entity_id: ozoneEntity.entity_id,
+      state: '5',
+      attributes: { state_class: 'measurement', device_class: 'ozone', friendly_name: ozoneEntity.name },
+    } as unknown as HassState;
+
+    const formaldehydeEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.formaldehyde',
+      id: 'formaldehyde-entity-id',
+      name: 'Formaldehyde Sensor',
+    } as unknown as HassEntity;
+    const formaldehydeState = {
+      entity_id: formaldehydeEntity.entity_id,
+      state: '2',
+      attributes: { state_class: 'measurement', device_class: 'formaldehyde', friendly_name: formaldehydeEntity.name },
+    } as unknown as HassState;
+
+    const radonEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.radon',
+      id: 'radon-entity-id',
+      name: 'Radon Sensor',
+    } as unknown as HassEntity;
+    const radonState = {
+      entity_id: radonEntity.entity_id,
+      state: '50',
+      attributes: { state_class: 'measurement', device_class: 'radon', friendly_name: radonEntity.name },
+    } as unknown as HassState;
+
+    const pm1Entity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.pm1',
+      id: 'pm1-entity-id',
+      name: 'PM1 Sensor',
+    } as unknown as HassEntity;
+    const pm1State = {
+      entity_id: pm1Entity.entity_id,
+      state: '5',
+      attributes: { state_class: 'measurement', device_class: 'pm1', friendly_name: pm1Entity.name },
+    } as unknown as HassState;
+
+    const pm25Entity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.pm25',
+      id: 'pm25-entity-id',
+      name: 'PM2.5 Sensor',
+    } as unknown as HassEntity;
+    const pm25State = {
+      entity_id: pm25Entity.entity_id,
+      state: '12',
+      attributes: { state_class: 'measurement', device_class: 'pm25', friendly_name: pm25Entity.name },
+    } as unknown as HassState;
+
+    const pm10Entity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.pm10',
+      id: 'pm10-entity-id',
+      name: 'PM10 Sensor',
+    } as unknown as HassEntity;
+    const pm10State = {
+      entity_id: pm10Entity.entity_id,
+      state: '20',
+      attributes: { state_class: 'measurement', device_class: 'pm10', friendly_name: pm10Entity.name },
+    } as unknown as HassState;
+
+    // control
     const switchEntity = {
       device_id: multisensorDevice.id,
       entity_id: 'switch.template_switch',
@@ -2991,69 +3274,79 @@ describe('Matterbridge ' + NAME, () => {
       attributes: { friendly_name: switchEntity.name },
     } as unknown as HassState;
 
-    // sensor
-    // copilot fill it with all sensor entities and states from converter
-
     haPlatform.ha.hassDevices.set(multisensorDevice.id, multisensorDevice);
 
-    // binary_sensor
-    haPlatform.ha.hassEntities.set(contactEntity.entity_id, contactEntity);
-    haPlatform.ha.hassStates.set(contactState.entity_id, contactState);
-    haPlatform.ha.hassEntities.set(temperatureEntity.entity_id, temperatureEntity);
-    haPlatform.ha.hassStates.set(temperatureState.entity_id, temperatureState);
-    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
-    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
-    haPlatform.ha.hassEntities.set(windowEntity.entity_id, windowEntity);
-    haPlatform.ha.hassStates.set(windowState.entity_id, windowState);
-    haPlatform.ha.hassEntities.set(garageDoorEntity.entity_id, garageDoorEntity);
-    haPlatform.ha.hassStates.set(garageDoorState.entity_id, garageDoorState);
-    haPlatform.ha.hassEntities.set(vibrationEntity.entity_id, vibrationEntity);
-    haPlatform.ha.hassStates.set(vibrationState.entity_id, vibrationState);
-    haPlatform.ha.hassEntities.set(coldEntity.entity_id, coldEntity);
-    haPlatform.ha.hassStates.set(coldState.entity_id, coldState);
-    haPlatform.ha.hassEntities.set(moistureEntity.entity_id, moistureEntity);
-    haPlatform.ha.hassStates.set(moistureState.entity_id, moistureState);
-    haPlatform.ha.hassEntities.set(occupancyEntity.entity_id, occupancyEntity);
-    haPlatform.ha.hassStates.set(occupancyState.entity_id, occupancyState);
-    haPlatform.ha.hassEntities.set(motionEntity.entity_id, motionEntity);
-    haPlatform.ha.hassStates.set(motionState.entity_id, motionState);
-    haPlatform.ha.hassEntities.set(presenceEntity.entity_id, presenceEntity);
-    haPlatform.ha.hassStates.set(presenceStateMulti.entity_id, presenceStateMulti);
-    haPlatform.ha.hassEntities.set(smokeEntity.entity_id, smokeEntity);
-    haPlatform.ha.hassStates.set(smokeStateMulti.entity_id, smokeStateMulti);
-    haPlatform.ha.hassEntities.set(coEntity.entity_id, coEntity);
-    haPlatform.ha.hassStates.set(coStateMulti.entity_id, coStateMulti);
+    // binary_sensor (refactored similar to sensorEntities below)
+    const binarySensorEntities: [HassEntity, HassState][] = [
+      [batteryLowEntity, batteryLowState],
+      [contactEntity, contactState],
+      [windowEntity, windowState],
+      [garageDoorEntity, garageDoorState],
+      [vibrationEntity, vibrationState],
+      [coldEntity, coldState],
+      [moistureEntity, moistureState],
+      [occupancyEntity, occupancyState],
+      [motionEntity, motionState],
+      [presenceEntity, presenceStateMulti],
+      [smokeEntity, smokeStateMulti],
+      [coEntity, coStateMulti],
+    ];
+    for (const [e, s] of binarySensorEntities) {
+      haPlatform.ha.hassEntities.set(e.entity_id, e);
+      haPlatform.ha.hassStates.set(s.entity_id, s);
+    }
 
     // sensor
-    // copilot add entities and States from all sensor entities and states
+    const sensorEntities: [HassEntity, HassState][] = [
+      [batteryLevelEntity, batteryLevelState],
+      [batteryVoltageEntity, batteryVoltageState],
+      [temperatureEntity, temperatureState],
+      [humidityEntity, humidityState],
+      [pressureEntity, pressureState],
+      [atmosphericPressureEntity, atmosphericPressureState],
+      [illuminanceEntity, illuminanceState],
+      [energyEntity, energyState],
+      [powerEntity, powerState],
+      [currentEntity, currentState],
+      [voltageEntity, voltageState],
+      [aqiEntity, aqiState],
+      [vocEntity, vocState],
+      [vocPartsEntity, vocPartsState],
+      [co2Entity, co2State],
+      [coSensorEntity, coSensorState],
+      [no2Entity, no2State],
+      [ozoneEntity, ozoneState],
+      [formaldehydeEntity, formaldehydeState],
+      [radonEntity, radonState],
+      [pm1Entity, pm1State],
+      [pm25Entity, pm25State],
+      [pm10Entity, pm10State],
+    ];
+    for (const [e, s] of sensorEntities) {
+      haPlatform.ha.hassEntities.set(e.entity_id, e);
+      haPlatform.ha.hassStates.set(s.entity_id, s);
+    }
+
+    // controls
+    const controlEntities: [HassEntity, HassState][] = [[switchEntity, switchState]];
+    for (const [e, s] of controlEntities) {
+      haPlatform.ha.hassEntities.set(e.entity_id, e);
+      haPlatform.ha.hassStates.set(s.entity_id, s);
+    }
 
     haPlatform.config.splitEntities = [
       // binary_sensor
-      contactEntity.entity_id,
-      windowEntity.entity_id,
-      garageDoorEntity.entity_id,
-      vibrationEntity.entity_id,
-      coldEntity.entity_id,
-      moistureEntity.entity_id,
-      occupancyEntity.entity_id,
-      motionEntity.entity_id,
-      presenceEntity.entity_id,
-      smokeEntity.entity_id,
-      coEntity.entity_id,
-      temperatureEntity.entity_id,
-      switchEntity.entity_id,
+      ...binarySensorEntities.map(([e]) => e.entity_id),
       // sensor
-      // copilot add entities from all sensor entities and states
+      ...sensorEntities.map(([e]) => e.entity_id),
+      // controls
+      ...controlEntities.map(([e]) => e.entity_id),
     ];
-
-    await haPlatform.clearSelect();
-    (haPlatform as any)._registeredEndpoints.clear();
-    (haPlatform as any)._registeredEndpointsByName.clear();
 
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    await flushAsync(); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
