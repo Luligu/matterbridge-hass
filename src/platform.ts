@@ -496,11 +496,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Register the device if we have found supported domains and entities
       if (mutableDevice.size() > 1) {
-        this.log.debug(`Registering device ${dn}${device.name}${db}...`);
-        mutableDevice.create(true); // Use remap for device entities
-        mutableDevice.logMutableDevice();
-        await this.registerDevice(mutableDevice.getEndpoint());
-        this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
+        try {
+          this.log.debug(`Registering device ${dn}${device.name}${db}...`);
+          mutableDevice.create(true); // Use remap for device entities
+          mutableDevice.logMutableDevice();
+          await this.registerDevice(mutableDevice.getEndpoint());
+          this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
+        } catch (error) {
+          this.log.error(`Failed to register device ${dn}${device.name}${db}: ${error}`);
+        }
         // Log all the remapped endpoints
         for (const remappedEndpoint of mutableDevice.getRemappedEndpoints()) {
           this.log.debug(`**- Device ${CYAN}${device.name}${db} remapped endpoint ${CYAN}${remappedEndpoint}${db}`);

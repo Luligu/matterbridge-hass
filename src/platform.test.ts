@@ -17,6 +17,7 @@ import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMea
 
 import { HomeAssistantPlatform } from './platform.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import { MutableDevice } from './mutableDevice.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -1233,6 +1234,32 @@ describe('HassPlatform', () => {
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
 
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`state not found. Skipping...`));
+  });
+
+  it('should not register a Switch device if create fails', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let device: HassDevice | undefined;
+    (mockData.devices as HassDevice[]).forEach((d) => {
+      if (d.name === 'Switch') device = d;
+    });
+    expect(device).toBeDefined();
+    if (!device) return;
+    haPlatform.ha.hassDevices.set(device.id, device);
+    for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    jest.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
+      throw new Error('Jest test');
+    });
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Failed to register device ${dn}${device.name}${db}: Error: Jest test`);
+    expect(mockMatterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
   });
 
   it('should register a Switch device from ha', async () => {
