@@ -1253,7 +1253,7 @@ describe('HassPlatform', () => {
     (haPlatform as any)._registeredEndpointsByName.set(device.name, device);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
 
     expect(mockLog.warn).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
 
@@ -1274,7 +1274,7 @@ describe('HassPlatform', () => {
     // for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
 
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`state not found. Skipping...`));
   });
@@ -2361,7 +2361,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassStates.set(motionSensorOccupancyEntityState.entity_id, motionSensorOccupancyEntityState as unknown as HassState);
 
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.info).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
     expect(mockLog.debug).not.toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
@@ -2381,7 +2381,7 @@ describe('HassPlatform', () => {
     haPlatform.endpointNames.set(contactSensorEntity.entity_id, contactSensorEntity.entity_id);
     haPlatform.endpointNames.set(motionSensorOccupancyEntity.entity_id, motionSensorOccupancyEntity.entity_id);
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.error).toHaveBeenCalledWith(`Error configuring platform ${idn}${mockConfig.name}${rs}${er}: Error: Test error`);
   });
@@ -2396,8 +2396,7 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Home Assistant connection closed`);
     expect(mockMatterbridge.removeAllBridgedEndpoints).not.toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
-  }, 20000);
+  });
 
   it('should call onShutdown with reason and log error', async () => {
     closeSpy.mockImplementationOnce(() => {
@@ -2408,16 +2407,15 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.error).toHaveBeenCalledWith(`Error closing Home Assistant connection: Error: Test reason`);
     expect(mockMatterbridge.removeAllBridgedEndpoints).not.toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
-  }, 20000);
+  });
 
   it('should call onShutdown and unregister', async () => {
     mockConfig.unregisterOnShutdown = true;
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.removeAllBridgedEndpoints).toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
-  }, 20000);
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete in state revert
+  });
 });
 
 const switchDevice = {

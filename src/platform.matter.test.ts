@@ -832,7 +832,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${batteryAlertEntityState.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 100, expect.anything());
@@ -999,7 +999,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switch1State.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledTimes(2);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
@@ -1092,13 +1092,13 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switchEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(switchDevice.id, switchEntity.entity_id, switchState, { ...switchState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(switchDevice.id, switchEntity.entity_id, switchState, { ...switchState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
@@ -1168,7 +1168,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${valveEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Open, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 50, expect.anything());
@@ -1256,7 +1256,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${vacuumEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Docked, expect.anything());
@@ -1383,7 +1383,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.Cluster.id, 'currentLevel', 100, expect.anything());
@@ -1450,7 +1450,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.Cluster.id, 'currentLevel', 100, expect.anything());
@@ -1532,14 +1532,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentCurrent', 50, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(fanDevice.id, fanEntity.entity_id, fanState, { ...fanState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(fanDevice.id, fanEntity.entity_id, fanState, { ...fanState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Off, expect.anything());
     expect(device.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Off);
 
@@ -1651,7 +1651,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     console.warn(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentCurrent', 50, expect.anything());
@@ -1660,8 +1660,8 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     console.warn(`Updating state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
-    haPlatform.updateHandler(fanDevice.id, fanEntity.entity_id, fanState, { ...fanState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(fanDevice.id, fanEntity.entity_id, fanState, { ...fanState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Off, expect.anything());
     expect(device.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Off);
 
@@ -1797,7 +1797,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${climateDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'systemMode', Thermostat.SystemMode.Auto, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedHeatingSetpoint', 1000, expect.anything());
@@ -1869,7 +1869,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
@@ -1934,7 +1934,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${leakDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
@@ -2002,7 +2002,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${presenceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
 
@@ -2068,7 +2068,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${smokeDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
@@ -2137,7 +2137,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
@@ -2193,7 +2193,7 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
@@ -2250,14 +2250,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${temperatureEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.Cluster.id, 'measuredValue', 2260, expect.anything());
     expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2260);
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(temperatureEntity.entity_id, temperatureState.entity_id, temperatureState, { ...temperatureState, state: '21.2' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(temperatureEntity.entity_id, temperatureState.entity_id, temperatureState, { ...temperatureState, state: '21.2' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.Cluster.id, 'measuredValue', 2120, expect.anything());
     expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2120);
 
@@ -2306,14 +2306,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${aqiEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
     expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(aqiEntity.entity_id, aqiEntity.entity_id, aqiState, { ...aqiState, state: 'poor' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(aqiEntity.entity_id, aqiEntity.entity_id, aqiState, { ...aqiState, state: 'poor' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
     expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Poor);
 
@@ -2367,14 +2367,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switchEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(switchEntity.entity_id, switchState.entity_id, switchState, { ...switchState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(switchEntity.entity_id, switchState.entity_id, switchState, { ...switchState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
@@ -2440,14 +2440,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
@@ -2511,14 +2511,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
@@ -2600,14 +2600,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
@@ -2708,14 +2708,14 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
+    await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
@@ -2910,7 +2910,7 @@ describe('Matterbridge ' + NAME, () => {
 
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.info).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
   });
@@ -2933,6 +2933,6 @@ describe('Matterbridge ' + NAME, () => {
   test('stop the mDNS service', async () => {
     expect(server).toBeDefined();
     await server.env.get(MdnsService)[Symbol.asyncDispose]();
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for async operations in matter.js to complete
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete
   });
 });

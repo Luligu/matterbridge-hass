@@ -324,6 +324,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           // We revert the state after 500ms except for input_boolean and switch template that mantain the state
           if (domain !== 'input_boolean' && domain !== 'switch') {
             setTimeout(() => {
+              // istanbul ignore next cause is too long
               data.endpoint.setAttribute(OnOff.Cluster.id, 'onOff', false, data.endpoint.log);
             }, 500).unref();
           }
