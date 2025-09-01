@@ -552,6 +552,7 @@ describe('MutableDevice', () => {
       'levelControl',
       'colorControl',
     ]);
+    mutableDevice.destroy();
   });
 
   it('should create a MatterbridgeDevice without server mode', async () => {
@@ -1009,6 +1010,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(2);
     expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['child1', 'child2']);
+    expect(mutableDevice.getSplitEndpoints().size).toBe(0);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-onofflight', 'MA-powerSource']);
@@ -1042,6 +1044,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.getEndpoints().size).toBe(1);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(3);
     expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['temperature', 'humidity', 'pressure']);
+    expect(mutableDevice.getSplitEndpoints().size).toBe(0);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-tempsensor', 'MA-humiditysensor', 'MA-pressuresensor']);
@@ -1089,6 +1092,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.getEndpoints().size).toBe(3);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(2);
     expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['humidity', 'pressure']);
+    expect(mutableDevice.getSplitEndpoints().size).toBe(2);
+    expect(Array.from(mutableDevice.getSplitEndpoints())).toEqual(['temperature', 'temperature out']);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-humiditysensor', 'MA-pressuresensor']);
@@ -1137,6 +1142,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.size()).toBe(2); // child1 should remain because of duplicate device type
     expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(0);
+    expect(mutableDevice.getSplitEndpoints().size).toBe(1);
+    expect(Array.from(mutableDevice.getSplitEndpoints())).toEqual(['child1']);
     expect(mutableDevice.has('child1')).toBeTruthy();
 
     // Verify main endpoint
@@ -1166,6 +1173,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.size()).toBe(2); // Remap should be blocked by duplicate cluster server id
     expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(0);
+    expect(mutableDevice.getSplitEndpoints().size).toBe(1);
+    expect(Array.from(mutableDevice.getSplitEndpoints())).toEqual(['child1']);
     expect(mutableDevice.has('child1')).toBeTruthy();
 
     // Verify main endpoint
@@ -1203,6 +1212,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.size()).toBe(2); // Remap should be blocked by duplicate cluster server object id
     expect(mutableDevice.getEndpoints().size).toBe(2);
     expect(mutableDevice.getRemappedEndpoints().size).toBe(0);
+    expect(mutableDevice.getSplitEndpoints().size).toBe(1);
+    expect(Array.from(mutableDevice.getSplitEndpoints())).toEqual(['child1']);
     expect(mutableDevice.has('child1')).toBeTruthy();
 
     // Verify main endpoint

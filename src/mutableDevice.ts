@@ -116,6 +116,7 @@ export class MutableDevice {
   private readonly mutableDevices = new Map<string, MutableDeviceInterface>();
   private readonly endpoints = new Map<string, MatterbridgeEndpoint>();
   private readonly remappedEndpoints = new Set<string>();
+  private readonly splitEndpoints = new Set<string>();
 
   private readonly matterbridge: Matterbridge;
   private readonly deviceName: string;
@@ -169,6 +170,7 @@ export class MutableDevice {
     this.mutableDevices.clear();
     this.endpoints.clear();
     this.remappedEndpoints.clear();
+    this.splitEndpoints.clear();
   }
 
   /**
@@ -216,6 +218,15 @@ export class MutableDevice {
    */
   getRemappedEndpoints(): Set<string> {
     return this.remappedEndpoints;
+  }
+
+  /**
+   * Retrieves the set of the split Matterbridge endpoints of the device.
+   *
+   * @returns {Set<string>} The set of the split Matterbridge endpoints of the device.
+   */
+  getSplitEndpoints(): Set<string> {
+    return this.splitEndpoints;
   }
 
   /**
@@ -859,6 +870,7 @@ export class MutableDevice {
           this.remappedEndpoints.add(endpoint);
           this.log.debug(`*Remapped endpoint ${endpoint} of ${this.deviceName}`);
         } else {
+          this.splitEndpoints.add(endpoint);
           this.log.debug(`***Failed to remap endpoint ${endpoint} of ${this.deviceName}`);
         }
       }
