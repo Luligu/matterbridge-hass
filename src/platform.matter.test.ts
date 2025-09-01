@@ -3132,6 +3132,105 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
   });
 
+  it('should call onStart and register a split entity multi entities  device', async () => {
+    const multisensorDevice = {
+      id: '560898f83188759ed7329e97df00ee7c',
+      name: 'Single Device Multi Entities',
+    } as unknown as HassDevice;
+
+    const contactEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.door_contact',
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      name: 'Single Entity Contact Sensor',
+    } as unknown as HassEntity;
+
+    const contactState = {
+      entity_id: contactEntity.entity_id,
+      state: 'on', // 'on' for open, 'off' for closed
+      attributes: { device_class: 'door', friendly_name: contactEntity.name },
+    } as unknown as HassState;
+
+    const temperatureEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'sensor.temperature',
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      name: 'Single Entity Temperature Sensor',
+    } as unknown as HassEntity;
+
+    const temperatureState = {
+      entity_id: temperatureEntity.entity_id,
+      state: '22.6',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: temperatureEntity.name },
+    } as unknown as HassState;
+
+    const switchEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'switch.template_switch',
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      name: 'Single Entity Switch',
+    } as unknown as HassEntity;
+
+    const switchState = {
+      entity_id: switchEntity.entity_id,
+      state: 'on',
+      attributes: { friendly_name: switchEntity.name },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(multisensorDevice.id, multisensorDevice);
+    haPlatform.ha.hassEntities.set(contactEntity.entity_id, contactEntity);
+    haPlatform.ha.hassStates.set(contactState.entity_id, contactState);
+    haPlatform.ha.hassEntities.set(temperatureEntity.entity_id, temperatureEntity);
+    haPlatform.ha.hassStates.set(temperatureState.entity_id, temperatureState);
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+
+    haPlatform.config.splitEntities = [contactEntity.entity_id, temperatureEntity.entity_id, switchEntity.entity_id];
+
+    await haPlatform.clearSelect();
+    (haPlatform as any)._registeredEndpoints.clear();
+    (haPlatform as any)._registeredEndpointsByName.clear();
+
+    setDebug(true);
+    await haPlatform.onStart('Test reason');
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(aggregator.parts.size).toBe(3);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(3);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactEntity.entity_id}${db}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${temperatureEntity.entity_id}${db}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switchEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledTimes(3);
+
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.endpointNames.clear();
+    haPlatform.batteryVoltageEntities.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    for (const device of aggregator.parts) {
+      await device.delete();
+    }
+    expect(aggregator.parts.size).toBe(0);
+
+    // Clean the platform environment
+    await haPlatform.clearSelect();
+    (haPlatform as any)._registeredEndpoints.clear();
+    (haPlatform as any)._registeredEndpointsByName.clear();
+
+    setDebug(false);
+  });
+
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
