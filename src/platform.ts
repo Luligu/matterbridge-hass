@@ -114,6 +114,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : undefined;
     this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
     this.config.enableServerRvc = this.config.enableServerRvc === undefined ? true : this.config.enableServerRvc;
+    this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
     if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
     if (config.individualEntityBlackList) delete config.individualEntityBlackList;
 
@@ -455,6 +456,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Set the entity selects and validate the entity.
         this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
         this.setSelectEntity(entityName, entity.entity_id, 'component');
+        if ((this.config.splitEntities as string[]).includes(entity.entity_id)) continue; // Skip split entities from the main device
         if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
         if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
           this.log.debug(
@@ -464,6 +466,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
         // Set the entity mode for the Rvc.
         if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
+        if (domain === 'vacuum' && this.config.enableServerRvc && !battery) mutableDevice.addDeviceTypes('', powerSource); // Temporary fix for vacuum without battery and enableServerRvc
         // Lookup and add core domains entity.
         const eControl = addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
         if (eControl !== undefined) {
@@ -501,6 +504,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Log all the remapped endpoints
         for (const remappedEndpoint of mutableDevice.getRemappedEndpoints()) {
           this.log.debug(`**- Device ${CYAN}${device.name}${db} remapped endpoint ${CYAN}${remappedEndpoint}${db}`);
+        }
+        // Log all the split endpoints
+        for (const splitEndpoint of mutableDevice.getSplitEndpoints()) {
+          this.log.debug(`**- Device ${CYAN}${device.name}${db} split endpoint ${CYAN}${splitEndpoint}${db}`);
         }
         // Check if some entities are mapped to remapped endpoints and set them to the main endpoint
         for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
