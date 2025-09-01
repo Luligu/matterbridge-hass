@@ -373,7 +373,7 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         if (value === FanControl.FanMode.Low) return 'low';
         else if (value === FanControl.FanMode.Medium) return 'medium';
         else if (value === FanControl.FanMode.High) return 'high';
-        else if (value === FanControl.FanMode.Auto || value === FanControl.FanMode.Smart || value === FanControl.FanMode.On) return 'auto';
+        else return 'auto'; // For FanControl.FanMode.Auto, FanControl.FanMode.Smart, FanControl.FanMode.On
       } else {
         return null;
       }
@@ -387,7 +387,7 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         if (value === Thermostat.SystemMode.Auto) return 'heat_cool';
         else if (value === Thermostat.SystemMode.Cool) return 'cool';
         else if (value === Thermostat.SystemMode.Heat) return 'heat';
-        else return null;
+        else return null; // Thermostat.SystemMode 2 doesn't exist
       } else {
         return null;
       }

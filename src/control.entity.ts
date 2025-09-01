@@ -101,9 +101,6 @@ export function addControlEntity(
       });
   }
 
-  // Skip the entity if no supported domains are found.
-  if (endpointName === undefined) return;
-
   // Real values will be updated by the configure with the Home Assistant states. Here we need the features and fixed attributes to be set.
 
   // Configure the ColorControl cluster default values and features.

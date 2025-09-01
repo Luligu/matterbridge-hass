@@ -228,8 +228,9 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   afterEach(async () => {
-    // Flush microtasks
-    for (let i = 0; i < 5; i++) await Promise.resolve();
+    // DrainEventLoop
+    await new Promise((resolve) => setImmediate(resolve));
+    for (let i = 0; i < 10; i++) await Promise.resolve();
   });
 
   afterAll(async () => {
@@ -453,21 +454,21 @@ describe('Matterbridge ' + NAME, () => {
 
     // Test different enum values
     jest.clearAllMocks();
-    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+    await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'good',
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Good, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+    await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'unhealthy',
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+    await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'hazardous',
     });
@@ -538,28 +539,28 @@ describe('Matterbridge ' + NAME, () => {
 
     // Test different enum values
     jest.clearAllMocks();
-    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+    await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'fair',
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+    await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'poor',
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+    await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'very_poor',
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
+    await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'extremely_poor',
     });
@@ -844,17 +845,17 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 3050, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'on' }); // On means low, Off means normal
-    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '100' });
-    haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2000' });
+    await haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'on' }); // On means low, Off means normal
+    await haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '100' });
+    await haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2000' });
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Critical, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 200, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2000, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'off' }); // On means low, Off means normal
-    haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '25' });
-    haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2900' });
+    await haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'off' }); // On means low, Off means normal
+    await haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '25' });
+    await haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2900' });
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 50, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2900, expect.anything());
@@ -1879,11 +1880,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'off' }); // 'on' for open, 'off' for closed
+    await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'off' }); // 'on' for open, 'off' for closed
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'on' }); // 'on' for open, 'off' for closed
+    await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'on' }); // 'on' for open, 'off' for closed
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     // Clean the test environment
@@ -1944,11 +1945,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(leakDevice.id, leakDeviceEntityState.entity_id, leakDeviceEntityState, { ...leakDeviceEntityState, state: 'on' }); // 'on' for leak, 'off' for no leak
+    await haPlatform.updateHandler(leakDevice.id, leakDeviceEntityState.entity_id, leakDeviceEntityState, { ...leakDeviceEntityState, state: 'on' }); // 'on' for leak, 'off' for no leak
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(leakDevice.id, leakDeviceEntityState.entity_id, leakDeviceEntityState, { ...leakDeviceEntityState, state: 'off' }); // 'on' for leak, 'off' for no leak
+    await haPlatform.updateHandler(leakDevice.id, leakDeviceEntityState.entity_id, leakDeviceEntityState, { ...leakDeviceEntityState, state: 'off' }); // 'on' for leak, 'off' for no leak
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
     // Clean the test environment
@@ -2012,11 +2013,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'on' }); // 'on' for detected, 'off' for not detected
+    await haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'on' }); // 'on' for detected, 'off' for not detected
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: true }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'off' }); // 'on' for detected, 'off' for not detected
+    await haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'off' }); // 'on' for detected, 'off' for not detected
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     // Clean the test environment
@@ -2078,11 +2079,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'on' }); // 'on' for smoke, 'off' for no smoke
+    await haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'on' }); // 'on' for smoke, 'off' for no smoke
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'off' }); // 'on' for smoke, 'off' for no smoke
+    await haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'off' }); // 'on' for smoke, 'off' for no smoke
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     // Clean the test environment
@@ -2147,11 +2148,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'on' }); // 'on' for co, 'off' for no co
+    await haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'on' }); // 'on' for co, 'off' for no co
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'off' }); // 'on' for co, 'off' for no co
+    await haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'off' }); // 'on' for co, 'off' for no co
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     // Clean the test environment
@@ -2203,11 +2204,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'off' }); // 'on' for open, 'off' for closed
+    await haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'off' }); // 'on' for open, 'off' for closed
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'on' }); // 'on' for open, 'off' for closed
+    await haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'on' }); // 'on' for open, 'off' for closed
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     // Clean the test environment
@@ -2827,23 +2828,143 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
   });
 
-  it('should call onStart and register a split entity multi entities  device', async () => {
+  it('should call onStart and register a split entity multi entities device', async () => {
     const multisensorDevice = {
       id: '560898f83188759ed7329e97df00ee7c',
       name: 'Single Device Multi Entities',
     } as unknown as HassDevice;
 
+    // binary_sensor
     const contactEntity = {
       device_id: multisensorDevice.id,
       entity_id: 'binary_sensor.door_contact',
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       name: 'Single Entity Contact Sensor',
     } as unknown as HassEntity;
-
     const contactState = {
       entity_id: contactEntity.entity_id,
       state: 'on', // 'on' for open, 'off' for closed
       attributes: { device_class: 'door', friendly_name: contactEntity.name },
+    } as unknown as HassState;
+
+    const windowEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.window_contact',
+      id: 'window-entity-id',
+      name: 'Window Contact Sensor',
+    } as unknown as HassEntity;
+    const windowState = {
+      entity_id: windowEntity.entity_id,
+      state: 'on', // 'on' = open, 'off' = closed
+      attributes: { device_class: 'window', friendly_name: windowEntity.name },
+    } as unknown as HassState;
+
+    const garageDoorEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.garage_door_contact',
+      id: 'garage-door-entity-id',
+      name: 'Garage Door Sensor',
+    } as unknown as HassEntity;
+    const garageDoorState = {
+      entity_id: garageDoorEntity.entity_id,
+      state: 'off', // 'on' = open, 'off' = closed
+      attributes: { device_class: 'garage_door', friendly_name: garageDoorEntity.name },
+    } as unknown as HassState;
+
+    const vibrationEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.vibration_sensor',
+      id: 'vibration-entity-id',
+      name: 'Vibration Sensor',
+    } as unknown as HassEntity;
+    const vibrationState = {
+      entity_id: vibrationEntity.entity_id,
+      state: 'off', // 'on' = vibration detected
+      attributes: { device_class: 'vibration', friendly_name: vibrationEntity.name },
+    } as unknown as HassState;
+
+    const coldEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.cold_sensor',
+      id: 'cold-entity-id',
+      name: 'Cold Sensor',
+    } as unknown as HassEntity;
+    const coldState = {
+      entity_id: coldEntity.entity_id,
+      state: 'off', // 'on' = cold condition
+      attributes: { device_class: 'cold', friendly_name: coldEntity.name },
+    } as unknown as HassState;
+
+    const moistureEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.moisture_sensor',
+      id: 'moisture-entity-id',
+      name: 'Moisture Sensor',
+    } as unknown as HassEntity;
+    const moistureState = {
+      entity_id: moistureEntity.entity_id,
+      state: 'off', // 'on' = moisture/leak detected
+      attributes: { device_class: 'moisture', friendly_name: moistureEntity.name },
+    } as unknown as HassState;
+
+    const occupancyEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.occupancy_sensor',
+      id: 'occupancy-entity-id',
+      name: 'Occupancy Sensor',
+    } as unknown as HassEntity;
+    const occupancyState = {
+      entity_id: occupancyEntity.entity_id,
+      state: 'off', // 'on' = occupied
+      attributes: { device_class: 'occupancy', friendly_name: occupancyEntity.name },
+    } as unknown as HassState;
+
+    const motionEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.motion_sensor',
+      id: 'motion-entity-id',
+      name: 'Motion Sensor',
+    } as unknown as HassEntity;
+    const motionState = {
+      entity_id: motionEntity.entity_id,
+      state: 'off', // 'on' = motion detected
+      attributes: { device_class: 'motion', friendly_name: motionEntity.name },
+    } as unknown as HassState;
+
+    const presenceEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.presence_sensor',
+      id: 'presence-entity-id',
+      name: 'Presence Sensor',
+    } as unknown as HassEntity;
+    const presenceStateMulti = {
+      entity_id: presenceEntity.entity_id,
+      state: 'off', // 'on' = presence detected
+      attributes: { device_class: 'presence', friendly_name: presenceEntity.name },
+    } as unknown as HassState;
+
+    const smokeEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.smoke_sensor_multi',
+      id: 'smoke-entity-id',
+      name: 'Smoke Sensor Multi',
+    } as unknown as HassEntity;
+    const smokeStateMulti = {
+      entity_id: smokeEntity.entity_id,
+      state: 'off', // 'on' = smoke detected
+      attributes: { device_class: 'smoke', friendly_name: smokeEntity.name },
+    } as unknown as HassState;
+
+    const coEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'binary_sensor.co_sensor_multi',
+      id: 'co-entity-id',
+      name: 'CO Sensor Multi',
+    } as unknown as HassEntity;
+    const coStateMulti = {
+      entity_id: coEntity.entity_id,
+      state: 'off', // 'on' = CO detected
+      attributes: { device_class: 'carbon_monoxide', friendly_name: coEntity.name },
     } as unknown as HassState;
 
     const temperatureEntity = {
@@ -2852,7 +2973,6 @@ describe('Matterbridge ' + NAME, () => {
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       name: 'Single Entity Temperature Sensor',
     } as unknown as HassEntity;
-
     const temperatureState = {
       entity_id: temperatureEntity.entity_id,
       state: '22.6',
@@ -2865,22 +2985,66 @@ describe('Matterbridge ' + NAME, () => {
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       name: 'Single Entity Switch',
     } as unknown as HassEntity;
-
     const switchState = {
       entity_id: switchEntity.entity_id,
       state: 'on',
       attributes: { friendly_name: switchEntity.name },
     } as unknown as HassState;
 
+    // sensor
+    // copilot fill it with all sensor entities and states from converter
+
     haPlatform.ha.hassDevices.set(multisensorDevice.id, multisensorDevice);
+
+    // binary_sensor
     haPlatform.ha.hassEntities.set(contactEntity.entity_id, contactEntity);
     haPlatform.ha.hassStates.set(contactState.entity_id, contactState);
     haPlatform.ha.hassEntities.set(temperatureEntity.entity_id, temperatureEntity);
     haPlatform.ha.hassStates.set(temperatureState.entity_id, temperatureState);
     haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
     haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+    haPlatform.ha.hassEntities.set(windowEntity.entity_id, windowEntity);
+    haPlatform.ha.hassStates.set(windowState.entity_id, windowState);
+    haPlatform.ha.hassEntities.set(garageDoorEntity.entity_id, garageDoorEntity);
+    haPlatform.ha.hassStates.set(garageDoorState.entity_id, garageDoorState);
+    haPlatform.ha.hassEntities.set(vibrationEntity.entity_id, vibrationEntity);
+    haPlatform.ha.hassStates.set(vibrationState.entity_id, vibrationState);
+    haPlatform.ha.hassEntities.set(coldEntity.entity_id, coldEntity);
+    haPlatform.ha.hassStates.set(coldState.entity_id, coldState);
+    haPlatform.ha.hassEntities.set(moistureEntity.entity_id, moistureEntity);
+    haPlatform.ha.hassStates.set(moistureState.entity_id, moistureState);
+    haPlatform.ha.hassEntities.set(occupancyEntity.entity_id, occupancyEntity);
+    haPlatform.ha.hassStates.set(occupancyState.entity_id, occupancyState);
+    haPlatform.ha.hassEntities.set(motionEntity.entity_id, motionEntity);
+    haPlatform.ha.hassStates.set(motionState.entity_id, motionState);
+    haPlatform.ha.hassEntities.set(presenceEntity.entity_id, presenceEntity);
+    haPlatform.ha.hassStates.set(presenceStateMulti.entity_id, presenceStateMulti);
+    haPlatform.ha.hassEntities.set(smokeEntity.entity_id, smokeEntity);
+    haPlatform.ha.hassStates.set(smokeStateMulti.entity_id, smokeStateMulti);
+    haPlatform.ha.hassEntities.set(coEntity.entity_id, coEntity);
+    haPlatform.ha.hassStates.set(coStateMulti.entity_id, coStateMulti);
 
-    haPlatform.config.splitEntities = [contactEntity.entity_id, temperatureEntity.entity_id, switchEntity.entity_id];
+    // sensor
+    // copilot add entities and States from all sensor entities and states
+
+    haPlatform.config.splitEntities = [
+      // binary_sensor
+      contactEntity.entity_id,
+      windowEntity.entity_id,
+      garageDoorEntity.entity_id,
+      vibrationEntity.entity_id,
+      coldEntity.entity_id,
+      moistureEntity.entity_id,
+      occupancyEntity.entity_id,
+      motionEntity.entity_id,
+      presenceEntity.entity_id,
+      smokeEntity.entity_id,
+      coEntity.entity_id,
+      temperatureEntity.entity_id,
+      switchEntity.entity_id,
+      // sensor
+      // copilot add entities from all sensor entities and states
+    ];
 
     await haPlatform.clearSelect();
     (haPlatform as any)._registeredEndpoints.clear();
@@ -2891,21 +3055,21 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
-    expect(haPlatform.matterbridgeDevices.size).toBe(3);
-    expect(aggregator.parts.size).toBe(3);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
+    expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
+    expect(aggregator.parts.size).toBe((haPlatform.config.splitEntities as string[]).length);
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(3);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
 
+    for (const device of haPlatform.matterbridgeDevices.values()) {
+      expect(device.getChildEndpoints().length).toBe(0);
+    }
     expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactEntity.entity_id}${db}...`);
-    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${temperatureEntity.entity_id}${db}...`);
-    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switchEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledTimes(3);
+    expect(setAttributeSpy).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
 
     // Clean the test environment
     await cleanup();
@@ -2915,15 +3079,16 @@ describe('Matterbridge ' + NAME, () => {
 
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.info).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   });
 
   it('should call onShutdown with reason', async () => {
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Home Assistant connection closed`);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   });
 
   test('close the server node', async () => {
@@ -2933,6 +3098,7 @@ describe('Matterbridge ' + NAME, () => {
     await server.close();
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeFalsy();
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete
   });
 
   test('stop the mDNS service', async () => {

@@ -59,9 +59,11 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 ### Changed
 
+- [package]: Updated dependencies.
+
 ### Fixed
 
-- [vacuum]: Fix bug causig the plugin not to load when the vaccum has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
+- [vacuum]: Fix bug causig the plugin not to load when the vaccum is a device entitiy and has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
 
 ## [0.3.0] - 2025-08-28
 

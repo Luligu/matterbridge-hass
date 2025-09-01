@@ -265,4 +265,30 @@ describe('HassPlatform', () => {
       }
     });
   });
+
+  it('temperature sensor converter boundary cases (line 288)', () => {
+    const c = hassDomainSensorsConverter.find((x) => x.domain === 'sensor' && x.withDeviceClass === 'temperature' && x.attribute === 'measuredValue');
+    expect(c).toBeDefined();
+    if (!c) return;
+    expect(c.converter(-148, '°F')).toBe(-10000); // lower bound
+    expect(c.converter(212, '°F')).toBe(10000); // upper bound
+    expect(c.converter(-149, '°F')).toBe(null); // below bound
+    expect(c.converter(213, '°F')).toBe(null); // above bound
+  });
+
+  it('fan preset subscribe maps smart/on to auto (line 376)', () => {
+    const c = hassSubscribeConverter.find((x) => x.domain === 'fan' && x.service === 'turn_on' && x.with === 'preset_mode');
+    expect(c).toBeDefined();
+    if (!c || !c.converter) return;
+    expect(c.converter(FanControl.FanMode.Smart)).toBe('auto');
+    expect(c.converter(FanControl.FanMode.On)).toBe('auto');
+  });
+
+  it('fan preset subscribe invalid value returns null (line 379)', () => {
+    const c = hassSubscribeConverter.find((x) => x.domain === 'fan' && x.service === 'turn_on' && x.with === 'preset_mode');
+    expect(c).toBeDefined();
+    if (!c || !c.converter) return;
+    expect(c.converter(-1 as any)).toBe(null); // below range
+    expect(c.converter(999 as any)).toBe(null); // above range
+  });
 });
