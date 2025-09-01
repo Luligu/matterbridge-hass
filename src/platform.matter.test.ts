@@ -232,6 +232,25 @@ describe('Matterbridge ' + NAME, () => {
     jest.restoreAllMocks();
   });
 
+  async function cleanup() {
+    // Clean the test environment
+    haPlatform.matterbridgeDevices.clear();
+    haPlatform.endpointNames.clear();
+    haPlatform.batteryVoltageEntities.clear();
+    haPlatform.ha.hassDevices.clear();
+    haPlatform.ha.hassEntities.clear();
+    haPlatform.ha.hassStates.clear();
+    for (const device of aggregator.parts) {
+      await device.delete();
+    }
+    expect(aggregator.parts.size).toBe(0);
+
+    // Clean the platform environment
+    await haPlatform.clearSelect();
+    (haPlatform as any)._registeredEndpoints.clear();
+    (haPlatform as any)._registeredEndpointsByName.clear();
+  }
+
   test('create the server node', async () => {
     // Create the server node
     server = await ServerNode.create({
@@ -354,20 +373,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(airQualitySensorEntityState.entity_id, airQualitySensorEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(airQualitySensorDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(airQualitySensorDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName('AirQuality');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
@@ -378,15 +390,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an Air Quality Sensor device with text state', async () => {
@@ -426,20 +430,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName('AirQuality');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
@@ -472,15 +469,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an Air Quality Sensor device with regexp', async () => {
@@ -526,20 +515,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.airQualityRegex = new RegExp('sensor.air_quality_sensor_enum');
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName('AirQuality');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
@@ -582,15 +564,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.airQualityRegex = undefined; // Reset the regex
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an Electrical Sensor device', async () => {
@@ -707,20 +681,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(electricalSensorEnergyEntityState.entity_id, electricalSensorEnergyEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(electricalSensorDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(electricalSensorDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName('PowerEnergy');
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
@@ -734,15 +701,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ElectricalEnergyMeasurement.Cluster.id, 'cumulativeEnergyImported').energy).toBe(100000000);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a PowerSource device', async () => {
@@ -856,20 +815,13 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(batteryDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(batteryDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(batteryTemperatureEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
@@ -903,15 +855,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2900, expect.anything());
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
 
     // setDebug(false);
   });
@@ -1024,7 +968,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -1093,15 +1037,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(callServiceSpy).toHaveBeenCalledWith(switch2Entity.entity_id.split('.')[0], 'toggle', switch2Entity.entity_id, undefined);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
 
     // setDebug(false);
   });
@@ -1142,19 +1078,13 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(switchDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(switchDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(switchEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(3);
@@ -1187,15 +1117,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Valve device', async () => {
@@ -1232,19 +1154,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(valveState.entity_id, valveState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(valveDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(valveDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(valveEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(2);
@@ -1280,15 +1196,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'close_valve', valveEntity.entity_id, undefined);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Vacuum device', async () => {
@@ -1327,19 +1235,13 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(vacuumDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(vacuumDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(vacuumEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
 
@@ -1421,15 +1323,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an Color Temperature Light device', async () => {
@@ -1475,19 +1369,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(lightDeviceEntityState.entity_id, lightDeviceEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(lightDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(lightDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
@@ -1503,15 +1391,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorTemperatureMireds', 200, expect.anything());
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an Rgb Light device', async () => {
@@ -1556,19 +1436,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(lightDeviceEntityState.entity_id, lightDeviceEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(lightDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(lightDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
@@ -1585,15 +1459,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentSaturation', 127, expect.anything());
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Fan device', async () => {
@@ -1636,7 +1502,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -1698,15 +1564,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Complete Fan device', async () => {
@@ -1752,7 +1610,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -1864,15 +1722,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Climate device', async () => {
@@ -1916,20 +1766,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(climateDeviceEntityState.entity_id, climateDeviceEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(climateDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(climateDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(climateDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'systemMode', expect.anything(), expect.anything());
@@ -1974,15 +1817,7 @@ describe('Matterbridge ' + NAME, () => {
     );
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Contact device', async () => {
@@ -2019,20 +1854,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(contactDeviceEntityState.entity_id, contactDeviceEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(contactDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(contactDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(contactDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
@@ -2054,15 +1882,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Leak device', async () => {
@@ -2099,20 +1919,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(leakDeviceEntityState.entity_id, leakDeviceEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(leakDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(leakDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(leakDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
@@ -2134,15 +1947,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Presence device', async () => {
@@ -2182,20 +1987,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(presenceState.entity_id, presenceState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(presenceDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(presenceDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(presenceDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
@@ -2217,15 +2015,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Smoke device', async () => {
@@ -2262,20 +2052,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(smokeDeviceEntityState.entity_id, smokeDeviceEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(smokeDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(smokeDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(smokeDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
@@ -2298,15 +2081,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register a Carbon Monoxide device', async () => {
@@ -2346,20 +2121,13 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(coDeviceEntityState.entity_id, coDeviceEntityState);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(coDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(coDevice.id) as MatterbridgeEndpoint;
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
-    /*
-    const child = device?.getChildEndpointByName(coDeviceEntity.entity_id.replace('.', ''));
-    expect(child).toBeDefined();
-    if (!child) return;
-    await child.construction.ready;
-    expect(child.construction.status).toBe(Lifecycle.Status.Active);
-    */
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
@@ -2382,15 +2150,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an individual entity binary_sensor Contact device', async () => {
@@ -2417,7 +2177,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -2446,15 +2206,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
 
     // setDebug(false);
   });
@@ -2483,7 +2235,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -2510,15 +2262,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2120);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
 
     // setDebug(false);
   });
@@ -2547,7 +2291,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -2574,15 +2318,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Poor);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
 
     // setDebug(false);
   });
@@ -2613,7 +2349,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -2657,15 +2393,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an individual entity light Light template device', async () => {
@@ -2694,7 +2422,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -2736,15 +2464,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an individual entity light Dimmer template device', async () => {
@@ -2772,7 +2492,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -2832,15 +2552,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an individual entity light Color Temperature template device', async () => {
@@ -2868,7 +2580,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -2938,15 +2650,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and register an individual entity light Rgb template device', async () => {
@@ -2983,7 +2687,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -3078,15 +2782,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(false);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
-    await device.delete();
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
   });
 
   it('should call onStart and not register an unknown individual entity', async () => {
@@ -3113,7 +2809,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
@@ -3121,13 +2817,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining(`Removing device ${dn}${sensorUnknownEntity.original_name}${db}...`));
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async storage number persist operations to complete
+    await cleanup();
 
     // setDebug(false);
   });
@@ -3191,9 +2881,10 @@ describe('Matterbridge ' + NAME, () => {
     (haPlatform as any)._registeredEndpoints.clear();
     (haPlatform as any)._registeredEndpointsByName.clear();
 
-    setDebug(true);
+    // setDebug(true);
+
     await haPlatform.onStart('Test reason');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
     expect(haPlatform.matterbridgeDevices.size).toBe(3);
@@ -3212,23 +2903,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledTimes(3);
 
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    for (const device of aggregator.parts) {
-      await device.delete();
-    }
-    expect(aggregator.parts.size).toBe(0);
+    await cleanup();
 
-    // Clean the platform environment
-    await haPlatform.clearSelect();
-    (haPlatform as any)._registeredEndpoints.clear();
-    (haPlatform as any)._registeredEndpointsByName.clear();
-
-    setDebug(false);
+    // setDebug(false);
   });
 
   it('should call onConfigure', async () => {
@@ -3245,7 +2922,6 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   test('close the server node', async () => {
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(server).toBeDefined();
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeTruthy();
