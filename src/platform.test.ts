@@ -12,7 +12,7 @@ import { jest } from '@jest/globals';
 import { bridgedNode, colorTemperatureLight, dimmableOutlet, Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
-import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or } from 'matterbridge/logger';
+import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or, TimestampFormat } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 
 import { HomeAssistantPlatform } from './platform.js';
@@ -91,12 +91,24 @@ rmSync(HOMEDIR, { recursive: true, force: true });
 
 describe('HassPlatform', () => {
   const mockLog = {
-    fatal: jest.fn((message: string, ...parameters: any[]) => {}),
-    error: jest.fn((message: string, ...parameters: any[]) => {}),
-    warn: jest.fn((message: string, ...parameters: any[]) => {}),
-    notice: jest.fn((message: string, ...parameters: any[]) => {}),
-    info: jest.fn((message: string, ...parameters: any[]) => {}),
-    debug: jest.fn((message: string, ...parameters: any[]) => {}),
+    fatal: jest.fn((message: string, ...parameters: any[]) => {
+      log.fatal(message, ...parameters);
+    }),
+    error: jest.fn((message: string, ...parameters: any[]) => {
+      log.error(message, ...parameters);
+    }),
+    warn: jest.fn((message: string, ...parameters: any[]) => {
+      log.warn(message, ...parameters);
+    }),
+    notice: jest.fn((message: string, ...parameters: any[]) => {
+      log.notice(message, ...parameters);
+    }),
+    info: jest.fn((message: string, ...parameters: any[]) => {
+      log.info(message, ...parameters);
+    }),
+    debug: jest.fn((message: string, ...parameters: any[]) => {
+      log.debug(message, ...parameters);
+    }),
   } as unknown as AnsiLogger;
 
   const mockMatterbridge = {
@@ -139,6 +151,7 @@ describe('HassPlatform', () => {
 
   // let mockHomeAssistant: HomeAssistant;
   let haPlatform: HomeAssistantPlatform;
+  const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
   const mockData = readMockHomeAssistantFile();
   if (!mockData) {
@@ -1137,6 +1150,36 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
   });
 
+  it('should not register a Switch template entity if create fails', async () => {
+    expect(haPlatform).toBeDefined();
+
+    let entity: HassEntity | undefined;
+    (mockData.entities as HassEntity[]).forEach((e) => {
+      if (e.original_name === 'My Template Switch') entity = e;
+    });
+    expect(entity).toBeDefined();
+    if (!entity) return;
+    entity.name = 'Template Switch';
+    haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    haPlatform.ha.hassStates.set(entity.entity_id, {
+      state: 'off',
+      attributes: { friendly_name: 'Template Switch' },
+      entity_id: entity.entity_id,
+    } as HassState);
+
+    jest.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
+      throw new Error('Jest test');
+    });
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device for individual entity ${idn}${entity.name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}my_template_switch${nf}`);
+    expect(mockLog.debug).not.toHaveBeenCalledWith(`Registering device ${dn}${entity.name}${db}...`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Failed to register device ${dn}${entity.name}${er}: Error: Jest test`);
+    expect(mockMatterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
+  });
+
   it('should not register a Switch device if entry_type is service', async () => {
     expect(haPlatform).toBeDefined();
 
@@ -1258,7 +1301,413 @@ describe('HassPlatform', () => {
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
-    expect(mockLog.error).toHaveBeenCalledWith(`Failed to register device ${dn}${device.name}${db}: Error: Jest test`);
+    expect(mockLog.error).toHaveBeenCalledWith(`Failed to register device ${dn}${device.name}${er}: Error: Jest test`);
+    expect(mockMatterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
+  });
+
+  it('should register a Switch device from ha with a split contact entity and filter by label', async () => {
+    expect(haPlatform).toBeDefined();
+
+    const device = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd83398f83188759ed7329e97df00ee7c',
+      labels: ['matterbridge_select'],
+      name: 'Switch with contact sensor',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const switchEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'switch.door_contact',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: 'Switch with contact',
+    } as unknown as HassEntity;
+
+    const switchState = {
+      entity_id: switchEntity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch with contact',
+      },
+    } as unknown as HassState;
+
+    const contactEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'binary_sensor.door_contact',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: 'Switch Contact Sensor',
+    } as unknown as HassEntity;
+
+    const contactState = {
+      entity_id: contactEntity.entity_id,
+      state: 'off', // 'on' for detected, 'off' for not detected
+      attributes: {
+        device_class: 'door',
+        friendly_name: 'Switch Contact Sensor',
+      },
+    } as unknown as HassState;
+
+    const unsupportedEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'unsupported.entity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: 'Unsupported Entity',
+    } as unknown as HassEntity;
+
+    const nostateEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'sensor.no_state_entity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: 'No State Entity',
+    } as unknown as HassEntity;
+
+    const nonameEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'sensor.no_name_entity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: null,
+    } as unknown as HassEntity;
+
+    const nonameState = {
+      entity_id: nonameEntity.entity_id,
+      state: 'off', // 'on' for detected, 'off' for not detected
+      attributes: {
+        device_class: 'door',
+        friendly_name: 'Switch Contact Sensor',
+      },
+    } as unknown as HassState;
+
+    const duplicatednameEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'binary_sensor.door_contact_2',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: 'Switch Contact Sensor',
+    } as unknown as HassEntity;
+
+    const duplicatednameState = {
+      entity_id: duplicatednameEntity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch Contact Sensor',
+      },
+    } as unknown as HassState;
+
+    const switch2Entity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'switch.door_contact_2',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: 'Switch with contact 2',
+    } as unknown as HassEntity;
+
+    const switch2State = {
+      entity_id: switch2Entity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch with contact 2',
+      },
+    } as unknown as HassState;
+
+    const temperatureEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'sensor.door_contact_temperature',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: ['matterbridge_select'],
+      name: null,
+      original_name: 'Switch with contact temperature',
+    } as unknown as HassEntity;
+
+    const temperatureState = {
+      entity_id: temperatureEntity.entity_id,
+      state: '25',
+      attributes: {
+        unit_of_measurement: '°C',
+        state_class: 'measurement',
+        device_class: 'temperature',
+        friendly_name: 'Switch with contact temperature',
+      },
+    } as unknown as HassState;
+
+    const humidityEntity = {
+      area_id: null,
+      device_id: device.id,
+      entity_category: null,
+      entity_id: 'sensor.door_contact_humidity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Switch with contact humidity',
+    } as unknown as HassEntity;
+
+    const humidityState = {
+      entity_id: humidityEntity.entity_id,
+      state: '45',
+      attributes: {
+        unit_of_measurement: '%',
+        state_class: 'measurement',
+        device_class: 'humidity',
+        friendly_name: 'Switch with contact humidity',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(device.id, device);
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+    haPlatform.ha.hassEntities.set(contactEntity.entity_id, contactEntity);
+    haPlatform.ha.hassStates.set(contactState.entity_id, contactState);
+    haPlatform.ha.hassEntities.set(unsupportedEntity.entity_id, unsupportedEntity);
+    haPlatform.ha.hassEntities.set(nostateEntity.entity_id, nostateEntity);
+    haPlatform.ha.hassEntities.set(nonameEntity.entity_id, nonameEntity);
+    haPlatform.ha.hassStates.set(nonameEntity.entity_id, nonameState);
+    haPlatform.ha.hassEntities.set(duplicatednameEntity.entity_id, duplicatednameEntity);
+    haPlatform.ha.hassStates.set(duplicatednameEntity.entity_id, duplicatednameState);
+    haPlatform.ha.hassEntities.set(switch2Entity.entity_id, switch2Entity);
+    haPlatform.ha.hassStates.set(switch2State.entity_id, switch2State);
+    haPlatform.ha.hassEntities.set(temperatureEntity.entity_id, temperatureEntity);
+    haPlatform.ha.hassStates.set(temperatureState.entity_id, temperatureState);
+    haPlatform.ha.hassEntities.set(humidityEntity.entity_id, humidityEntity);
+    haPlatform.ha.hassStates.set(humidityState.entity_id, humidityState);
+
+    // setDebug(true);
+
+    haPlatform.config.filterByLabel = 'Matterbridge select';
+    haPlatform.ha.hassLabels.set('matterbridge_select', { label_id: 'matterbridge_select', name: 'Matterbridge select' } as any);
+    haPlatform.ha.emit('labels', [{ label_id: 'matterbridge_select', name: 'Matterbridge select' }] as HassLabel[]);
+
+    haPlatform.config.splitEntities = [
+      contactEntity.entity_id,
+      unsupportedEntity.entity_id,
+      nostateEntity.entity_id,
+      nonameEntity.entity_id,
+      duplicatednameEntity.entity_id,
+      switch2Entity.entity_id,
+      temperatureEntity.entity_id,
+      humidityEntity.entity_id,
+    ];
+
+    await haPlatform.onStart('Test reason');
+
+    // setDebug(false);
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${contactEntity.original_name}${db}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${switch2Entity.original_name}${db}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${temperatureEntity.original_name}${db}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Split entity ${CYAN}${unsupportedEntity.entity_id}${db} has unsupported domain ${CYAN}unsupported${db}. Skipping...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Split entity ${CYAN}${nostateEntity.entity_id}${db} state not found. Skipping...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Split entity ${CYAN}${nonameEntity.entity_id}${db} has no valid name. Skipping...`);
+    expect(mockLog.warn).toHaveBeenCalledWith(
+      `Split entity ${CYAN}${duplicatednameEntity.entity_id}${wr} name ${CYAN}${duplicatednameEntity.original_name}${wr} already exists as a registered device. Please change the name in Home Assistant.`,
+    );
+    expect(mockLog.debug).toHaveBeenCalledWith(
+      `Split entity ${CYAN}${humidityEntity.entity_id}${db} name ${CYAN}${humidityEntity.original_name}${db} is not in the area "${CYAN}${db}" or doesn't have the label "${CYAN}${haPlatform.config.filterByLabel}${db}". Skipping...`,
+    );
+
+    // Cleanup the test environment
+    haPlatform.config.splitEntities = [];
+    haPlatform.config.filterByLabel = '';
+    haPlatform.labelIdFilter = '';
+    haPlatform.ha.hassLabels.clear();
+  });
+
+  it('should register a Switch split entity', async () => {
+    const device = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd83398f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Switch with single entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const switchEntity = {
+      area_id: null,
+      device_id: 'd83398f83188759ed7329e97df00ee7c',
+      entity_category: null,
+      entity_id: 'switch.single_entity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Switch single entity',
+    } as unknown as HassEntity;
+
+    const switchState = {
+      entity_id: switchEntity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch single entity',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(device.id, device);
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+
+    // setDebug(true);
+
+    haPlatform.config.splitEntities = [switchEntity.entity_id];
+
+    await haPlatform.onStart('Test reason');
+
+    // setDebug(false);
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating device for split entity ${idn}${switchEntity.original_name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}single_entity${nf}`,
+    );
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${switchEntity.original_name}${db}...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+  });
+
+  it('should not register a Switch split entity if create fails', async () => {
+    const device = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd83398f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Switch with single entity 2',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const switchEntity = {
+      area_id: null,
+      device_id: 'd83398f83188759ed7329e97df00ee7c',
+      entity_category: null,
+      entity_id: 'switch.single_entity_2',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Switch single entity 2',
+    } as unknown as HassEntity;
+
+    const switchState = {
+      entity_id: switchEntity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch single entity 2',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(device.id, device);
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+
+    // setDebug(true);
+
+    haPlatform.config.splitEntities = [switchEntity.entity_id];
+
+    jest.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
+      throw new Error('Jest test');
+    });
+
+    await haPlatform.onStart('Test reason');
+
+    // setDebug(false);
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating device for split entity ${idn}${switchEntity.original_name}${rs}${nf} domain ${CYAN}${switchEntity.entity_id.split('.')[0]}${nf} name ${CYAN}${switchEntity.entity_id.split('.')[1]}${nf}`,
+    );
+    expect(mockLog.error).toHaveBeenCalledWith(`Failed to register device ${dn}${switchEntity.original_name}${er}: Error: Jest test`);
+    expect(mockMatterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
+  });
+
+  it('should not register a Sensor unknown split entity', async () => {
+    const device = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd83398f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Sensor with single entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: 'd83398f83188759ed7329e97df00ee7c',
+      entity_category: null,
+      entity_id: 'sensor.single_entity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Sensor single entity',
+    } as unknown as HassEntity;
+
+    const sensorState = {
+      entity_id: sensorEntity.entity_id,
+      state: 'unknown',
+      attributes: {
+        friendly_name: 'Sensor single entity',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(device.id, device);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorState.entity_id, sensorState);
+
+    // setDebug(true);
+
+    haPlatform.config.splitEntities = [sensorEntity.entity_id];
+
+    await haPlatform.onStart('Test reason');
+
+    // setDebug(false);
+
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(
+      `Creating device for split entity ${idn}${sensorEntity.original_name}${rs}${nf} domain ${CYAN}sensor${nf} name ${CYAN}single_entity${nf}`,
+    );
+    expect(mockLog.debug).toHaveBeenCalledWith(`Removing device ${dn}${sensorEntity.original_name}${db}...`);
     expect(mockMatterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
   });
 

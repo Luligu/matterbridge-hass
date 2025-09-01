@@ -55,6 +55,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [Platform]: Optimize memory calling destroy() on MutableDevice.
 - [MutableDevice]: Added automatic 'remap' ability in MutableDevice for devicee entities: this remaps the not overlapping child endpoints to the device main endpoint.
 - [config]: Added splitEntities. The device entities in the list will be exposed like an independent device and removed from their device.
+- [platform]: Bumped HomeAssistantPlatform to v. 1.5.0.
 
 ### Changed
 

@@ -2156,7 +2156,7 @@ describe('Matterbridge ' + NAME, () => {
       name_by_user: null,
     } as unknown as HassDevice;
 
-    const presenceDeviceEntity = {
+    const presenceEntity = {
       area_id: null,
       device_id: presenceDevice.id,
       entity_category: null,
@@ -2168,8 +2168,8 @@ describe('Matterbridge ' + NAME, () => {
       original_name: 'Presence Sensor',
     } as unknown as HassEntity;
 
-    const presenceDeviceEntityState = {
-      entity_id: presenceDeviceEntity.entity_id,
+    const presenceState = {
+      entity_id: presenceEntity.entity_id,
       state: 'off', // 'on' for detected, 'off' for not detected
       attributes: {
         device_class: 'presence',
@@ -2178,8 +2178,8 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(presenceDevice.id, presenceDevice);
-    haPlatform.ha.hassEntities.set(presenceDeviceEntity.entity_id, presenceDeviceEntity);
-    haPlatform.ha.hassStates.set(presenceDeviceEntityState.entity_id, presenceDeviceEntityState);
+    haPlatform.ha.hassEntities.set(presenceEntity.entity_id, presenceEntity);
+    haPlatform.ha.hassStates.set(presenceState.entity_id, presenceState);
 
     await haPlatform.onStart('Test reason');
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
@@ -2205,15 +2205,15 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
-    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${presenceDeviceEntity.entity_id}${db}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${presenceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(presenceDevice.id, presenceDeviceEntityState.entity_id, presenceDeviceEntityState, { ...presenceDeviceEntityState, state: 'on' }); // 'on' for detected, 'off' for not detected
+    haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'on' }); // 'on' for detected, 'off' for not detected
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: true }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     jest.clearAllMocks();
-    haPlatform.updateHandler(presenceDevice.id, presenceDeviceEntityState.entity_id, presenceDeviceEntityState, { ...presenceDeviceEntityState, state: 'off' }); // 'on' for detected, 'off' for not detected
+    haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'off' }); // 'on' for detected, 'off' for not detected
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     // Clean the test environment
