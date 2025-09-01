@@ -236,6 +236,11 @@ describe('HassPlatform', () => {
     }
   });
 
+  afterEach(async () => {
+    // Flush microtasks
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+  });
+
   afterAll(() => {
     jest.restoreAllMocks();
   });
