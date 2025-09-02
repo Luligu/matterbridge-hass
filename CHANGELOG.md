@@ -29,6 +29,10 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ## [0.4.1] - 2025-09-??
 
+### Breaking changes
+
+See also releases 0.4.0 and 0.3.0 please.
+
 ### Added
 
 - [battery]: Added support for battery type individual and split entities (battery low, battery level and battery voltage).
@@ -49,7 +53,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 Since in Matter there is no official way to change an existing endpoint (only Matter 1.4.2 introduces it),
 
-**if the controller have issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
+**if the controller has issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
 
 On the Matterbridge log you should see after a while this line.
 
@@ -59,9 +63,7 @@ When you see this message in the log, you can power again the controller (or may
 
 **If this still doesn't solve the issue, you may need to reset all the registered devices (from the frontend) or repair the bridge.**
 
-With the release 0.3.0 and after, all supported domains are available also in the individual entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
-
-The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
+See also release 0.3.0 please.
 
 ### Added
 
