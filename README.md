@@ -266,7 +266,7 @@ If you want a more technical explanation for the naming issues (expecially upset
 
 ### airQualityRegex
 
-Custom regex pattern to match air quality sensors that don't follow the standard naming convention.
+Custom regex pattern to match air quality sensors that don't follow the standard Air Quality entity sensor.
 
 **Examples:**
 
@@ -276,6 +276,10 @@ Custom regex pattern to match air quality sensors that don't follow the standard
 - For two specific entities: `^(sensor\.kitchen_air_quality|sensor\.living_room_aqi)$`.
 
 If your setup has only one air quality sensor, you can simply put the exact entity ID here (e.g., `sensor.air_quality_sensor`) and it will match that specific entity.
+
+### enableServerRvc
+
+Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode!
 
 ### debug
 
