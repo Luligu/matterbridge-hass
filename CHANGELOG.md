@@ -17,10 +17,11 @@ If you like this project and find it useful, please consider giving it a star on
 - ✅ add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device with the Friendly name of the original entity. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
 - ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
 - ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
-- ✅ add valve domain (requested by Ludovic BOUÉ)
-- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
-- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home issue with AirConditioner.
-- add water heater domain (requested by Ludovic BOUÉ)
+- ✅ add valve domain (requested by Ludovic BOUÉ).
+- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75).
+- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
+- add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
+- add water heater domain (requested by Ludovic BOUÉ).
 
 ### Naming issues explained
 

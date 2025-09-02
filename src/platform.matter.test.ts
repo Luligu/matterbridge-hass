@@ -2849,14 +2849,14 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   it('should call onStart and register a split entity multi entities device', async () => {
-    const multisensorDevice = {
+    const allDomainsDevice = {
       id: '560898f83188759ed7329e97df00ee7c',
-      name: 'Single Device Multi Entities',
+      name: 'All Domain Device',
     } as unknown as HassDevice;
 
     // binary_sensor
     const batteryLowEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.battery_low',
       id: 'battery-low-entity-id',
       name: 'Battery Low Sensor',
@@ -2868,7 +2868,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const contactEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.door_contact',
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       name: 'Single Entity Contact Sensor',
@@ -2880,7 +2880,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const windowEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.window_contact',
       id: 'window-entity-id',
       name: 'Window Contact Sensor',
@@ -2892,7 +2892,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const garageDoorEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.garage_door_contact',
       id: 'garage-door-entity-id',
       name: 'Garage Door Sensor',
@@ -2904,7 +2904,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const vibrationEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.vibration_sensor',
       id: 'vibration-entity-id',
       name: 'Vibration Sensor',
@@ -2916,7 +2916,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const coldEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.cold_sensor',
       id: 'cold-entity-id',
       name: 'Cold Sensor',
@@ -2928,7 +2928,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const moistureEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.moisture_sensor',
       id: 'moisture-entity-id',
       name: 'Moisture Sensor',
@@ -2940,7 +2940,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const occupancyEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.occupancy_sensor',
       id: 'occupancy-entity-id',
       name: 'Occupancy Sensor',
@@ -2952,7 +2952,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const motionEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.motion_sensor',
       id: 'motion-entity-id',
       name: 'Motion Sensor',
@@ -2964,7 +2964,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const presenceEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.presence_sensor',
       id: 'presence-entity-id',
       name: 'Presence Sensor',
@@ -2976,7 +2976,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const smokeEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.smoke_sensor_multi',
       id: 'smoke-entity-id',
       name: 'Smoke Sensor Multi',
@@ -2988,7 +2988,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const coEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'binary_sensor.co_sensor_multi',
       id: 'co-entity-id',
       name: 'CO Sensor Multi',
@@ -3001,7 +3001,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // sensor
     const batteryLevelEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.battery_level',
       id: 'battery-level-entity-id',
       name: 'Battery Level Sensor',
@@ -3013,7 +3013,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const batteryVoltageEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.battery_voltage',
       id: 'battery-voltage-entity-id',
       name: 'Battery Voltage Sensor',
@@ -3025,7 +3025,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const temperatureEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.temperature',
       id: 'temperature-entity-id',
       name: 'Temperature Sensor',
@@ -3037,7 +3037,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const humidityEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.humidity',
       id: 'humidity-entity-id',
       name: 'Humidity Sensor',
@@ -3049,7 +3049,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const pressureEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.pressure',
       id: 'pressure-entity-id',
       name: 'Pressure Sensor',
@@ -3061,7 +3061,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const atmosphericPressureEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.atmospheric_pressure',
       id: 'atmospheric-pressure-entity-id',
       name: 'Atmospheric Pressure Sensor',
@@ -3073,7 +3073,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const illuminanceEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.illuminance',
       id: 'illuminance-entity-id',
       name: 'Illuminance Sensor',
@@ -3085,7 +3085,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const energyEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.energy_total',
       id: 'energy-entity-id',
       name: 'Energy Total Sensor',
@@ -3097,7 +3097,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const powerEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.power',
       id: 'power-entity-id',
       name: 'Power Sensor',
@@ -3109,7 +3109,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const currentEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.current',
       id: 'current-entity-id',
       name: 'Current Sensor',
@@ -3121,7 +3121,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const voltageEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.voltage',
       id: 'voltage-entity-id',
       name: 'Voltage Sensor',
@@ -3133,7 +3133,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const aqiEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.air_quality',
       id: 'aqi-entity-id',
       name: 'Air Quality Sensor Multi',
@@ -3145,7 +3145,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const vocEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.voc',
       id: 'voc-entity-id',
       name: 'VOC Sensor',
@@ -3157,7 +3157,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const vocPartsEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.voc_parts',
       id: 'voc-parts-entity-id',
       name: 'VOC Parts Sensor',
@@ -3169,7 +3169,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const co2Entity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.co2',
       id: 'co2-entity-id',
       name: 'CO2 Sensor',
@@ -3181,7 +3181,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const coSensorEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.co_multi',
       id: 'co-sensor-entity-id',
       name: 'CO Sensor Multi Level',
@@ -3193,7 +3193,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const no2Entity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.no2',
       id: 'no2-entity-id',
       name: 'NO2 Sensor',
@@ -3205,7 +3205,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const ozoneEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.ozone',
       id: 'ozone-entity-id',
       name: 'Ozone Sensor',
@@ -3217,7 +3217,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const formaldehydeEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.formaldehyde',
       id: 'formaldehyde-entity-id',
       name: 'Formaldehyde Sensor',
@@ -3229,7 +3229,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const radonEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.radon',
       id: 'radon-entity-id',
       name: 'Radon Sensor',
@@ -3241,7 +3241,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const pm1Entity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.pm1',
       id: 'pm1-entity-id',
       name: 'PM1 Sensor',
@@ -3253,7 +3253,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const pm25Entity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.pm25',
       id: 'pm25-entity-id',
       name: 'PM2.5 Sensor',
@@ -3265,7 +3265,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const pm10Entity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'sensor.pm10',
       id: 'pm10-entity-id',
       name: 'PM10 Sensor',
@@ -3278,7 +3278,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // control
     const switchEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'switch.template_switch',
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       name: 'Single Entity Switch',
@@ -3290,7 +3290,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const lightOnOffEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'light.template_light_onoff',
       id: 'light-entity-id',
       name: 'Single Entity Light OnOff',
@@ -3302,7 +3302,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassState;
 
     const lightDimmerEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'light.template_light_dimmer',
       id: 'light-entity-id',
       name: 'Single Entity Light Dimmer',
@@ -3315,7 +3315,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // lock
     const lockEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'lock.template_lock',
       id: 'lock-entity-id',
       name: 'Single Entity Lock',
@@ -3328,7 +3328,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // valve
     const valveEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'valve.template_valve',
       id: 'valve-entity-id',
       name: 'Single Entity Valve',
@@ -3341,7 +3341,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // vacuum
     const vacuumEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'vacuum.template_vacuum',
       id: 'vacuum-entity-id',
       name: 'Single Entity Vacuum',
@@ -3354,7 +3354,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // fan
     const fanEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'fan.template_fan',
       id: 'fan-entity-id',
       name: 'Single Entity Fan',
@@ -3367,7 +3367,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // climate
     const climateEntity = {
-      device_id: multisensorDevice.id,
+      device_id: allDomainsDevice.id,
       entity_id: 'climate.template_climate',
       id: 'climate-entity-id',
       name: 'Single Entity Climate',
@@ -3386,7 +3386,7 @@ describe('Matterbridge ' + NAME, () => {
       },
     } as unknown as HassState;
 
-    haPlatform.ha.hassDevices.set(multisensorDevice.id, multisensorDevice);
+    haPlatform.ha.hassDevices.set(allDomainsDevice.id, allDomainsDevice);
 
     // binary_sensor (refactored similar to sensorEntities below)
     const binarySensorEntities: [HassEntity, HassState][] = [
@@ -3481,11 +3481,25 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
 
+    expect(mockLog.warn).not.toHaveBeenCalled();
+    expect(mockLog.error).not.toHaveBeenCalled();
+    expect(mockLog.fatal).not.toHaveBeenCalled();
+    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.anything());
+    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.ERROR, expect.anything());
+    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.FATAL, expect.anything());
+
     jest.clearAllMocks();
     haPlatform.batteryVoltageEntities.clear();
     haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually
     await haPlatform.onConfigure();
     expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual((haPlatform.config.splitEntities as string[]).length);
+
+    expect(mockLog.warn).not.toHaveBeenCalled();
+    expect(mockLog.error).not.toHaveBeenCalled();
+    expect(mockLog.fatal).not.toHaveBeenCalled();
+    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.anything());
+    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.ERROR, expect.anything());
+    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.FATAL, expect.anything());
 
     // binary_sensor entities
     expect(haPlatform.matterbridgeDevices.get(batteryLowEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Critical); // Battery Low: true = low, false = normal
