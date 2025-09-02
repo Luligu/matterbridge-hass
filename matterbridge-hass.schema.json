@@ -7,12 +7,14 @@
     "name": {
       "description": "Plugin name",
       "type": "string",
-      "readOnly": true
+      "readOnly": true,
+      "ui:widget": "hidden"
     },
     "type": {
       "description": "Plugin type",
       "type": "string",
-      "readOnly": true
+      "readOnly": true,
+      "ui:widget": "hidden"
     },
     "host": {
       "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://homeassistant:8123 or ws://<IP-ADDRESS>:8123). For ssl connections use wss:// (eg. wss://homeassistant.local:8123) and enable rejectUnauthorized or provide certificatePath.",
@@ -99,6 +101,14 @@
         "uniqueItems": true,
         "selectDeviceEntityFrom": "name"
       }
+    },
+    "splitEntities": {
+      "description": "The device entities in the list will be exposed like an independent device and removed from their device.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
     },
     "namePostfix": {
       "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",

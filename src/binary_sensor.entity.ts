@@ -22,7 +22,7 @@
 
 import { contactSensor, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
 import { isValidString } from 'matterbridge/utils';
-import { AnsiLogger, CYAN, db } from 'matterbridge/logger';
+import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 import { SmokeCoAlarm } from 'matterbridge/matter/clusters';
 
@@ -59,6 +59,7 @@ export function addBinarySensorEntity(mutableDevice: MutableDevice, entity: Hass
       mutableDevice.addDeviceTypes(endpointName, hassDomainBinarySensor.deviceType);
       mutableDevice.addClusterServerIds(endpointName, hassDomainBinarySensor.clusterId);
       if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
+      log.debug(`- state ${debugStringify(state)}`);
 
       // Configure the BooleanState cluster default value for contactSensor.
       if (hassDomainBinarySensor.deviceType.code === contactSensor.code) {

@@ -14,7 +14,7 @@
 
 ---
 
-This plugin allows you to expose the Home Assistant devices and entities to Matter.
+This plugin allows you to expose the Home Assistant devices and individual entities to Matter.
 
 It is the ideal companion of the official [Matterbridge Home Assistant Add-on](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
 
@@ -28,7 +28,7 @@ Features:
 - It is possible to select from a list the individual entities to include in the white or black list. Select by name, id or entity_id.
 - It is possible to select from a list the devices to include in the white or black list. Select by name or id.
 - It is possible to select from a list the entities to include in the device entity black list.
-- It is possible to postfix the Matter device serialNumber or the Matter device name to avoid collision with other instances.
+- It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
 
 ## Supported device entities:
 
@@ -101,6 +101,10 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 | binary_sensor | smoke                                | smokeCoAlarm        |
 | binary_sensor | carbon_monoxide                      | smokeCoAlarm        |
 | binary_sensor | battery                              | powerSource         |
+
+### Naming issues explained
+
+For the naming issues (expecially upsetting with Alexa) read the explanation and the three possible actual solutions [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
@@ -236,9 +240,33 @@ If the blackList is defined the devices and the individual entities included wil
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
 
+### splitEntities
+
+The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
+
+Let's make an example.
+
+Suppose we have a device named "Computer plug" with 3 entities:
+
+- id switch.computer_plug named "Computer plug Power" that is the main Power for the plug
+- id switch.computer_plug_child_lock named "Computer plug Child lock" that is the child lock for the plug
+- id temperature.computer_plug named "Computer plug Device temperature" that is the device temperature (very used in the zigbee world)
+
+Without further setup, the controller will show 2 switch with the same name (difficult to distinguish them). Alexa will show 3 devices "Computer plug", "First outlet" and "Second outlet".
+
+Solution:
+
+- add switch.computer_plug_child_lock to splitEntities.
+
+In this way, the controller will show one switch with name "Computer plug" and a second with name "Computer plug Child lock".
+
+If you don't need the device temperature, just add it to deviceEntityBlackList.
+
+If you want a more technical explanation for the naming issues (expecially upsetting with Alexa) read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
 ### airQualityRegex
 
-Custom regex pattern to match air quality sensors that don't follow the standard naming convention.
+Custom regex pattern to match air quality sensors that don't follow the standard Air Quality entity sensor.
 
 **Examples:**
 
@@ -248,6 +276,10 @@ Custom regex pattern to match air quality sensors that don't follow the standard
 - For two specific entities: `^(sensor\.kitchen_air_quality|sensor\.living_room_aqi)$`.
 
 If your setup has only one air quality sensor, you can simply put the exact entity ID here (e.g., `sensor.air_quality_sensor`) and it will match that specific entity.
+
+### enableServerRvc
+
+Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode!
 
 ### debug
 

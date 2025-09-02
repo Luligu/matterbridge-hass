@@ -892,7 +892,15 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Fetches the initial data from Home Assistant.
-   * This method retrieves the config, services, devices, entities, states, areas and labels from Home Assistant.
+   *
+   * This method retrieves:
+   * - config
+   * - services
+   * - devices
+   * - entities
+   * - states
+   * - areas
+   * - labels
    */
   async fetchData() {
     try {

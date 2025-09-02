@@ -3,7 +3,7 @@
  * @file src\platform.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.3.0
+ * @version 1.5.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -114,6 +114,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : undefined;
     this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
     this.config.enableServerRvc = this.config.enableServerRvc === undefined ? true : this.config.enableServerRvc;
+    this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
     if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
     if (config.individualEntityBlackList) delete config.individualEntityBlackList;
 
@@ -239,7 +240,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await this.ready;
     await this.clearSelect();
 
-    // Scan individual entities (domain automation, scene, script and helpers input_boolean, input_button) and create Matterbridge devices
+    // *********************************************************************************************************
+    // ************************************* Scan the individual entities **************************************
+    // *********************************************************************************************************
     for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null)) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
@@ -321,6 +324,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           // We revert the state after 500ms except for input_boolean and switch template that mantain the state
           if (domain !== 'input_boolean' && domain !== 'switch') {
             setTimeout(() => {
+              // istanbul ignore next cause is too long
               data.endpoint.setAttribute(OnOff.Cluster.id, 'onOff', false, data.endpoint.log);
             }, 500).unref();
           }
@@ -348,18 +352,23 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Register the device if we have found a supported domain
       if (mutableDevice.get().deviceTypes.length > 1 || mutableDevice.size() > 1) {
-        mutableDevice.create(true); // Use remap for individual entities
-        mutableDevice.logMutableDevice();
-        this.log.debug(`Registering device ${dn}${entityName}${db}...`);
-        await this.registerDevice(mutableDevice.getEndpoint());
-        this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
+        try {
+          mutableDevice.create(true); // Use remap for individual entities
+          mutableDevice.logMutableDevice();
+          this.log.debug(`Registering device ${dn}${entityName}${db}...`);
+          await this.registerDevice(mutableDevice.getEndpoint());
+          this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
+        } catch (error) {
+          this.log.error(`Failed to register device ${dn}${entityName}${er}: ${error}`);
+        }
         this.endpointNames.set(entity.entity_id, ''); // Set the endpoint name for the individual entity to the main endpoint
       } else {
         this.log.debug(`Removing device ${dn}${entityName}${db}...`);
         this.clearDeviceSelect(entity.id);
         this.clearEntitySelect(entityName);
       }
-    } // End of individual entities scan
+      mutableDevice.destroy();
+    } // End of individual entities loop
 
     this.log.debug(`Single entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
     for (const [entity, endpoint] of this.endpointNames) {
@@ -368,7 +377,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
     }
 
-    // Scan the devices
+    // *********************************************************************************************************
+    // ******************************************* Scan the devices ********************************************
+    // *********************************************************************************************************
     for (const device of Array.from(this.ha.hassDevices.values())) {
       // Check if we have a valid device
       const deviceName = device.name_by_user ?? device.name;
@@ -454,6 +465,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Set the entity selects and validate the entity.
         this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
         this.setSelectEntity(entityName, entity.entity_id, 'component');
+        if ((this.config.splitEntities as string[]).includes(entity.entity_id)) {
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} name ${CYAN}${entityName}${db} is a splitEntity. Skipping...`);
+          continue; // Skip split entities from the main device
+        }
         if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
         if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
           this.log.debug(
@@ -463,6 +478,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
         // Set the entity mode for the Rvc.
         if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
+        if (domain === 'vacuum' && this.config.enableServerRvc && !battery) mutableDevice.addDeviceTypes('', powerSource); // Temporary fix for vacuum without battery and enableServerRvc
         // Lookup and add core domains entity.
         const eControl = addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
         if (eControl !== undefined) {
@@ -484,21 +500,134 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Found a supported entity domain
         if (mutableDevice.has(endpointName))
           this.log.debug(`Creating endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
-        else this.clearEntitySelect(entityName);
+        else {
+          this.clearEntitySelect(entityName);
+          this.log.debug(`Deleting endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
+        }
       } // hassEntities
 
       // Register the device if we have found supported domains and entities
       if (mutableDevice.size() > 1) {
-        this.log.debug(`Registering device ${dn}${device.name}${db}...`);
-        mutableDevice.create();
-        mutableDevice.logMutableDevice();
-        await this.registerDevice(mutableDevice.getEndpoint());
-        this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
+        try {
+          this.log.debug(`Registering device ${dn}${device.name}${db}...`);
+          mutableDevice.create(true); // Use remap for device entities
+          mutableDevice.logMutableDevice();
+          await this.registerDevice(mutableDevice.getEndpoint());
+          this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
+        } catch (error) {
+          this.log.error(`Failed to register device ${dn}${device.name}${er}: ${error}`);
+        }
+        // Log all the remapped endpoints
+        for (const remappedEndpoint of mutableDevice.getRemappedEndpoints()) {
+          this.log.debug(`**- Device ${CYAN}${device.name}${db} remapped endpoint ${CYAN}${remappedEndpoint}${db}`);
+        }
+        // Log all the split endpoints
+        for (const splitEndpoint of mutableDevice.getSplitEndpoints()) {
+          this.log.debug(`**- Device ${CYAN}${device.name}${db} split endpoint ${CYAN}${splitEndpoint}${db}`);
+        }
+        // Check if some entities are mapped to remapped endpoints and set them to the main endpoint
+        for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
+          const endpoint = this.endpointNames.get(entity.entity_id);
+          if (endpoint && mutableDevice.getRemappedEndpoints().has(endpoint)) {
+            this.log.debug(`**- Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} remapped to endpoint ${CYAN}${'main'}${db}`);
+            this.endpointNames.set(entity.entity_id, '');
+          } else if (endpoint && !mutableDevice.getRemappedEndpoints().has(endpoint)) {
+            this.log.debug(`**- Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} mapped to endpoint ${CYAN}${endpoint}${db}`);
+          }
+        }
       } else {
         this.log.debug(`Device ${CYAN}${device.name}${db} has no supported entities. Deleting device select...`);
         this.clearDeviceSelect(device.id);
       }
-    } // hassDevices
+      mutableDevice.destroy();
+    } // End of devices loop
+
+    // *********************************************************************************************************
+    // ************************************ Scan the split entities  *******************************************
+    // *********************************************************************************************************
+    for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id !== null && (this.config.splitEntities as string[]).includes(e.entity_id))) {
+      const [domain, name] = entity.entity_id.split('.');
+      // Skip not supported domains.
+      if (!this.individualEntitiesDomains.includes(domain) && !this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+        this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
+        continue;
+      }
+      // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
+      const hassState = this.ha.hassStates.get(entity.entity_id);
+      if (!hassState) {
+        this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} state not found. Skipping...`);
+        continue;
+      }
+      // If the entity doesn't have a valid name, we skip it.
+      const entityName = entity.name ?? entity.original_name;
+      if (!isValidString(entityName, 1)) {
+        this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
+        continue;
+      }
+      // If the entity has an already registered name, we skip it.
+      if (this.hasDeviceName(entityName)) {
+        this.log.warn(
+          `Split entity ${CYAN}${entity.entity_id}${wr} name ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant.`,
+        );
+        continue;
+      }
+      // Set the selects and validate.
+      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
+      this.setSelectEntity(entityName, entity.entity_id, 'hub');
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
+      if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
+        this.log.debug(
+          `Split entity ${CYAN}${entity.entity_id}${db} name ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
+        );
+        continue;
+      }
+
+      // Create a Mutable device with bridgedNode
+      this.log.info(`Creating device for split entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
+      const mutableDevice = new MutableDevice(
+        this.matterbridge,
+        entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        isValidString(this.config.postfix, 1, 3) ? entity.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : entity.id.slice(0, 32),
+        0xfff1,
+        'HomeAssistant',
+        0x8000,
+        domain,
+      );
+      mutableDevice.addDeviceTypes('', bridgedNode);
+
+      // Set the device mode for the Rvc.
+      if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
+      // Lookup and add core domains entity.
+      if (this.supportedCoreDomains.includes(domain))
+        addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
+      // Lookup and add sensor domain entity.
+      if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, name.includes('battery'), this.log);
+      // Lookup and add binary_sensor domain entity.
+      if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
+      // Add PowerSource with battery feature if the entity is a battery
+      if (mutableDevice.get().deviceTypes.includes(powerSource)) {
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+      }
+
+      // Register the device if we have found a supported domain
+      if (mutableDevice.get().deviceTypes.length > 1 || mutableDevice.size() > 1) {
+        try {
+          mutableDevice.create(true); // Use remap for split entities
+          mutableDevice.logMutableDevice();
+          this.log.debug(`Registering device ${dn}${entityName}${db}...`);
+          await this.registerDevice(mutableDevice.getEndpoint());
+          this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
+          this.endpointNames.set(entity.entity_id, ''); // Set the endpoint name for the split entity to the main endpoint
+        } catch (error) {
+          this.log.error(`Failed to register device ${dn}${entityName}${er}: ${error}`);
+        }
+      } else {
+        this.log.debug(`Removing device ${dn}${entityName}${db}...`);
+        this.clearDeviceSelect(entity.id);
+        this.clearEntitySelect(entityName);
+      }
+      mutableDevice.destroy();
+    } // End of split entities loop
 
     this.log.debug(`All entities endpoint map(${this.endpointNames.size}):`);
     for (const [entity, endpoint] of this.endpointNames) {
@@ -593,13 +722,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   ) {
     let endpoint: MatterbridgeEndpoint | undefined;
     if (entity.device_id) {
+      // Device entity
       const matterbridgeDevice = this.matterbridgeDevices.get(entity.device_id);
       if (!matterbridgeDevice) {
         this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found`);
         return;
       }
+      // If it has not been remapped to the main endpoint
       endpoint = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
+      // If it has been remapped to the main endpoint
+      if (!endpoint && this.endpointNames.get(entity.entity_id) === '') endpoint = matterbridgeDevice;
     } else {
+      // Individual entity
       endpoint = this.matterbridgeDevices.get(entity.entity_id);
     }
     if (!endpoint) {
@@ -634,7 +768,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
-    const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
+    // const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
+    const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found`);
       return;
@@ -646,7 +781,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice;
       } else if (mappedEndpoint) {
+        // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
+        // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
         endpoint = matterbridgeDevice.getChildEndpointByName(mappedEndpoint);
       }
     }

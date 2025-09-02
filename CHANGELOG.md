@@ -10,19 +10,61 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Roadmap to release 1.0.0
 
-- ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
-- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold for Google Home compatibility issue with AirConditioner.
-- ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
-- add water heater domain (requested by Ludovic BOUÉ)
-- ✅ add valve domain (requested by Ludovic BOUÉ)
-- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75)
-- ✅ support all single entities reusing the same code of the device entities
+- ✅ support all single entities reusing the same code of the device entities.
 - ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
 - ✅ add automatic 'remap' ability in MutableDevice for single entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the single entity. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
+- ✅ add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
+- ✅ add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device with the Friendly name of the original entity. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
+- ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
+- ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
+- ✅ add valve domain (requested by Ludovic BOUÉ).
+- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75).
+- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
+- add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
+- add water heater domain (requested by Ludovic BOUÉ).
 
-For the naming issues (expecially upsetting with Alexa) read the explanation and the possible future solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86)
+### Naming issues explained
+
+For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## [0.4.0] - 2025-09-02
+
+### Breaking changes
+
+**The 'remap' has been activated for the device entities too. This will cause the resulting Matter devices to be differently composed, so the controller can have issues to show the changed devices.**
+
+Since in Matter there is no official way to change an existing endpoint (only Matter 1.4.2 introduces it),
+
+**if the controller have issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
+
+On the Matterbridge log you should see after a while this line.
+
+[22:35:38.583] [ServerSubscription] Sending update failed 3 times in a row, canceling subscription 3926576955 and let controller subscribe again.
+
+When you see this message in the log, you can power again the controller (or maybe just wait 5 minutes).
+
+**If this still doesn't solve the issue, you may need to reset all the registered devices (from the frontend) or repair the bridge.**
+
+With the release 0.3.0 and after, all supported domains are available also in the individual entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
+
+The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
+
+### Added
+
+- [MutableDevice]: Bumped MutableDevice to v. 1.3.1.
+- [MutableDevice]: Optimize memory with destroy().
+- [Platform]: Optimize memory calling destroy() on MutableDevice.
+- [MutableDevice]: Added automatic 'remap' ability in MutableDevice for devicee entities: this remaps the not overlapping child endpoints to the device main endpoint.
+- [config]: Added splitEntities. The device entities in the list will be exposed like an independent device and removed from their device.
+- [platform]: Bumped HomeAssistantPlatform to v. 1.5.0.
+
+### Changed
+
+- [package]: Updated dependencies.
+
+### Fixed
+
+- [vacuum]: Fix bug causing the plugin not to load when the vaccum is a device entitiy and has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
 
 ## [0.3.0] - 2025-08-28
 
@@ -55,6 +97,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [package]: Updated dependencies.
 - [package]: Requires matterbridge v. 3.2.4.
 - [package]: Automator: update package v. 2.0.4.
+- [package]: Updated to Automator v. 2.0.5.
 - [devContainer]: Updated devContainer with repository name for the container and shallow clone matterbridge for speed and memory optimization.
 
 ### Fixed

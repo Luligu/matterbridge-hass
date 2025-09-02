@@ -22,7 +22,7 @@
 
 import { airQualitySensor, electricalSensor, powerSource } from 'matterbridge';
 import { isValidString } from 'matterbridge/utils';
-import { AnsiLogger, CYAN, db } from 'matterbridge/logger';
+import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 import { AirQuality } from 'matterbridge/matter/clusters';
 
@@ -83,6 +83,7 @@ export function addSensorEntity(
       mutableDevice.addDeviceTypes(endpointName, hassDomainSensor.deviceType);
       mutableDevice.addClusterServerIds(endpointName, hassDomainSensor.clusterId);
       if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
+      log.debug(`- state ${debugStringify(state)}`);
     });
   return endpointName;
 }

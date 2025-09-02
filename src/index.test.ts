@@ -125,7 +125,7 @@ describe('initializePlugin', () => {
   it('should return an instance of HomeAssistantPlatform', async () => {
     const platform = initializePlugin(mockMatterbridge, mockLog, mockConfig);
     expect(platform).toBeInstanceOf(HomeAssistantPlatform);
-    platform.onShutdown();
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for ha.close() to complete
+    await platform.onShutdown();
+    // await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for ha.close() to complete
   });
 });
