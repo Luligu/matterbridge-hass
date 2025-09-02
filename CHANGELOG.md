@@ -33,19 +33,19 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 **The 'remap' has been activated for the device entities too. This will cause the resulting Matter devices to be differently composed, so the controller can have issues to show the changed devices.**
 
-In Matter there is no official way to change an existing endpoint (only Matter 1.4.2 introduces it).
+Since in Matter there is no official way to change an existing endpoint (only Matter 1.4.2 introduces it),
 
-**If the controller have issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
+**if the controller have issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
 
 On the Matterbridge log you should see after a while this line.
 
 [22:35:38.583] [ServerSubscription] Sending update failed 3 times in a row, canceling subscription 3926576955 and let controller subscribe again.
 
-When you see this message in the log, you can power again the controller.
+When you see this message in the log, you can power again the controller (or maybe just wait 5 minutes).
 
 **If this still doesn't solve the issue, you may need to reset all the registered devices (from the frontend) or repair the bridge.**
 
-Since release 0.3.0, all supported domains are available also in the individual entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
+With the release 0.3.0 and after, all supported domains are available also in the individual entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
 
 The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
 
