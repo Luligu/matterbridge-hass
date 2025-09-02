@@ -234,7 +234,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   afterEach(async () => {
-    await flushAsync(10);
+    await flushAsync();
   });
 
   afterAll(async () => {
@@ -3374,14 +3374,14 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.info).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   });
 
   it('should call onShutdown with reason', async () => {
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Home Assistant connection closed`);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   });
 
   test('close the server node', async () => {
@@ -3391,12 +3391,12 @@ describe('Matterbridge ' + NAME, () => {
     await server.close();
     expect(server.lifecycle.isReady).toBeTruthy();
     expect(server.lifecycle.isOnline).toBeFalsy();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete
+    // await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete
   });
 
   test('stop the mDNS service', async () => {
     expect(server).toBeDefined();
     await server.env.get(MdnsService)[Symbol.asyncDispose]();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete and helpers timeout
   });
 });

@@ -240,6 +240,10 @@ If the blackList is defined the devices and the individual entities included wil
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
 
+### splitEntities
+
+The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
+
 ### airQualityRegex
 
 Custom regex pattern to match air quality sensors that don't follow the standard naming convention.

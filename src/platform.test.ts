@@ -207,6 +207,12 @@ describe('HassPlatform', () => {
       return Promise.resolve({} as any);
     });
 
+  // Helper to flush pending macrotask + multiple microtask queues
+  async function flushAsync(depth = 10) {
+    await new Promise((resolve) => setImmediate(resolve));
+    for (let i = 0; i < depth; i++) await Promise.resolve();
+  }
+
   beforeAll(() => {
     // Spy on and mock the AnsiLogger.log method
     loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
@@ -238,8 +244,7 @@ describe('HassPlatform', () => {
 
   afterEach(async () => {
     // DrainEventLoop
-    await new Promise((resolve) => setImmediate(resolve));
-    for (let i = 0; i < 10; i++) await Promise.resolve();
+    await flushAsync();
   });
 
   afterAll(() => {
@@ -2420,7 +2425,7 @@ describe('HassPlatform', () => {
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.removeAllBridgedEndpoints).toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete in state revert
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete and helpers timeout
   });
 });
 

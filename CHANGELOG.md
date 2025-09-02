@@ -32,7 +32,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 **The 'remap' has been activated for the device entities too. This will cause the resulting Matter devices to be differently composed, so the controller can have issues to show the changed devices.**
 
-In Matter there is no offcial way to change an existing endpoint (only Matter 1.4.2 introduces it).
+In Matter there is no official way to change an existing endpoint (only Matter 1.4.2 introduces it).
 
 **If this is the case with your controller try to power it off, wait 5 minutes, then power it again. Leave matterbridge run.**
 
@@ -63,7 +63,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 ### Fixed
 
-- [vacuum]: Fix bug causig the plugin not to load when the vaccum is a device entitiy and has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
+- [vacuum]: Fix bug causing the plugin not to load when the vaccum is a device entitiy and has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
 
 ## [0.3.0] - 2025-08-28
 
