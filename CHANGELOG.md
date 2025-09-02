@@ -27,6 +27,18 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [0.4.1] - 2025-09-??
+
+### Added
+
+### Changed
+
+- [package]: Updated dependencies.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.4.0] - 2025-09-02
 
 ### Breaking changes
@@ -65,6 +77,10 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 ### Fixed
 
 - [vacuum]: Fix bug causing the plugin not to load when the vaccum is a device entitiy and has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
 
 ## [0.3.0] - 2025-08-28
 
