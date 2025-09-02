@@ -2,10 +2,6 @@
 
 /* eslint-disable no-console */
 
-const MATTER_PORT = 6001;
-const NAME = 'Matter';
-const HOMEDIR = path.join('jest', NAME);
-
 import { rmSync } from 'node:fs';
 import path from 'node:path';
 
@@ -20,19 +16,38 @@ import {
   FanControl,
   OnOff,
   LevelControl,
+  DoorLock,
   SmokeCoAlarm,
   ColorControl,
   Thermostat,
   OccupancySensing,
+  RelativeHumidityMeasurement,
   ElectricalPowerMeasurement,
   ElectricalEnergyMeasurement,
+  PressureMeasurement,
+  IlluminanceMeasurement,
   AirQuality,
   TemperatureMeasurement,
   ValveConfigurationAndControl,
   RvcRunMode,
   RvcOperationalState,
+  TotalVolatileOrganicCompoundsConcentrationMeasurement,
+  CarbonDioxideConcentrationMeasurement,
+  CarbonMonoxideConcentrationMeasurement,
+  NitrogenDioxideConcentrationMeasurement,
+  OzoneConcentrationMeasurement,
+  FormaldehydeConcentrationMeasurement,
+  RadonConcentrationMeasurement,
+  Pm1ConcentrationMeasurement,
+  Pm25ConcentrationMeasurement,
+  Pm10ConcentrationMeasurement,
 } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
+
+// Constants (after imports to avoid early reference to path)
+const MATTER_PORT = 6001;
+const NAME = 'Matter';
+const HOMEDIR = path.join('jest', NAME);
 
 // Home Assistant Plugin
 import { HomeAssistantPlatform } from './platform.js';
@@ -3274,6 +3289,103 @@ describe('Matterbridge ' + NAME, () => {
       attributes: { friendly_name: switchEntity.name },
     } as unknown as HassState;
 
+    const lightOnOffEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'light.template_light_onoff',
+      id: 'light-entity-id',
+      name: 'Single Entity Light OnOff',
+    } as unknown as HassEntity;
+    const lightOnOffState = {
+      entity_id: lightOnOffEntity.entity_id,
+      state: 'on',
+      attributes: { friendly_name: lightOnOffEntity.name },
+    } as unknown as HassState;
+
+    const lightDimmerEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'light.template_light_dimmer',
+      id: 'light-entity-id',
+      name: 'Single Entity Light Dimmer',
+    } as unknown as HassEntity;
+    const lightDimmerState = {
+      entity_id: lightDimmerEntity.entity_id,
+      state: 'on',
+      attributes: { friendly_name: lightDimmerEntity.name, brightness: 150 },
+    } as unknown as HassState;
+
+    // lock
+    const lockEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'lock.template_lock',
+      id: 'lock-entity-id',
+      name: 'Single Entity Lock',
+    } as unknown as HassEntity;
+    const lockState = {
+      entity_id: lockEntity.entity_id,
+      state: 'locked',
+      attributes: { friendly_name: lockEntity.name },
+    } as unknown as HassState;
+
+    // valve
+    const valveEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'valve.template_valve',
+      id: 'valve-entity-id',
+      name: 'Single Entity Valve',
+    } as unknown as HassEntity;
+    const valveState = {
+      entity_id: valveEntity.entity_id,
+      state: 'open',
+      attributes: { friendly_name: valveEntity.name, current_position: 50 },
+    } as unknown as HassState;
+
+    // vacuum
+    const vacuumEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'vacuum.template_vacuum',
+      id: 'vacuum-entity-id',
+      name: 'Single Entity Vacuum',
+    } as unknown as HassEntity;
+    const vacuumState = {
+      entity_id: vacuumEntity.entity_id,
+      state: 'docked',
+      attributes: { friendly_name: vacuumEntity.name },
+    } as unknown as HassState;
+
+    // fan
+    const fanEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'fan.template_fan',
+      id: 'fan-entity-id',
+      name: 'Single Entity Fan',
+    } as unknown as HassEntity;
+    const fanState = {
+      entity_id: fanEntity.entity_id,
+      state: 'on',
+      attributes: { friendly_name: fanEntity.name, percentage: 50, direction: 'forward' },
+    } as unknown as HassState;
+
+    // climate
+    const climateEntity = {
+      device_id: multisensorDevice.id,
+      entity_id: 'climate.template_climate',
+      id: 'climate-entity-id',
+      name: 'Single Entity Climate',
+    } as unknown as HassEntity;
+    const climateState = {
+      entity_id: climateEntity.entity_id,
+      state: 'heat_cool',
+      attributes: {
+        friendly_name: climateEntity.name,
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+        target_temp_low: 20,
+        target_temp_high: 24,
+        current_temperature: 22,
+        min_temp: 5,
+        max_temp: 35,
+      },
+    } as unknown as HassState;
+
     haPlatform.ha.hassDevices.set(multisensorDevice.id, multisensorDevice);
 
     // binary_sensor (refactored similar to sensorEntities below)
@@ -3328,7 +3440,16 @@ describe('Matterbridge ' + NAME, () => {
     }
 
     // controls
-    const controlEntities: [HassEntity, HassState][] = [[switchEntity, switchState]];
+    const controlEntities: [HassEntity, HassState][] = [
+      [switchEntity, switchState],
+      [lightOnOffEntity, lightOnOffState],
+      [lightDimmerEntity, lightDimmerState],
+      [lockEntity, lockState],
+      [valveEntity, valveState],
+      [vacuumEntity, vacuumState],
+      [fanEntity, fanState],
+      [climateEntity, climateState],
+    ];
     for (const [e, s] of controlEntities) {
       haPlatform.ha.hassEntities.set(e.entity_id, e);
       haPlatform.ha.hassStates.set(s.entity_id, s);
@@ -3351,18 +3472,79 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
     expect(aggregator.parts.size).toBe((haPlatform.config.splitEntities as string[]).length);
-    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(3);
-    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(31); // switch(3) + lightOnOff(10) + lightDimmer(10) + lock(2) + valve(2) + vacuum(4) + fan(0) + climate(0)
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(7); // fan(4) + climate(3)
 
     for (const device of haPlatform.matterbridgeDevices.values()) {
-      expect(device.getChildEndpoints().length).toBe(0);
+      expect(device.getChildEndpoints().length).toBe(0); // No child endpoints for individual entities. All remapped to main.
     }
     expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
 
     jest.clearAllMocks();
+    haPlatform.batteryVoltageEntities.clear();
+    haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually
     await haPlatform.onConfigure();
-    expect(setAttributeSpy).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
+    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual((haPlatform.config.splitEntities as string[]).length);
+
+    // binary_sensor entities
+    expect(haPlatform.matterbridgeDevices.get(batteryLowEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Critical); // Battery Low: true = low, false = normal
+    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(haPlatform.matterbridgeDevices.get(windowEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // window open -> false
+    expect(haPlatform.matterbridgeDevices.get(garageDoorEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(true); // garage door closed -> true
+    expect(haPlatform.matterbridgeDevices.get(vibrationEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(true); // vibration off -> true (no vibration)
+    expect(haPlatform.matterbridgeDevices.get(coldEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // cold off -> false
+    expect(haPlatform.matterbridgeDevices.get(moistureEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // moisture off -> false
+    expect(haPlatform.matterbridgeDevices.get(occupancyEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(motionEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(presenceEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(smokeEntity.entity_id)?.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(haPlatform.matterbridgeDevices.get(coEntity.entity_id)?.getAttribute(SmokeCoAlarm.Cluster.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+
+    // sensor entities
+    expect(haPlatform.matterbridgeDevices.get(batteryLevelEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(170); // 85% *2
+    expect(haPlatform.matterbridgeDevices.get(batteryVoltageEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batVoltage')).toBe(3700); // 3.7V -> 3700mV
+    expect(haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id)?.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2260); // 22.6C *100
+    expect(haPlatform.matterbridgeDevices.get(humidityEntity.entity_id)?.getAttribute(RelativeHumidityMeasurement.Cluster.id, 'measuredValue')).toBe(5630); // 56.3% *100
+    expect(haPlatform.matterbridgeDevices.get(pressureEntity.entity_id)?.getAttribute(PressureMeasurement.Cluster.id, 'measuredValue')).toBe(1013);
+    expect(haPlatform.matterbridgeDevices.get(atmosphericPressureEntity.entity_id)?.getAttribute(PressureMeasurement.Cluster.id, 'measuredValue')).toBe(1013);
+    expect(haPlatform.matterbridgeDevices.get(illuminanceEntity.entity_id)?.getAttribute(IlluminanceMeasurement.Cluster.id, 'measuredValue')).toBe(26990);
+    // PowerEnergy block
+    expect(haPlatform.matterbridgeDevices.get(energyEntity.entity_id)?.getAttribute(ElectricalEnergyMeasurement.Cluster.id, 'cumulativeEnergyImported')).toEqual({
+      energy: 12340000,
+    });
+    expect(haPlatform.matterbridgeDevices.get(powerEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activePower')).toBe(100000);
+    expect(haPlatform.matterbridgeDevices.get(currentEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activeCurrent')).toBe(500);
+    expect(haPlatform.matterbridgeDevices.get(voltageEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'voltage')).toBe(230000);
+    // Air quality block
+    expect(haPlatform.matterbridgeDevices.get(aqiEntity.entity_id)?.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
+    expect(haPlatform.matterbridgeDevices.get(vocEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(100);
+    expect(haPlatform.matterbridgeDevices.get(vocPartsEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(150);
+    expect(haPlatform.matterbridgeDevices.get(co2Entity.entity_id)?.getAttribute(CarbonDioxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(600);
+    expect(haPlatform.matterbridgeDevices.get(coSensorEntity.entity_id)?.getAttribute(CarbonMonoxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(30);
+    expect(haPlatform.matterbridgeDevices.get(no2Entity.entity_id)?.getAttribute(NitrogenDioxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(15);
+    expect(haPlatform.matterbridgeDevices.get(ozoneEntity.entity_id)?.getAttribute(OzoneConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(5);
+    expect(haPlatform.matterbridgeDevices.get(formaldehydeEntity.entity_id)?.getAttribute(FormaldehydeConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(2);
+    expect(haPlatform.matterbridgeDevices.get(radonEntity.entity_id)?.getAttribute(RadonConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(pm1Entity.entity_id)?.getAttribute(Pm1ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(5);
+    expect(haPlatform.matterbridgeDevices.get(pm25Entity.entity_id)?.getAttribute(Pm25ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(12);
+    expect(haPlatform.matterbridgeDevices.get(pm10Entity.entity_id)?.getAttribute(Pm10ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(20);
+
+    // control entities
+    expect(haPlatform.matterbridgeDevices.get(switchEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightOnOffEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(149); // brightness 150 -> ~149
+    expect(haPlatform.matterbridgeDevices.get(lockEntity.entity_id)?.getAttribute(DoorLock.Cluster.id, 'lockState')).toBe(DoorLock.LockState.Locked);
+    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(
+      ValveConfigurationAndControl.ValveState.Open,
+    );
+    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1); // idle/docked
+    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(
+      RvcOperationalState.OperationalState.Docked,
+    );
+    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'systemMode')).toBe(Thermostat.SystemMode.Auto);
 
     // Clean the test environment
     await cleanup();
