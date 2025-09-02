@@ -244,6 +244,26 @@ List of entities not to be exposed for a single device. Enter in the first field
 
 The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
 
+Let's make an example.
+
+Suppose we have a device named "Computer plug" with 3 entities:
+
+- id switch.computer_plug named "Computer plug Power" that is the main Power for the plug
+- id switch.computer_plug_child_lock named "Computer plug Child lock" that is the child lock for the plug
+- id temperature.computer_plug named "Computer plug Device temperature" that is the device temperature (very used in the zigbee world)
+
+Without further setup, the controller will show 2 switch with the same name (difficult to distinguish them). Alexa will show 3 devices "Computer plug", "First outlet" and "Second outlet".
+
+Solution:
+
+- add switch.computer_plug_child_lock to splitEntities.
+
+In this way, the controller will show one switch with name "Computer plug" and a second with name "Computer plug Child lock".
+
+If you don't need the device temperature, just add it to deviceEntityBlackList.
+
+If you want a more technical explanation for the naming issues (expecially upsetting with Alexa) read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
 ### airQualityRegex
 
 Custom regex pattern to match air quality sensors that don't follow the standard naming convention.
