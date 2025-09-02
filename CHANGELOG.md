@@ -31,6 +31,8 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Added
 
+- [battery]: Added support for battery type individual and split entities (battery low, battery level and battery voltage).
+
 ### Changed
 
 - [package]: Updated dependencies.
