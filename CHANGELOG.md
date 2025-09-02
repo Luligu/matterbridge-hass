@@ -24,9 +24,9 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Naming issues explained
 
-For the naming issues (expecially upsetting with Alexa) read the explanation and the three possible actual solutions [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [0.4.0] - 2025-09-??
+## [0.4.0] - 2025-09-02
 
 ### Breaking changes
 
@@ -34,7 +34,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 In Matter there is no official way to change an existing endpoint (only Matter 1.4.2 introduces it).
 
-**If this is the case with your controller try to power it off, wait 5 minutes, then power it again. Leave matterbridge run.**
+**If the controller have issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
 
 On the Matterbridge log you should see after a while this line.
 
@@ -44,7 +44,7 @@ When you see this message in the log, you can power again the controller.
 
 **If this still doesn't solve the issue, you may need to reset all the registered devices (from the frontend) or repair the bridge.**
 
-Since release 0.3.0, all supported domains are available also in the single entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
+Since release 0.3.0, all supported domains are available also in the individual entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
 
 The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
 
