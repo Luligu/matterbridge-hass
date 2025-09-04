@@ -256,7 +256,8 @@ Without further setup, the controller will show 2 switch with the same name (dif
 
 Solution:
 
-- add switch.computer_plug_child_lock to splitEntities.
+- add switch.computer_plug_child_lock (use entity_id) to splitEntities and restart.
+- if you use the whiteList, select your switch.computer_plug_child_lock (will show up with the entity name "Computer plug Child lock") and restart.
 
 In this way, the controller will show one switch with name "Computer plug" and a second with name "Computer plug Child lock".
 

@@ -31,7 +31,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Breaking changes
 
-See also releases 0.4.0 and 0.3.0 please.
+See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 ### Added
 
@@ -59,11 +59,11 @@ On the Matterbridge log you should see after a while this line.
 
 [22:35:38.583] [ServerSubscription] Sending update failed 3 times in a row, canceling subscription 3926576955 and let controller subscribe again.
 
-When you see this message in the log, you can power again the controller (or maybe just wait 5 minutes).
+When you see this message in the log, you can power again the controller (or maybe just wait the 5 minutes).
 
 **If this still doesn't solve the issue, you may need to reset all the registered devices (from the frontend) or repair the bridge.**
 
-See also release 0.3.0 please.
+See also the breaking changes of the release 0.3.0 please.
 
 ### Added
 
