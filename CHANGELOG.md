@@ -36,6 +36,7 @@ See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 ### Added
 
 - [battery]: Added support for battery type individual and split entities (battery low, battery level and battery voltage).
+- [select]: Added select to splitEntities. It is possibile to pick up from the list of entities.
 
 ### Changed
 

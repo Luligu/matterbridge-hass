@@ -84,7 +84,7 @@
         "type": "string"
       },
       "uniqueItems": true,
-      "selectEntityFrom": "name",
+      "selectEntityFrom": "description",
       "ui:widget": "hidden"
     },
     "deviceEntityBlackList": {
@@ -108,7 +108,8 @@
       "items": {
         "type": "string"
       },
-      "uniqueItems": true
+      "uniqueItems": true,
+      "selectEntityFrom": "description"
     },
     "namePostfix": {
       "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
