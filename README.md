@@ -252,7 +252,7 @@ Suppose we have a device named "Computer plug" with 3 entities:
 - id switch.computer_plug_child_lock named "Computer plug Child lock" that is the child lock for the plug
 - id temperature.computer_plug named "Computer plug Device temperature" that is the device temperature (very used in the zigbee world)
 
-Without further setup, the controller will show 2 switch with the same name (difficult to distinguish them). Alexa will show 3 devices "Computer plug", "First outlet" and "Second outlet".
+Without further setup, the controller will show 2 switch with the same name (difficult to distinguish them). Alexa will show 3 devices "Computer plug", "First plug" and "Second plug".
 
 Solution:
 
