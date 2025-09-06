@@ -22,6 +22,7 @@ If you like this project and find it useful, please consider giving it a star on
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
 - add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
 - add water heater domain (requested by Ludovic BOUÉ).
+- add media_player domain (requested by Tamer).
 
 ### Naming issues explained
 
