@@ -314,6 +314,9 @@ export async function startServerNode(name: string, port: number): Promise<[Serv
   expect(aggregator.lifecycle.hasId).toBeTruthy();
   expect(aggregator.lifecycle.hasNumber).toBeTruthy();
 
+  // Ensure the queue is empty and pause 100ms
+  await flushAsync();
+
   return [server, aggregator];
 }
 
@@ -342,7 +345,7 @@ export async function stopServerNode(server: ServerNode<ServerNode.RootEndpoint>
   await server.env.get(MdnsService)[Symbol.asyncDispose]();
 
   // Ensure the queue is empty and pause 100ms
-  await flushAsync(10, 10, 500);
+  await flushAsync();
 }
 
 /**
@@ -353,7 +356,7 @@ export async function stopServerNode(server: ServerNode<ServerNode.RootEndpoint>
  * @param {number} pause The pause time in milliseconds after addition (default 10ms).
  * @returns {Promise<void>} Resolves when the device has been added and is ready.
  */
-export async function addDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint, pause: number = 100): Promise<boolean> {
+export async function addDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint, pause: number = 10): Promise<boolean> {
   expect(owner).toBeDefined();
   expect(device).toBeDefined();
   expect(owner.lifecycle.isReady).toBeTruthy();
@@ -388,7 +391,7 @@ export async function addDevice(owner: ServerNode<ServerNode.RootEndpoint> | End
  * @param {number} pause The pause time in milliseconds after deletion (default 10ms).
  * @returns {Promise<void>} Resolves when the device has been added and is ready.
  */
-export async function deleteDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint, pause: number = 100): Promise<boolean> {
+export async function deleteDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint, pause: number = 10): Promise<boolean> {
   expect(owner).toBeDefined();
   expect(device).toBeDefined();
   expect(owner.lifecycle.isReady).toBeTruthy();
