@@ -60,7 +60,7 @@ import { Endpoint, Environment, ServerNode } from 'matterbridge/matter';
 import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 
 import { MutableDevice } from './mutableDevice.js';
-import { createTestEnvironment, flushAsync, setupTest, startServerNode, stopServerNode } from './jestHelpers.js';
+import { addDevice, createTestEnvironment, deleteDevice, flushAsync, setupTest, startServerNode, stopServerNode } from './jestHelpers.js';
 
 // Setup the test environment
 setupTest(NAME, false);
@@ -107,6 +107,7 @@ describe('MutableDevice', () => {
 
   const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
+  /*
   // Helper to add a device and wait for a specified duration
   async function addDevice(endpoint?: MatterbridgeEndpoint, waitMs = 50) {
     await aggregator.add(endpoint ?? device);
@@ -118,6 +119,7 @@ describe('MutableDevice', () => {
     await (endpoint ?? device).delete();
     await flushAsync(1, 1, waitMs);
   }
+  */
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -180,8 +182,8 @@ describe('MutableDevice', () => {
     });
     expect(() => (mutableDevice as any).createClusters('two')).toThrow();
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -196,8 +198,8 @@ describe('MutableDevice', () => {
     expect(device).toBeInstanceOf(MatterbridgeEndpoint);
     mutableDevice.logMutableDevice();
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -215,8 +217,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
     mutableDevice.logMutableDevice();
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -509,8 +511,8 @@ describe('MutableDevice', () => {
       'colorControl',
     ]);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -531,8 +533,8 @@ describe('MutableDevice', () => {
     expect(device.deviceTypes.get(onOffSwitch.code)).toBeDefined();
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'powerSource', 'onOff', 'identify']);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -554,8 +556,8 @@ describe('MutableDevice', () => {
     expect(device.deviceTypes.get(onOffSwitch.code)).toBeDefined();
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'powerSource', 'onOff', 'identify']);
 
-    await addDevice();
-    await deleteDevice();
+    // await addDevice(aggregator, device);
+    // await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -585,16 +587,14 @@ describe('MutableDevice', () => {
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'powerSource', 'identify', 'groups', 'fanControl']);
     expect(device.getChildEndpoints().length).toBe(0);
 
-    expect(await aggregator.add(device)).toBe(device);
-    await flushAsync(1, 1, 0);
+    expect(await addDevice(aggregator, device)).toBe(true);
 
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await device.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
     await device.setAttribute(FanControl.Cluster.id, 'percentSetting', 50);
     expect(subscribeHandler).toHaveBeenCalledTimes(2);
 
-    await addDevice();
-    await deleteDevice();
+    expect(await deleteDevice(aggregator, device)).toBe(true);
     mutableDevice.destroy();
     // setDebug(false);
   });
@@ -644,8 +644,8 @@ describe('MutableDevice', () => {
 
     // setDebug(false);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -693,8 +693,8 @@ describe('MutableDevice', () => {
 
     // setDebug(false);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -735,8 +735,8 @@ describe('MutableDevice', () => {
     expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -777,8 +777,8 @@ describe('MutableDevice', () => {
     expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -817,8 +817,8 @@ describe('MutableDevice', () => {
     expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -897,7 +897,7 @@ describe('MutableDevice', () => {
     expect(device.configUrl).toBe('http://example.com/config');
     expect(mutableDevice.size()).toBe(3);
     expect(mutableDevice.getEndpoints().size).toBe(3);
-    await addDevice();
+    await addDevice(aggregator, device);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
     expect(mutableDevice.get().tagList).toHaveLength(0);
@@ -975,7 +975,7 @@ describe('MutableDevice', () => {
     await invokeSubscribeHandler(mutableDevice.getEndpoint('child2'), OnOff.Cluster.id, 'onOff', false, true);
     expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child2', OnOff.Cluster.id, 'onOff');
 
-    await deleteDevice();
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
 
     // setDebug(false);
@@ -1013,8 +1013,8 @@ describe('MutableDevice', () => {
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'bridgedDeviceBasicInformation', 'powerSource', 'identify', 'groups']);
     expect(device.getChildEndpoints().length).toBe(0);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -1061,8 +1061,8 @@ describe('MutableDevice', () => {
     expect(device.getChildEndpoints().length).toBe(0);
     // setDebug(false);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -1124,8 +1124,8 @@ describe('MutableDevice', () => {
     expect(Array.from(childEndpoint2.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-tempsensor']);
     expect(childEndpoint2.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'identify', 'temperatureMeasurement']);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
 
     // setDebug(false);
@@ -1164,8 +1164,8 @@ describe('MutableDevice', () => {
     expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-onofflight']);
     expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'identify', 'groups']);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -1199,8 +1199,8 @@ describe('MutableDevice', () => {
     expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-powerSource']);
     expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'powerSource', 'onOff']);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
@@ -1242,14 +1242,14 @@ describe('MutableDevice', () => {
     expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-powerSource']);
     expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'powerSource']);
 
-    await addDevice();
-    await deleteDevice();
+    await addDevice(aggregator, device);
+    await deleteDevice(aggregator, device);
     mutableDevice.destroy();
   });
 
   test('close the server node', async () => {
     expect(server).toBeDefined();
     await stopServerNode(server);
-    await flushAsync(1, 1, 500); // wait for helpers timeout
+    await flushAsync(10, 10, 500); // wait for helpers timeout
   });
 });

@@ -3,7 +3,7 @@
  * @file src/helpers.test.ts
  * @author Luca Liguori
  * @created 2025-09-03
- * @version 1.0.3
+ * @version 1.0.4
  * @license Apache-2.0
  *
  * Copyright 2025, 2026, 2027 Luca Liguori.
@@ -342,7 +342,7 @@ export async function stopServerNode(server: ServerNode<ServerNode.RootEndpoint>
   await server.env.get(MdnsService)[Symbol.asyncDispose]();
 
   // Ensure the queue is empty and pause 100ms
-  await flushAsync();
+  await flushAsync(10, 10, 500);
 }
 
 /**
@@ -350,9 +350,10 @@ export async function stopServerNode(server: ServerNode<ServerNode.RootEndpoint>
  *
  * @param {ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>} owner The server or aggregator to add the device to.
  * @param {Endpoint} device The device to add.
+ * @param {number} pause The pause time in milliseconds after addition (default 10ms).
  * @returns {Promise<void>} Resolves when the device has been added and is ready.
  */
-export async function addDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint): Promise<boolean> {
+export async function addDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint, pause: number = 100): Promise<boolean> {
   expect(owner).toBeDefined();
   expect(device).toBeDefined();
   expect(owner.lifecycle.isReady).toBeTruthy();
@@ -375,6 +376,7 @@ export async function addDevice(owner: ServerNode<ServerNode.RootEndpoint> | End
   expect(device.lifecycle.hasId).toBeTruthy();
   expect(device.lifecycle.hasNumber).toBeTruthy();
   expect(device.construction.status).toBe(Lifecycle.Status.Active);
+  await flushAsync(1, 1, pause);
   return true;
 }
 
@@ -383,9 +385,10 @@ export async function addDevice(owner: ServerNode<ServerNode.RootEndpoint> | End
  *
  * @param {ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>} owner The server or aggregator to add the device to.
  * @param {Endpoint} device The device to add.
+ * @param {number} pause The pause time in milliseconds after deletion (default 10ms).
  * @returns {Promise<void>} Resolves when the device has been added and is ready.
  */
-export async function deleteDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint): Promise<boolean> {
+export async function deleteDevice(owner: ServerNode<ServerNode.RootEndpoint> | Endpoint<AggregatorEndpoint>, device: Endpoint, pause: number = 100): Promise<boolean> {
   expect(owner).toBeDefined();
   expect(device).toBeDefined();
   expect(owner.lifecycle.isReady).toBeTruthy();
@@ -408,5 +411,6 @@ export async function deleteDevice(owner: ServerNode<ServerNode.RootEndpoint> | 
   expect(device.lifecycle.hasId).toBeTruthy();
   expect(device.lifecycle.hasNumber).toBeTruthy();
   expect(device.construction.status).toBe(Lifecycle.Status.Destroyed);
+  await flushAsync(1, 1, pause);
   return true;
 }
