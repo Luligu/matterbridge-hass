@@ -28,6 +28,7 @@ Features:
 - It is possible to select from a list the individual entities to include in the white or black list. Select by name, id or entity_id.
 - It is possible to select from a list the devices to include in the white or black list. Select by name or id.
 - It is possible to select from a list the entities to include in the device entity black list.
+- It is possible to pickup from a list the split entities.
 - It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
 
 ## Supported device entities:
@@ -46,7 +47,7 @@ Features:
 (1) - Supported preset_modes: auto, low, medium, high.
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config.
 
-These domains are supported also like individual entities.
+These domains are supported also like individual and split entities.
 
 ## Supported individual entities:
 
@@ -184,6 +185,8 @@ You find these special entities in Home Assistant at http://localhost:8123/confi
 
 All the individual entities use the main whiteList, blackList.
 
+Since the release 0.4.0 it is also possible to pickup any device entity and split ("decompose") it to make it an independent Matter device.
+
 ## Config
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):
@@ -218,23 +221,23 @@ Number of times to try to reconnect before giving up.
 
 ### filterByArea
 
-Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set.
+Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set (in this case also the device needs to belong to this area).
 
 ### filterByLabel
 
-Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set.
+Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set is set (in this case also the device must have this label).
 
 ### applyFiltersToDeviceEntities
 
-Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well. If disabled, the filters will only be applied to devices and individual entities.
+Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (also the device needs to have the area and label). If disabled, the filters will only be applied to devices and individual entities.
 
 ### whiteList
 
-If the whiteList is defined only the devices and the individual entities included are exposed to Matter. Use the device/entity name or the device/entity id.
+If the whiteList is defined only the devices and the individual and split entities included are exposed to Matter. Use the device/entity name or the device/entity id.
 
 ### blackList
 
-If the blackList is defined the devices and the individual entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
+If the blackList is defined the devices and the individual and split entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
 
 ### deviceEntityBlackList
 
