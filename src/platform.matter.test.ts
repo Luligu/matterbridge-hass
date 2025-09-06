@@ -2,12 +2,11 @@
 
 /* eslint-disable no-console */
 
-import { rmSync } from 'node:fs';
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { Endpoint, DeviceTypeId, VendorId, ServerNode, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Environment, MdnsService, Lifecycle } from 'matterbridge/matter';
-import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
+import { Endpoint, ServerNode, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Environment, Lifecycle } from 'matterbridge/matter';
+import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 import { invokeBehaviorCommand, invokeSubscribeHandler, Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
 import {
@@ -42,7 +41,6 @@ import {
   Pm25ConcentrationMeasurement,
   Pm10ConcentrationMeasurement,
 } from 'matterbridge/matter/clusters';
-import { ClusterRegistry } from 'matterbridge/matter/types';
 
 // Constants (after imports to avoid early reference to path)
 const MATTER_PORT = 6001;
@@ -53,6 +51,7 @@ const HOMEDIR = path.join('jest', NAME);
 import { HomeAssistantPlatform } from './platform.js';
 import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
+import { createTestEnvironment, flushAsync, startServerNode, stopServerNode } from './jestHelpers.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -101,71 +100,6 @@ function setDebug(debug: boolean) {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
   }
 }
-
-const mockLog = {
-  fatal: jest.fn((message: string, ...parameters: any[]) => {
-    log.fatal(message, ...parameters);
-  }),
-  error: jest.fn((message: string, ...parameters: any[]) => {
-    log.error(message, ...parameters);
-  }),
-  warn: jest.fn((message: string, ...parameters: any[]) => {
-    log.warn(message, ...parameters);
-  }),
-  notice: jest.fn((message: string, ...parameters: any[]) => {
-    log.notice(message, ...parameters);
-  }),
-  info: jest.fn((message: string, ...parameters: any[]) => {
-    log.info(message, ...parameters);
-  }),
-  debug: jest.fn((message: string, ...parameters: any[]) => {
-    log.debug(message, ...parameters);
-  }),
-} as unknown as AnsiLogger;
-
-const mockMatterbridge = {
-  matterbridgeDirectory: HOMEDIR + '/.matterbridge',
-  matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
-  systemInformation: {
-    ipv4Address: undefined,
-    ipv6Address: undefined,
-    osRelease: 'xx.xx.xx.xx.xx.xx',
-    nodeVersion: '22.1.10',
-  },
-  matterbridgeVersion: '3.2.4',
-  log: mockLog,
-  getDevices: jest.fn(() => {
-    return [];
-  }),
-  getPlugins: jest.fn(() => {
-    return [];
-  }),
-  addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-    await aggregator.add(device);
-  }),
-  removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
-  removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
-} as unknown as Matterbridge;
-
-const mockConfig = {
-  name: 'matterbridge-hass',
-  type: 'DynamicPlatform',
-  host: 'http://homeassistant.local:8123',
-  token: 'long-lived token',
-  certificatePath: undefined,
-  rejectUnauthorized: true,
-  reconnectTimeout: 60,
-  reconnectRetries: 10,
-  filterByArea: '',
-  filterByLabel: '',
-  whiteList: [],
-  blackList: [],
-  entityBlackList: [],
-  deviceEntityBlackList: {},
-  enableServerRvc: false,
-  debug: false,
-  unregisterOnShutdown: false,
-} as PlatformConfig;
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);
@@ -216,32 +150,93 @@ const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype,
 
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
-let haPlatform: HomeAssistantPlatform;
-const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
-
-const environment = Environment.default;
-let server: ServerNode<ServerNode.RootEndpoint>;
-let aggregator: Endpoint<AggregatorEndpoint>;
-let device: MatterbridgeEndpoint;
+// Cleanup the matter environment
+createTestEnvironment(HOMEDIR);
 
 describe('Matterbridge ' + NAME, () => {
-  // Helper to flush pending macrotask + multiple microtask queues
-  async function flushAsync(depth = 10) {
-    await new Promise((resolve) => setImmediate(resolve));
-    for (let i = 0; i < depth; i++) await Promise.resolve();
-  }
+  let haPlatform: HomeAssistantPlatform;
+  const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
+
+  const environment = Environment.default;
+  let server: ServerNode<ServerNode.RootEndpoint>;
+  let aggregator: Endpoint<AggregatorEndpoint>;
+  let device: MatterbridgeEndpoint;
+
+  const mockLog = {
+    fatal: jest.fn((message: string, ...parameters: any[]) => {
+      log.fatal(message, ...parameters);
+    }),
+    error: jest.fn((message: string, ...parameters: any[]) => {
+      log.error(message, ...parameters);
+    }),
+    warn: jest.fn((message: string, ...parameters: any[]) => {
+      log.warn(message, ...parameters);
+    }),
+    notice: jest.fn((message: string, ...parameters: any[]) => {
+      log.notice(message, ...parameters);
+    }),
+    info: jest.fn((message: string, ...parameters: any[]) => {
+      log.info(message, ...parameters);
+    }),
+    debug: jest.fn((message: string, ...parameters: any[]) => {
+      log.debug(message, ...parameters);
+    }),
+  } as unknown as AnsiLogger;
+
+  const mockMatterbridge = {
+    matterbridgeDirectory: HOMEDIR + '/.matterbridge',
+    matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
+    systemInformation: {
+      ipv4Address: undefined,
+      ipv6Address: undefined,
+      osRelease: 'xx.xx.xx.xx.xx.xx',
+      nodeVersion: '22.1.10',
+    },
+    matterbridgeVersion: '3.2.4',
+    log: mockLog,
+    getDevices: jest.fn(() => {
+      return [];
+    }),
+    getPlugins: jest.fn(() => {
+      return [];
+    }),
+    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      await aggregator.add(device);
+    }),
+    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
+    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
+  } as unknown as Matterbridge;
+
+  const mockConfig = {
+    name: 'matterbridge-hass',
+    type: 'DynamicPlatform',
+    host: 'http://homeassistant.local:8123',
+    token: 'long-lived token',
+    certificatePath: undefined,
+    rejectUnauthorized: true,
+    reconnectTimeout: 60,
+    reconnectRetries: 10,
+    filterByArea: '',
+    filterByLabel: '',
+    whiteList: [],
+    blackList: [],
+    entityBlackList: [],
+    deviceEntityBlackList: {},
+    enableServerRvc: false,
+    debug: false,
+    unregisterOnShutdown: false,
+  } as PlatformConfig;
+
+  // Setup the matter environment
+  environment.vars.set('log.level', MatterLogLevel.DEBUG);
+  environment.vars.set('log.format', MatterLogFormat.ANSI);
+  environment.vars.set('path.root', HOMEDIR);
+  environment.vars.set('runtime.signals', false);
+  environment.vars.set('runtime.exitcode', false);
 
   beforeAll(async () => {
-    // Cleanup the matter environment
-    rmSync(HOMEDIR, { recursive: true, force: true });
-
-    // Setup the matter environment
-    environment.vars.set('log.level', MatterLogLevel.DEBUG);
-    environment.vars.set('log.format', MatterLogFormat.ANSI);
-    environment.vars.set('path.root', HOMEDIR);
-    environment.vars.set('runtime.signals', false);
-    environment.vars.set('runtime.exitcode', false);
-  }, 30000);
+    //
+  });
 
   beforeEach(async () => {
     // Clear all mocks
@@ -249,7 +244,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   afterEach(async () => {
-    await flushAsync();
+    await flushAsync(1, 1, 0);
   });
 
   afterAll(async () => {
@@ -267,7 +262,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.clear();
     for (const device of aggregator.parts) {
       await device.delete();
-      await flushAsync(10);
+      await flushAsync(1, 1, 0);
     }
     expect(aggregator.parts.size).toBe(0);
 
@@ -277,70 +272,10 @@ describe('Matterbridge ' + NAME, () => {
     (haPlatform as any)._registeredEndpointsByName.clear();
   }
 
-  test('create the server node', async () => {
-    // Create the server node
-    server = await ServerNode.create({
-      id: NAME + 'ServerNode',
-
-      productDescription: {
-        name: NAME + 'ServerNode',
-        deviceType: DeviceTypeId(RootEndpoint.deviceType),
-        vendorId: VendorId(0xfff1),
-        productId: 0x8000,
-      },
-
-      // Provide defaults for the BasicInformation cluster on the Root endpoint
-      basicInformation: {
-        vendorId: VendorId(0xfff1),
-        vendorName: 'Matterbridge',
-        productId: 0x8000,
-        productName: 'Matterbridge ' + NAME,
-        nodeLabel: NAME + 'ServerNode',
-        hardwareVersion: 1,
-        softwareVersion: 1,
-        reachable: true,
-      },
-
-      network: {
-        port: MATTER_PORT,
-      },
-    });
-    expect(server).toBeDefined();
-    expect(server.lifecycle.isReady).toBeTruthy();
-  });
-
-  test('create the aggregator node', async () => {
-    aggregator = new Endpoint(AggregatorEndpoint, {
-      id: NAME + 'AggregatorNode',
-    });
-    expect(aggregator).toBeDefined();
-  });
-
-  test('add the aggregator node to the server', async () => {
+  test('create and start the server node', async () => {
+    [server, aggregator] = await startServerNode(NAME, MATTER_PORT);
     expect(server).toBeDefined();
     expect(aggregator).toBeDefined();
-    await server.add(aggregator);
-    expect(server.parts.has(aggregator.id)).toBeTruthy();
-    expect(server.parts.has(aggregator)).toBeTruthy();
-    expect(aggregator.lifecycle.isReady).toBeTruthy();
-  });
-
-  test('start the server node', async () => {
-    // Run the server
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeFalsy();
-
-    // Wait for the server to be online
-    await new Promise<void>((resolve) => {
-      server.lifecycle.online.on(async () => {
-        resolve();
-      });
-      server.start();
-    });
-
-    // Check if the server is online
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeTruthy();
   });
 
   it('should initialize the HomeAssistantPlatform', async () => {
@@ -2916,7 +2851,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await flushAsync(); // ensure all split entity devices created
+    await flushAsync(1, 1, 0); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
@@ -3101,7 +3036,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
 
     await haPlatform.onStart('Test reason');
-    await flushAsync(); // ensure all split entity devices created
+    await flushAsync(1, 1, 0); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
@@ -3228,30 +3163,18 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     expect(mockLog.info).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(mockLog.info).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   });
 
   it('should call onShutdown with reason', async () => {
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockLog.info).toHaveBeenCalledWith(`Home Assistant connection closed`);
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
   });
 
   test('close the server node', async () => {
     expect(server).toBeDefined();
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeTruthy();
-    await server.close();
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeFalsy();
-    // await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete
-  });
-
-  test('stop the mDNS service', async () => {
-    expect(server).toBeDefined();
-    await server.env.get(MdnsService)[Symbol.asyncDispose]();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete and helpers timeout
+    await stopServerNode(server);
+    await flushAsync(1, 1, 500); // wait for helpers timeout
   });
 });
 

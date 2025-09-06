@@ -63,6 +63,7 @@ import { AggregatorEndpoint, RootEndpoint } from 'matterbridge/matter/endpoints'
 import { wait } from 'matterbridge/utils';
 
 import { MutableDevice } from './mutableDevice.js';
+import { createTestEnvironment, flushAsync } from './jestHelpers.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -113,7 +114,7 @@ function setDebug(debug: boolean) {
 }
 
 // Cleanup the matter environment
-rmSync(HOMEDIR, { recursive: true, force: true });
+createTestEnvironment(HOMEDIR);
 
 describe('MutableDevice', () => {
   const environment = Environment.default;
@@ -161,24 +162,16 @@ describe('MutableDevice', () => {
 
   const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
-  // Helper to flush pending macrotask + multiple microtask queues
-  async function flushAsync(depth = 10) {
-    await new Promise((resolve) => setImmediate(resolve));
-    for (let i = 0; i < depth; i++) await Promise.resolve();
-  }
-
   // Helper to add a device and wait for a specified duration
   async function addDevice(endpoint?: MatterbridgeEndpoint, waitMs = 50) {
     await aggregator.add(endpoint ?? device);
-    await flushAsync();
-    await wait(waitMs);
+    await flushAsync(1, 1, waitMs);
   }
 
   // Helper to delete a device and wait for a specified duration
   async function deleteDevice(endpoint?: MatterbridgeEndpoint, waitMs = 50) {
     await (endpoint ?? device).delete();
-    await flushAsync();
-    await wait(waitMs);
+    await flushAsync(1, 1, waitMs);
   }
 
   beforeEach(() => {
@@ -187,7 +180,7 @@ describe('MutableDevice', () => {
 
   afterEach(async () => {
     jest.clearAllMocks();
-    await flushAsync();
+    await flushAsync(1, 1, 0);
   });
 
   afterAll(() => {
@@ -706,7 +699,7 @@ describe('MutableDevice', () => {
     expect(device.getChildEndpoints().length).toBe(0);
 
     expect(await aggregator.add(device)).toBe(device);
-    await flushAsync();
+    await flushAsync(1, 1, 0);
 
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await device.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);

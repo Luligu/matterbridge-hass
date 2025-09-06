@@ -18,6 +18,7 @@ import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMea
 import { HomeAssistantPlatform } from './platform.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
+import { flushAsync } from './jestHelpers.js';
 
 let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -90,6 +91,9 @@ const readMockHomeAssistantFile = () => {
 rmSync(HOMEDIR, { recursive: true, force: true });
 
 describe('HassPlatform', () => {
+  let haPlatform: HomeAssistantPlatform;
+  const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
+
   const mockLog = {
     fatal: jest.fn((message: string, ...parameters: any[]) => {
       log.fatal(message, ...parameters);
@@ -149,10 +153,6 @@ describe('HassPlatform', () => {
     unregisterOnShutdown: false,
   } as PlatformConfig;
 
-  // let mockHomeAssistant: HomeAssistant;
-  let haPlatform: HomeAssistantPlatform;
-  const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
-
   const mockData = readMockHomeAssistantFile();
   if (!mockData) {
     throw new Error('Failed to read or parse mock homeassistant.json file');
@@ -207,12 +207,6 @@ describe('HassPlatform', () => {
       return Promise.resolve({} as any);
     });
 
-  // Helper to flush pending macrotask + multiple microtask queues
-  async function flushAsync(depth = 10) {
-    await new Promise((resolve) => setImmediate(resolve));
-    for (let i = 0; i < depth; i++) await Promise.resolve();
-  }
-
   beforeAll(() => {
     // Spy on and mock the AnsiLogger.log method
     loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {
@@ -244,7 +238,7 @@ describe('HassPlatform', () => {
 
   afterEach(async () => {
     // DrainEventLoop
-    await flushAsync();
+    await flushAsync(1, 1, 0);
   });
 
   afterAll(() => {

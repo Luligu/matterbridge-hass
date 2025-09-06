@@ -27,7 +27,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [0.4.1] - 2025-09-??
+## [0.4.1] - 2025-09-06
 
 ### Breaking changes
 
@@ -37,6 +37,8 @@ See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 - [battery]: Added support for battery type individual and split entities (battery low, battery level and battery voltage).
 - [select]: Added select to splitEntities. It is possibile to pick up from the list of entities.
+- [readme]: Improved the readme.
+- [jest]: Added an helper to make all tests standard and more efficient.
 
 ### Changed
 

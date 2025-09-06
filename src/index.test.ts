@@ -126,6 +126,5 @@ describe('initializePlugin', () => {
     const platform = initializePlugin(mockMatterbridge, mockLog, mockConfig);
     expect(platform).toBeInstanceOf(HomeAssistantPlatform);
     await platform.onShutdown();
-    // await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for ha.close() to complete
   });
 });
