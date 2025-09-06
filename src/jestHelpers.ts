@@ -1,9 +1,9 @@
 /**
  * @description This file contains the Jest helpers.
- * @file src/jest/helpers.test.ts
+ * @file src/helpers.test.ts
  * @author Luca Liguori
  * @created 2025-09-03
- * @version 1.0.2
+ * @version 1.0.3
  * @license Apache-2.0
  *
  * Copyright 2025, 2026, 2027 Luca Liguori.
@@ -23,15 +23,18 @@
 
 import { rmSync } from 'node:fs';
 import { inspect } from 'node:util';
+import path from 'node:path';
 
 // Imports from Matterbridge
 /*
+import { jest } from '@jest/globals';
 import { DeviceTypeId, Endpoint, Environment, ServerNode, ServerNodeStore, VendorId, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Lifecycle } from '@matter/main';
 import { AggregatorEndpoint, RootEndpoint } from '@matter/main/endpoints';
 import { MdnsService } from '@matter/main/protocol';
 */
 
 // Imports from a plugin
+import { jest } from '@jest/globals';
 import {
   DeviceTypeId,
   Endpoint,
@@ -45,6 +48,111 @@ import {
   Lifecycle,
 } from 'matterbridge/matter';
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
+import { AnsiLogger } from 'matterbridge/logger';
+
+export let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
+export let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
+export let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
+export let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
+export let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
+export let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
+
+/**
+ * Setup the Jest environment:
+ * - it will remove any existing home directory.
+ * - setup the spies for logging.
+ 
+ * @param {string} name The name of the test suite.
+ * @param {boolean} debug If true, the logging is not mocked.
+ *
+ * ```typescript
+ * import { consoleDebugSpy, consoleErrorSpy, consoleInfoSpy, consoleLogSpy, consoleWarnSpy, loggerLogSpy, setDebug, setupTest } from './jestHelpers.js';
+ *
+ * // Setup the test environment
+ * setupTest(true);
+ *
+ * // Cleanup the test environment
+ * rmSync(HOMEDIR, { recursive: true, force: true });
+ * ```
+ */
+export function setupTest(name: string, debug: boolean = false): void {
+  expect(name).toBeDefined();
+  expect(typeof name).toBe('string');
+  expect(name.length).toBeGreaterThanOrEqual(4); // avoid accidental deletion of short paths like "/" or "C:\"
+
+  // Cleanup any existing home directory
+  rmSync(path.join('jest', name), { recursive: true, force: true });
+
+  if (debug) {
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
+    consoleLogSpy = jest.spyOn(console, 'log');
+    consoleDebugSpy = jest.spyOn(console, 'debug');
+    consoleInfoSpy = jest.spyOn(console, 'info');
+    consoleWarnSpy = jest.spyOn(console, 'warn');
+    consoleErrorSpy = jest.spyOn(console, 'error');
+  } else {
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  }
+}
+
+/**
+ * Set or unset the debug mode.
+ *
+ * @param {boolean} debug If true, the logging is not mocked.
+ */
+export function setDebug(debug: boolean): void {
+  if (debug) {
+    loggerLogSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
+    consoleInfoSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
+    consoleLogSpy = jest.spyOn(console, 'log');
+    consoleDebugSpy = jest.spyOn(console, 'debug');
+    consoleInfoSpy = jest.spyOn(console, 'info');
+    consoleWarnSpy = jest.spyOn(console, 'warn');
+    consoleErrorSpy = jest.spyOn(console, 'error');
+  } else {
+    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  }
+}
+
+/**
+ * Create a Matterbridge Environment for testing.
+ * It will remove any existing home directory.
+ *
+ * @param {string} homeDir Home directory for the environment.
+ * @returns {Environment}  The created environment.
+ */
+export function createTestEnvironment(homeDir: string): Environment {
+  expect(homeDir).toBeDefined();
+  expect(typeof homeDir).toBe('string');
+  expect(homeDir.length).toBeGreaterThanOrEqual(4); // avoid accidental deletion of short paths like "/" or "C:\"
+
+  // Cleanup any existing home directory
+  rmSync(homeDir, { recursive: true, force: true });
+
+  // Setup the matter environment
+  const environment = Environment.default;
+  environment.vars.set('log.level', MatterLogLevel.DEBUG);
+  environment.vars.set('log.format', MatterLogFormat.ANSI);
+  environment.vars.set('path.root', homeDir);
+  environment.vars.set('runtime.signals', false);
+  environment.vars.set('runtime.exitcode', false);
+  return environment;
+}
 
 /**
  * Advance the Node.js event loop deterministically to allow chained asynchronous work (Promises scheduled in
@@ -130,31 +238,6 @@ export async function assertAllEndpointNumbersPersisted(targetServer: ServerNode
     }
   }
   return all.length;
-}
-
-/**
- * Create a Matterbridge Environment for testing.
- * It will remove any existing home directory.
- *
- * @param {string} homeDir Home directory for the environment.
- * @returns {Environment}  The created environment.
- */
-export function createTestEnvironment(homeDir: string): Environment {
-  expect(homeDir).toBeDefined();
-  expect(typeof homeDir).toBe('string');
-  expect(homeDir.length).toBeGreaterThan(5); // avoid accidental deletion of short paths like "/" or "C:\"
-
-  // Cleanup any existing home directory
-  rmSync(homeDir, { recursive: true, force: true });
-
-  // Setup the matter environment
-  const environment = Environment.default;
-  environment.vars.set('log.level', MatterLogLevel.DEBUG);
-  environment.vars.set('log.format', MatterLogFormat.ANSI);
-  environment.vars.set('path.root', homeDir);
-  environment.vars.set('runtime.signals', false);
-  environment.vars.set('runtime.exitcode', false);
-  return environment;
 }
 
 /**

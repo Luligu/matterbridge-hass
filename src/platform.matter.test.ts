@@ -1,5 +1,10 @@
 // src\platform.matter.test.ts
 
+// Constants (after imports to avoid early reference to path)
+const MATTER_PORT = 6001;
+const NAME = 'PlatformMatter';
+const HOMEDIR = path.join('jest', NAME);
+
 /* eslint-disable no-console */
 
 import path from 'node:path';
@@ -42,64 +47,24 @@ import {
   Pm10ConcentrationMeasurement,
 } from 'matterbridge/matter/clusters';
 
-// Constants (after imports to avoid early reference to path)
-const MATTER_PORT = 6001;
-const NAME = 'Matter';
-const HOMEDIR = path.join('jest', NAME);
-
 // Home Assistant Plugin
-import { HomeAssistantPlatform } from './platform.js';
+import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './platform.js';
 import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { createTestEnvironment, flushAsync, startServerNode, stopServerNode } from './jestHelpers.js';
-
-let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
-let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
-let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
-let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
-let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
-let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
-const debug = false; // Set to true to enable debug logging
-
-if (!debug) {
-  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
-  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
-  consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
-  consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
-  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
-  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
-} else {
-  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
-  consoleLogSpy = jest.spyOn(console, 'log');
-  consoleDebugSpy = jest.spyOn(console, 'debug');
-  consoleInfoSpy = jest.spyOn(console, 'info');
-  consoleWarnSpy = jest.spyOn(console, 'warn');
-  consoleErrorSpy = jest.spyOn(console, 'error');
-}
-
-function setDebug(debug: boolean) {
-  if (debug) {
-    loggerLogSpy.mockRestore();
-    consoleLogSpy.mockRestore();
-    consoleDebugSpy.mockRestore();
-    consoleInfoSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
-    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
-    consoleLogSpy = jest.spyOn(console, 'log');
-    consoleDebugSpy = jest.spyOn(console, 'debug');
-    consoleInfoSpy = jest.spyOn(console, 'info');
-    consoleWarnSpy = jest.spyOn(console, 'warn');
-    consoleErrorSpy = jest.spyOn(console, 'error');
-  } else {
-    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
-    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
-    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
-  }
-}
+import {
+  createTestEnvironment,
+  flushAsync,
+  startServerNode,
+  stopServerNode,
+  setupTest,
+  consoleDebugSpy,
+  consoleErrorSpy,
+  consoleInfoSpy,
+  consoleLogSpy,
+  consoleWarnSpy,
+  loggerLogSpy,
+  setDebug,
+} from './jestHelpers.js';
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);
@@ -149,6 +114,9 @@ const addClusterServerHeatingThermostatSpy = jest.spyOn(MutableDevice.prototype,
 const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
 
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
+
+// Setup the test environment
+setupTest(NAME, false);
 
 // Cleanup the matter environment
 createTestEnvironment(HOMEDIR);
@@ -210,33 +178,30 @@ describe('Matterbridge ' + NAME, () => {
   const mockConfig = {
     name: 'matterbridge-hass',
     type: 'DynamicPlatform',
+    version: '1.0.0',
     host: 'http://homeassistant.local:8123',
     token: 'long-lived token',
-    certificatePath: undefined,
+    certificatePath: '',
     rejectUnauthorized: true,
     reconnectTimeout: 60,
     reconnectRetries: 10,
     filterByArea: '',
     filterByLabel: '',
+    applyFiltersToDeviceEntities: false,
     whiteList: [],
     blackList: [],
     entityBlackList: [],
     deviceEntityBlackList: {},
+    splitEntities: [],
+    namePostfix: '',
+    postfix: '',
+    airQualityRegex: '',
     enableServerRvc: false,
     debug: false,
     unregisterOnShutdown: false,
-  } as PlatformConfig;
+  } as HomeAssistantPlatformConfig;
 
-  // Setup the matter environment
-  environment.vars.set('log.level', MatterLogLevel.DEBUG);
-  environment.vars.set('log.format', MatterLogFormat.ANSI);
-  environment.vars.set('path.root', HOMEDIR);
-  environment.vars.set('runtime.signals', false);
-  environment.vars.set('runtime.exitcode', false);
-
-  beforeAll(async () => {
-    //
-  });
+  beforeAll(async () => {});
 
   beforeEach(async () => {
     // Clear all mocks

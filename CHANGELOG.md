@@ -40,6 +40,7 @@ See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 - [select]: Added select to splitEntities. It is possibile to pick up from the list of entities.
 - [readme]: Improved the readme.
 - [jest]: Added an helper to make all tests standard and more efficient.
+- [platform]: Typed HomeAssistantPlatformConfig.
 
 ### Changed
 
