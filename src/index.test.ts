@@ -8,63 +8,16 @@ import path from 'node:path';
 import { rmSync } from 'node:fs';
 
 import { jest } from '@jest/globals';
-import { Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
-import { AnsiLogger } from 'matterbridge/logger';
+import { type Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
+import { AnsiLogger, CYAN, nf, rs, LogLevel, idn, TimestampFormat } from 'matterbridge/logger';
 
-import { HomeAssistantPlatform } from './platform.js';
+import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './platform.js';
+import { consoleDebugSpy, consoleErrorSpy, consoleInfoSpy, consoleLogSpy, consoleWarnSpy, loggerLogSpy, setDebug, setupTest } from './jestHelpers.js';
 
 import initializePlugin from './index.js';
 
-let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
-let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
-let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
-let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
-let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
-let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
-const debug = false; // Set to true to enable debug logging
-
-if (!debug) {
-  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
-  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
-  consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
-  consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
-  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
-  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
-} else {
-  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
-  consoleLogSpy = jest.spyOn(console, 'log');
-  consoleDebugSpy = jest.spyOn(console, 'debug');
-  consoleInfoSpy = jest.spyOn(console, 'info');
-  consoleWarnSpy = jest.spyOn(console, 'warn');
-  consoleErrorSpy = jest.spyOn(console, 'error');
-}
-
-function setDebug(debug: boolean) {
-  if (debug) {
-    loggerLogSpy.mockRestore();
-    consoleLogSpy.mockRestore();
-    consoleDebugSpy.mockRestore();
-    consoleInfoSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
-    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
-    consoleLogSpy = jest.spyOn(console, 'log');
-    consoleDebugSpy = jest.spyOn(console, 'debug');
-    consoleInfoSpy = jest.spyOn(console, 'info');
-    consoleWarnSpy = jest.spyOn(console, 'warn');
-    consoleErrorSpy = jest.spyOn(console, 'error');
-  } else {
-    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
-    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
-    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
-  }
-}
-
-// Cleanup the test environment
-rmSync(HOMEDIR, { recursive: true, force: true });
+// Setup the test environment
+setupTest(NAME, false);
 
 describe('initializePlugin', () => {
   beforeEach(() => {
@@ -75,14 +28,7 @@ describe('initializePlugin', () => {
     jest.restoreAllMocks();
   });
 
-  const mockLog = {
-    fatal: jest.fn((message: string, ...parameters: any[]) => {}),
-    error: jest.fn((message: string, ...parameters: any[]) => {}),
-    warn: jest.fn((message: string, ...parameters: any[]) => {}),
-    notice: jest.fn((message: string, ...parameters: any[]) => {}),
-    info: jest.fn((message: string, ...parameters: any[]) => {}),
-    debug: jest.fn((message: string, ...parameters: any[]) => {}),
-  } as unknown as AnsiLogger;
+  const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
   const mockMatterbridge = {
     matterbridgeDirectory: HOMEDIR + '/.matterbridge',
@@ -94,7 +40,7 @@ describe('initializePlugin', () => {
       nodeVersion: '22.1.10',
     },
     matterbridgeVersion: '3.2.4',
-    log: mockLog,
+    log,
     getDevices: jest.fn(() => []),
     getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
@@ -105,27 +51,42 @@ describe('initializePlugin', () => {
   const mockConfig = {
     name: 'matterbridge-hass',
     type: 'DynamicPlatform',
-    host: 'http://homeassistant.local:8123',
+    version: '1.0.0',
+    host: 'ws://homeassistant.local:8123',
     token: 'long-lived token',
-    certificatePath: undefined,
+    certificatePath: '',
     rejectUnauthorized: true,
     reconnectTimeout: 60,
     reconnectRetries: 10,
     filterByArea: '',
     filterByLabel: '',
+    applyFiltersToDeviceEntities: false,
     whiteList: [],
     blackList: [],
     entityBlackList: [],
     deviceEntityBlackList: {},
+    splitEntities: [],
+    namePostfix: '',
+    postfix: '',
+    airQualityRegex: '',
     enableServerRvc: false,
     debug: false,
     unregisterOnShutdown: false,
-  } as PlatformConfig;
+  } as HomeAssistantPlatformConfig;
+
+  let platform: HomeAssistantPlatform;
 
   it('should return an instance of HomeAssistantPlatform', async () => {
-    const platform = initializePlugin(mockMatterbridge, mockLog, mockConfig);
+    platform = initializePlugin(mockMatterbridge, log, mockConfig);
     expect(platform).toBeInstanceOf(HomeAssistantPlatform);
-    await platform.onShutdown();
-    // await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for ha.close() to complete
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initializing platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initialized platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
+  });
+
+  it('should shutdown the platform', async () => {
+    expect(platform).toBeInstanceOf(HomeAssistantPlatform);
+    await platform.onShutdown('Unit test shutdown');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Unit test shutdown`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shut down platform ${idn}${mockConfig.name}${rs}${nf} completed`);
   });
 });

@@ -52,6 +52,29 @@ import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addSensorEntity } from './sensor.entity.js';
 import { addControlEntity } from './control.entity.js';
 
+export interface HomeAssistantPlatformConfig extends PlatformConfig {
+  host: string;
+  certificatePath: string;
+  rejectUnauthorized: boolean;
+  token: string;
+  reconnectTimeout: number;
+  reconnectRetries: number;
+  filterByArea: string;
+  filterByLabel: string;
+  applyFiltersToDeviceEntities: boolean;
+  whiteList: string[];
+  blackList: string[];
+  entityBlackList: string[];
+  deviceEntityBlackList: Record<string, string[]>;
+  splitEntities: string[];
+  namePostfix: string;
+  postfix: string;
+  airQualityRegex: string;
+  enableServerRvc: boolean;
+  debug: boolean;
+  unregisterOnShutdown: boolean;
+}
+
 /**
  * HomeAssistantPlatform class extends the MatterbridgeDynamicPlatform class.
  * It initializes the Home Assistant connection, fetches data, subscribes to events,
@@ -91,7 +114,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * @param {AnsiLogger} log - The logger instance.
    * @param {PlatformConfig} config - The platform configuration.
    */
-  constructor(matterbridge: Matterbridge, log: AnsiLogger, config: PlatformConfig) {
+  constructor(matterbridge: Matterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig) {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
@@ -341,9 +364,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (this.supportedCoreDomains.includes(domain))
         addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
       // Lookup and add sensor domain entity.
-      if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, false, this.log);
+      if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, name.includes('battery'), this.log);
       // Lookup and add binary_sensor domain entity.
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
+      // Add PowerSource with battery feature if the entity is a battery
+      if (mutableDevice.get().deviceTypes.includes(powerSource)) {
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+      }
 
       if (entity.platform === 'template') {
         mutableDevice.setComposedType(`Hass Template`);
@@ -686,6 +713,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.matterbridgeDevices.clear();
     this.batteryVoltageEntities.clear();
     this.endpointNames.clear();
+    this.log.info(`Shut down platform ${idn}${this.config.name}${rs}${nf} completed`);
   }
 
   async commandHandler(

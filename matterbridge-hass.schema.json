@@ -84,7 +84,7 @@
         "type": "string"
       },
       "uniqueItems": true,
-      "selectEntityFrom": "name",
+      "selectEntityFrom": "description",
       "ui:widget": "hidden"
     },
     "deviceEntityBlackList": {
@@ -103,12 +103,13 @@
       }
     },
     "splitEntities": {
-      "description": "The device entities in the list will be exposed like an independent device and removed from their device.",
+      "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock).",
       "type": "array",
       "items": {
         "type": "string"
       },
-      "uniqueItems": true
+      "uniqueItems": true,
+      "selectEntityFrom": "description"
     },
     "namePostfix": {
       "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",

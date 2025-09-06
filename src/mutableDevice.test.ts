@@ -5,7 +5,6 @@ const NAME = 'MutableDevice';
 const HOMEDIR = path.join('jest', NAME);
 
 import path from 'node:path';
-import { rmSync } from 'node:fs';
 
 import { jest } from '@jest/globals';
 import {
@@ -29,7 +28,6 @@ import {
   smokeCoAlarm,
   thermostatDevice,
   invokeSubscribeHandler,
-  invokeBehaviorCommand,
   roboticVacuumCleaner,
   humiditySensor,
   pressureSensor,
@@ -58,75 +56,23 @@ import {
   FanControl,
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
-import { Endpoint, Environment, ServerNode, LogLevel as MatterLogLevel, LogFormat as MatterLogFormat, DeviceTypeId, VendorId, MdnsService } from 'matterbridge/matter';
-import { AggregatorEndpoint, RootEndpoint } from 'matterbridge/matter/endpoints';
-import { wait } from 'matterbridge/utils';
+import { Endpoint, Environment, ServerNode } from 'matterbridge/matter';
+import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 
 import { MutableDevice } from './mutableDevice.js';
+import { createTestEnvironment, flushAsync, setupTest, startServerNode, stopServerNode } from './jestHelpers.js';
 
-let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
-let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
-let consoleDebugSpy: jest.SpiedFunction<typeof console.log>;
-let consoleInfoSpy: jest.SpiedFunction<typeof console.log>;
-let consoleWarnSpy: jest.SpiedFunction<typeof console.log>;
-let consoleErrorSpy: jest.SpiedFunction<typeof console.log>;
-const debug = false; // Set to true to enable debug logging
-
-if (!debug) {
-  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
-  consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
-  consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
-  consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
-  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
-  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
-} else {
-  loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
-  consoleLogSpy = jest.spyOn(console, 'log');
-  consoleDebugSpy = jest.spyOn(console, 'debug');
-  consoleInfoSpy = jest.spyOn(console, 'info');
-  consoleWarnSpy = jest.spyOn(console, 'warn');
-  consoleErrorSpy = jest.spyOn(console, 'error');
-}
-
-function setDebug(debug: boolean) {
-  if (debug) {
-    loggerLogSpy.mockRestore();
-    consoleLogSpy.mockRestore();
-    consoleDebugSpy.mockRestore();
-    consoleInfoSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
-    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log');
-    consoleLogSpy = jest.spyOn(console, 'log');
-    consoleDebugSpy = jest.spyOn(console, 'debug');
-    consoleInfoSpy = jest.spyOn(console, 'info');
-    consoleWarnSpy = jest.spyOn(console, 'warn');
-    consoleErrorSpy = jest.spyOn(console, 'error');
-  } else {
-    loggerLogSpy = jest.spyOn(AnsiLogger.prototype, 'log').mockImplementation((level: string, message: string, ...parameters: any[]) => {});
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation((...args: any[]) => {});
-    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation((...args: any[]) => {});
-    consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation((...args: any[]) => {});
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((...args: any[]) => {});
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((...args: any[]) => {});
-  }
-}
+// Setup the test environment
+setupTest(NAME, false);
 
 // Cleanup the matter environment
-rmSync(HOMEDIR, { recursive: true, force: true });
+createTestEnvironment(HOMEDIR);
 
 describe('MutableDevice', () => {
   const environment = Environment.default;
   let server: ServerNode<ServerNode.RootEndpoint>;
   let aggregator: Endpoint<AggregatorEndpoint>;
   let device: MatterbridgeEndpoint;
-
-  // Setup the matter environment
-  environment.vars.set('log.level', MatterLogLevel.DEBUG);
-  environment.vars.set('log.format', MatterLogFormat.ANSI);
-  environment.vars.set('path.root', HOMEDIR);
-  environment.vars.set('runtime.signals', false);
-  environment.vars.set('runtime.exitcode', false);
 
   const mockLog = {
     fatal: jest.fn((message: string, ...parameters: any[]) => {}),
@@ -161,24 +107,16 @@ describe('MutableDevice', () => {
 
   const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
-  // Helper to flush pending macrotask + multiple microtask queues
-  async function flushAsync(depth = 10) {
-    await new Promise((resolve) => setImmediate(resolve));
-    for (let i = 0; i < depth; i++) await Promise.resolve();
-  }
-
   // Helper to add a device and wait for a specified duration
   async function addDevice(endpoint?: MatterbridgeEndpoint, waitMs = 50) {
     await aggregator.add(endpoint ?? device);
-    await flushAsync();
-    await wait(waitMs);
+    await flushAsync(1, 1, waitMs);
   }
 
   // Helper to delete a device and wait for a specified duration
   async function deleteDevice(endpoint?: MatterbridgeEndpoint, waitMs = 50) {
     await (endpoint ?? device).delete();
-    await flushAsync();
-    await wait(waitMs);
+    await flushAsync(1, 1, waitMs);
   }
 
   beforeEach(() => {
@@ -187,75 +125,17 @@ describe('MutableDevice', () => {
 
   afterEach(async () => {
     jest.clearAllMocks();
-    await flushAsync();
+    await flushAsync(1, 1, 0);
   });
 
   afterAll(() => {
     jest.restoreAllMocks();
   });
 
-  test('create the server node', async () => {
-    // Create the server node
-    server = await ServerNode.create({
-      id: NAME + 'ServerNode',
-
-      productDescription: {
-        name: NAME + 'ServerNode',
-        deviceType: DeviceTypeId(RootEndpoint.deviceType),
-        vendorId: VendorId(0xfff1),
-        productId: 0x8000,
-      },
-
-      // Provide defaults for the BasicInformation cluster on the Root endpoint
-      basicInformation: {
-        vendorId: VendorId(0xfff1),
-        vendorName: 'Matterbridge',
-        productId: 0x8000,
-        productName: 'Matterbridge ' + NAME,
-        nodeLabel: NAME + 'ServerNode',
-        hardwareVersion: 1,
-        softwareVersion: 1,
-        reachable: true,
-      },
-
-      network: {
-        port: MATTER_PORT,
-      },
-    });
-    expect(server).toBeDefined();
-    expect(server.lifecycle.isReady).toBeTruthy();
-  });
-
-  test('create the aggregator node', async () => {
-    aggregator = new Endpoint(AggregatorEndpoint, { id: NAME + 'AggregatorNode' });
-    expect(aggregator).toBeDefined();
-  });
-
-  test('add the aggregator node to the server', async () => {
+  test('create and start the server node', async () => {
+    [server, aggregator] = await startServerNode(NAME, MATTER_PORT);
     expect(server).toBeDefined();
     expect(aggregator).toBeDefined();
-    await server.add(aggregator);
-    expect(server.parts.has(aggregator.id)).toBeTruthy();
-    expect(server.parts.has(aggregator)).toBeTruthy();
-    expect(aggregator.lifecycle.isReady).toBeTruthy();
-  });
-
-  test('start the server node', async () => {
-    // Run the server
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeFalsy();
-
-    // Wait for the server to be online
-    await new Promise<void>((resolve) => {
-      server.lifecycle.online.on(async () => {
-        resolve();
-      });
-      server.start();
-    });
-
-    // Check if the server is online
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeTruthy();
   });
 
   it('should initialize with an empty mutableDevice', () => {
@@ -706,7 +586,7 @@ describe('MutableDevice', () => {
     expect(device.getChildEndpoints().length).toBe(0);
 
     expect(await aggregator.add(device)).toBe(device);
-    await flushAsync();
+    await flushAsync(1, 1, 0);
 
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await device.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
@@ -1369,17 +1249,7 @@ describe('MutableDevice', () => {
 
   test('close the server node', async () => {
     expect(server).toBeDefined();
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeTruthy();
-    await server.close();
-    expect(server.lifecycle.isReady).toBeTruthy();
-    expect(server.lifecycle.isOnline).toBeFalsy();
-    // await new Promise((resolve) => setTimeout(resolve, 100));
-  });
-
-  test('stop the mDNS service', async () => {
-    expect(server).toBeDefined();
-    await server.env.get(MdnsService)[Symbol.asyncDispose]();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete and helpers timeout
+    await stopServerNode(server);
+    await flushAsync(1, 1, 500); // wait for helpers timeout
   });
 });

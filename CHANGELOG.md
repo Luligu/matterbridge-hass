@@ -22,10 +22,33 @@ If you like this project and find it useful, please consider giving it a star on
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
 - add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
 - add water heater domain (requested by Ludovic BOUÉ).
+- add media_player domain (requested by Tamer).
 
 ### Naming issues explained
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## [0.4.1] - 2025-09-06
+
+### Breaking changes
+
+See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
+
+### Added
+
+- [battery]: Added support for battery type individual and split entities (battery low, battery level and battery voltage).
+- [select]: Added select to splitEntities. It is possibile to pick up from the list of entities.
+- [readme]: Improved the readme.
+- [jest]: Added an helper to make all tests standard and more efficient.
+- [platform]: Typed HomeAssistantPlatformConfig.
+
+### Changed
+
+- [package]: Updated dependencies.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
 
 ## [0.4.0] - 2025-09-02
 
@@ -35,19 +58,17 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 Since in Matter there is no official way to change an existing endpoint (only Matter 1.4.2 introduces it),
 
-**if the controller have issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
+**if the controller has issues to show the new device composition, try to power it off, wait 5 minutes, then power it again.**
 
 On the Matterbridge log you should see after a while this line.
 
 [22:35:38.583] [ServerSubscription] Sending update failed 3 times in a row, canceling subscription 3926576955 and let controller subscribe again.
 
-When you see this message in the log, you can power again the controller (or maybe just wait 5 minutes).
+When you see this message in the log, you can power again the controller (or maybe just wait the 5 minutes).
 
 **If this still doesn't solve the issue, you may need to reset all the registered devices (from the frontend) or repair the bridge.**
 
-With the release 0.3.0 and after, all supported domains are available also in the individual entities. This will bring in a lot of new Matter devices. I suggest to check carefully the whiteList and the blackList and also the log for duplicated names.
-
-The vacuum domain have been added. When pairing to Apple Home always enable enableServerRvc in the config (default to true).
+See also the breaking changes of the release 0.3.0 please.
 
 ### Added
 
@@ -65,6 +86,10 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 ### Fixed
 
 - [vacuum]: Fix bug causing the plugin not to load when the vaccum is a device entitiy and has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
 
 ## [0.3.0] - 2025-08-28
 
