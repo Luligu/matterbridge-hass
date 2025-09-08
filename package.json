@@ -73,6 +73,7 @@
     "version:minor": "npm version minor",
     "version:major": "npm version major",
     "git:status": "git status && git branch -vv && git stash list",
+    "git:remote": "git remote -v && git remote show origin",
     "git:hardreset:main": "git fetch origin && git checkout main && git reset --hard origin/main",
     "git:hardreset:dev": "git fetch origin && git checkout dev && git reset --hard origin/dev",
     "git:hardreset:edge": "git fetch origin && git checkout edge && git reset --hard origin/edge",
