@@ -36,6 +36,8 @@ See the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 ### Added
 
+- [jest]: Updated jest helper module to v. 1.0.5.
+
 ### Changed
 
 - [package]: Updated dependencies.
