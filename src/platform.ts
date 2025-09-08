@@ -891,7 +891,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         endpoint.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
       }
       // Some devices wrongly update attributes even if the state is off. Provisionally we will skip the update of attributes in this case.
-      if (new_state.state === 'off') {
+      if (['light', 'switch', 'fan'].includes(domain) && new_state.state === 'off') {
         endpoint.log.info(`State is off, skipping update of attributes for entity ${CYAN}${entityId}${nf}`);
         return;
       }
