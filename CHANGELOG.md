@@ -29,20 +29,28 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [0.4.2] - 2025-09-??
+## [0.4.2] - 2025-09-09
 
 ### Breaking changes
 
-See the breaking changes of the releases 0.4.0 and 0.3.0 please.
+Added support for **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
+
+See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 ### Added
 
-- [jest]: Updated jest helper module to v. 1.0.5.
+- [adaptiveLighting]: Added support for **Apple Home Adaptive Lighting**. Also fix https://github.com/Luligu/matterbridge-hass/issues/91.
+- [transition]: Added support for **transitionTime** in command handler.
+- [converters]: Added convertMatterXYToHA and convertHAXYToMatter converters.
 
 ### Changed
 
 - [package]: Updated dependencies.
-- [update]: The attributes update is skipped when state is off only for the domains light, switch and fan.
+- [jest]: Updated jest helper module to v. 1.0.5.
+
+### Fixed
+
+- [update]: The attributes update is skipped when state is off only for the domains light and fan (https://github.com/Luligu/matterbridge-hass/issues/93).
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

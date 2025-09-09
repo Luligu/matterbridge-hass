@@ -40,14 +40,21 @@ import {
 } from 'matterbridge';
 import { ActionContext } from 'matterbridge/matter';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
-import { deepEqual, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
-import { OnOff, BridgedDeviceBasicInformation, PowerSource } from 'matterbridge/matter/clusters';
+import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
+import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorControl } from 'matterbridge/matter/clusters';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassCommandConverter, hassDomainBinarySensorsConverter, hassDomainSensorsConverter, hassUpdateAttributeConverter, hassUpdateStateConverter } from './converters.js';
+import {
+  convertMatterXYToHA,
+  hassCommandConverter,
+  hassDomainBinarySensorsConverter,
+  hassDomainSensorsConverter,
+  hassUpdateAttributeConverter,
+  hassUpdateStateConverter,
+} from './converters.js';
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addSensorEntity } from './sensor.entity.js';
 import { addControlEntity } from './control.entity.js';
@@ -716,18 +723,103 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Shut down platform ${idn}${this.config.name}${rs}${nf} completed`);
   }
 
+  /**
+   * Handle incoming commands from Matterbridge.
+   *
+   * @param {object} data The incoming command data.
+   * @param {Record<string, any>} data.request The full request object from Matter controller.
+   * @param {string} data.cluster The cluster the command is for.
+   * @param {Record<string, PrimitiveTypes>} data.attributes The attributes of the cluster the command is for.
+   * @param {MatterbridgeEndpoint} data.endpoint The endpoint the command is for.
+   * @param {string} endpointName The name of the endpoint the command is for.
+   * @param {string} command The command being handled.
+   *
+   * @returns {Promise<void>} A promise that resolves when the command has been handled.
+   *
+   * @remarks This function maps Matterbridge commands to Home Assistant services and calls them accordingly.
+   * It uses a predefined mapping to convert commands and their attributes to Home Assistant service calls.
+   * If the command or domain is not supported, it logs a warning message.
+   *
+   * @remarks Light domain.
+   *
+   * In Home Assistant, changing brightness or color (all modes) without affecting the on/off state of a light is not possible.
+   * The light.turn_on service will turn the light on if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
+   */
   async commandHandler(
     data: { request: Record<string, any>; cluster: string; attributes: Record<string, PrimitiveTypes>; endpoint: MatterbridgeEndpoint },
     endpointName: string,
     command: string,
-  ) {
+  ): Promise<void> {
     const entityId = endpointName;
     if (!entityId) return;
     data.endpoint.log.info(`${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${endpointName}${db}:${or}${data.endpoint?.maybeNumber}${db}`);
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
+      if (domain === 'light') {
+        const state = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff');
+        if (['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command) && state === false) {
+          data.endpoint.log.debug(
+            `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it`,
+          );
+          return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
+        }
+        if (command === 'moveToLevelWithOnOff' && data.request['level'] === (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
+          data.endpoint.log.debug(
+            `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received with level = minLevel => turn off the light`,
+          );
+          await this.ha.callService('light', 'turn_off', entityId);
+          return; // Turn off the light if level = 1
+        }
+        if (
+          command === 'on' ||
+          command === 'toggle' ||
+          (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1) && state === false)
+        ) {
+          this.log.debug(
+            `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes`,
+          );
+          const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
+          // We need to add the cluster attributes if we are turning on the light and it was off
+          const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
+            ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
+            : undefined;
+          if (isValidNumber(brightness, 1, 255)) serviceAttributes['brightness'] = brightness;
+          const color_temp =
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
+              ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
+              : undefined;
+          if (isValidNumber(color_temp)) serviceAttributes['color_temp'] = color_temp;
+          const hs_color =
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
+              ? [
+                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
+                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+                ]
+              : undefined;
+          if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
+          const xy_color =
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
+              ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
+              : undefined;
+          if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
+          // Transition time
+          if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
+          // Call the light.turn_on service with the attributes
+          await this.ha.callService('light', 'turn_on', entityId, serviceAttributes);
+          return;
+        }
+      }
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes) : undefined;
+      if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
       await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
     } else {
       data.endpoint.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
@@ -891,7 +983,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         endpoint.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
       }
       // Some devices wrongly update attributes even if the state is off. Provisionally we will skip the update of attributes in this case.
-      if (['light', 'switch', 'fan'].includes(domain) && new_state.state === 'off') {
+      if ((domain === 'light' || domain === 'fan') && new_state.state === 'off') {
         endpoint.log.info(`State is off, skipping update of attributes for entity ${CYAN}${entityId}${nf}`);
         return;
       }

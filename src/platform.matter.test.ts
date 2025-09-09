@@ -2377,15 +2377,20 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {});
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {});
 
     // setDebug(false);
 
@@ -2448,16 +2453,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255 });
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255 });
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
       level: 100,
       transitionTime: 0,
@@ -2466,14 +2477,60 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
       level: 50,
-      transitionTime: 0,
+      transitionTime: 100,
       optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
     });
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50, transition: 10 });
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
+      level: 100,
+      transitionTime: 100,
+      optionsMask: { executeIfOff: true, coupleColorTempToLevel: true },
+      optionsOverride: { executeIfOff: true, coupleColorTempToLevel: true },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => skipping it'));
+    expect(callServiceSpy).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
+      level: 1,
+      transitionTime: 100,
+      optionsMask: { executeIfOff: true, coupleColorTempToLevel: true },
+      optionsOverride: { executeIfOff: true, coupleColorTempToLevel: true },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(1);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received with level = minLevel => turn off the light'));
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
+      level: 100,
+      transitionTime: 100,
+      optionsMask: { executeIfOff: true, coupleColorTempToLevel: true },
+      optionsOverride: { executeIfOff: true, coupleColorTempToLevel: true },
+    });
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => skipping it'));
+    expect(callServiceSpy).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => turn on the light with attributes'));
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
 
     // setDebug(false);
 
@@ -2537,16 +2594,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 243 });
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 243 });
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
       level: 100,
       transitionTime: 0,
@@ -2555,6 +2618,8 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
       level: 50,
       transitionTime: 0,
@@ -2564,6 +2629,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', {
       colorTemperatureMireds: 200,
       transitionTime: 0,
@@ -2645,16 +2711,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, hs_color: [0, 0] });
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'toggle', lightEntity.entity_id, undefined);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, hs_color: [0, 0] });
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
       level: 100,
       transitionTime: 0,
@@ -2663,6 +2735,8 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
+
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
       level: 50,
       transitionTime: 0,
@@ -2672,6 +2746,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', {
       colorTemperatureMireds: 200,
       transitionTime: 0,
@@ -2703,7 +2778,7 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(13697);
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(41877);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { xy_color: [13697, 41877] });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { xy_color: [0.209, 0.639] });
 
     // setDebug(false);
 

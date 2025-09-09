@@ -14,6 +14,8 @@ import {
   hassSubscribeConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
+  convertMatterXYToHA,
+  convertHAXYToMatter,
 } from './converters.js';
 import { HassState } from './homeAssistant.js';
 
@@ -290,5 +292,73 @@ describe('HassPlatform', () => {
     if (!c || !c.converter) return;
     expect(c.converter(-1 as any)).toBe(null); // below range
     expect(c.converter(999 as any)).toBe(null); // above range
+  });
+
+  describe('convertMatterXYToHA', () => {
+    it('should convert 0,0 to [0,0]', () => {
+      expect(convertMatterXYToHA(0, 0)).toEqual([0, 0]);
+    });
+    it('should convert max values to [0.9962, 0.9962]', () => {
+      expect(convertMatterXYToHA(65279, 65279)).toEqual([0.9961, 0.9961]);
+    });
+    it('should convert mid values', () => {
+      expect(convertMatterXYToHA(32768, 32768)).toEqual([0.5, 0.5]);
+    });
+    it('should handle floats and round to 4 decimals', () => {
+      expect(convertMatterXYToHA(12345, 54321)).toEqual([parseFloat((12345 / 65536).toFixed(4)), parseFloat((54321 / 65536).toFixed(4))]);
+    });
+    it('should clamp negative X and valid Y', () => {
+      expect(convertMatterXYToHA(-10, 100)).toEqual([0, parseFloat((100 / 65536).toFixed(4))]);
+    });
+    it('should clamp valid X and Y above max', () => {
+      expect(convertMatterXYToHA(100, 70000)).toEqual([parseFloat((100 / 65536).toFixed(4)), parseFloat((65279 / 65536).toFixed(4))]);
+    });
+    it('should clamp X below min and Y above max', () => {
+      expect(convertMatterXYToHA(-5, 70000)).toEqual([0, parseFloat((65279 / 65536).toFixed(4))]);
+    });
+    it('should clamp X above max and Y below min', () => {
+      expect(convertMatterXYToHA(70000, -5)).toEqual([parseFloat((65279 / 65536).toFixed(4)), 0]);
+    });
+  });
+
+  describe('convertHAXYToMatter', () => {
+    it('should convert [0,0] to {currentX:0,currentY:0}', () => {
+      expect(convertHAXYToMatter([0, 0])).toEqual({ currentX: 0, currentY: 0 });
+    });
+    it('should convert [1,1] to {currentX:65279,currentY:65279}', () => {
+      expect(convertHAXYToMatter([1, 1])).toEqual({ currentX: 65279, currentY: 65279 });
+    });
+    it('should convert [0.5,0.5] to correct mid values', () => {
+      const mid = Math.round(0.5 * 65536);
+      expect(convertHAXYToMatter([0.5, 0.5])).toEqual({ currentX: mid, currentY: mid });
+    });
+    it('should clamp values above 1 to 65279', () => {
+      expect(convertHAXYToMatter([2, 2])).toEqual({ currentX: 65279, currentY: 65279 });
+    });
+    it('should handle negative values (resulting in 0)', () => {
+      expect(convertHAXYToMatter([-1, -1])).toEqual({ currentX: 0, currentY: 0 });
+    });
+    it('should handle floats and round', () => {
+      const x = 0.1234;
+      const y = 0.9876;
+      const expectedX = Math.round(x * 65536);
+      let expectedY = Math.round(y * 65536);
+      if (expectedY > 65279) expectedY = 65279;
+      expect(convertHAXYToMatter([x, y])).toEqual({ currentX: expectedX, currentY: expectedY });
+    });
+    it('should clamp X below 0 and Y above 1', () => {
+      expect(convertHAXYToMatter([-0.5, 1.5])).toEqual({ currentX: 0, currentY: 65279 });
+    });
+    it('should clamp X above 1 and Y below 0', () => {
+      expect(convertHAXYToMatter([2, -1])).toEqual({ currentX: 65279, currentY: 0 });
+    });
+    it('should clamp X valid and Y above 1', () => {
+      const x = 0.5;
+      expect(convertHAXYToMatter([x, 2])).toEqual({ currentX: Math.round(x * 65536), currentY: 65279 });
+    });
+    it('should clamp X below 0 and Y valid', () => {
+      const y = 0.5;
+      expect(convertHAXYToMatter([-2, y])).toEqual({ currentX: 0, currentY: Math.round(y * 65536) });
+    });
   });
 });
