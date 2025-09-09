@@ -33,7 +33,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Breaking changes
 
-Added support for **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
+Added support for **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390. Now the lights don't turn on when the controller sends a command to be executed when the light is off.
 
 See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
