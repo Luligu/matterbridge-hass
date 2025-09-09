@@ -6,6 +6,9 @@ labels: ""
 assignees: ""
 ---
 
+**Check if the case is already covered**
+Please read the README.md and the CHANGELOG.md and the opened issues before submitting a new issue.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
@@ -33,7 +36,8 @@ Please always add the debug file to help explain your problem.
 
 **Matterbridge (please complete the following information):**
 
-- Mode [e.g. as a service or docker container]
+- Host mode [e.g. as a service or docker container]
+- Bridge mode [e.g. as a bridge or childbridge]
 - Version [e.g. 1.6.6]
 - OS: [e.g. where you run Matterbridge]
 
