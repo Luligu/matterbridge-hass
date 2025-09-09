@@ -47,6 +47,7 @@ See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 - [package]: Updated dependencies.
 - [jest]: Updated jest helper module to v. 1.0.5.
+- [workflows]: Ignore any .md anywhere.
 
 ### Fixed
 
