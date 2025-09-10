@@ -29,6 +29,26 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [0.4.3] - 2025-09-??
+
+### Breaking changes
+
+See the breaking changes of the releases 0.4.2, 0.4.0 and 0.3.0 please.
+
+### Added
+
+### Changed
+
+- [package]: Updated dependencies.
+
+### Fixed
+
+- [update]: The attributes update is skipped when state is off only for the domains light and fan (https://github.com/Luligu/matterbridge-hass/issues/93).
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.4.2] - 2025-09-09
 
 ### Breaking changes
