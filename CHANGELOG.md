@@ -43,8 +43,6 @@ See the breaking changes of the releases 0.4.2, 0.4.0 and 0.3.0 please.
 
 ### Fixed
 
-- [update]: The attributes update is skipped when state is off only for the domains light and fan (https://github.com/Luligu/matterbridge-hass/issues/93).
-
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
