@@ -764,12 +764,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
-        if (command === 'moveToLevelWithOnOff' && data.request['level'] === (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
+        if (command === 'moveToLevelWithOnOff' && data.request['level'] <= (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
           data.endpoint.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received with level = minLevel => turn off the light`,
           );
           await this.ha.callService('light', 'turn_off', entityId);
-          return; // Turn off the light if level = 1
+          return; // Turn off the light if level <= minLevel
         }
         if (
           command === 'on' ||
