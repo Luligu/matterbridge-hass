@@ -1,6 +1,12 @@
 name: Node.js CI
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - '**/*.md' # any .md anywhere
+  pull_request:
+    paths-ignore:
+      - '**/*.md' # any .md anywhere
 
 jobs:
   build:
@@ -9,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20.x, 22.x, 24.5.x]
+        node-version: [20.x, 22.x, 24.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
@@ -31,11 +37,11 @@ jobs:
         run: npm -v
 
       - name: Clone matterbridge repo
-        run: git clone --depth 1 --single-branch --no-tags https://github.com/Luligu/matterbridge.git ../matterbridge
+        run: git clone https://github.com/Luligu/matterbridge.git ../matterbridge
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge
-        run: npm ci --no-fund --no-audit
+        run: npm ci
 
       - name: Build matterbridge
         working-directory: ../matterbridge
@@ -43,7 +49,7 @@ jobs:
 
       - name: Link matterbridge globally
         working-directory: ../matterbridge
-        run: npm link --no-fund --no-audit
+        run: npm link
 
       - name: Install plugin dependencies
         run: npm ci

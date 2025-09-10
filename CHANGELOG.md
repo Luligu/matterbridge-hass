@@ -22,17 +22,47 @@ If you like this project and find it useful, please consider giving it a star on
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
 - add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
 - add water heater domain (requested by Ludovic BOUÉ).
+- add event domain.
 - add media_player domain (requested by Tamer).
 
 ### Naming issues explained
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [0.4.2] - 2025-09-09
+
+### Breaking changes
+
+Added support for **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390. Now the lights don't turn on when the controller sends a command to be executed when the light is off (In Home Assistant, changing brightness or color (all modes) without affecting the on/off state of a light is not possible.).
+
+See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
+
+### Added
+
+- [adaptiveLighting]: Added support for **Apple Home Adaptive Lighting**. Also fix https://github.com/Luligu/matterbridge-hass/issues/91.
+- [transition]: Added support for **transitionTime** in command handler.
+- [converters]: Added convertMatterXYToHA and convertHAXYToMatter converters.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Automator: update package v. 2.0.6.
+- [jest]: Updated jest helper module to v. 1.0.5.
+- [workflows]: Ignore any .md anywhere.
+
+### Fixed
+
+- [update]: The attributes update is skipped when state is off only for the domains light and fan (https://github.com/Luligu/matterbridge-hass/issues/93).
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.4.1] - 2025-09-06
 
 ### Breaking changes
 
-See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
+See the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 ### Added
 

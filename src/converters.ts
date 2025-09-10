@@ -155,6 +155,46 @@ export function aqi(value: number | string, _unit?: string): number | null {
   return null;
 }
 
+/**
+ * Converts Matter currentX/currentY to Home Assistant xy_color format.
+ * It clamps the input values to the range [0, 65279] and normalizes them to [0.0, 1.0].
+ *
+ * @param {number} currentX - The current X value (range 0–65279).
+ * @param {number} currentY - The current Y value (range 0–65279).
+ * @returns {[number, number]} - Normalized xy_color tuple for Home Assistant.
+ */
+export function convertMatterXYToHA(currentX: number, currentY: number): [number, number] {
+  const SCALE = 65536;
+  const MAX = 65279;
+  const MIN = 0;
+  // Clamp input values to [0, 65279]
+  const safeX = Math.max(MIN, Math.min(currentX, MAX));
+  const safeY = Math.max(MIN, Math.min(currentY, MAX));
+  const x = parseFloat((safeX / SCALE).toFixed(4));
+  const y = parseFloat((safeY / SCALE).toFixed(4));
+  return [x, y];
+}
+
+/**
+ * Converts Home Assistant xy_color to Matter currentX/currentY format.
+ * It clamps the input values to the range [0.0, 1.0] and scales them to the Matter range [0, 65279].
+ *
+ * @param {[number, number]} xyColor - Normalized xy_color tuple (range 0.0–1.0).
+ * @returns {{ currentX: number, currentY: number }} - Scaled Matter values.
+ */
+export function convertHAXYToMatter(xyColor: [number, number]): { currentX: number; currentY: number } {
+  const SCALE = 65536;
+  const MAX_MATTER_VALUE = 65279;
+  // Clamp xyColor values to [0, 1]
+  const safeX = Math.max(0, Math.min(xyColor[0], 1));
+  const safeY = Math.max(0, Math.min(xyColor[1], 1));
+  const rawX = Math.round(safeX * SCALE);
+  const rawY = Math.round(safeY * SCALE);
+  const currentX = Math.min(rawX, MAX_MATTER_VALUE);
+  const currentY = Math.min(rawY, MAX_MATTER_VALUE);
+  return { currentX, currentY };
+}
+
 /** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
@@ -340,7 +380,7 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'moveToLevel',             domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
     { command: 'moveToLevelWithOnOff',    domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
     { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request) => { return { color_temp: request.colorTemperatureMireds } } },
-    { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request) => { return { xy_color: [request.colorX, request.colorY] } } },
+    { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request) => { return { xy_color: [Math.round((request.colorX / 65535) * 10000) / 10000, Math.round((request.colorY / 65535) * 10000) / 10000] } } },
     { command: 'moveToHue',               domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
     { command: 'moveToSaturation',        domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
     { command: 'moveToHueAndSaturation',  domain: 'light', service: 'turn_on', converter: (request) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
