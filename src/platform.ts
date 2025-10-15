@@ -756,6 +756,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
+      if (domain === 'cover') {
+        // special case for cover, when goToLiftPercentage is called with 0, we need to call the open service
+        // and when called with 10000 we need to call the close service
+        // doing this allow to be compatible with cover not implementing the set_cover_position service
+        if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 10000) {
+          await this.ha.callService(hassCommand.domain, 'close_cover', entityId);
+          return
+
+        } else if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 0) {
+          await this.ha.callService(hassCommand.domain, 'open_cover', entityId);
+          return;
+        }
+      }
       if (domain === 'light') {
         const state = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff');
         if (['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command) && state === false) {
