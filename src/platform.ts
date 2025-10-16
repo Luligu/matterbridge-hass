@@ -21,6 +21,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable jsdoc/reject-any-type */
 
 // Node.js imports
 import path from 'node:path';
