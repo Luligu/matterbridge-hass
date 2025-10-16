@@ -50,8 +50,6 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [package]: Updated dependencies.
 - [cover]: When goToLiftPercentage is called with 0, we call the open service and when called with 10000 we call the close service. (https://github.com/Luligu/matterbridge-hass/pull/106)
 
-### Fixed
-
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>
