@@ -29,16 +29,24 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [0.4.3] - 2025-09-??
-
-### Breaking changes
-
-See the breaking changes of the releases 0.4.2, 0.4.0 and 0.3.0 please.
+## [0.4.3] - 2025-10-16
 
 ### Added
 
+- [package]: Requires matterbridge v. 3.3.0.
+- [package]: Update to matterbridge v. 3.3.0 new platform signature.
+
 ### Changed
 
+- [package]: Bumped package to automator version 2.0.7
+- [workflows]: Ignore any .md in build.yaml.
+- [workflows]: Ignore any .md in codeql.yaml.
+- [workflows]: Ignore any .md in codecov.yaml.
+- [template]: Updated bug_report.md.
+- [jest]: Updated jestHelpers to v. 1.0.7.
+- [workflows]: Improved speed on Node CI.
+- [devcontainer]: Added the plugin name to the container.
+- [devcontainer]: Improved performance of first build with shallow clone.
 - [package]: Updated dependencies.
 
 ### Fixed

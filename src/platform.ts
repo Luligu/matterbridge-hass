@@ -28,7 +28,6 @@ import { promises as fs } from 'node:fs';
 
 // matterbridge imports
 import {
-  Matterbridge,
   PlatformConfig,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
@@ -37,6 +36,7 @@ import {
   powerSource,
   PrimitiveTypes,
   electricalSensor,
+  PlatformMatterbridge,
 } from 'matterbridge';
 import { ActionContext } from 'matterbridge/matter';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
@@ -117,17 +117,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * Constructor for the HomeAssistantPlatform class.
    * It initializes the platform, verifies the Matterbridge version, and sets up the Home Assistant connection.
    *
-   * @param {Matterbridge} matterbridge - The Matterbridge instance.
+   * @param {PlatformMatterbridge} matterbridge - The Matterbridge instance.
    * @param {AnsiLogger} log - The logger instance.
    * @param {PlatformConfig} config - The platform configuration.
    */
-  constructor(matterbridge: Matterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig) {
+  constructor(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig) {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.2.4')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.3.0')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.2.4". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "3.3.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 

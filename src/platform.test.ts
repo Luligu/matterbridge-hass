@@ -79,7 +79,7 @@ describe('HassPlatform', () => {
       nodeVersion: '22.1.10',
     },
     log: mockLog,
-    matterbridgeVersion: '3.2.4',
+    matterbridgeVersion: '3.3.0',
     getDevices: jest.fn(() => []),
     getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
@@ -87,7 +87,7 @@ describe('HassPlatform', () => {
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
   } as unknown as Matterbridge;
 
-  const mockConfig = {
+  const mockConfig: HomeAssistantPlatformConfig = {
     name: 'matterbridge-hass',
     type: 'DynamicPlatform',
     version: '1.0.0',
@@ -111,7 +111,7 @@ describe('HassPlatform', () => {
     enableServerRvc: false,
     debug: false,
     unregisterOnShutdown: false,
-  } as HomeAssistantPlatformConfig;
+  };
 
   const mockData = readMockHomeAssistantFile();
   if (!mockData) {

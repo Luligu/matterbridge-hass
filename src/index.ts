@@ -20,7 +20,7 @@
  * limitations under the License.
  */
 
-import { Matterbridge } from 'matterbridge';
+import { PlatformMatterbridge } from 'matterbridge';
 import { AnsiLogger } from 'matterbridge/logger';
 
 import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './platform.js';
@@ -29,12 +29,12 @@ import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './platform.j
  * This is the standard interface for Matterbridge plugins.
  * Each plugin should export a default function that follows this signature.
  *
- * @param {Matterbridge} matterbridge - An instance of MatterBridge. This is the main interface for interacting with the MatterBridge system.
+ * @param {PlatformMatterbridge} matterbridge - An instance of MatterBridge. This is the main interface for interacting with the MatterBridge system.
  * @param {AnsiLogger} log - An instance of AnsiLogger. This is used for logging messages in a format that can be displayed with ANSI color codes.
  * @param {HomeAssistantPlatformConfig} config - The HomeAssistantPlatform platform configuration.
  *
  * @returns {HomeAssistantPlatform} - An instance of the HomeAssistantPlatform. This is the main interface for interacting with Home Assistant.
  */
-export default function initializePlugin(matterbridge: Matterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig): HomeAssistantPlatform {
+export default function initializePlugin(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig): HomeAssistantPlatform {
   return new HomeAssistantPlatform(matterbridge, log, config);
 }

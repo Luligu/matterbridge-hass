@@ -5,14 +5,13 @@ const NAME = 'Index';
 const HOMEDIR = path.join('jest', NAME);
 
 import path from 'node:path';
-import { rmSync } from 'node:fs';
 
 import { jest } from '@jest/globals';
-import { type Matterbridge, MatterbridgeEndpoint, PlatformConfig } from 'matterbridge';
+import { type Matterbridge, MatterbridgeEndpoint } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, LogLevel, idn, TimestampFormat } from 'matterbridge/logger';
 
 import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './platform.js';
-import { consoleDebugSpy, consoleErrorSpy, consoleInfoSpy, consoleLogSpy, consoleWarnSpy, loggerLogSpy, setDebug, setupTest } from './jestHelpers.js';
+import { loggerLogSpy, setupTest } from './jestHelpers.js';
 
 import initializePlugin from './index.js';
 
@@ -39,7 +38,7 @@ describe('initializePlugin', () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.2.4',
+    matterbridgeVersion: '3.3.0',
     log,
     getDevices: jest.fn(() => []),
     getPlugins: jest.fn(() => []),
@@ -48,7 +47,7 @@ describe('initializePlugin', () => {
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
   } as unknown as Matterbridge;
 
-  const mockConfig = {
+  const mockConfig: HomeAssistantPlatformConfig = {
     name: 'matterbridge-hass',
     type: 'DynamicPlatform',
     version: '1.0.0',
@@ -72,7 +71,7 @@ describe('initializePlugin', () => {
     enableServerRvc: false,
     debug: false,
     unregisterOnShutdown: false,
-  } as HomeAssistantPlatformConfig;
+  };
 
   let platform: HomeAssistantPlatform;
 

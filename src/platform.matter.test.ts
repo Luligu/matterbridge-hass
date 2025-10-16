@@ -160,7 +160,7 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.2.4',
+    matterbridgeVersion: '3.3.0',
     log: mockLog,
     getDevices: jest.fn(() => {
       return [];
@@ -175,7 +175,7 @@ describe('Matterbridge ' + NAME, () => {
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
   } as unknown as Matterbridge;
 
-  const mockConfig = {
+  const mockConfig: HomeAssistantPlatformConfig = {
     name: 'matterbridge-hass',
     type: 'DynamicPlatform',
     version: '1.0.0',
@@ -199,7 +199,7 @@ describe('Matterbridge ' + NAME, () => {
     enableServerRvc: false,
     debug: false,
     unregisterOnShutdown: false,
-  } as HomeAssistantPlatformConfig;
+  };
 
   beforeAll(async () => {});
 
