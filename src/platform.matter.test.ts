@@ -233,8 +233,10 @@ describe('Matterbridge ' + NAME, () => {
 
     // Clean the platform environment
     await haPlatform.clearSelect();
-    (haPlatform as any)._registeredEndpoints.clear();
-    (haPlatform as any)._registeredEndpointsByName.clear();
+    // @ts-expect-error accessing private member for testing
+    haPlatform.registeredEndpointsByUniqueId.clear();
+    // @ts-expect-error accessing private member for testing
+    haPlatform.registeredEndpointsByName.clear();
   }
 
   test('create and start the server node', async () => {
@@ -1731,14 +1733,17 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a not changed in fan mode and call the event handler
     await device.act((agent) =>
+      // @ts-expect-error not typed agent
       agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Auto, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
     );
     // Simulate a change in fan mode and call the event handler
     await device.act((agent) =>
+      // @ts-expect-error not typed agent
       agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Cool, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
     );
     // Simulate a change in fan mode and call the event handler with wrong parameter
     await device.act((agent) =>
+      // @ts-expect-error not typed agent
       agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Heat + 1, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
     );
 
@@ -2890,6 +2895,10 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(true);
 
+    // @ts-expect-error accessing private member for testing
+    await haPlatform.checkEndpointNumbers();
+    jest.clearAllMocks();
+
     await haPlatform.onStart('Test reason');
     await flushAsync(1, 1, 0); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
@@ -2913,7 +2922,10 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.ERROR, expect.anything());
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.FATAL, expect.anything());
 
+    // @ts-expect-error accessing private member for testing
+    await haPlatform.checkEndpointNumbers();
     jest.clearAllMocks();
+
     haPlatform.batteryVoltageEntities.clear();
     haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually
     await haPlatform.onConfigure();
@@ -3074,6 +3086,9 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.config.splitEntities = [...entities.map(([e]) => e.entity_id)];
 
     // setDebug(true);
+    // @ts-expect-error accessing private member for testing
+    await haPlatform.checkEndpointNumbers();
+    jest.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
     await flushAsync(1, 1, 0); // ensure all split entity devices created
@@ -3098,6 +3113,8 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.ERROR, expect.anything());
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.FATAL, expect.anything());
 
+    // @ts-expect-error accessing private member for testing
+    await haPlatform.checkEndpointNumbers();
     jest.clearAllMocks();
     haPlatform.batteryVoltageEntities.clear();
     haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually

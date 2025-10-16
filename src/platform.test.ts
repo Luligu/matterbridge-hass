@@ -828,11 +828,13 @@ describe('HassPlatform', () => {
       state: 'off',
     } as HassState;
     haPlatform.ha.hassStates.set(entity.entity_id, state);
-    (haPlatform as any)._registeredEndpointsByName.set(entity.name, entity);
+    // @ts-expect-error accessing private member for testing
+    haPlatform.registeredEndpointsByName.set(entity.name, entity);
     await haPlatform.onStart('Test reason');
 
     expect(mockLog.warn).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
-    (haPlatform as any)._registeredEndpointsByName.delete(entity.name);
+    // @ts-expect-error accessing private member for testing
+    haPlatform.registeredEndpointsByName.delete(entity.name);
   });
 
   it('should register a Scene entity', async () => {
@@ -1206,14 +1208,16 @@ describe('HassPlatform', () => {
     for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
     for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
-    (haPlatform as any)._registeredEndpointsByName.set(device.name, device);
+    // @ts-expect-error accessing private member for testing
+    haPlatform.registeredEndpointsByName.set(device.name, device);
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
 
     expect(mockLog.warn).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
 
-    (haPlatform as any)._registeredEndpointsByName.delete(device.name);
+    // @ts-expect-error accessing private member for testing
+    haPlatform.registeredEndpointsByName.delete(device.name);
   });
 
   it('should not register a Switch device if has no state', async () => {
