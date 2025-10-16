@@ -21,6 +21,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable jsdoc/reject-function-type */
 
 import { colorTemperatureLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
 import { isValidArray, isValidString } from 'matterbridge/utils';

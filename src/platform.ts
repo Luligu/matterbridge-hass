@@ -21,6 +21,7 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable jsdoc/reject-any-type */
 
 // Node.js imports
 import path from 'node:path';
@@ -28,7 +29,6 @@ import { promises as fs } from 'node:fs';
 
 // matterbridge imports
 import {
-  Matterbridge,
   PlatformConfig,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
@@ -37,6 +37,7 @@ import {
   powerSource,
   PrimitiveTypes,
   electricalSensor,
+  PlatformMatterbridge,
 } from 'matterbridge';
 import { ActionContext } from 'matterbridge/matter';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
@@ -117,17 +118,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * Constructor for the HomeAssistantPlatform class.
    * It initializes the platform, verifies the Matterbridge version, and sets up the Home Assistant connection.
    *
-   * @param {Matterbridge} matterbridge - The Matterbridge instance.
+   * @param {PlatformMatterbridge} matterbridge - The Matterbridge instance.
    * @param {AnsiLogger} log - The logger instance.
    * @param {PlatformConfig} config - The platform configuration.
    */
-  constructor(matterbridge: Matterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig) {
+  constructor(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig) {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.2.4')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.3.0')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.2.4". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "3.3.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
@@ -756,7 +757,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
+      if (domain === 'cover') {
+        // Special handling for cover goToLiftPercentage command. When goToLiftPercentage is called with 0, we may call the open service and when called with 10000 we may call the close service.
+        // This allows to support also covers not supporting the set_cover_position service.
+        if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 10000) {
+          await this.ha.callService(hassCommand.domain, 'close_cover', entityId);
+          return;
+        } else if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 0) {
+          await this.ha.callService(hassCommand.domain, 'open_cover', entityId);
+          return;
+        }
+      }
       if (domain === 'light') {
+        // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
         const state = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff');
         if (['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command) && state === false) {
           data.endpoint.log.debug(
@@ -764,12 +777,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
-        if (command === 'moveToLevelWithOnOff' && data.request['level'] === (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
+        if (command === 'moveToLevelWithOnOff' && data.request['level'] <= (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
           data.endpoint.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received with level = minLevel => turn off the light`,
           );
           await this.ha.callService('light', 'turn_off', entityId);
-          return; // Turn off the light if level = 1
+          return; // Turn off the light if level <= minLevel
         }
         if (
           command === 'on' ||
@@ -780,7 +793,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes`,
           );
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
-          // We need to add the cluster attributes if we are turning on the light and it was off
+          // We need to add the cluster attributes since we are turning on the light and it was off
           const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
             ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
             : undefined;

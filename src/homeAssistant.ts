@@ -19,6 +19,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/* eslint-disable jsdoc/reject-any-type */
 
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';

@@ -380,7 +380,7 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'moveToLevel',             domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
     { command: 'moveToLevelWithOnOff',    domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
     { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request) => { return { color_temp: request.colorTemperatureMireds } } },
-    { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request) => { return { xy_color: [Math.round((request.colorX / 65535) * 10000) / 10000, Math.round((request.colorY / 65535) * 10000) / 10000] } } },
+    { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request) => { return { xy_color: convertMatterXYToHA(request.colorX, request.colorY) } } },
     { command: 'moveToHue',               domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
     { command: 'moveToSaturation',        domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
     { command: 'moveToHueAndSaturation',  domain: 'light', service: 'turn_on', converter: (request) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },

@@ -22,12 +22,37 @@ If you like this project and find it useful, please consider giving it a star on
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
 - add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
 - add water heater domain (requested by Ludovic BOUÉ).
-- add event domain.
 - add media_player domain (requested by Tamer).
+- add event domain.
 
 ### Naming issues explained
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## [0.4.3] - 2025-10-16
+
+### Added
+
+- [package]: Requires matterbridge v. 3.3.0.
+- [package]: Update to matterbridge v. 3.3.0 new platform signature.
+
+### Changed
+
+- [package]: Bumped package to automator version 2.0.7
+- [workflows]: Ignore any .md in build.yaml.
+- [workflows]: Ignore any .md in codeql.yaml.
+- [workflows]: Ignore any .md in codecov.yaml.
+- [template]: Updated bug_report.md.
+- [jest]: Updated jestHelpers to v. 1.0.7.
+- [workflows]: Improved speed on Node CI.
+- [devcontainer]: Added the plugin name to the container.
+- [devcontainer]: Improved performance of first build with shallow clone.
+- [package]: Updated dependencies.
+- [cover]: When goToLiftPercentage is called with 0, we call the open service and when called with 10000 we call the close service. (https://github.com/Luligu/matterbridge-hass/pull/106)
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
 
 ## [0.4.2] - 2025-09-09
 

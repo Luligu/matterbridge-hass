@@ -3,7 +3,7 @@
  * @file src/helpers.test.ts
  * @author Luca Liguori
  * @created 2025-09-03
- * @version 1.0.5
+ * @version 1.0.7
  * @license Apache-2.0
  *
  * Copyright 2025, 2026, 2027 Luca Liguori.
@@ -49,6 +49,7 @@ import {
 } from 'matterbridge/matter';
 import { RootEndpoint, AggregatorEndpoint } from 'matterbridge/matter/endpoints';
 import { AnsiLogger } from 'matterbridge/logger';
+import { MATTER_STORAGE_NAME, Matterbridge } from 'matterbridge';
 
 export let loggerLogSpy: jest.SpiedFunction<typeof AnsiLogger.prototype.log>;
 export let consoleLogSpy: jest.SpiedFunction<typeof console.log>;
@@ -147,10 +148,139 @@ export function createTestEnvironment(homeDir: string): Environment {
   const environment = Environment.default;
   environment.vars.set('log.level', MatterLogLevel.DEBUG);
   environment.vars.set('log.format', MatterLogFormat.ANSI);
-  environment.vars.set('path.root', homeDir);
+  environment.vars.set('path.root', path.join(homeDir, '.matterbridge', MATTER_STORAGE_NAME));
   environment.vars.set('runtime.signals', false);
   environment.vars.set('runtime.exitcode', false);
   return environment;
+}
+
+/**
+ * Create a Matterbridge instance for testing without initializing it.
+ *
+ * @param {string} homeDir Home directory for the Matterbridge instance.
+ * @returns {Promise<Matterbridge>} The Matterbridge instance.
+ */
+export async function createMatterbridgeEnvironment(homeDir: string): Promise<Matterbridge> {
+  // Create a MatterbridgeEdge instance
+  const matterbridge = await Matterbridge.loadInstance(false);
+  expect(matterbridge).toBeDefined();
+  expect(matterbridge).toBeInstanceOf(Matterbridge);
+  matterbridge.rootDirectory = homeDir;
+  matterbridge.homeDirectory = path.join(homeDir);
+  matterbridge.matterbridgeDirectory = path.join(homeDir, '.matterbridge');
+  matterbridge.matterbridgePluginDirectory = path.join(homeDir, 'Matterbridge');
+  matterbridge.matterbridgeCertDirectory = path.join(homeDir, '.mattercert');
+
+  // Setup matter environment
+  // @ts-expect-error - access to private member for testing
+  matterbridge.environment = createTestEnvironment(homeDir);
+  // @ts-expect-error - access to private member for testing
+  expect(matterbridge.environment).toBeDefined();
+  // @ts-expect-error - access to private member for testing
+  expect(matterbridge.environment).toBeInstanceOf(Environment);
+  return matterbridge;
+}
+
+/**
+ * Start the matterbridge environment
+ *
+ * @param {Matterbridge} matterbridge The Matterbridge instance to start.
+ * @returns {Promise<[ServerNode<ServerNode.RootEndpoint>, Endpoint<AggregatorEndpoint>]>} The started server and aggregator.
+ */
+export async function startMatterbridgeEnvironment(matterbridge: Matterbridge): Promise<[ServerNode<ServerNode.RootEndpoint>, Endpoint<AggregatorEndpoint>]> {
+  // @ts-expect-error - access to private member for testing
+  await matterbridge.startMatterStorage();
+  expect(matterbridge.matterStorageService).toBeDefined();
+  expect(matterbridge.matterStorageManager).toBeDefined();
+  expect(matterbridge.matterbridgeContext).toBeDefined();
+
+  // @ts-expect-error - access to private member for testing
+  const server = await matterbridge.createServerNode(matterbridge.matterbridgeContext);
+  expect(server).toBeDefined();
+  expect(server).toBeDefined();
+  expect(server.lifecycle.isReady).toBeTruthy();
+
+  // @ts-expect-error - access to private member for testing
+  const aggregator = await matterbridge.createAggregatorNode(matterbridge.matterbridgeContext);
+  expect(aggregator).toBeDefined();
+
+  expect(await server.add(aggregator)).toBeDefined();
+  expect(server.parts.has(aggregator.id)).toBeTruthy();
+  expect(server.parts.has(aggregator)).toBeTruthy();
+  expect(aggregator.lifecycle.isReady).toBeTruthy();
+
+  // Wait for the server to be online
+  expect(server.lifecycle.isOnline).toBeFalsy();
+  await new Promise<void>((resolve) => {
+    server.lifecycle.online.on(async () => {
+      resolve();
+    });
+    server.start();
+  });
+
+  // Check if the server is online
+  expect(server.lifecycle.isReady).toBeTruthy();
+  expect(server.lifecycle.isOnline).toBeTruthy();
+  expect(server.lifecycle.isCommissioned).toBeFalsy();
+  expect(server.lifecycle.isPartsReady).toBeTruthy();
+  expect(server.lifecycle.hasId).toBeTruthy();
+  expect(server.lifecycle.hasNumber).toBeTruthy();
+  expect(aggregator.lifecycle.isReady).toBeTruthy();
+  expect(aggregator.lifecycle.isInstalled).toBeTruthy();
+  expect(aggregator.lifecycle.isPartsReady).toBeTruthy();
+  expect(aggregator.lifecycle.hasId).toBeTruthy();
+  expect(aggregator.lifecycle.hasNumber).toBeTruthy();
+
+  // Ensure the queue is empty and pause 500ms
+  await flushAsync(undefined, undefined, 500);
+
+  return [server, aggregator];
+}
+
+/**
+ * Stop the matterbridge environment
+ *
+ * @param {Matterbridge} matterbridge The Matterbridge instance to stop.
+ * @param {ServerNode<ServerNode.RootEndpoint>} server The server node to stop.
+ * @param {Endpoint<AggregatorEndpoint>} aggregator The aggregator endpoint to stop.
+ */
+export async function stopMatterbridgeEnvironment(
+  matterbridge: Matterbridge,
+  server: ServerNode<ServerNode.RootEndpoint>,
+  aggregator: Endpoint<AggregatorEndpoint>,
+): Promise<void> {
+  expect(matterbridge).toBeDefined();
+  expect(server).toBeDefined();
+  expect(aggregator).toBeDefined();
+
+  // Flush any pending endpoint number persistence
+  await flushAllEndpointNumberPersistence(server);
+
+  // Ensure all endpoint numbers are persisted
+  await assertAllEndpointNumbersPersisted(server);
+
+  // Close the server node
+  expect(server.lifecycle.isReady).toBeTruthy();
+  expect(server.lifecycle.isOnline).toBeTruthy();
+  await server.close();
+  expect(server.lifecycle.isReady).toBeTruthy();
+  expect(server.lifecycle.isOnline).toBeFalsy();
+
+  // stop the mDNS service
+  await server.env.get(MdnsService)[Symbol.asyncDispose]();
+
+  // Ensure the queue is empty and pause 500ms
+  await flushAsync(undefined, undefined, 500);
+
+  // Stop the matter storage
+  // @ts-expect-error - access to private member for testing
+  await matterbridge.stopMatterStorage();
+  expect(matterbridge.matterStorageService).not.toBeDefined();
+  expect(matterbridge.matterStorageManager).not.toBeDefined();
+  expect(matterbridge.matterbridgeContext).not.toBeDefined();
+
+  // Close the Matterbridge instance
+  await matterbridge.destroyInstance(10);
 }
 
 /**
@@ -314,7 +444,7 @@ export async function startServerNode(name: string, port: number): Promise<[Serv
   expect(aggregator.lifecycle.hasNumber).toBeTruthy();
 
   // Ensure the queue is empty and pause 100ms
-  await flushAsync();
+  await flushAsync(undefined, undefined, 200);
 
   return [server, aggregator];
 }
@@ -344,7 +474,7 @@ export async function stopServerNode(server: ServerNode<ServerNode.RootEndpoint>
   await server.env.get(MdnsService)[Symbol.asyncDispose]();
 
   // Ensure the queue is empty and pause 100ms
-  await flushAsync();
+  await flushAsync(undefined, undefined, 200);
 }
 
 /**
