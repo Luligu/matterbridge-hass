@@ -8,7 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { bridgedNode, colorTemperatureLight, dimmableOutlet, Matterbridge, MatterbridgeEndpoint } from 'matterbridge';
+import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, Matterbridge, MatterbridgeEndpoint } from 'matterbridge';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
 import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or, TimestampFormat } from 'matterbridge/logger';
@@ -435,6 +435,10 @@ describe('HassPlatform', () => {
     expect(child3).toBeDefined();
     child3.number = EndpointNumber(3);
 
+    const child4 = device.addChildDeviceTypeWithClusterServer('cover.cover_cover_4', [coverDevice], [], { endpointId: EndpointNumber(4) });
+    expect(child4).toBeDefined();
+    child4.number = EndpointNumber(4);
+
     jest.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child1, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_1', 'on');
     expect(loggerLogSpy).toHaveBeenCalledWith(
@@ -504,6 +508,22 @@ describe('HassPlatform', () => {
       'moveToHueAndSaturation',
     );
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
+
+    jest.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: child4, request: { liftPercent100thsValue: 0 }, cluster: 'windowCovering', attributes: {} },
+      'cover.cover_cover_4',
+      'goToLiftPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'open_cover', 'cover.cover_cover_4');
+
+    jest.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: child4, request: { liftPercent100thsValue: 10000 }, cluster: 'windowCovering', attributes: {} },
+      'cover.cover_cover_4',
+      'goToLiftPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'close_cover', 'cover.cover_cover_4');
 
     callServiceSpy.mockClear();
     await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_2', 'unknown');

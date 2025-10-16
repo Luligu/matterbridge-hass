@@ -756,7 +756,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
+      if (domain === 'cover') {
+        // Special handling for cover goToLiftPercentage command. When goToLiftPercentage is called with 0, we may call the open service and when called with 10000 we may call the close service.
+        // This allows to support also covers not supporting the set_cover_position service.
+        if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 10000) {
+          await this.ha.callService(hassCommand.domain, 'close_cover', entityId);
+          return;
+        } else if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 0) {
+          await this.ha.callService(hassCommand.domain, 'open_cover', entityId);
+          return;
+        }
+      }
       if (domain === 'light') {
+        // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
         const state = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff');
         if (['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command) && state === false) {
           data.endpoint.log.debug(
@@ -780,7 +792,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes`,
           );
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
-          // We need to add the cluster attributes if we are turning on the light and it was off
+          // We need to add the cluster attributes since we are turning on the light and it was off
           const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
             ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
             : undefined;

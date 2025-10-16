@@ -22,8 +22,8 @@ If you like this project and find it useful, please consider giving it a star on
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
 - add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
 - add water heater domain (requested by Ludovic BOUÉ).
-- add event domain.
 - add media_player domain (requested by Tamer).
+- add event domain.
 
 ### Naming issues explained
 
@@ -48,6 +48,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [devcontainer]: Added the plugin name to the container.
 - [devcontainer]: Improved performance of first build with shallow clone.
 - [package]: Updated dependencies.
+- [cover]: When goToLiftPercentage is called with 0, we call the open service and when called with 10000 we call the close service. (https://github.com/Luligu/matterbridge-hass/pull/106)
 
 ### Fixed
 
