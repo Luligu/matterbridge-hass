@@ -63,7 +63,7 @@ import {
   consoleWarnSpy,
   loggerLogSpy,
   setDebug,
-} from './jestHelpers.js';
+} from './utils/jestHelpers.js';
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);

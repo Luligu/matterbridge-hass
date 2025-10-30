@@ -86,7 +86,7 @@
     "npmPublishTagDev": "npx shx cp package.json package.json.backup && npm run prepublishOnly && npm publish --tag dev && npx shx cp package.json.backup package.json && npx shx rm -rf package.json.backup && npm run reset",
     "npmPublishTagEdge": "npx shx cp package.json package.json.backup && npm run prepublishOnly && npm publish --tag edge && npx shx cp package.json.backup package.json && npx shx rm -rf package.json.backup && npm run reset",
     "npmPublishTagLatest": "npx shx cp package.json package.json.backup && npm run prepublishOnly && npm publish --tag latest && npx shx cp package.json.backup package.json && npx shx rm -rf package.json.backup && npm run reset",
-    "install:dependencies": "npm install --save-exact node-ansi-logger node-persist-manager ws && npm install --save-dev --save-exact @types/ws npm-check-updates shx",
+    "install:dependencies": "npm install --save-exact node-ansi-logger node-persist-manager ws && npm install --save-dev --save-exact @types/ws",
     "install:scripts": "npm install --save-dev --save-exact npm-check-updates shx",
     "install:typescript": "npm install --save-dev --save-exact typescript @types/node",
     "install:eslint": "npm install --save-dev --save-exact @eslint/js typescript-eslint eslint-plugin-import eslint-plugin-n eslint-plugin-promise eslint-plugin-jsdoc",

@@ -33,13 +33,16 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Added
 
-- [config]: Added sanity check for old configs.
+- [config]: Added sanity check for old configs. The user should open the config and save it each major or minor upgrade.
 
 ### Changed
 
 - [platform]: Bumped platform to v.1.6.0.
 - [config]: Update default config.
 - [schema]: Clarified applyFiltersToDeviceEntities use.
+- [package]: Bumped package to automator v. 2.0.10.
+- [jest]: Updated jestHelpers to v. 1.0.10.
+- [workflows]: Use shallow clones for faster builds.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

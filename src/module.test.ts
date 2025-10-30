@@ -19,7 +19,7 @@ import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMea
 import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment } from './jestHelpers.js';
+import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment } from './utils/jestHelpers.js';
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
