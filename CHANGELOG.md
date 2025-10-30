@@ -44,6 +44,10 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [jest]: Updated jestHelpers to v. 1.0.10.
 - [workflows]: Use shallow clones for faster builds.
 
+### Fixed
+
+- [fan]: Fixed wrong detection of direction and oscillating attributes.
+
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
 </a>

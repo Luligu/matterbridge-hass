@@ -24,7 +24,7 @@
 /* eslint-disable jsdoc/reject-function-type */
 
 import { colorTemperatureLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
-import { isValidArray, isValidString } from 'matterbridge/utils';
+import { isValidArray, isValidBoolean, isValidString } from 'matterbridge/utils';
 import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
 import { ActionContext } from 'matterbridge/matter';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
@@ -136,7 +136,7 @@ export function addControlEntity(
   // prettier-ignore
   if (domain === 'fan') {
     log.debug(`= fanControl device ${CYAN}${entity.entity_id}${db} preset_modes: ${CYAN}${state.attributes['preset_modes']}${db} direction: ${CYAN}${state.attributes['direction']}${db} oscillating: ${CYAN}${state.attributes['oscillating']}${db}`);
-    if (state.attributes['direction'] || state.attributes['oscillating']) {
+    if (isValidString(state.attributes['direction']) || isValidBoolean(state.attributes['oscillating'])) {
       mutableDevice.addClusterServerCompleteFanControl(endpointName);
     }
   }
