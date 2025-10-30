@@ -29,6 +29,22 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [0.5.0] - 2025-10-30
+
+### Added
+
+- [config]: Added sanity check for old configs.
+
+### Changed
+
+- [platform]: Bumped platform to v.1.6.0.
+- [config]: Update default config.
+- [schema]: Clarified applyFiltersToDeviceEntities use.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.4.3] - 2025-10-16
 
 ### Added

@@ -1,9 +1,9 @@
 /**
  * @description This file contains the class HomeAssistantPlatform.
- * @file src\platform.ts
+ * @file src\module.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.5.0
+ * @version 1.6.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -41,7 +41,7 @@ import {
 } from 'matterbridge';
 import { ActionContext } from 'matterbridge/matter';
 import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
-import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidString, waiter } from 'matterbridge/utils';
+import { deepEqual, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorControl } from 'matterbridge/matter/clusters';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
@@ -79,8 +79,20 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   postfix: string;
   airQualityRegex: string;
   enableServerRvc: boolean;
-  debug: boolean;
-  unregisterOnShutdown: boolean;
+}
+
+/**
+ * This is the standard interface for Matterbridge plugins.
+ * Each plugin should export a default function that follows this signature.
+ *
+ * @param {PlatformMatterbridge} matterbridge - An instance of MatterBridge. This is the main interface for interacting with the MatterBridge system.
+ * @param {AnsiLogger} log - An instance of AnsiLogger. This is used for logging messages in a format that can be displayed with ANSI color codes.
+ * @param {HomeAssistantPlatformConfig} config - The HomeAssistantPlatform platform configuration.
+ *
+ * @returns {HomeAssistantPlatform} - An instance of the HomeAssistantPlatform. This is the main interface for interacting with Home Assistant.
+ */
+export default function initializePlugin(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig): HomeAssistantPlatform {
+  return new HomeAssistantPlatform(matterbridge, log, config);
 }
 
 /**
@@ -138,28 +150,28 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       throw new Error('Host and token must be defined in the configuration');
     }
 
+    // Set the default values for the config for old versions of it
+    this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : '';
+    this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : true;
+    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 30) ? config.reconnectTimeout : 60;
+    this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : 10;
+    this.config.filterByArea = isValidString(this.config.filterByArea, 1) ? this.config.filterByArea : '';
+    this.config.filterByLabel = isValidString(this.config.filterByLabel, 1) ? this.config.filterByLabel : '';
+    this.config.applyFiltersToDeviceEntities = isValidBoolean(this.config.applyFiltersToDeviceEntities) ? this.config.applyFiltersToDeviceEntities : false;
+    this.config.whiteList = isValidArray(this.config.whiteList, 1) ? this.config.whiteList : [];
+    this.config.blackList = isValidArray(this.config.blackList, 1) ? this.config.blackList : [];
+    this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
+    this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
+    this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
     this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
     this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
-    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 30) ? config.reconnectTimeout : undefined;
-    this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : undefined;
-    this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : undefined;
-    this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : undefined;
-    this.config.enableServerRvc = this.config.enableServerRvc === undefined ? true : this.config.enableServerRvc;
-    this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
-    if (config.individualEntityWhiteList) delete config.individualEntityWhiteList;
-    if (config.individualEntityBlackList) delete config.individualEntityBlackList;
+    this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
+    this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
 
     // Initialize air quality regex from config or use default
     this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex as string | undefined);
 
-    this.ha = new HomeAssistant(
-      config.host,
-      config.token,
-      config.reconnectTimeout as number | undefined,
-      config.reconnectRetries as number | undefined,
-      config.certificatePath as string | undefined,
-      config.rejectUnauthorized as boolean | undefined,
-    );
+    this.ha = new HomeAssistant(config.host, config.token, config.reconnectTimeout, config.reconnectRetries, config.certificatePath, config.rejectUnauthorized);
 
     this.ha.on('connected', async (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);

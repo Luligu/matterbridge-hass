@@ -1,11 +1,10 @@
-// src\platform.matter.test.ts
+// src\module.matter.test.ts
 
-// Constants (after imports to avoid early reference to path)
+/* eslint-disable no-console */
+
 const MATTER_PORT = 6001;
 const NAME = 'PlatformMatter';
 const HOMEDIR = path.join('jest', NAME);
-
-/* eslint-disable no-console */
 
 import path from 'node:path';
 
@@ -48,7 +47,7 @@ import {
 } from 'matterbridge/matter/clusters';
 
 // Home Assistant Plugin
-import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './platform.js';
+import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
