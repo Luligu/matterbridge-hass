@@ -89,6 +89,50 @@ import {
 import { HassState, HomeAssistant } from './homeAssistant.js';
 
 /**
+ * Converts mireds to kelvin.
+ *
+ * @param {number} mired - The mired value to convert.
+ * @param {'floor' | 'ceil'} round - The rounding method to use (optional).
+ * @returns {number} The converted kelvin value.
+ *
+ * @remarks
+ * HomeAssistant uses always floor.
+ */
+export function miredsToKelvin(mired: number, round?: 'floor' | 'ceil'): number {
+  if (round === 'floor') return Math.floor(1000000 / mired);
+  else if (round === 'ceil') return Math.ceil(1000000 / mired);
+  else return Math.round(1000000 / mired);
+}
+
+/**
+ * Converts kelvin to mireds.
+ *
+ * @param {number} kelvin - The kelvin value to convert.
+ * @param {'floor' | 'ceil'} round - The rounding method to use (optional).
+ * @returns {number} The converted mired value.
+ *
+ * @remarks
+ * HomeAssistant uses always floor.
+ */
+export function kelvinToMireds(kelvin: number, round?: 'floor' | 'ceil'): number {
+  if (round === 'floor') return Math.floor(1000000 / kelvin);
+  else if (round === 'ceil') return Math.ceil(1000000 / kelvin);
+  else return Math.round(1000000 / kelvin);
+}
+
+/**
+ * Clamp a number between a minimum and maximum value
+ *
+ * @param {number} value - The number to clamp
+ * @param {number} min - The minimum value
+ * @param {number} max - The maximum value
+ * @returns {number} The clamped value
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+/**
  * Convert Fahrenheit to Celsius
  *
  * @param {number} value - Temperature
@@ -261,7 +305,7 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
         }
       } 
     },
-    { domain: 'light', with: 'color_temp', clusterId: ColorControl.Cluster.id, attribute: 'colorTemperatureMireds', converter: (value: number, state: HassState) => ( isValidNumber(value, 0, 65279) && state.attributes['color_mode'] === 'color_temp' ? value : null ) },
+    { domain: 'light', with: 'color_temp_kelvin', clusterId: ColorControl.Cluster.id, attribute: 'colorTemperatureMireds', converter: (value: number, state: HassState) => ( isValidNumber(value, 0, 65279) && state.attributes['color_mode'] === 'color_temp' ? kelvinToMireds(value, 'floor') : null ) },
     { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentHue', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) && (state.attributes['color_mode'] === 'hs' || state.attributes['color_mode'] === 'rgb') ? Math.round(value[0] / 360 * 254) : null ) },
     { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentSaturation', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) && (state.attributes['color_mode'] === 'hs' || state.attributes['color_mode'] === 'rgb') ? Math.round(value[1] / 100 * 254) : null ) },
     { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentX', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) && state.attributes['color_mode'] === 'xy' ? value[0] : null ) },
@@ -369,7 +413,7 @@ export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass
 
 /** Convert Home Assistant domains services to Matterbridge commands for device types */
 // prettier-ignore
-export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands; domain: string; service: string; converter?: (request: Record<string, any>, attributes: Record<string, any>) => any }[] = [
+export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands; domain: string; service: string; converter?: (request: Record<string, any>, attributes: Record<string, any>, state: HassState | undefined) => any }[] = [
     { command: 'on',                      domain: 'switch', service: 'turn_on' },
     { command: 'off',                     domain: 'switch', service: 'turn_off' },
     { command: 'toggle',                  domain: 'switch', service: 'toggle' },
@@ -379,7 +423,7 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'toggle',                  domain: 'light', service: 'toggle' },
     { command: 'moveToLevel',             domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
     { command: 'moveToLevelWithOnOff',    domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
-    { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request) => { return { color_temp: request.colorTemperatureMireds } } },
+    { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request, attributes, state) => { return { color_temp_kelvin: state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin ? clamp(miredsToKelvin(request.colorTemperatureMireds, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin) : miredsToKelvin(request.colorTemperatureMireds, 'floor') } } },
     { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request) => { return { xy_color: convertMatterXYToHA(request.colorX, request.colorY) } } },
     { command: 'moveToHue',               domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
     { command: 'moveToSaturation',        domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
@@ -418,7 +462,7 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         return null;
       }
     }},
-    { domain: 'fan',      service: 'turn_on',         with: 'percentage',  clusterId: FanControl.Cluster.id,  attribute: 'percentSetting' },
+    { domain: 'fan',      service: 'turn_on',         with: 'percentage',  clusterId: FanControl.Cluster.id,  attribute: 'percentSetting', converter: (value: number) => { return value === 0 ? null : value; } },
     { domain: 'fan',      service: 'set_direction',   with: 'direction',   clusterId: FanControl.Cluster.id,  attribute: 'airflowDirection', converter: (value: any) => { return value === FanControl.AirflowDirection.Forward ? 'forward' : 'reverse' } },
     { domain: 'fan',      service: 'oscillate',       with: 'oscillating', clusterId: FanControl.Cluster.id,  attribute: 'rockSetting', converter: (value: any) => { return value.rockRound === true } },
   

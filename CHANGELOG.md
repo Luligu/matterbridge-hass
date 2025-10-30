@@ -19,6 +19,7 @@ If you like this project and find it useful, please consider giving it a star on
 - ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
 - ✅ add valve domain (requested by Ludovic BOUÉ).
 - ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75).
+- ✅ move from mired to kelvin.
 - add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
 - add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
 - add water heater domain (requested by Ludovic BOUÉ).
@@ -34,19 +35,21 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 ### Added
 
 - [config]: Added sanity check for old configs. The user should open the config and save it each major or minor upgrade.
+- [light]: Added conversion from mireds to kelvin. Home Assistant will remove mireds in 2026 but the color temperature in matter is in mireds. This will generate a not perfect conversion.
 
 ### Changed
 
 - [platform]: Bumped platform to v.1.6.0.
 - [config]: Update default config.
 - [schema]: Clarified applyFiltersToDeviceEntities use.
-- [package]: Bumped package to automator v. 2.0.10.
-- [jest]: Updated jestHelpers to v. 1.0.10.
+- [package]: Bumped package to automator v.2.0.10.
+- [jest]: Updated jestHelpers to v.1.0.10.
 - [workflows]: Use shallow clones for faster builds.
+- [fan]: Changed turn_on with percentage 0 to turn_off. Thanks Hoppel (https://github.com/Luligu/matterbridge-hass/issues/109).
 
 ### Fixed
 
-- [fan]: Fixed wrong detection of direction and oscillating attributes.
+- [fan]: Fixed wrong detection of direction and oscillating attributes. Thanks Hoppel (https://github.com/Luligu/matterbridge-hass/issues/110).
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">

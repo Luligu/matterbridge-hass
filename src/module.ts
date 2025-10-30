@@ -766,6 +766,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const entityId = endpointName;
     if (!entityId) return;
     data.endpoint.log.info(`${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${endpointName}${db}:${or}${data.endpoint?.maybeNumber}${db}`);
+    const state = this.ha.hassStates.get(entityId);
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
@@ -843,7 +844,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           return;
         }
       }
-      const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes) : undefined;
+      const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes, state) : undefined;
       if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
       await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
     } else {
@@ -907,8 +908,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassSubscribe.converter)
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
-    // const state = this.ha.hassStates.get(entity.entity_id);
     if (value !== null) this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+    // The converter returns null for fan turn_on with percentage 0 => call turn_off
     else this.ha.callService(domain, 'turn_off', entity.entity_id);
   }
 
