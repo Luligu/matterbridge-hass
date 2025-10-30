@@ -28,7 +28,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Clone matterbridge repo
-        run: git clone https://github.com/Luligu/matterbridge.git ../matterbridge
+        run: git clone --depth 1 --single-branch --no-tags https://github.com/Luligu/matterbridge.git ../matterbridge
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge
@@ -49,7 +49,7 @@ jobs:
         run: npm link matterbridge
 
       - name: Run tests
-        run: npm run test:coverage
+        run: npm run test:coverage -- --forceExit
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
