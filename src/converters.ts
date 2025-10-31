@@ -348,7 +348,7 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'switch',                                 deviceType: onOffOutlet,            clusterId: OnOff.Cluster.id },
     { domain: 'light',                                  deviceType: onOffLight,             clusterId: OnOff.Cluster.id },
     { domain: 'light',    withAttribute: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControl.Cluster.id },
-    { domain: 'light',    withAttribute: 'color_temp',  deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
+    { domain: 'light',    withAttribute: 'color_temp_kelvin',  deviceType: colorTemperatureLight,  clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'hs_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'rgb_color',   deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },
     { domain: 'light',    withAttribute: 'xy_color',    deviceType: extendedColorLight,     clusterId: ColorControl.Cluster.id },

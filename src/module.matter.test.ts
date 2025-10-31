@@ -1284,9 +1284,9 @@ describe('Matterbridge ' + NAME, () => {
         supported_color_modes: ['onoff', 'brightness', 'color_temp'],
         color_mode: 'color_temp',
         brightness: 100,
-        color_temp: 200, // Color temperature in mireds
-        min_mireds: 153, // Minimum mireds (6500K)
-        max_mireds: 400, // Maximum mireds (2500K)
+        color_temp_kelvin: 5000, // Mireds 200
+        min_color_temp_kelvin: 2500, // Maximum mireds 400
+        max_color_temp_kelvin: 6500, // Minimum mireds 153
         friendly_name: 'Light Light Ct',
       },
     } as unknown as HassState;
@@ -1306,7 +1306,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 200, 153, 400);
+    expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 400);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1373,7 +1373,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(addClusterServerColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 250, 147, 500);
+    expect(addClusterServerColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 147, 500);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -2559,7 +2559,14 @@ describe('Matterbridge ' + NAME, () => {
     const lightState = {
       entity_id: lightEntity.entity_id,
       state: 'on',
-      attributes: { supported_color_modes: ['color_temp'], brightness: 255, color_temp: 243, min_mireds: 153, max_mireds: 500, friendly_name: 'Color Temperature Template' },
+      attributes: {
+        supported_color_modes: ['color_temp'],
+        brightness: 255,
+        color_temp_kelvin: 5000, // Mireds 200
+        min_color_temp_kelvin: 2500, // Mireds 400
+        max_color_temp_kelvin: 6500, // Mireds 153
+        friendly_name: 'Color Temperature Template',
+      },
     } as unknown as HassState;
 
     haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
@@ -2601,7 +2608,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 243 });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 250 });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
@@ -2611,7 +2618,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 243 });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 250 });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
@@ -2641,7 +2648,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsOverride: { executeIfOff: true },
     });
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp: 200 });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp_kelvin: 5000 });
 
     // setDebug(false);
 
@@ -2669,10 +2676,10 @@ describe('Matterbridge ' + NAME, () => {
       attributes: {
         supported_color_modes: ['color_temp', 'xy', 'hs'],
         brightness: 255,
-        color_temp: 243,
+        color_temp_kelvin: 5000, // Mireds 200
+        min_color_temp_kelvin: 2500, // Mireds 400
+        max_color_temp_kelvin: 6500, // Mireds 153
         hs_color: [180, 50],
-        min_mireds: 153,
-        max_mireds: 500,
         friendly_name: 'Rgb Template',
       },
     } as unknown as HassState;
@@ -2758,7 +2765,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsOverride: { executeIfOff: true },
     });
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp: 200 });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp_kelvin: 5000 });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToHueAndSaturation', {
@@ -3702,7 +3709,7 @@ const lightCtEntity = {
 const lightCtState = {
   entity_id: lightCtEntity.entity_id,
   state: 'on',
-  attributes: { friendly_name: lightCtEntity.name, brightness: 100, color_temp: 500, supported_color_modes: ['color_temp'], color_mode: 'color_temp' },
+  attributes: { friendly_name: lightCtEntity.name, brightness: 100, color_temp_kelvin: 2000, supported_color_modes: ['color_temp'], color_mode: 'color_temp' },
 } as unknown as HassState;
 
 // lock

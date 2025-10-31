@@ -495,7 +495,7 @@ describe('HassPlatform', () => {
       'light.light_light_3',
       'moveToColorTemperature',
     );
-    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp: 300 }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp_kelvin: 3333 }));
 
     jest.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child3, request: { colorX: 32000, colorY: 32000 }, cluster: 'colorControl', attributes: {} }, 'light.light_light_3', 'moveToColor');

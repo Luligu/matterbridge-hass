@@ -30,12 +30,12 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [0.5.0] - 2025-10-30
+## [0.5.0] - 2025-10-31
 
 ### Added
 
 - [config]: Added sanity check for old configs. The user should open the config and save it each major or minor upgrade.
-- [light]: Added conversion from mireds to kelvin. Home Assistant will remove mireds in 2026 but the color temperature in matter is in mireds. This will generate a not perfect conversion.
+- [light]: Added conversion from mireds to kelvin. Home Assistant will remove mireds in 2026 but the color temperature in matter is in mireds. This may generate a not perfect conversion.
 
 ### Changed
 

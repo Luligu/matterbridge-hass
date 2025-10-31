@@ -83,11 +83,11 @@ describe('addControlEntity', () => {
 
   it('light color temperature path only color_temp mode', () => {
     const [md, e, s] = make('light', 'ct', {
-      color_temp: 250,
       brightness: 120,
       supported_color_modes: ['color_temp'],
-      min_mireds: 150,
-      max_mireds: 400,
+      color_temp_kelvin: 4000,
+      min_color_temp_kelvin: 3000,
+      max_color_temp_kelvin: 6500,
       friendly_name: 'CT Light',
     });
     addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
@@ -235,24 +235,22 @@ describe('addControlEntity', () => {
     (hassDomainConverter as any).length = originalLength;
   });
 
-  it('light color temperature fallback defaults (cover ?? branches)', () => {
-    const [md, e, s] = make('light', 'ctdefaults', { supported_color_modes: ['color_temp'], color_temp: undefined });
+  it('light color temperature fallback defaults', () => {
+    const [md, e, s] = make('light', 'ctdefaults', { supported_color_modes: ['color_temp'], color_temp_kelvin: undefined });
     addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
     expect(md.addClusterServerColorTemperatureColorControl).toHaveBeenCalled();
     const args = md.addClusterServerColorTemperatureColorControl.mock.calls[0];
-    expect(args[1]).toBe(250); // default color_temp
-    expect(args[2]).toBe(147); // default min_mireds
-    expect(args[3]).toBe(500); // default max_mireds
+    expect(args[1]).toBe(147); // default min_mireds
+    expect(args[2]).toBe(500); // default max_mireds
   });
 
-  it('light extended color fallback defaults (else branch line 119)', () => {
+  it('light extended color fallback defaults', () => {
     const [md, e, s] = make('light', 'rgbdefaults', { supported_color_modes: ['hs'], hs_color: [0, 0] });
     addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
     expect(md.addClusterServerColorControl).toHaveBeenCalled();
     const args = md.addClusterServerColorControl.mock.calls[0];
-    expect(args[1]).toBe(250);
-    expect(args[2]).toBe(147);
-    expect(args[3]).toBe(500);
+    expect(args[1]).toBe(147); // default min_mireds
+    expect(args[2]).toBe(500); // default max_mireds
   });
 
   it('thermostat auto mode fallback defaults (cover ?? branches)', () => {

@@ -108,8 +108,8 @@ export function addControlEntity(
   // prettier-ignore
   if (domain === 'light' && (mutableDevice.get(endpointName).deviceTypes.includes(colorTemperatureLight) || mutableDevice.get(endpointName).deviceTypes.includes(extendedColorLight))) {
     log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db} min_color_temp_kelvin: ${CYAN}${state.attributes['min_color_temp_kelvin']}${db} max_color_temp_kelvin: ${CYAN}${state.attributes['max_color_temp_kelvin']}${db}`);
-    const minMireds = kelvinToMireds(state.attributes['max_color_temp_kelvin'] ?? miredsToKelvin(500, 'floor'), 'floor');
-    const maxMireds = kelvinToMireds(state.attributes['min_color_temp_kelvin'] ?? miredsToKelvin(147, 'floor'), 'floor');
+    const minMireds = kelvinToMireds(state.attributes['max_color_temp_kelvin'] ?? miredsToKelvin(147, 'floor'), 'floor');
+    const maxMireds = kelvinToMireds(state.attributes['min_color_temp_kelvin'] ?? miredsToKelvin(500, 'floor'), 'floor');
     log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${minMireds}${db} max_mireds: ${CYAN}${maxMireds}${db}`);
     if (isValidArray(state.attributes['supported_color_modes']) && !state.attributes['supported_color_modes'].includes('xy') && !state.attributes['supported_color_modes'].includes('hs') && !state.attributes['supported_color_modes'].includes('rgb') &&
       !state.attributes['supported_color_modes'].includes('rgbw') && !state.attributes['supported_color_modes'].includes('rgbww') && state.attributes['supported_color_modes'].includes('color_temp')
