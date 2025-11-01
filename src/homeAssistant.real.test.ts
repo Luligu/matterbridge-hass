@@ -13,7 +13,7 @@ import { jest } from '@jest/globals';
 import { LogLevel } from 'matterbridge/logger';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import { loggerLogSpy, setupTest } from './jestHelpers.js';
+import { loggerLogSpy, setupTest } from './utils/jestHelpers.js';
 
 // Setup the test environment
 setupTest(NAME, false);

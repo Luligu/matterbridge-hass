@@ -19,7 +19,7 @@ import { AnsiLogger, CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
-import { loggerLogSpy, setupTest } from './jestHelpers.js';
+import { loggerLogSpy, setupTest } from './utils/jestHelpers.js';
 
 // Setup the test environment
 setupTest(NAME, false);
@@ -220,7 +220,7 @@ describe('HomeAssistant', () => {
   it('fetch should log error if not connected to HomeAssistant', async () => {
     try {
       await homeAssistant.fetch('get_states');
-    } catch (error) {
+    } catch (error: any) {
       expect(error.message).toBe('Fetch error: not connected to Home Assistant');
     }
   });
@@ -228,7 +228,7 @@ describe('HomeAssistant', () => {
   it('callService should log error if not connected to HomeAssistant', async () => {
     try {
       await homeAssistant.callService('light', 'turn_on', 'myentityid', {});
-    } catch (error) {
+    } catch (error: any) {
       expect(error.message).toBe('CallService error: not connected to Home Assistant');
     }
   });
@@ -237,7 +237,7 @@ describe('HomeAssistant', () => {
     homeAssistant.connected = true;
     try {
       await homeAssistant.fetch('get_states');
-    } catch (error) {
+    } catch (error: any) {
       expect(error.message).toBe('Fetch error: WebSocket not open');
     }
     homeAssistant.connected = false;
@@ -247,7 +247,7 @@ describe('HomeAssistant', () => {
     homeAssistant.connected = true;
     try {
       await homeAssistant.callService('light', 'turn_on', 'myentityid', {});
-    } catch (error) {
+    } catch (error: any) {
       expect(error.message).toBe('CallService error: WebSocket not open');
     }
     homeAssistant.connected = false;
@@ -1033,7 +1033,7 @@ describe('HomeAssistant with ssl', () => {
 
     try {
       await homeAssistant.connect();
-    } catch (error) {
+    } catch (error: any) {
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toContain('Error parsing WebSocket message');
     }
@@ -1279,7 +1279,7 @@ describe('HomeAssistant with ssl', () => {
 
     try {
       await homeAssistant.connect();
-    } catch (error) {
+    } catch (error: any) {
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toContain('WebSocket error connecting to Home Assistant: Error: ENOENT');
     }
@@ -1322,7 +1322,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.responseTimeout = 1; // Set a short timeout for testing
     try {
       await homeAssistant.close(1000, 'Test close');
-    } catch (error) {
+    } catch (error: any) {
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toContain('Close did not complete before the timeout of 1 ms');
     }
@@ -1353,7 +1353,7 @@ describe('HomeAssistant with ssl', () => {
     homeAssistant.ws?.emit('error', new Error('Test error'));
     try {
       await close;
-    } catch (error) {
+    } catch (error: any) {
       expect(error).toBeInstanceOf(Error);
       expect(error.message).toContain('Close received error event while closing connection to Home Assistant');
     }

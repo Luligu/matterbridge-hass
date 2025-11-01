@@ -16,6 +16,8 @@ import {
   hassUpdateStateConverter,
   convertMatterXYToHA,
   convertHAXYToMatter,
+  kelvinToMireds,
+  miredsToKelvin,
 } from './converters.js';
 import { HassState } from './homeAssistant.js';
 
@@ -25,6 +27,30 @@ describe('HassPlatform', () => {
     expect(temp(212, '°F')).toBe(100);
     expect(temp(-40)).toBe(-40);
     expect(temp(-148, '°F')).toBe(-100);
+  });
+
+  it('should convert mireds and kelvin', () => {
+    // Mireds to Kelvin
+    expect(miredsToKelvin(500, 'floor')).toBe(2000);
+    expect(miredsToKelvin(333, 'floor')).toBe(3003);
+    expect(miredsToKelvin(250, 'floor')).toBe(4000);
+    expect(miredsToKelvin(200, 'floor')).toBe(5000);
+    expect(miredsToKelvin(200, 'ceil')).toBe(5000);
+    expect(miredsToKelvin(200)).toBe(5000);
+    expect(miredsToKelvin(200, 'floor')).toBe(5000);
+    expect(miredsToKelvin(153, 'floor')).toBe(6535);
+    expect(miredsToKelvin(147, 'floor')).toBe(6802);
+
+    // Kelvin to Mireds
+    expect(kelvinToMireds(2000, 'floor')).toBe(500);
+    expect(kelvinToMireds(2500, 'floor')).toBe(400);
+    expect(kelvinToMireds(3000, 'floor')).toBe(333);
+    expect(kelvinToMireds(4000, 'floor')).toBe(250);
+    expect(kelvinToMireds(5000, 'floor')).toBe(200);
+    expect(kelvinToMireds(5000, 'ceil')).toBe(200);
+    expect(kelvinToMireds(5000)).toBe(200);
+    expect(kelvinToMireds(6500, 'floor')).toBe(153);
+    expect(kelvinToMireds(6800, 'floor')).toBe(147);
   });
 
   it('should verify the hassUpdateStateConverter converter', () => {
@@ -214,10 +240,10 @@ describe('HassPlatform', () => {
     hassCommandConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
-        converter.converter({ liftPercent100thsValue: 10000 }, {});
+        converter.converter({ liftPercent100thsValue: 10000 }, {}, undefined);
       }
       if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
-        converter.converter({ targetLevel: 100 }, {});
+        converter.converter({ targetLevel: 100 }, {}, undefined);
       }
       if (converter.converter && converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
         converter.converter(
@@ -230,6 +256,7 @@ describe('HassPlatform', () => {
             saturation: 0,
           },
           { currentHue: 0, currentSaturation: 0 },
+          undefined,
         );
       }
     });
@@ -238,7 +265,7 @@ describe('HassPlatform', () => {
   it('should verify the hassSubscribeConverter convertes', () => {
     hassSubscribeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
-      if (converter.domain === 'fan' && converter.service === 'turn_on' && converter.converter) {
+      if (converter.domain === 'fan' && converter.service === 'turn_on' && converter.with === 'preset_mode' && converter.converter) {
         expect(converter.converter(FanControl.FanMode.Low)).toBe('low');
         expect(converter.converter(FanControl.FanMode.Medium)).toBe('medium');
         expect(converter.converter(FanControl.FanMode.High)).toBe('high');
@@ -246,6 +273,10 @@ describe('HassPlatform', () => {
         expect(converter.converter(FanControl.FanMode.Smart)).toBe('auto');
         expect(converter.converter(FanControl.FanMode.On)).toBe('auto');
         expect(converter.converter(10)).toBe(null);
+      }
+      if (converter.domain === 'fan' && converter.service === 'turn_on' && converter.with === 'percentage' && converter.converter) {
+        expect(converter.converter(0)).toBe(null);
+        expect(converter.converter(10)).toBe(10);
       }
       if (converter.domain === 'fan' && converter.service === 'set_direction' && converter.converter) {
         expect(converter.converter(FanControl.AirflowDirection.Forward)).toBe('forward');

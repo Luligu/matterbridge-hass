@@ -161,9 +161,9 @@ export interface HassStateLightAttributes {
   supported_color_modes?: string[]; // List of supported color modes (e.g., "onoff", "brightness", "color_temp", "xy", "hs", "rgb", "rgbw", "rgbww")
   color_mode?: string | null; // Current color mode of the light (e.g., "onoff", "brightness", "color_temp", "xy", "hs", "rgb", "rgbw", "rgbww")
   brightness?: number | null;
-  color_temp?: number | null;
-  min_mireds?: number | null;
-  max_mireds?: number | null;
+  // color_temp?: number | null;
+  // min_mireds?: number | null;
+  // max_mireds?: number | null;
   color_temp_kelvin?: number | null;
   min_color_temp_kelvin?: number | null;
   max_color_temp_kelvin?: number | null;

@@ -539,7 +539,7 @@ export class MutableDevice {
     return this;
   }
 
-  addClusterServerColorTemperatureColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number): this {
+  addClusterServerColorTemperatureColorControl(endpoint: string, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number): this {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
       getClusterServerObj(ColorControl.Cluster.id, MatterbridgeColorControlServer.with(ColorControl.Feature.ColorTemperature), {
@@ -556,7 +556,7 @@ export class MutableDevice {
           executeIfOff: false,
         },
         numberOfPrimaries: null,
-        colorTemperatureMireds,
+        colorTemperatureMireds: 250,
         colorTempPhysicalMinMireds,
         colorTempPhysicalMaxMireds,
         coupleColorTempToLevelMinMireds: colorTempPhysicalMinMireds,
@@ -567,7 +567,7 @@ export class MutableDevice {
     return this;
   }
 
-  addClusterServerColorControl(endpoint: string, colorTemperatureMireds: number, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number): this {
+  addClusterServerColorControl(endpoint: string, colorTempPhysicalMinMireds: number, colorTempPhysicalMaxMireds: number): this {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
       getClusterServerObj(
@@ -591,7 +591,7 @@ export class MutableDevice {
           currentY: 0,
           currentHue: 0,
           currentSaturation: 0,
-          colorTemperatureMireds,
+          colorTemperatureMireds: 250,
           colorTempPhysicalMinMireds,
           colorTempPhysicalMaxMireds,
           coupleColorTempToLevelMinMireds: colorTempPhysicalMinMireds,

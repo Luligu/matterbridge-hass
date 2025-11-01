@@ -1,3 +1,5 @@
+// src\module.test.ts
+
 /* eslint-disable no-console */
 
 const MATTER_PORT = 0;
@@ -14,10 +16,10 @@ import { wait } from 'matterbridge/utils';
 import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or, TimestampFormat } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 
-import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './platform.js';
+import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment } from './jestHelpers.js';
+import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment } from './utils/jestHelpers.js';
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
@@ -194,6 +196,20 @@ describe('HassPlatform', () => {
 
   afterAll(() => {
     jest.restoreAllMocks();
+  });
+
+  it('should return an instance of HomeAssistantPlatform', async () => {
+    haPlatform = initializePlugin(mockMatterbridge, log, mockConfig);
+    expect(haPlatform).toBeInstanceOf(HomeAssistantPlatform);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initializing platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initialized platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
+  });
+
+  it('should shutdown the platform', async () => {
+    expect(haPlatform).toBeInstanceOf(HomeAssistantPlatform);
+    await haPlatform.onShutdown('Unit test shutdown');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Unit test shutdown`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shut down platform ${idn}${mockConfig.name}${rs}${nf} completed`);
   });
 
   it('should not initialize platform with config name', () => {
@@ -479,7 +495,7 @@ describe('HassPlatform', () => {
       'light.light_light_3',
       'moveToColorTemperature',
     );
-    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp: 300 }));
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp_kelvin: 3333 }));
 
     jest.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child3, request: { colorX: 32000, colorY: 32000 }, cluster: 'colorControl', attributes: {} }, 'light.light_light_3', 'moveToColor');
