@@ -79,16 +79,16 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 | sensor | measurement           | power                      | W              | electricalSensor   |
 | sensor | measurement           | energy                     | kWh            | electricalSensor   |
 | sensor | measurement           | aqi (1)                    |                | airQualitySensor   |
-| sensor | measurement           | volatile_organic_compounds | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | volatile_organic_compounds | ugm3 (2)       | airQualitySensor   |
 | sensor | measurement           | carbon_dioxide             | ppm (2)        | airQualitySensor   |
 | sensor | measurement           | carbon_monoxide            | ppm (2)        | airQualitySensor   |
 | sensor | measurement           | nitrogen_dioxide           | ugm3 (2)       | airQualitySensor   |
 | sensor | measurement           | ozone                      | ugm3 (2)       | airQualitySensor   |
-| sensor | measurement           | formaldehyde               | ppm (2)        | airQualitySensor   |
-| sensor | measurement           | radon                      | ppm (2)        | airQualitySensor   |
-| sensor | measurement           | pm1                        | ppm (2)        | airQualitySensor   |
-| sensor | measurement           | pm25                       | ppm (2)        | airQualitySensor   |
-| sensor | measurement           | pm10                       | ppm (2)        | airQualitySensor   |
+| sensor | measurement           | formaldehyde               | mgm3 (2)       | airQualitySensor   |
+| sensor | measurement           | radon                      | bqm3 (2)       | airQualitySensor   |
+| sensor | measurement           | pm1                        | ugm3 (2)       | airQualitySensor   |
+| sensor | measurement           | pm25                       | ugm3 (2)       | airQualitySensor   |
+| sensor | measurement           | pm10                       | ugm3 (2)       | airQualitySensor   |
 
 (1) - If the air quality entity is not standard (e.g. state class = measurement, device class = aqi and state number range 0-500), it is possible to set a regexp. See below.
 (2) - On the controller side.
