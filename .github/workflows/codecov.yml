@@ -32,7 +32,7 @@ jobs:
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge
-        run: npm ci
+        run: npm ci --no-fund --no-audit
 
       - name: Build matterbridge
         working-directory: ../matterbridge
@@ -40,7 +40,7 @@ jobs:
 
       - name: Link matterbridge globally
         working-directory: ../matterbridge
-        run: npm link
+        run: npm link --no-fund --no-audit
 
       - name: Install dependencies
         run: npm ci
