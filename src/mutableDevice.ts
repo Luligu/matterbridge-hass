@@ -25,7 +25,6 @@ import { createHash, randomBytes } from 'node:crypto';
 
 // Matterbridge imports
 import {
-  Matterbridge,
   MatterbridgeEndpoint,
   MatterbridgeSmokeCoAlarmServer,
   DeviceTypeDefinition,
@@ -44,6 +43,7 @@ import {
   CommandHandlerData,
   MatterbridgeFanControlServer,
   bridgedNode,
+  PlatformMatterbridge,
 } from 'matterbridge';
 import { MatterbridgeRvcCleanModeServer, MatterbridgeRvcOperationalStateServer, MatterbridgeRvcRunModeServer } from 'matterbridge/devices';
 import { db, debugStringify, idn, ign, rs, CYAN, AnsiLogger, TimestampFormat, LogLevel } from 'matterbridge/logger';
@@ -118,7 +118,7 @@ export class MutableDevice {
   private readonly remappedEndpoints = new Set<string>();
   private readonly splitEndpoints = new Set<string>();
 
-  private readonly matterbridge: Matterbridge;
+  private readonly matterbridge: PlatformMatterbridge;
   private readonly deviceName: string;
   private readonly serialNumber: string;
   private readonly vendorId: VendorId;
@@ -135,7 +135,7 @@ export class MutableDevice {
   private mode: 'server' | undefined = undefined;
 
   constructor(
-    matterbridge: Matterbridge,
+    matterbridge: PlatformMatterbridge,
     deviceName: string,
     serialNumber?: string,
     vendorId = 0xfff1,
@@ -920,7 +920,7 @@ export class MutableDevice {
       mainDevice.deviceTypes = mainDevice.deviceTypes.filter((deviceType) => deviceType.code !== bridgedNode.code);
     }
     mainDevice.friendlyName = this.deviceName;
-    mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { uniqueStorageKey: this.deviceName, mode: this.mode }, true);
+    mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { id: this.deviceName, mode: this.mode }, true);
     mainDevice.endpoint.log.logName = this.deviceName;
     this.endpoints.set('', mainDevice.endpoint);
     return mainDevice.endpoint;
