@@ -510,7 +510,7 @@ export class HomeAssistant extends EventEmitter {
     this.log = new AnsiLogger({
       logName: 'HomeAssistant',
       logTimestampFormat: TimestampFormat.TIME_MILLIS,
-      logLevel: LogLevel.DEBUG,
+      logLevel: LogLevel.INFO,
     });
   }
 

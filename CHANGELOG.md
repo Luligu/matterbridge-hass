@@ -32,6 +32,10 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ## [0.5.1] - 2025-11-12
 
+### Added
+
+- [homeassistant]: The logger level of the HomeAssistant class follows the one from the plugin.
+
 ### Changed
 
 - [package]: Updated dependencies.
