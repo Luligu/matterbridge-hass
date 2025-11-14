@@ -435,23 +435,23 @@ describe('HassPlatform', () => {
 
   it('should call commandHandler', async () => {
     expect(haPlatform).toBeDefined();
-    const device = new MatterbridgeEndpoint(bridgedNode, { uniqueStorageKey: 'dimmableDoubleOutlet' }, true);
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'dimmableDoubleOutlet' }, true);
     expect(device).toBeDefined();
     if (!device) return;
 
-    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmableOutlet], [], { endpointId: EndpointNumber(1) });
+    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmableOutlet], [], { number: EndpointNumber(1) });
     expect(child1).toBeDefined();
     child1.number = EndpointNumber(1);
 
-    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmableOutlet], [], { endpointId: EndpointNumber(2) });
+    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmableOutlet], [], { number: EndpointNumber(2) });
     expect(child2).toBeDefined();
     child2.number = EndpointNumber(2);
 
-    const child3 = device.addChildDeviceTypeWithClusterServer('light.light_light_3', [colorTemperatureLight], [], { endpointId: EndpointNumber(3) });
+    const child3 = device.addChildDeviceTypeWithClusterServer('light.light_light_3', [colorTemperatureLight], [], { number: EndpointNumber(3) });
     expect(child3).toBeDefined();
     child3.number = EndpointNumber(3);
 
-    const child4 = device.addChildDeviceTypeWithClusterServer('cover.cover_cover_4', [coverDevice], [], { endpointId: EndpointNumber(4) });
+    const child4 = device.addChildDeviceTypeWithClusterServer('cover.cover_cover_4', [coverDevice], [], { number: EndpointNumber(4) });
     expect(child4).toBeDefined();
     child4.number = EndpointNumber(4);
 
@@ -459,7 +459,7 @@ describe('HassPlatform', () => {
     await haPlatform.commandHandler({ endpoint: child1, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_1', 'on');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Received matter command ${ign}on${rs}${db} for endpoint ${or}${child1.uniqueStorageKey}${db}:${or}${child1.number}${db}`),
+      expect.stringContaining(`${db}Received matter command ${ign}on${rs}${db} for endpoint ${or}switch.switch_switch_1${db}:${or}${child1.number}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_on', 'switch.switch_switch_1', undefined);
 
@@ -467,7 +467,7 @@ describe('HassPlatform', () => {
     await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_2', 'off');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Received matter command ${ign}off${rs}${db} for endpoint ${or}${child2.uniqueStorageKey}${db}:${or}${child2.number}${db}`),
+      expect.stringContaining(`${db}Received matter command ${ign}off${rs}${db} for endpoint ${or}switch.switch_switch_2${db}:${or}${child2.number}${db}`),
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_off', 'switch.switch_switch_2', undefined);
 
@@ -475,7 +475,7 @@ describe('HassPlatform', () => {
     await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'light.light_light_3', 'moveToLevel');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Received matter command ${ign}moveToLevel${rs}${db} for endpoint ${or}${child3.uniqueStorageKey}${db}:${or}${child3.number}${db}`),
+      expect.stringContaining(`${db}Received matter command ${ign}moveToLevel${rs}${db} for endpoint ${or}light.light_light_3${db}:${or}${child3.number}${db}`),
     );
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevel${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
@@ -484,7 +484,7 @@ describe('HassPlatform', () => {
     await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'light.light_light_3', 'moveToLevelWithOnOff');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Received matter command ${ign}moveToLevelWithOnOff${rs}${db} for endpoint ${or}${child3.uniqueStorageKey}${db}:${or}${child3.number}${db}`),
+      expect.stringContaining(`${db}Received matter command ${ign}moveToLevelWithOnOff${rs}${db} for endpoint ${or}light.light_light_3${db}:${or}${child3.number}${db}`),
     );
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
@@ -545,7 +545,7 @@ describe('HassPlatform', () => {
     await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_2', 'unknown');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Received matter command ${ign}unknown${rs}${db} for endpoint ${or}${child2.uniqueStorageKey}${db}:${or}${child2.number}${db}`),
+      expect.stringContaining(`${db}Received matter command ${ign}unknown${rs}${db} for endpoint ${or}switch.switch_switch_2${db}:${or}${child2.number}${db}`),
     );
     expect(callServiceSpy).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
@@ -553,7 +553,7 @@ describe('HassPlatform', () => {
 
   it('should call subscribeHandler', async () => {
     expect(haPlatform).toBeDefined();
-    const device = new MatterbridgeEndpoint(bridgedNode, { uniqueStorageKey: 'test' }, true);
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'test' }, true);
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
@@ -573,19 +573,19 @@ describe('HassPlatform', () => {
 
   it('should call updateHandler', async () => {
     expect(haPlatform).toBeDefined();
-    const device = new MatterbridgeEndpoint(bridgedNode, { uniqueStorageKey: 'dimmableDoubleOutlet' }, true);
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'dimmableDoubleOutlet' }, true);
     expect(device).toBeDefined();
     if (!device) return;
 
-    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmableOutlet], [], { endpointId: EndpointNumber(1) });
+    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmableOutlet], [], { number: EndpointNumber(1) });
     expect(child1).toBeDefined();
     child1.number = EndpointNumber(1);
 
-    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmableOutlet], [], { endpointId: EndpointNumber(2) });
+    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmableOutlet], [], { number: EndpointNumber(2) });
     expect(child2).toBeDefined();
     child2.number = EndpointNumber(2);
 
-    const child3 = device.addChildDeviceTypeWithClusterServer('light.light_light_3', [colorTemperatureLight], [], { endpointId: EndpointNumber(3) });
+    const child3 = device.addChildDeviceTypeWithClusterServer('light.light_light_3', [colorTemperatureLight], [], { number: EndpointNumber(3) });
     expect(child3).toBeDefined();
     child3.number = EndpointNumber(3);
 

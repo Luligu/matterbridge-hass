@@ -270,7 +270,7 @@ describe('MutableDevice', () => {
   });
 
   it('should add command handler', () => {
-    function mockCommandHandler(data) {
+    function mockCommandHandler() {
       // Mock implementation
     }
 
@@ -288,7 +288,7 @@ describe('MutableDevice', () => {
   });
 
   it('should add subscribe handler', () => {
-    function mockSubscribeHandler(newValue, oldValue, context) {
+    function mockSubscribeHandler() {
       // Mock implementation
     }
 
@@ -358,7 +358,7 @@ describe('MutableDevice', () => {
   it('should addClusterServerColorTemperatureColorControl', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device color temperature');
     mutableDevice.addDeviceTypes('', bridgedNode, colorTemperatureLight);
-    mutableDevice.addClusterServerColorTemperatureColorControl('', 250, 153, 500);
+    mutableDevice.addClusterServerColorTemperatureColorControl('', 153, 500);
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
@@ -370,7 +370,7 @@ describe('MutableDevice', () => {
   it('should addClusterServerColorControl', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device color control');
     mutableDevice.addDeviceTypes('', bridgedNode, extendedColorLight);
-    mutableDevice.addClusterServerColorControl('', 250, 153, 500);
+    mutableDevice.addClusterServerColorControl('', 153, 500);
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);

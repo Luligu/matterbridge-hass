@@ -30,6 +30,23 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [0.5.1] - 2025-11-14
+
+### Added
+
+- [homeassistant]: The logger level of the HomeAssistant class follows the one from the plugin.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Bumped package to automator v.2.0.12.
+- [package]: Updated to the current Matterbridge signatures.
+- [jest]: Updated jestHelpers to v.1.0.12.
+
+<a href="https://www.buymeacoffee.com/luligugithub">
+  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
+</a>
+
 ## [0.5.0] - 2025-10-31
 
 ### Added

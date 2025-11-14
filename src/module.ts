@@ -172,6 +172,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex as string | undefined);
 
     this.ha = new HomeAssistant(config.host, config.token, config.reconnectTimeout, config.reconnectRetries, config.certificatePath, config.rejectUnauthorized);
+    this.ha.log.logLevel = this.log.logLevel;
 
     this.ha.on('connected', async (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
@@ -711,6 +712,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   override async onChangeLoggerLevel(logLevel: LogLevel) {
     this.log.info(`Logger level changed to ${logLevel}`);
+    this.ha.log.logLevel = logLevel;
     for (const device of this.matterbridgeDevices.values()) {
       device.log.logLevel = logLevel;
     }
