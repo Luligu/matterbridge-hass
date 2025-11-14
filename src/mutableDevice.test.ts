@@ -893,7 +893,15 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
     expect(mutableDevice.get('child1').commandHandlers).toHaveLength(1);
     expect(mutableDevice.get('child1').subscribeHandlers).toHaveLength(1);
-    expect(Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported)).toEqual(['descriptor', 'matterbridge', 'onOff', 'levelControl', 'identify', 'colorControl']);
+    expect(Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported)).toEqual([
+      'descriptor',
+      'matterbridge',
+      'onOff',
+      'levelControl',
+      'identify',
+      'groups',
+      'colorControl',
+    ]);
 
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').tagList).toHaveLength(1);
