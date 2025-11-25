@@ -10,7 +10,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, Matterbridge, MatterbridgeEndpoint } from 'matterbridge';
+import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, Matterbridge, MatterbridgeEndpoint, onOffOutlet } from 'matterbridge';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
 import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or, TimestampFormat } from 'matterbridge/logger';
@@ -81,7 +81,7 @@ describe('HassPlatform', () => {
       nodeVersion: '22.1.10',
     },
     log: mockLog,
-    matterbridgeVersion: '3.3.0',
+    matterbridgeVersion: '3.4.0',
     getDevices: jest.fn(() => []),
     getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
@@ -241,7 +241,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     mockMatterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig)).toThrow();
-    mockMatterbridge.matterbridgeVersion = '3.2.3';
+    mockMatterbridge.matterbridgeVersion = '3.4.0';
   });
 
   it('should validate with white and black list', () => {
@@ -864,13 +864,17 @@ describe('HassPlatform', () => {
       state: 'off',
     } as HassState;
     haPlatform.ha.hassStates.set(entity.entity_id, state);
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByName.set(entity.name, entity);
+
+    expect(entity.name).toBeDefined();
+    if (!entity.name) return;
+    const device = new MatterbridgeEndpoint([onOffOutlet, bridgedNode], { id: 'test' }, true)
+      .createDefaultBridgedDeviceBasicInformationClusterServer(entity.name, entity.entity_id)
+      .addRequiredClusterServers();
+    await haPlatform.registerDevice(device);
     await haPlatform.onStart('Test reason');
 
     expect(mockLog.warn).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByName.delete(entity.name);
+    await haPlatform.unregisterDevice(device);
   });
 
   it('should register a Scene entity', async () => {
@@ -1244,16 +1248,19 @@ describe('HassPlatform', () => {
     for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
     for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByName.set(device.name, device);
+    expect(device.name).toBeDefined();
+    if (!device.name) return;
+    const mbdevice = new MatterbridgeEndpoint([onOffOutlet, bridgedNode], { id: 'test' }, true)
+      .createDefaultBridgedDeviceBasicInformationClusterServer(device.name, device.id)
+      .addRequiredClusterServers();
+    await haPlatform.registerDevice(mbdevice);
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
 
     expect(mockLog.warn).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
 
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByName.delete(device.name);
+    await haPlatform.unregisterDevice(mbdevice);
   });
 
   it('should not register a Switch device if has no state', async () => {

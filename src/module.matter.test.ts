@@ -9,9 +9,9 @@ const HOMEDIR = path.join('jest', NAME);
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { Endpoint, ServerNode, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Environment, Lifecycle } from 'matterbridge/matter';
+import { Endpoint, ServerNode, Lifecycle } from 'matterbridge/matter';
 import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
-import { invokeBehaviorCommand, invokeSubscribeHandler, Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
+import { invokeBehaviorCommand, invokeSubscribeHandler, Matterbridge, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
 import {
   PowerSource,
@@ -50,20 +50,7 @@ import {
 import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import {
-  createTestEnvironment,
-  flushAsync,
-  startServerNode,
-  stopServerNode,
-  setupTest,
-  consoleDebugSpy,
-  consoleErrorSpy,
-  consoleInfoSpy,
-  consoleLogSpy,
-  consoleWarnSpy,
-  loggerLogSpy,
-  setDebug,
-} from './utils/jestHelpers.js';
+import { createTestEnvironment, flushAsync, startServerNode, stopServerNode, setupTest, loggerLogSpy } from './utils/jestHelpers.js';
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);
@@ -118,13 +105,12 @@ MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for Matterb
 setupTest(NAME, false);
 
 // Cleanup the matter environment
-createTestEnvironment(HOMEDIR);
+createTestEnvironment(NAME);
 
 describe('Matterbridge ' + NAME, () => {
   let haPlatform: HomeAssistantPlatform;
   const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
-  const environment = Environment.default;
   let server: ServerNode<ServerNode.RootEndpoint>;
   let aggregator: Endpoint<AggregatorEndpoint>;
   let device: MatterbridgeEndpoint;
@@ -159,7 +145,7 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.3.0',
+    matterbridgeVersion: '3.4.0',
     log: mockLog,
     getDevices: jest.fn(() => {
       return [];
@@ -232,10 +218,7 @@ describe('Matterbridge ' + NAME, () => {
 
     // Clean the platform environment
     await haPlatform.clearSelect();
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByUniqueId.clear();
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByName.clear();
+    await haPlatform.unregisterAllDevices();
   }
 
   test('create and start the server node', async () => {
