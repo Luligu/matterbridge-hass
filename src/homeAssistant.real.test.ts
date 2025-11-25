@@ -11,12 +11,12 @@ import path from 'node:path';
 
 import { jest } from '@jest/globals';
 import { LogLevel } from 'matterbridge/logger';
+import { loggerLogSpy, setupTest } from 'matterbridge/jestutils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import { loggerLogSpy, setupTest } from './utils/jestHelpers.js';
 
 // Setup the test environment
-setupTest(NAME, false);
+await setupTest(NAME, false);
 
 let accessToken: string | null = null;
 try {

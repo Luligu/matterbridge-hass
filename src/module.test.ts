@@ -15,11 +15,11 @@ import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
 import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or, TimestampFormat } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
+import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment, destroyTestEnvironment, logKeepAlives } from 'matterbridge/jestutils';
 
 import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment } from './utils/jestHelpers.js';
 
 const readMockHomeAssistantFile = () => {
   const filePath = path.join('mock', 'homeassistant.json');
@@ -41,10 +41,7 @@ const readMockHomeAssistantFile = () => {
 };
 
 // Setup the test environment
-setupTest(NAME, false);
-
-// Cleanup the matter environment
-createTestEnvironment(HOMEDIR);
+await setupTest(NAME, false);
 
 describe('HassPlatform', () => {
   let haPlatform: HomeAssistantPlatform;
@@ -82,8 +79,6 @@ describe('HassPlatform', () => {
     },
     log: mockLog,
     matterbridgeVersion: '3.4.0',
-    getDevices: jest.fn(() => []),
-    getPlugins: jest.fn(() => []),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
@@ -169,11 +164,16 @@ describe('HassPlatform', () => {
       return Promise.resolve({} as any);
     });
 
-  beforeAll(() => {});
+  beforeAll(() => {
+    // Create the test environment
+    createTestEnvironment(NAME);
+  });
 
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
+
+    // Reset HomeAssistantPlatform instance
     if (haPlatform) {
       haPlatform.haSubscriptionId = 1;
       haPlatform.ha.connected = true;
@@ -194,8 +194,15 @@ describe('HassPlatform', () => {
     await flushAsync(1, 1, 0);
   });
 
-  afterAll(() => {
+  afterAll(async () => {
+    // Destroy the test environment
+    await destroyTestEnvironment();
+
+    // Restore all mocks
     jest.restoreAllMocks();
+
+    await flushAsync();
+    logKeepAlives(log);
   });
 
   it('should return an instance of HomeAssistantPlatform', async () => {
@@ -2417,7 +2424,6 @@ describe('HassPlatform', () => {
     await haPlatform.onShutdown('Test reason');
     expect(mockLog.info).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.removeAllBridgedEndpoints).toHaveBeenCalled();
-    await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async operations in matter.js to complete and helpers timeout
   });
 });
 

@@ -15,15 +15,14 @@ import https from 'node:https';
 
 import { jest } from '@jest/globals';
 import { WebSocket, WebSocketServer } from 'ws';
-import { AnsiLogger, CYAN, db, er, LogLevel } from 'matterbridge/logger';
+import { CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
+import { loggerLogSpy, setupTest } from 'matterbridge/jestutils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
-import { loggerLogSpy, setupTest } from './utils/jestHelpers.js';
 
 // Setup the test environment
-setupTest(NAME, false);
-
+await setupTest(NAME, false);
 describe('HomeAssistant', () => {
   let server: WebSocketServer;
   let client: WebSocket;

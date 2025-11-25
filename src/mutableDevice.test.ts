@@ -58,12 +58,12 @@ import {
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 import { Endpoint, Environment, ServerNode } from 'matterbridge/matter';
 import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
+import { addDevice, createTestEnvironment, flushAsync, setupTest, startServerNode, stopServerNode } from 'matterbridge/jestutils';
 
 import { MutableDevice } from './mutableDevice.js';
-import { addDevice, createTestEnvironment, flushAsync, setupTest, startServerNode, stopServerNode } from './utils/jestHelpers.js';
 
 // Setup the test environment
-setupTest(NAME, false);
+await setupTest(NAME, false);
 
 // Cleanup the matter environment
 createTestEnvironment(HOMEDIR);

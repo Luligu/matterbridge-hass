@@ -45,12 +45,23 @@ import {
   Pm25ConcentrationMeasurement,
   Pm10ConcentrationMeasurement,
 } from 'matterbridge/matter/clusters';
+import {
+  createTestEnvironment,
+  flushAsync,
+  startServerNode,
+  stopServerNode,
+  setupTest,
+  loggerLogSpy,
+  destroyTestEnvironment,
+  logKeepAlives,
+  aggregator,
+  server,
+} from 'matterbridge/jestutils';
 
 // Home Assistant Plugin
 import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { createTestEnvironment, flushAsync, startServerNode, stopServerNode, setupTest, loggerLogSpy } from './utils/jestHelpers.js';
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);
@@ -102,7 +113,7 @@ const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype,
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
 // Setup the test environment
-setupTest(NAME, false);
+await setupTest(NAME, false);
 
 // Cleanup the matter environment
 createTestEnvironment(NAME);
@@ -111,8 +122,6 @@ describe('Matterbridge ' + NAME, () => {
   let haPlatform: HomeAssistantPlatform;
   const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
-  let server: ServerNode<ServerNode.RootEndpoint>;
-  let aggregator: Endpoint<AggregatorEndpoint>;
   let device: MatterbridgeEndpoint;
 
   const mockLog = {
@@ -147,12 +156,6 @@ describe('Matterbridge ' + NAME, () => {
     },
     matterbridgeVersion: '3.4.0',
     log: mockLog,
-    getDevices: jest.fn(() => {
-      return [];
-    }),
-    getPlugins: jest.fn(() => {
-      return [];
-    }),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await aggregator.add(device);
     }),
@@ -186,7 +189,10 @@ describe('Matterbridge ' + NAME, () => {
     unregisterOnShutdown: false,
   };
 
-  beforeAll(async () => {});
+  beforeAll(async () => {
+    // Create the test environment
+    createTestEnvironment(NAME);
+  });
 
   beforeEach(async () => {
     // Clear all mocks
@@ -198,8 +204,14 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   afterAll(async () => {
+    // Destroy the test environment
+    await destroyTestEnvironment();
+
     // Restore all mocks
     jest.restoreAllMocks();
+
+    await flushAsync();
+    logKeepAlives(log);
   });
 
   async function cleanup() {
@@ -222,7 +234,7 @@ describe('Matterbridge ' + NAME, () => {
   }
 
   test('create and start the server node', async () => {
-    [server, aggregator] = await startServerNode(NAME, MATTER_PORT);
+    await startServerNode(NAME, MATTER_PORT);
     expect(server).toBeDefined();
     expect(aggregator).toBeDefined();
   });
@@ -3220,7 +3232,6 @@ describe('Matterbridge ' + NAME, () => {
   test('close the server node', async () => {
     expect(server).toBeDefined();
     await stopServerNode(server);
-    await flushAsync(1, 1, 500); // wait for helpers timeout
   });
 });
 
