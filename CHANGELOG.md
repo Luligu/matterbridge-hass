@@ -30,7 +30,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [0.5.2] - 2025-11-25
+## [0.5.2] - 2025-11-27
 
 ### Changed
 

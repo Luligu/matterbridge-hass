@@ -56,22 +56,14 @@ import {
   FanControl,
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
-import { Endpoint, Environment, ServerNode } from 'matterbridge/matter';
-import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
-import { addDevice, createTestEnvironment, flushAsync, setupTest, startServerNode, stopServerNode } from 'matterbridge/jestutils';
+import { addDevice, aggregator, createTestEnvironment, destroyTestEnvironment, logKeepAlives, server, setupTest, startServerNode, stopServerNode } from 'matterbridge/jestutils';
 
 import { MutableDevice } from './mutableDevice.js';
 
 // Setup the test environment
 await setupTest(NAME, false);
 
-// Cleanup the matter environment
-createTestEnvironment(HOMEDIR);
-
 describe('MutableDevice', () => {
-  const environment = Environment.default;
-  let server: ServerNode<ServerNode.RootEndpoint>;
-  let aggregator: Endpoint<AggregatorEndpoint>;
   let device: MatterbridgeEndpoint;
 
   const mockMatterbridge = {
@@ -83,20 +75,19 @@ describe('MutableDevice', () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.0.0',
+    matterbridgeVersion: '3.4.0',
     log: new AnsiLogger({ logName: 'Matterbridge', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG }),
-    getDevices: jest.fn(() => {
-      return [];
-    }),
-    getPlugins: jest.fn(() => {
-      return [];
-    }),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
   } as unknown as Matterbridge;
 
   const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
+
+  beforeAll(async () => {
+    // Create the test environment
+    createTestEnvironment(NAME);
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -106,12 +97,18 @@ describe('MutableDevice', () => {
     jest.clearAllMocks();
   });
 
-  afterAll(() => {
+  afterAll(async () => {
+    // Destroy the test environment
+    await destroyTestEnvironment();
+
+    // Restore all mocks
     jest.restoreAllMocks();
+
+    logKeepAlives(mockMatterbridge.log);
   });
 
   test('create and start the server node', async () => {
-    [server, aggregator] = await startServerNode(NAME, MATTER_PORT);
+    await startServerNode(NAME, MATTER_PORT);
     expect(server).toBeDefined();
     expect(aggregator).toBeDefined();
   });
@@ -1199,6 +1196,5 @@ describe('MutableDevice', () => {
   test('close the server node', async () => {
     expect(server).toBeDefined();
     await stopServerNode(server);
-    await flushAsync(10, 10, 500); // wait for helpers timeout
   });
 });

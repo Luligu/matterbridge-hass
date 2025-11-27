@@ -23,6 +23,7 @@ import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, 
 
 // Setup the test environment
 await setupTest(NAME, false);
+
 describe('HomeAssistant', () => {
   let server: WebSocketServer;
   let client: WebSocket;

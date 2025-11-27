@@ -210,7 +210,6 @@ describe('Matterbridge ' + NAME, () => {
     // Restore all mocks
     jest.restoreAllMocks();
 
-    await flushAsync();
     logKeepAlives(log);
   });
 

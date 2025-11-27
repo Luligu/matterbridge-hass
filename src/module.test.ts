@@ -201,7 +201,6 @@ describe('HassPlatform', () => {
     // Restore all mocks
     jest.restoreAllMocks();
 
-    await flushAsync();
     logKeepAlives(log);
   });
 
