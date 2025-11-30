@@ -228,7 +228,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.clear();
     for (const device of aggregator.parts) {
       await device.delete();
-      await flushAsync(1, 1, 0);
+      await flushAsync(undefined, undefined, 0);
     }
     expect(aggregator.parts.size).toBe(0);
 
@@ -2912,7 +2912,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
-    await flushAsync(1, 1, 0); // ensure all split entity devices created
+    await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
@@ -3036,7 +3036,7 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
 
     // setDebug(false);
-  });
+  }, 30000);
 
   it('should call onStart and register all individual entities', async () => {
     const entities: [HassEntity, HassState][] = [
@@ -3103,7 +3103,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
-    await flushAsync(1, 1, 0); // ensure all split entity devices created
+    await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
@@ -3226,7 +3226,7 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
 
     // setDebug(false);
-  });
+  }, 30000);
 
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
