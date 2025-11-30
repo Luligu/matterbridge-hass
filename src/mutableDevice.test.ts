@@ -104,7 +104,7 @@ describe('MutableDevice', () => {
     // Restore all mocks
     jest.restoreAllMocks();
 
-    logKeepAlives(mockMatterbridge.log);
+    // logKeepAlives(mockMatterbridge.log);
   });
 
   test('create and start the server node', async () => {

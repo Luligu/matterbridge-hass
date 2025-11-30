@@ -82,6 +82,7 @@ describe('HassPlatform', () => {
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
+    addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {}),
   } as unknown as Matterbridge;
 
   const mockConfig: HomeAssistantPlatformConfig = {
@@ -198,10 +199,14 @@ describe('HassPlatform', () => {
     // Destroy the test environment
     await destroyTestEnvironment();
 
+    // Wait 500ms to allow single entities to reset to off
+    await flushAsync();
+    await flushAsync();
+
     // Restore all mocks
     jest.restoreAllMocks();
 
-    logKeepAlives(log);
+    // logKeepAlives(log);
   });
 
   it('should return an instance of HomeAssistantPlatform', async () => {
@@ -234,6 +239,13 @@ describe('HassPlatform', () => {
     mockConfig.host = 'http://homeassistant.local:8123';
     mockConfig.token = 'long-lived token';
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig);
+    // @ts-expect-error - setMatterNode is intentionally private
+    haPlatform.setMatterNode?.(
+      mockMatterbridge.addBridgedEndpoint,
+      mockMatterbridge.removeBridgedEndpoint,
+      mockMatterbridge.removeAllBridgedEndpoints,
+      mockMatterbridge.addVirtualEndpoint,
+    );
     expect(mockLog.debug).toHaveBeenCalledWith(`MatterbridgeDynamicPlatform loaded`);
 
     await new Promise<void>((resolve) => {
