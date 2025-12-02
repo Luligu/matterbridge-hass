@@ -46,8 +46,8 @@ jobs:
         run: |
           npm ci
           npm link matterbridge
-          npm run lint
           npm run buildProduction
+          npm run lint
           npm install -g .
           npm run test -- --forceExit
           npm pkg delete devDependencies scripts types

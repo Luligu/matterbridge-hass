@@ -111,7 +111,7 @@
     "@types/jest": "30.0.0",
     "@types/node": "24.10.1",
     "@types/ws": "8.18.1",
-    "@vitest/coverage-v8": "4.0.14",
+    "@vitest/coverage-v8": "4.0.15",
     "@vitest/eslint-plugin": "1.5.1",
     "eslint": "9.39.1",
     "eslint-config-prettier": "10.1.8",
@@ -125,9 +125,9 @@
     "npm-check-updates": "19.1.2",
     "prettier": "3.7.3",
     "shx": "0.4.0",
-    "ts-jest": "29.4.5",
+    "ts-jest": "29.4.6",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.48.0",
-    "vitest": "4.0.14"
+    "typescript-eslint": "8.48.1",
+    "vitest": "4.0.15"
   }
 }
