@@ -180,7 +180,7 @@ describe('HomeAssistant', () => {
       });
     });
 
-    // jest.restoreAllMocks();
+    // jest.restoreAllMocks(); we need for the second unit test suite
   });
 
   it('client should connect', async () => {

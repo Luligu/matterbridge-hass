@@ -56,6 +56,7 @@ import {
   logKeepAlives,
   aggregator,
   server,
+  addMatterbridgePlatform,
 } from 'matterbridge/jestutils';
 
 // Home Assistant Plugin
@@ -158,6 +159,7 @@ describe('Matterbridge ' + NAME, () => {
     log: mockLog,
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await aggregator.add(device);
+      await flushAsync(undefined, undefined, 10);
     }),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
@@ -246,6 +248,7 @@ describe('Matterbridge ' + NAME, () => {
   it('should initialize the HomeAssistantPlatform', async () => {
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig);
     expect(haPlatform).toBeDefined();
+    // addMatterbridgePlatform(haPlatform);
     // @ts-expect-error - setMatterNode is intentionally private
     haPlatform.setMatterNode?.(
       mockMatterbridge.addBridgedEndpoint,
