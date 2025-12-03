@@ -250,7 +250,7 @@ describe('addControlEntity', () => {
     expect(md.addClusterServerColorTemperatureColorControl).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerColorTemperatureColorControl.mock.calls[0];
-    expect(args[1]).toBe(147); // default min_mireds
+    expect(args[1]).toBe(153); // default min_mireds
     expect(args[2]).toBe(500); // default max_mireds
   });
 
@@ -260,7 +260,7 @@ describe('addControlEntity', () => {
     expect(md.addClusterServerColorControl).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerColorControl.mock.calls[0];
-    expect(args[1]).toBe(147); // default min_mireds
+    expect(args[1]).toBe(153); // default min_mireds
     expect(args[2]).toBe(500); // default max_mireds
   });
 
