@@ -15,7 +15,7 @@ import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
 import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or, TimestampFormat } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
-import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment, destroyTestEnvironment, logKeepAlives } from 'matterbridge/jestutils';
+import { flushAsync, setupTest, loggerLogSpy, createTestEnvironment, destroyTestEnvironment } from 'matterbridge/jestutils';
 
 import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
@@ -45,6 +45,7 @@ await setupTest(NAME, false);
 
 describe('HassPlatform', () => {
   let haPlatform: HomeAssistantPlatform;
+
   const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
   const mockLog = {
@@ -117,6 +118,9 @@ describe('HassPlatform', () => {
   }
 
   const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
+  const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAttribute');
+  const triggerEventSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'triggerEvent');
+  const triggerSwitchEventSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'triggerSwitchEvent');
 
   jest.spyOn(Matterbridge.prototype, 'addBridgedEndpoint').mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
     console.log(`Mocked Matterbridge.addBridgedEndpoint: ${pluginName} ${device.name}`);
@@ -240,7 +244,7 @@ describe('HassPlatform', () => {
     mockConfig.token = 'long-lived token';
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig);
     // @ts-expect-error - setMatterNode is intentionally private
-    haPlatform.setMatterNode?.(
+    haPlatform.setMatterNode(
       mockMatterbridge.addBridgedEndpoint,
       mockMatterbridge.removeBridgedEndpoint,
       mockMatterbridge.removeAllBridgedEndpoints,
@@ -2373,6 +2377,35 @@ describe('HassPlatform', () => {
     );
   });
 
+  it('should register a button device from ha', async () => {
+    expect(haPlatform).toBeDefined();
+
+    haPlatform.ha.hassDevices.set(buttonDevice.id, buttonDevice as unknown as HassDevice);
+    haPlatform.ha.hassEntities.set(buttonEntity.entity_id, buttonEntity as unknown as HassEntity);
+    haPlatform.ha.hassStates.set(buttonEntityState.entity_id, buttonEntityState as unknown as HassState);
+
+    await haPlatform.onStart('Test reason');
+
+    const mbDevice = haPlatform.matterbridgeDevices.get(buttonDevice.id);
+    expect(mbDevice).toBeDefined();
+    expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockLog.info).toHaveBeenCalledWith(`Creating device ${idn}${buttonDevice.name}${rs}${nf} id ${CYAN}${buttonDevice.id}${nf}...`);
+    expect(mockLog.debug).toHaveBeenCalledWith(`Registering device ${dn}${buttonDevice.name}${db}...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalled();
+
+    buttonEntityState.attributes.event_type = 'single';
+    await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
+    expect(triggerSwitchEventSpy).toHaveBeenCalledWith('Single', expect.anything());
+
+    buttonEntityState.attributes.event_type = 'double';
+    await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
+    expect(triggerSwitchEventSpy).toHaveBeenCalledWith('Double', expect.anything());
+
+    buttonEntityState.attributes.event_type = 'long';
+    await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
+    expect(triggerSwitchEventSpy).toHaveBeenCalledWith('Long', expect.anything());
+  });
+
   it('should call onConfigure', async () => {
     haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
     haPlatform.ha.hassEntities.set(contactSensorEntity.entity_id, contactSensorEntity as unknown as HassEntity);
@@ -2699,6 +2732,44 @@ const motionSensorIlluminanceEntityState = {
     state_class: 'measurement',
     device_class: 'illuminance',
     friendly_name: 'Eve motion Illuminance',
+  },
+  last_changed: '2025-05-29T11:40:02.628762+00:00',
+  last_reported: '2025-05-29T11:40:02.628762+00:00',
+  last_updated: '2025-05-29T11:40:02.628762+00:00',
+};
+const buttonDevice = {
+  area_id: null,
+  hw_version: '1.0.0',
+  id: '38fc72694c39502223744fbb8bfcdef0',
+  labels: [],
+  manufacturer: 'Shelly button',
+  model: 'Shelly button',
+  model_id: null,
+  name_by_user: null,
+  name: 'Shelly button',
+  serial_number: '0x85483499',
+  sw_version: '3.2.1',
+};
+const buttonEntity = {
+  area_id: null,
+  device_id: buttonDevice.id,
+  entity_category: null,
+  entity_id: 'event.shelly_button',
+  has_entity_name: true,
+  icon: null,
+  id: '767f48a9d7986368765fd272711eb8e5',
+  labels: [],
+  name: null,
+  original_name: 'Button',
+};
+const buttonEntityState = {
+  entity_id: buttonEntity.entity_id,
+  state: 'unknown',
+  attributes: {
+    event_types: ['single', 'double', 'long'],
+    event_type: 'single',
+    device_class: 'button',
+    friendly_name: 'Shelly button',
   },
   last_changed: '2025-05-29T11:40:02.628762+00:00',
   last_reported: '2025-05-29T11:40:02.628762+00:00',
