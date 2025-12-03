@@ -18,10 +18,17 @@ import {
   convertHAXYToMatter,
   kelvinToMireds,
   miredsToKelvin,
+  clamp,
 } from './converters.js';
-import { HassState } from './homeAssistant.js';
+import { HassState, HomeAssistantLightColorMode } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
+  it('should clamp values between a minimum and maximum', () => {
+    expect(clamp(32, 30, 40)).toBe(32);
+    expect(clamp(25, 30, 40)).toBe(30);
+    expect(clamp(45, 30, 40)).toBe(40);
+  });
+
   it('should convert fahrenheit to Celsius', () => {
     expect(temp(32)).toBe(32);
     expect(temp(212, '°F')).toBe(100);
@@ -75,9 +82,9 @@ describe('HassPlatform', () => {
         converter.converter('xy', {} as HassState);
         converter.converter('color_temp', {} as HassState);
       }
-      if (converter.domain === 'light' && converter.with === 'color_temp') {
+      if (converter.domain === 'light' && converter.with === 'color_temp_kelvin') {
         converter.converter(2, {
-          attributes: { color_mode: 'color_temp' },
+          attributes: { color_mode: HomeAssistantLightColorMode.COLOR_TEMP },
         } as HassState);
         converter.converter(undefined, {} as HassState);
       }

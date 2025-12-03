@@ -3,7 +3,7 @@
  * @file src\converters.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.1.2
+ * @version 1.2.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -86,7 +86,7 @@ import {
   RvcCleanMode,
 } from 'matterbridge/matter/clusters';
 
-import { HassState, HomeAssistant } from './homeAssistant.js';
+import { HassState, HomeAssistant, HomeAssistantLightColorMode } from './homeAssistant.js';
 
 /**
  * Converts mireds to kelvin.
@@ -305,11 +305,11 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
         }
       } 
     },
-    { domain: 'light', with: 'color_temp_kelvin', clusterId: ColorControl.Cluster.id, attribute: 'colorTemperatureMireds', converter: (value: number, state: HassState) => ( isValidNumber(value, 0, 65279) && state.attributes['color_mode'] === 'color_temp' ? kelvinToMireds(value, 'floor') : null ) },
-    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentHue', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) && (state.attributes['color_mode'] === 'hs' || state.attributes['color_mode'] === 'rgb') ? Math.round(value[0] / 360 * 254) : null ) },
-    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentSaturation', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) && (state.attributes['color_mode'] === 'hs' || state.attributes['color_mode'] === 'rgb') ? Math.round(value[1] / 100 * 254) : null ) },
-    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentX', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) && state.attributes['color_mode'] === 'xy' ? value[0] : null ) },
-    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === 'xy' ? value[1] : null ) },
+    { domain: 'light', with: 'color_temp_kelvin', clusterId: ColorControl.Cluster.id, attribute: 'colorTemperatureMireds', converter: (value: number, state: HassState) => ( isValidNumber(value, 0, 65279) && state.attributes['color_mode'] === HomeAssistantLightColorMode.COLOR_TEMP ? kelvinToMireds(value, 'floor') : null ) },
+    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentHue', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) && (state.attributes['color_mode'] === HomeAssistantLightColorMode.HS || state.attributes['color_mode'] === HomeAssistantLightColorMode.RGB) ? Math.round(value[0] / 360 * 254) : null ) },
+    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentSaturation', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) && (state.attributes['color_mode'] === HomeAssistantLightColorMode.HS || state.attributes['color_mode'] === HomeAssistantLightColorMode.RGB) ? Math.round(value[1] / 100 * 254) : null ) },
+    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentX', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) && state.attributes['color_mode'] === HomeAssistantLightColorMode.XY ? value[0] : null ) },
+    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === HomeAssistantLightColorMode.XY ? value[1] : null ) },
   
     { domain: 'fan', with: 'percentage', clusterId: FanControl.Cluster.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
     { domain: 'fan', with: 'preset_mode', clusterId: FanControl.Cluster.id, attribute: 'fanMode', converter: (value: string) => {
@@ -409,6 +409,24 @@ export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass
     { domain: 'binary_sensor',    withDeviceClass: 'presence',                                  deviceType: occupancySensor,      clusterId: OccupancySensing.Cluster.id,   attribute: 'occupancy',       converter: (value) => ({occupied: value === 'on' ? true : false}) },
     { domain: 'binary_sensor',    withDeviceClass: 'smoke',                                     deviceType: smokeCoAlarm,         clusterId: SmokeCoAlarm.Cluster.id,       attribute: 'smokeState',      converter: (value) => (value === 'on' ?  SmokeCoAlarm.AlarmState.Critical :  SmokeCoAlarm.AlarmState.Normal) },
     { domain: 'binary_sensor',    withDeviceClass: 'carbon_monoxide',                           deviceType: smokeCoAlarm,         clusterId: SmokeCoAlarm.Cluster.id,       attribute: 'coState',         converter: (value) => (value === 'on' ?  SmokeCoAlarm.AlarmState.Critical :  SmokeCoAlarm.AlarmState.Normal) },
+  ];
+
+/** Convert Home Assistant event types to Matterbridge event types */
+// prettier-ignore
+export const hassDomainEventConverter: { hassEventType: string; matterbridgeEventType: 'Single' | 'Double' | 'Long' | 'Press' | 'Release'; }[] = [
+    { hassEventType: 'single',            matterbridgeEventType: 'Single' },
+    { hassEventType: 'single_push',       matterbridgeEventType: 'Single' },
+    { hassEventType: 'press',             matterbridgeEventType: 'Single' },
+    { hassEventType: 'initial_press',     matterbridgeEventType: 'Single' },
+    { hassEventType: 'multi_press_1',     matterbridgeEventType: 'Single' },
+    { hassEventType: 'double',            matterbridgeEventType: 'Double' },
+    { hassEventType: 'double_press',      matterbridgeEventType: 'Double' },
+    { hassEventType: 'double_push',       matterbridgeEventType: 'Double' },
+    { hassEventType: 'multi_press_2',     matterbridgeEventType: 'Double' },
+    { hassEventType: 'long',              matterbridgeEventType: 'Long' },
+    { hassEventType: 'long_push',         matterbridgeEventType: 'Long' },
+    { hassEventType: 'long_press',        matterbridgeEventType: 'Long' },
+    { hassEventType: 'hold_press',        matterbridgeEventType: 'Long' },
   ];
 
 /** Convert Home Assistant domains services to Matterbridge commands for device types */
