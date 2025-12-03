@@ -196,6 +196,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.error(`Error subscribing to Home Assistant events: ${error}`);
       }
       if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
+      if (this.isConfigured) this.wssSendRestartRequired();
     });
 
     this.ha.on('disconnected', () => {

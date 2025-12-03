@@ -16,6 +16,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 - [platform]: Added platform memory cleanup before throwing error for host and token missed.
 - [platform]: Added snackbar message on the frontend when Home Assistant disconnect and reconnect.
+- [platform]: Added restart required when Home Assistant reconnect. If the configuration changed you need to restart the plugin.
 
 ### Changed
 
