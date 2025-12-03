@@ -147,6 +147,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Initializing platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
 
     if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
+      setImmediate(async () => {
+        await this.onShutdown('Invalid configuration');
+      });
       throw new Error('Host and token must be defined in the configuration');
     }
 
