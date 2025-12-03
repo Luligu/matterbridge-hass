@@ -2376,6 +2376,12 @@ describe('HassPlatform', () => {
     buttonEntityState.attributes.event_type = 'long';
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
     expect(triggerSwitchEventSpy).toHaveBeenCalledWith('Long', expect.anything());
+
+    jest.clearAllMocks();
+    buttonEntityState.attributes.event_type = 'unsupported';
+    await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`not supported for entity`));
+    expect(triggerSwitchEventSpy).not.toHaveBeenCalled();
   });
 
   it('should call onConfigure', async () => {

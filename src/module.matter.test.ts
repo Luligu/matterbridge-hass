@@ -1117,6 +1117,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(50);
 
     jest.clearAllMocks();
+    // @ts-expect-error type mismatch
     await haPlatform.updateHandler(valveDevice.id, valveEntity.entity_id, valveState, { ...valveState, state: 'closed', attributes: { current_position: 0 } });
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Closed, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 0, expect.anything());
@@ -1382,7 +1383,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(addClusterServerColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 147, 500);
+    expect(addClusterServerColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 500);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -2901,6 +2902,8 @@ describe('Matterbridge ' + NAME, () => {
       [presenceEntity, presenceStateMulti],
       [smokeEntity, smokeStateMulti],
       [coEntity, coStateMulti],
+      // event
+      [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
       haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id });
@@ -3093,6 +3096,8 @@ describe('Matterbridge ' + NAME, () => {
       [presenceEntity, presenceStateMulti],
       [smokeEntity, smokeStateMulti],
       [coEntity, coStateMulti],
+      // event
+      [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
       haPlatform.ha.hassEntities.set(e.entity_id, { ...e });
@@ -3847,5 +3852,22 @@ const climateCoolState = {
     current_temperature: 18,
     min_temp: 5,
     max_temp: 35,
+  },
+} as unknown as HassState;
+
+const buttonEntity = {
+  device_id: null,
+  entity_id: 'event.shelly_button',
+  id: 'event.shelly_button-entity-id',
+  name: 'Button',
+} as unknown as HassEntity;
+const buttonState = {
+  entity_id: buttonEntity.entity_id,
+  state: 'unknown',
+  attributes: {
+    event_types: ['single', 'double', 'long'],
+    event_type: 'single',
+    device_class: 'button',
+    friendly_name: 'Shelly button',
   },
 } as unknown as HassState;

@@ -105,65 +105,39 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 | binary_sensor | carbon_monoxide                      | smokeCoAlarm        |
 | binary_sensor | battery                              | powerSource         |
 
+## Supported events:
+
+| Domain | Supported events                                         | Matter device type |
+| ------ | -------------------------------------------------------- | ------------------ |
+| event  | single, single_push, press, initial_press, multi_press_1 | genericSwitch      |
+| event  | double, double_press, double_push, multi_press_2         | genericSwitch      |
+| event  | long, long_push, long_press, hold_press                  | genericSwitch      |
+
+If any commonly used integration use other useful events, let me know please.
+
 ### Naming issues explained
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the three possible actual solutions [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+### Usage warning
+
 > **Warning:** Since this plugin takes the devices from Home Assistant, it cannot be paired back to Home Assistant. This would lead to duplicate devices! If you run Matterbridge like a Home Assistant Add-on and also use other plugins to expose their devices to Home Assistant, then change to child bridge mode and pair the other plugins to Home Assistant and this plugin wherever you need it.
 
-If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
+## Sponsoring
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
-</a>
+If you like this project and find it useful, please consider giving it a **star** on GitHub at https://github.com/Luligu/matterbridge-hass and **sponsoring** it.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## Prerequisites
 
 ### Matterbridge
 
-Follow these steps to install or update Matterbridge if it is not already installed and up to date:
-
-```
-npm install -g matterbridge --omit=dev
-```
-
-on Linux and macOS you may need the necessary permissions:
-
-```
-sudo npm install -g matterbridge --omit=dev
-```
-
 See the complete guidelines on [Matterbridge](https://github.com/Luligu/matterbridge/blob/main/README.md) for more information.
 
 ## How to install the plugin
 
-### With the frontend (preferred method)
-
 Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with Docker (I suggest you do it), all plugins are already loaded in the container so you just need to select the matterbridge-hass plugin and add it.
-
-### Without the frontend
-
-On windows:
-
-```
-cd $HOME\Matterbridge
-npm install -g matterbridge-hass --omit=dev
-matterbridge -add matterbridge-hass
-```
-
-On linux or macOS:
-
-```
-cd ~/Matterbridge
-sudo npm install -g matterbridge-hass --omit=dev
-matterbridge -add matterbridge-hass
-```
-
-Then start Matterbridge from a terminal
-
-```
-matterbridge
-```
 
 ## How to use it
 

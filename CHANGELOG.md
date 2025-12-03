@@ -14,9 +14,14 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Added
 
+- [platform]: Added domain [event](https://github.com/Luligu/matterbridge-hass?tab=readme-ov-file#supported-events).
 - [platform]: Added platform memory cleanup before throwing error for host and token missed.
 - [platform]: Added snackbar message on the frontend when Home Assistant disconnect and reconnect.
 - [platform]: Added restart required when Home Assistant reconnect. If the configuration changed you need to restart the plugin.
+- [homeAssistant]: Added HomeAssistantLightColorMode enum, DEFAULT_MIN_KELVIN and DEFAULT_MAX_KELVIN.
+- [homeAssistant]: Added HassStateEventAttributes type.
+- [converters]: Added hassDomainEventConverter.
+- [converters]: Use HomeAssistantLightColorMode enum.
 
 ### Changed
 
@@ -26,6 +31,8 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [package]: Updated tests to use the Matterbridge Jest module.
 - [package]: Bumped package to automator v.2.1.0.
 - [platform]: Changed savePayload() to async.
+- [converters]: Bumped `Converters` to v.1.2.0.
+- [homeAssistant]: Bumped `HomeAssistant` to v.1.2.0.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

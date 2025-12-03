@@ -52,6 +52,7 @@ import {
   convertMatterXYToHA,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
+  hassDomainEventConverter,
   hassDomainSensorsConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
@@ -59,6 +60,7 @@ import {
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addSensorEntity } from './sensor.entity.js';
 import { addControlEntity } from './control.entity.js';
+import { addEventEntity } from './event.entity.js';
 
 export interface HomeAssistantPlatformConfig extends PlatformConfig {
   host: string;
@@ -296,7 +298,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null)) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
-      if (!this.individualEntitiesDomains.includes(domain) && !this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+      if (
+        !this.individualEntitiesDomains.includes(domain) &&
+        !this.supportedCoreDomains.includes(domain) &&
+        domain !== 'sensor' &&
+        domain !== 'binary_sensor' &&
+        domain !== 'event'
+      ) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
         continue;
       }
@@ -394,6 +402,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, name.includes('battery'), this.log);
       // Lookup and add binary_sensor domain entity.
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
+      // Lookup and add event domain entity.
+      if (domain === 'event') addEventEntity(mutableDevice, entity, hassState, this.log);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
         mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
@@ -506,7 +516,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const entityName = entity.name ?? entity.original_name ?? deviceName;
         let endpointName = entity.entity_id;
         // Skip not supported domains.
-        if (!this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+        if (!this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor' && domain !== 'event') {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
           continue;
         }
@@ -549,6 +559,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const eBinarySensor = addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
         if (eBinarySensor !== undefined) {
           endpointName = eBinarySensor;
+          this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
+        }
+        // Lookup and add event domain entity.
+        const eEvent = addEventEntity(mutableDevice, entity, hassState, this.log);
+        if (eEvent !== undefined) {
+          endpointName = eEvent;
           this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
         }
         // Found a supported entity domain
@@ -602,7 +618,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id !== null && (this.config.splitEntities as string[]).includes(e.entity_id))) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
-      if (!this.individualEntitiesDomains.includes(domain) && !this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+      if (
+        !this.individualEntitiesDomains.includes(domain) &&
+        !this.supportedCoreDomains.includes(domain) &&
+        domain !== 'sensor' &&
+        domain !== 'binary_sensor' &&
+        domain !== 'event'
+      ) {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
         continue;
       }
@@ -658,6 +680,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, name.includes('battery'), this.log);
       // Lookup and add binary_sensor domain entity.
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
+      // Lookup and add event domain entity.
+      if (domain === 'event') addEventEntity(mutableDevice, entity, hassState, this.log);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
         mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
@@ -1005,6 +1029,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (convertedValue !== null) await endpoint.setAttribute(hassBinarySensorConverter.clusterId, hassBinarySensorConverter.attribute, convertedValue, endpoint.log);
       } else {
         endpoint.log.warn(`Update binary_sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`);
+      }
+    } else if (domain === 'event') {
+      // Update event of the device
+      const hassEventConverter = hassDomainEventConverter.find((c) => c.hassEventType === new_state.attributes['event_type']);
+      if (hassEventConverter) {
+        await endpoint.triggerSwitchEvent(hassEventConverter.matterbridgeEventType, endpoint.log);
+      } else {
+        endpoint.log.debug(`Update event ${CYAN}${domain}${db}:${CYAN}${new_state.attributes['event_type']}${db} not supported for entity ${entityId}`);
       }
     } else {
       // Update state of the device
