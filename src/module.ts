@@ -195,10 +195,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       } catch (error) {
         this.log.error(`Error subscribing to Home Assistant events: ${error}`);
       }
+      if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
     });
 
     this.ha.on('disconnected', () => {
       this.log.warn('Disconnected from Home Assistant');
+      if (this.isConfigured) this.wssSendSnackbarMessage('Disconnected from Home Assistant', 5, 'warning');
     });
 
     this.ha.on('error', (error: string) => {
@@ -1055,11 +1057,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     };
     try {
       await fs.promises.writeFile(filename, JSON.stringify(payload, null, 2));
-        this.log.debug(`Payload successfully written to ${filename}`);
-        return;
+      this.log.debug(`Payload successfully written to ${filename}`);
+      return;
     } catch (error) {
-        this.log.error(`Error writing payload to file ${filename}: ${error}`);
-  }
+      this.log.error(`Error writing payload to file ${filename}: ${error}`);
+    }
   }
   /**
    * Validate the areaId and labels of a device or an entity against the configured filters.
