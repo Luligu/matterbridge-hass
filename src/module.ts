@@ -25,7 +25,7 @@
 
 // Node.js imports
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
+import fs from 'node:fs';
 
 // matterbridge imports
 import {
@@ -262,7 +262,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     // Create the plugin directory inside the Matterbridge plugin directory
-    await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
+    await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
@@ -726,12 +726,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     try {
-      await this.ha.close();
+      await this.ha?.close();
+      this.ha?.removeAllListeners();
       this.log.info('Home Assistant connection closed');
     } catch (error) {
       this.log.error(`Error closing Home Assistant connection: ${error}`);
     }
-    this.ha.removeAllListeners();
 
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
 
@@ -1043,7 +1043,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    *
    * @param {string} filename The name of the file to save the payload to.
    */
-  private savePayload(filename: string) {
+  private async savePayload(filename: string) {
     const payload = {
       devices: Array.from(this.ha.hassDevices.values()),
       entities: Array.from(this.ha.hassEntities.values()),
@@ -1053,16 +1053,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       config: this.ha.hassConfig,
       services: this.ha.hassServices,
     };
-    fs.writeFile(filename, JSON.stringify(payload, null, 2))
-      .then(() => {
+    try {
+      await fs.promises.writeFile(filename, JSON.stringify(payload, null, 2));
         this.log.debug(`Payload successfully written to ${filename}`);
         return;
-      })
-      .catch((error) => {
+    } catch (error) {
         this.log.error(`Error writing payload to file ${filename}: ${error}`);
-      });
   }
-
+  }
   /**
    * Validate the areaId and labels of a device or an entity against the configured filters.
    *

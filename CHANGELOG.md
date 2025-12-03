@@ -8,29 +8,16 @@ If you like this project and find it useful, please consider giving it a star on
   <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
 </a>
 
-### Roadmap to release 1.0.0
-
-- ✅ support all single entities reusing the same code of the device entities.
-- ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
-- ✅ add automatic 'remap' ability in MutableDevice for single entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the single entity. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- ✅ add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- ✅ add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device with the Friendly name of the original entity. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
-- ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
-- ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
-- ✅ add valve domain (requested by Ludovic BOUÉ).
-- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75).
-- ✅ move from mired to kelvin.
-- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
-- add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
-- add water heater domain (requested by Ludovic BOUÉ).
-- add media_player domain (requested by Tamer).
-- add event domain.
-
-### Naming issues explained
+### Naming issues on the controller side explained
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [0.5.2] - 2025-11-30
+## [1.0.0] - 2025-12-02
+
+### Added
+
+- [platform]: Added platform memory cleanup before throwing error for host and token missed.
+- [platform]: Added snackbar message on the frontend when Home Assistant disconnect and reconnect.
 
 ### Changed
 
@@ -38,6 +25,8 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [package]: Updated to the current Matterbridge signatures.
 - [package]: Requires Matterbridge v.3.4.0.
 - [package]: Updated to the Matterbridge Jest module.
+- [package]: Bumped package to automator v.2.1.0.
+- [platform]: Changed savePayload() to async.
 
 <a href="https://www.buymeacoffee.com/luligugithub">
   <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
