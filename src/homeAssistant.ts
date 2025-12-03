@@ -3,7 +3,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @created 2024-09-14
- * @version 1.1.2
+ * @version 1.2.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -24,8 +24,9 @@
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 
-import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er } from 'matterbridge/logger';
+import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er, rs } from 'matterbridge/logger';
 import WebSocket, { ErrorEvent } from 'ws';
+import { hasParameter } from 'matterbridge/utils';
 
 /**
  * Interface representing a Home Assistant device.
@@ -132,7 +133,13 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & HassStateValveAttributes & HassStateVacuumAttributes;
+  attributes: HassStateAttributes &
+    HassStateLightAttributes &
+    HassStateClimateAttributes &
+    HassStateFanAttributes &
+    HassStateValveAttributes &
+    HassStateVacuumAttributes &
+    HassStateEventAttributes;
   context: HassContext;
 }
 
@@ -173,6 +180,31 @@ export interface HassStateLightAttributes {
   rgbw_color?: [number, number, number, number] | null; // RGBW color values
   rgbww_color?: [number, number, number, number, number] | null; // RGBWW color values
 }
+
+/**
+ * Enum representing the possible color modes of a Home Assistant light entity.
+ */
+export enum HomeAssistantLightColorMode {
+  // """Possible light color modes."""
+  UNKNOWN = 'unknown',
+  // """Ambiguous color mode"""
+  ONOFF = 'onoff',
+  // """Must be the only supported mode"""
+  BRIGHTNESS = 'brightness',
+  // """Must be the only supported mode"""
+  COLOR_TEMP = 'color_temp',
+  HS = 'hs',
+  XY = 'xy',
+  RGB = 'rgb',
+  RGBW = 'rgbw',
+  RGBWW = 'rgbww',
+  WHITE = 'white',
+}
+
+// Default to the Philips Hue value that HA has always assumed
+// https://developers.meethue.com/documentation/core-concepts
+export const DEFAULT_MIN_KELVIN = 2000; // 500 mireds
+export const DEFAULT_MAX_KELVIN = 6535; // 153 mireds
 
 /**
  * Interface representing the attributes of a Home Assistant fan entity's state.
@@ -219,6 +251,26 @@ export interface HassStateClimateAttributes {
   target_temp_low?: number | null; // Target low temperature setting (for heat_cool thermostats)
   min_temp?: number | null; // Minimum temperature setting
   max_temp?: number | null; // Maximum temperature setting
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant event entity's state.
+ */
+export interface HassStateEventAttributes {
+  event_types: string[]; // List of event types the entity is listening to
+  event_type: string | null; // Current event type the entity is listening to
+  newPosition?: number;
+  previousPosition?: number;
+  totalNumberOfPressesCounted?: number;
+}
+
+/**
+ * Enum representing the device classes for Home Assistant events.
+ */
+export enum HomeAssistantEventDeviceClass {
+  DOORBELL = 'doorbell',
+  BUTTON = 'button',
+  MOTION = 'motion',
 }
 
 /**
@@ -434,6 +486,8 @@ export class HomeAssistant extends EventEmitter {
   hassServices: HassServices | null = null;
   hassConfig: HassConfig | null = null;
   static hassConfig: HassConfig | null = null;
+  private readonly debug = hasParameter('debug') || hasParameter('verbose');
+  private readonly verbose = hasParameter('verbose');
   private pingInterval: NodeJS.Timeout | null = null;
   private pingTimeout: NodeJS.Timeout | null = null;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -510,7 +564,7 @@ export class HomeAssistant extends EventEmitter {
     this.log = new AnsiLogger({
       logName: 'HomeAssistant',
       logTimestampFormat: TimestampFormat.TIME_MILLIS,
-      logLevel: LogLevel.INFO,
+      logLevel: this.debug ? LogLevel.DEBUG : LogLevel.INFO,
     });
   }
 
@@ -569,6 +623,7 @@ export class HomeAssistant extends EventEmitter {
         this.emit('error', errorMessage);
         return;
       }
+      if (this.verbose) this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}:${rs}\n${debugStringify(response.event)}`);
       if (response.event.event_type === 'state_changed') {
         const entity = this.hassEntities.get(response.event.data.entity_id);
         if (!entity) {
@@ -608,7 +663,7 @@ export class HomeAssistant extends EventEmitter {
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/label_registry/list');
       } else {
-        this.log.debug(`*Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
+        if (this.debug) this.log.debug(`Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
       }
     }
   }

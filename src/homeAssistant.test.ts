@@ -485,9 +485,10 @@ describe('HomeAssistant', () => {
   });
 
   it('should log error if unknown event messages from Home Assistant', async () => {
+    (homeAssistant as any).debug = true;
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'unknown' } }));
     await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `*Unknown event type ${CYAN}unknown${db} received id ${CYAN}undefined${db}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Unknown event type ${CYAN}unknown${db} received id ${CYAN}undefined${db}`);
   });
 
   it('should react to pong from websocket', async () => {
