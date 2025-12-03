@@ -12,6 +12,10 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ## [1.0.0] - 2025-12-03
 
+### Breaking changes
+
+Since the domain [event](https://github.com/Luligu/matterbridge-hass?tab=readme-ov-file#supported-events) is now supported, please check your filters and/or whiteList.
+
 ### Added
 
 - [platform]: Added domain [event](https://github.com/Luligu/matterbridge-hass?tab=readme-ov-file#supported-events).

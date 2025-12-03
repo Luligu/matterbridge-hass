@@ -3,7 +3,7 @@
  * @file src\module.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.6.0
+ * @version 1.7.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
