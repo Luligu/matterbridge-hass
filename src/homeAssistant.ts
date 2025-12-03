@@ -201,6 +201,23 @@ export enum HomeAssistantLightColorMode {
   WHITE = 'white',
 }
 
+// Color mode of the light
+export const ATTR_COLOR_MODE = 'color_mode';
+// List of color modes supported by the light
+export const ATTR_SUPPORTED_COLOR_MODES = 'supported_color_modes';
+// Float that represents transition time in seconds to make change.
+export const ATTR_TRANSITION = 'transition';
+// Lists holding color values
+export const ATTR_RGB_COLOR = 'rgb_color';
+export const ATTR_RGBW_COLOR = 'rgbw_color';
+export const ATTR_RGBWW_COLOR = 'rgbww_color';
+export const ATTR_XY_COLOR = 'xy_color';
+export const ATTR_HS_COLOR = 'hs_color';
+export const ATTR_COLOR_TEMP_KELVIN = 'color_temp_kelvin';
+export const ATTR_MIN_COLOR_TEMP_KELVIN = 'min_color_temp_kelvin';
+export const ATTR_MAX_COLOR_TEMP_KELVIN = 'max_color_temp_kelvin';
+export const ATTR_COLOR_NAME = 'color_name';
+export const ATTR_WHITE = 'white';
 // Default to the Philips Hue value that HA has always assumed
 // https://developers.meethue.com/documentation/core-concepts
 export const DEFAULT_MIN_KELVIN = 2000; // 500 mireds
