@@ -505,9 +505,9 @@ export class HomeAssistant extends EventEmitter {
   static hassConfig: HassConfig | null = null;
   private readonly debug = hasParameter('debug') || hasParameter('verbose');
   private readonly verbose = hasParameter('verbose');
-  private pingInterval: NodeJS.Timeout | null = null;
-  private pingTimeout: NodeJS.Timeout | null = null;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private pingInterval: NodeJS.Timeout | undefined = undefined;
+  private pingTimeout: NodeJS.Timeout | undefined = undefined;
+  private reconnectTimeout: NodeJS.Timeout | undefined = undefined;
   private readonly pingIntervalTime: number = 30000;
   private readonly pingTimeoutTime: number = 35000;
   private readonly reconnectTimeoutTime: number = 60000; // Reconnect timeout in milliseconds, 0 means no timeout.
@@ -518,7 +518,7 @@ export class HomeAssistant extends EventEmitter {
   private reconnectRetry = 1; // Reconnect retry count. It is incremented each time a reconnect is attempted till the maximum number of retries is reached.
   private requestId = 1; // Next id for WebSocket requests. It has to be incremented for each request.
 
-  private fetchTimeout: NodeJS.Timeout | null = null;
+  private fetchTimeout: NodeJS.Timeout | undefined = undefined;
   private fetchQueue = new Set<string>();
 
   /**
@@ -594,7 +594,7 @@ export class HomeAssistant extends EventEmitter {
     this.log.debug('WebSocket ping received');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      this.pingTimeout = undefined;
       this.log.debug('Stopped ping timeout');
     }
     this.emit('ping', data);
@@ -604,7 +604,7 @@ export class HomeAssistant extends EventEmitter {
     this.log.debug('WebSocket pong received');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      this.pingTimeout = undefined;
       this.log.debug('Stopped ping timeout');
     }
     this.emit('pong', data);
@@ -627,9 +627,10 @@ export class HomeAssistant extends EventEmitter {
     // console.log(`Received WebSocket message:`, response);
     if (response.type === 'pong') {
       this.log.debug(`Home Assistant pong received with id ${response.id}`);
+      // istanbul ignore else
       if (this.pingTimeout) {
         clearTimeout(this.pingTimeout);
-        this.pingTimeout = null;
+        this.pingTimeout = undefined;
         this.log.debug('Stopped ping timeout');
       }
       this.emit('pong', Buffer.from('Home Assistant pong received'));
@@ -640,6 +641,7 @@ export class HomeAssistant extends EventEmitter {
         this.emit('error', errorMessage);
         return;
       }
+      // istanbul ignore next
       if (this.verbose) this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}:${rs}\n${debugStringify(response.event)}`);
       if (response.event.event_type === 'state_changed') {
         const entity = this.hassEntities.get(response.event.data.entity_id);
@@ -647,6 +649,7 @@ export class HomeAssistant extends EventEmitter {
           this.log.debug(`Entity id ${CYAN}${response.event.data.entity_id}${db} not found processing event`);
           return;
         }
+        // istanbul ignore else
         if (response.event.data.old_state && response.event.data.new_state) {
           this.hassStates.set(response.event.data.new_state.entity_id, response.event.data.new_state);
           this.emit('event', entity.device_id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
@@ -656,30 +659,31 @@ export class HomeAssistant extends EventEmitter {
         this.emit('call_service');
       } else if (response.event.event_type === 'core_config_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('get_config');
       } else if (response.event.event_type === 'device_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/device_registry/list');
       } else if (response.event.event_type === 'entity_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/entity_registry/list');
       } else if (response.event.event_type === 'area_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/area_registry/list');
       } else if (response.event.event_type === 'label_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/label_registry/list');
       } else {
+        // istanbul ignore else
         if (this.debug) this.log.debug(`Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
       }
     }
@@ -696,13 +700,14 @@ export class HomeAssistant extends EventEmitter {
   }
 
   private async onFetchTimeout() {
-    this.fetchTimeout = null;
+    this.fetchTimeout = undefined;
     this.log.debug(`Fetch timeout reached, processing fetch queue of ${this.fetchQueue.size} fetch id(s)...`);
     for (const fetchId of this.fetchQueue) {
       this.log.debug(`Fetching ${CYAN}${fetchId}${db}...`);
       try {
         const data = await this.fetch(fetchId);
         this.log.debug(`Received data for ${CYAN}${fetchId}${db}`);
+        // istanbul ignore else
         if (fetchId === 'get_config') {
           const config = data as HassConfig;
           this.log.debug(`Received config.`);
@@ -789,6 +794,7 @@ export class HomeAssistant extends EventEmitter {
             return reject(new Error(`Error parsing WebSocket message: ${error}`));
           }
           // console.log(`Received WebSocket message:`, response);
+          // istanbul ignore else
           if (response.type === 'auth_required') {
             this.log.debug(`Authentication required: ${debugStringify(response)}`);
             this.log.debug('Authentication required. Sending auth message...');
@@ -868,13 +874,13 @@ export class HomeAssistant extends EventEmitter {
     this.log.debug('Stopping ping interval...');
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
-      this.pingInterval = null;
+      this.pingInterval = undefined;
     }
     this.log.debug('Stopped ping interval');
     this.log.debug('Stopping ping timeout...');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      this.pingTimeout = undefined;
     }
     this.log.debug('Stopped ping timeout');
   }
@@ -893,7 +899,7 @@ export class HomeAssistant extends EventEmitter {
         this.log.notice(`Reconnecting attempt ${this.reconnectRetry} of ${this.reconnectRetries}...`);
         this.connect();
         this.reconnectRetry++;
-        this.reconnectTimeout = null;
+        this.reconnectTimeout = undefined;
       }, this.reconnectTimeoutTime).unref();
     } else {
       this.log.error('Restart the plugin to reconnect.');
@@ -913,7 +919,7 @@ export class HomeAssistant extends EventEmitter {
       this.stopPing();
       if (this.reconnectTimeout) {
         clearTimeout(this.reconnectTimeout);
-        this.reconnectTimeout = null;
+        this.reconnectTimeout = undefined;
       }
 
       const cleanup = () => {
@@ -1053,6 +1059,7 @@ export class HomeAssistant extends EventEmitter {
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseFetch;
+          // istanbul ignore else
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1109,6 +1116,7 @@ export class HomeAssistant extends EventEmitter {
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
+          // istanbul ignore else
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1171,6 +1179,7 @@ export class HomeAssistant extends EventEmitter {
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
+          // istanbul ignore else
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);

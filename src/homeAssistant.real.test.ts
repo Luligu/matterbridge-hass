@@ -79,9 +79,9 @@ describe('HomeAssistant real test on ubuntu', () => {
     expect(opened).toBe(true);
     expect(homeAssistant.connected).toBe(true);
     expect(homeAssistant.ws).not.toBeNull();
-    expect((homeAssistant as any).pingInterval).not.toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
-    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).not.toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
+    expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Connecting to Home Assistant on ${homeAssistant.wsUrl}...`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket connection established`);
   });
@@ -202,9 +202,9 @@ describe('HomeAssistant real test on ubuntu', () => {
     expect(closed).toBe(true);
     expect(homeAssistant.connected).toBe(false);
     expect(homeAssistant.ws).toBeNull();
-    expect((homeAssistant as any).pingInterval).toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
-    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
+    expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Closing Home Assistant connection...`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Home Assistant connection closed`);
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
