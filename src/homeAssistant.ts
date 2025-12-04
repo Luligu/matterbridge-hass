@@ -1286,8 +1286,8 @@ export class HomeAssistant extends EventEmitter {
 
   /**
    * Wait until Home Assistant core reports state RUNNING.
-   * Retries with a simple linear backoff till success.
-   * The max delay is 60 seconds.
+   * Retries till success or timeout.
+   * The max delay is 20 retries that takes approx. 4 * 20 seconds.
    * Logs errors but does not throw.
    *
    * @returns {Promise<boolean>} - A Promise that resolves to true when Home Assistant core is RUNNING, or false if an error occurs.
