@@ -501,7 +501,7 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
 
-    haPlatform.config.airQualityRegex = undefined; // Reset the regex configuration
+    haPlatform.config.airQualityRegex = ''; // Reset the regex configuration
     haPlatform.airQualityRegex = undefined; // Reset the regex
 
     // Clean the test environment
@@ -1142,6 +1142,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   it('should call onStart and register a Vacuum device', async () => {
+    haPlatform.config.enableServerRvc = true;
     const vacuumDevice = {
       area_id: null,
       disabled_by: null,
@@ -1263,6 +1264,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
 
     // setDebug(false);
+    haPlatform.config.enableServerRvc = false;
 
     // Clean the test environment
     await cleanup();
@@ -3050,6 +3052,7 @@ describe('Matterbridge ' + NAME, () => {
   }, 30000);
 
   it('should call onStart and register all individual entities', async () => {
+    haPlatform.config.enableServerRvc = true;
     const entities: [HassEntity, HassState][] = [
       // controls
       [switchEntity, switchState],

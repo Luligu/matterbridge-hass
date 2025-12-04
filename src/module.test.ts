@@ -377,6 +377,12 @@ describe('HassPlatform', () => {
     expect(haPlatform.isValidAreaLabel('area2', ['foo'])).toBe(false);
   });
 
+  it('returns false if filterByArea is set and areaId does not exist', () => {
+    mockConfig.filterByArea = 'Living Room';
+    haPlatform.labelIdFilter = '';
+    expect(haPlatform.isValidAreaLabel('areaunknown', ['foo'])).toBe(false);
+  });
+
   it('returns true if filterByArea is set and areaId matches', () => {
     mockConfig.filterByArea = 'Living Room';
     haPlatform.labelIdFilter = '';
@@ -648,11 +654,13 @@ describe('HassPlatform', () => {
   });
 
   it('should receive events from ha', async () => {
+    haPlatform.isConfigured = true;
     haPlatform.ha.emit('connected', '2024.09.1');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    await wait(100);
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Fetched data from Home Assistant successfully`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Subscribed to Home Assistant events successfully with id 15`);
+    haPlatform.isConfigured = false;
 
     jest.clearAllMocks();
     fetchDataSpy.mockImplementationOnce(() => {
@@ -662,13 +670,19 @@ describe('HassPlatform', () => {
       return Promise.reject(new Error('Subscribe failed'));
     });
     haPlatform.ha.emit('connected', '2024.09.1');
-    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    await wait(100);
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(`Error fetching data from Home Assistant: Error: FetchData failed`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(`Error subscribing to Home Assistant events: Error: Subscribe failed`);
 
+    haPlatform.isConfigured = true;
     haPlatform.ha.emit('disconnected', 'Jest test');
     expect(loggerWarnSpy).toHaveBeenCalledWith(`Disconnected from Home Assistant`);
+    haPlatform.isConfigured = false;
+
+    haPlatform.ha.emit('disconnected', 'Jest test');
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Disconnected from Home Assistant`);
+
     haPlatform.ha.emit('subscribed');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Subscribed to Home Assistant events`);
     haPlatform.ha.emit('config', { unit_system: { temperature: '°C', pressure: 'Pa' } } as unknown as HassConfig);
@@ -750,9 +764,9 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
     jest.clearAllMocks();
 
-    await haPlatform.onStart('Test reason');
+    await haPlatform.onStart();
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
     expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
@@ -899,7 +913,11 @@ describe('HassPlatform', () => {
       entity_id: entity.entity_id,
     } as unknown as HassState);
 
+    haPlatform.config.namePostfix = 'JST';
+    haPlatform.config.postfix = 'JST';
     await haPlatform.onStart('Test reason');
+    haPlatform.config.namePostfix = '';
+    haPlatform.config.postfix = '';
 
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(

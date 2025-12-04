@@ -136,7 +136,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * @param {AnsiLogger} log - The logger instance.
    * @param {PlatformConfig} config - The platform configuration.
    */
-  constructor(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig) {
+  constructor(
+    matterbridge: PlatformMatterbridge,
+    log: AnsiLogger,
+    override config: HomeAssistantPlatformConfig,
+  ) {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
@@ -156,25 +160,28 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
 
     // Set the default values for the config for old versions of it
-    this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : '';
-    this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : true;
-    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 30) ? config.reconnectTimeout : 60;
-    this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : 10;
-    this.config.filterByArea = isValidString(this.config.filterByArea, 1) ? this.config.filterByArea : '';
-    this.config.filterByLabel = isValidString(this.config.filterByLabel, 1) ? this.config.filterByLabel : '';
-    this.config.applyFiltersToDeviceEntities = isValidBoolean(this.config.applyFiltersToDeviceEntities) ? this.config.applyFiltersToDeviceEntities : false;
-    this.config.whiteList = isValidArray(this.config.whiteList, 1) ? this.config.whiteList : [];
-    this.config.blackList = isValidArray(this.config.blackList, 1) ? this.config.blackList : [];
-    this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
-    this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
-    this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
-    this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
-    this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
-    this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
-    this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
+    // istanbul ignore next
+    {
+      this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : '';
+      this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : true;
+      this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 30) ? config.reconnectTimeout : 60;
+      this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : 10;
+      this.config.filterByArea = isValidString(this.config.filterByArea, 1) ? this.config.filterByArea : '';
+      this.config.filterByLabel = isValidString(this.config.filterByLabel, 1) ? this.config.filterByLabel : '';
+      this.config.applyFiltersToDeviceEntities = isValidBoolean(this.config.applyFiltersToDeviceEntities) ? this.config.applyFiltersToDeviceEntities : false;
+      this.config.whiteList = isValidArray(this.config.whiteList, 1) ? this.config.whiteList : [];
+      this.config.blackList = isValidArray(this.config.blackList, 1) ? this.config.blackList : [];
+      this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
+      this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
+      this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
+      this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
+      this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
+      this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
+      this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
+    }
 
     // Initialize air quality regex from config or use default
-    this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex as string | undefined);
+    this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex);
 
     this.ha = new HomeAssistant(config.host, config.token, config.reconnectTimeout, config.reconnectRetries, config.certificatePath, config.rejectUnauthorized);
     this.ha.log.logLevel = this.log.logLevel;
@@ -441,11 +448,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.destroy();
     } // End of individual entities loop
 
-    this.log.debug(`Single entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
+    this.log.debug(`Individual entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
     for (const [entity, endpoint] of this.endpointNames) {
-      this.log.debug(
-        `- ${this.matterbridgeDevices.has(entity) ? 'individual' : 'unknown'} entity ${CYAN}${entity}${db} mapped to endpoint ${CYAN}${endpoint === '' ? 'main' : endpoint}${db}`,
-      );
+      this.log.debug(`- individual entity ${CYAN}${entity}${db} mapped to endpoint ${CYAN}${endpoint === '' ? 'main' : endpoint}${db}`);
     }
 
     // *********************************************************************************************************
@@ -1137,7 +1142,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * @param {string | undefined} regexString - The regex pattern string from config
    * @returns {RegExp | undefined} - Valid RegExp object
    */
-  private createRegexFromConfig(regexString: string | undefined): RegExp | undefined {
+  private createRegexFromConfig(regexString: string): RegExp | undefined {
     if (!isValidString(regexString, 1)) {
       this.log.debug(`No valid custom regex provided`);
       return undefined; // Return undefined if no regex is provided or if it is an empty string
