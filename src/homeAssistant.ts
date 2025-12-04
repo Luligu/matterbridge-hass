@@ -22,11 +22,12 @@
 /* eslint-disable jsdoc/reject-any-type */
 
 import { EventEmitter } from 'node:events';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
+import { Agent, fetch } from 'undici';
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er, rs } from 'matterbridge/logger';
 import WebSocket, { ErrorEvent } from 'ws';
-import { hasParameter, logError } from 'matterbridge/utils';
+import { hasParameter } from 'matterbridge/utils';
 
 /**
  * Interface representing a Home Assistant device.
@@ -1292,19 +1293,35 @@ export class HomeAssistant extends EventEmitter {
    * @returns {Promise<boolean>} - A Promise that resolves to true when Home Assistant core is RUNNING, or false if an error occurs.
    */
   async waitForHassRunning(): Promise<boolean> {
+    const createTlsAgent = () => {
+      let ca: string | Buffer<ArrayBuffer> | undefined;
+      // Load the CA certificate if provided
+      if (this.certificatePath && existsSync(this.certificatePath)) {
+        this.log.debug(`Loading CA certificate from ${this.certificatePath}...`);
+        ca = readFileSync(this.certificatePath); // Load CA certificate from the provided path
+        this.log.debug(`CA certificate loaded successfully`);
+      }
+      return new Agent({
+        connect: {
+          ca,
+          rejectUnauthorized: this.rejectUnauthorized,
+        },
+      });
+    };
+
     const url = new URL('/api/core/state', this.wsUrl.replace('ws://', 'http://').replace('wss://', 'https://')).toString();
 
-    let delayMs = 1000;
+    let retries = 1;
 
     this.log.debug(`Fetching ${url}...`);
 
     while (true) {
       try {
-        // eslint-disable-next-line n/no-unsupported-features/node-builtins
         const res = await fetch(url, {
           headers: {
             Authorization: `Bearer ${this.wsAccessToken}`,
           },
+          dispatcher: this.wsUrl.startsWith('wss://') ? createTlsAgent() : undefined,
         });
 
         // istanbul ignore else
@@ -1317,12 +1334,11 @@ export class HomeAssistant extends EventEmitter {
           }
         }
       } catch (error) {
-        logError(this.log, `Home Assistant core is not RUNNING`, error);
-        return false;
+        this.log.error(`Home Assistant core is not RUNNING: ${error}`);
       }
 
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-      if (delayMs < 60000) delayMs += 1000;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (retries < 20) retries += 1;
       else return false;
     }
   }
