@@ -1338,7 +1338,7 @@ export class HomeAssistant extends EventEmitter {
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (retries < 20) retries += 1;
+      if (retries < 60) retries += 1;
       else return false;
     }
   }

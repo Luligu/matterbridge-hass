@@ -127,7 +127,7 @@ describe('HomeAssistant.waitForHassRunning', () => {
       await expect(homeAssistant.waitForHassRunning()).resolves.toBe(false);
 
       expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Home Assistant core is not RUNNING: Error: network failure'));
-      expect(fetchMock).toHaveBeenCalledTimes(20);
+      expect(fetchMock).toHaveBeenCalledTimes(60);
     } finally {
       setTimeoutSpy.mockRestore();
     }
@@ -150,7 +150,7 @@ describe('HomeAssistant.waitForHassRunning', () => {
     try {
       await expect(homeAssistant.waitForHassRunning()).resolves.toBe(false);
 
-      expect(fetchMock).toHaveBeenCalledTimes(20);
+      expect(fetchMock).toHaveBeenCalledTimes(60);
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 1000);
     } finally {
       setTimeoutSpy.mockRestore();
