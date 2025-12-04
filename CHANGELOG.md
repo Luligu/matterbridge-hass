@@ -16,14 +16,26 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 Since the domain [event](https://github.com/Luligu/matterbridge-hass?tab=readme-ov-file#supported-events) is now supported, please check your filters and/or whiteList.
 
+### Race condition
+
+We have a race condition when, after a blackout or with docker compose or with other systems that start more then one process, Matterbridge starts before other required system or network components.
+
+Race condition can cause missing configuration or missed devices on the controller side.
+
+Added a fail safe check for Home Assistant core state RUNNING. The plugin and so the bridge will not start before the Home Assistant core is RUNNING (fully started).
+
+The plugin will fetch all data only after the Home Assistant core is fully started.
+
 ### Added
 
 - [platform]: Added domain [event](https://github.com/Luligu/matterbridge-hass?tab=readme-ov-file#supported-events).
+- [platform]: Added rest api to check if HomeAssistant is running (startup is finished) before fetching the data. This avoid to start the plugin with incomplete data.
 - [platform]: Added platform memory cleanup before throwing error for host and token missed.
 - [platform]: Added snackbar message on the frontend when Home Assistant disconnect and reconnect.
 - [platform]: Added restart required when Home Assistant reconnect. If the configuration changed you need to restart the plugin.
 - [homeAssistant]: Added HomeAssistantLightColorMode enum, DEFAULT_MIN_KELVIN and DEFAULT_MAX_KELVIN.
 - [homeAssistant]: Added HassStateEventAttributes type.
+- [homeAssistant]: Added Home Assistant core state check.
 - [converters]: Added hassDomainEventConverter.
 - [converters]: Use HomeAssistantLightColorMode enum.
 

@@ -26,7 +26,7 @@ import { readFileSync } from 'node:fs';
 
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er, rs } from 'matterbridge/logger';
 import WebSocket, { ErrorEvent } from 'ws';
-import { hasParameter } from 'matterbridge/utils';
+import { hasParameter, logError } from 'matterbridge/utils';
 
 /**
  * Interface representing a Home Assistant device.
@@ -1281,5 +1281,49 @@ export class HomeAssistant extends EventEmitter {
         } as HassWebSocketRequestCallService),
       );
     });
+  }
+
+  /**
+   * Wait until Home Assistant core reports state RUNNING.
+   * Retries with a simple linear backoff till success.
+   * The max delay is 60 seconds.
+   * Logs errors but does not throw.
+   *
+   * @returns {Promise<boolean>} - A Promise that resolves to true when Home Assistant core is RUNNING, or false if an error occurs.
+   */
+  async waitForHassRunning(): Promise<boolean> {
+    const url = new URL('/api/core/state', this.wsUrl.replace('ws://', 'http://').replace('wss://', 'https://')).toString();
+
+    let delayMs = 1000;
+
+    this.log.debug(`Fetching ${url}...`);
+
+    while (true) {
+      try {
+        // eslint-disable-next-line n/no-unsupported-features/node-builtins
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${this.wsAccessToken}`,
+          },
+        });
+
+        // istanbul ignore else
+        if (res.ok) {
+          const coreState = JSON.parse((await res.text()).trim()) as { state: string };
+          this.log.debug(`Core state is: ${debugStringify(coreState)}`);
+          if (coreState.state === 'RUNNING') {
+            this.log.notice('Home Assistant core is RUNNING');
+            return true;
+          }
+        }
+      } catch (error) {
+        logError(this.log, `Home Assistant core is not RUNNING`, error);
+        return false;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      if (delayMs < 60000) delayMs += 1000;
+      else return false;
+    }
   }
 }

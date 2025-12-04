@@ -269,6 +269,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Create the plugin directory inside the Matterbridge plugin directory
     await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
 
+    // Wait until Home Assistant core is RUNNING
+    const running = await this.ha.waitForHassRunning();
+    if (!running) {
+      this.wssSendSnackbarMessage('Home Assistant core is not running. Aborting startup.', 0, 'error');
+      throw new Error('Home Assistant core is not running. Aborting startup.');
+    }
+
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
     try {
