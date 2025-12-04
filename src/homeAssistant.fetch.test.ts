@@ -10,7 +10,7 @@ import path from 'node:path';
 import * as fs from 'node:fs';
 
 import { jest } from '@jest/globals';
-import { loggerErrorSpy, loggerNoticeSpy, setupTest } from 'matterbridge/jestutils';
+import { loggerDebugSpy, loggerErrorSpy, loggerNoticeSpy, setupTest } from 'matterbridge/jestutils';
 
 type UndiciModule = typeof import('undici');
 type UndiciFetch = UndiciModule['fetch'];
@@ -126,7 +126,7 @@ describe('HomeAssistant.waitForHassRunning', () => {
     try {
       await expect(homeAssistant.waitForHassRunning()).resolves.toBe(false);
 
-      expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Home Assistant core is not RUNNING: Error: network failure'));
+      expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining('Home Assistant core is not RUNNING: Error: network failure'));
       expect(fetchMock).toHaveBeenCalledTimes(60);
     } finally {
       setTimeoutSpy.mockRestore();

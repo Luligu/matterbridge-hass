@@ -1334,7 +1334,7 @@ export class HomeAssistant extends EventEmitter {
           }
         }
       } catch (error) {
-        this.log.error(`Home Assistant core is not RUNNING: ${error}`);
+        this.log.debug(`Home Assistant core is not RUNNING: ${error}`);
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
