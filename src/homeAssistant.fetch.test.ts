@@ -10,8 +10,23 @@ import path from 'node:path';
 import * as fs from 'node:fs';
 
 import { jest } from '@jest/globals';
-import * as undici from 'undici';
 import { loggerErrorSpy, loggerNoticeSpy, setupTest } from 'matterbridge/jestutils';
+
+type UndiciModule = typeof import('undici');
+type UndiciFetch = UndiciModule['fetch'];
+type FetchReturn = Awaited<ReturnType<UndiciFetch>>;
+
+const fetchMock = jest.fn() as jest.MockedFunction<UndiciFetch>;
+
+await jest.unstable_mockModule('undici', async () => {
+  const actual = await jest.requireActual<typeof import('undici')>('undici');
+  return {
+    ...actual,
+    fetch: fetchMock,
+  };
+});
+
+const undici = await import('undici');
 
 // Setup the test environment
 await setupTest(NAME, false);
@@ -25,6 +40,7 @@ describe('HomeAssistant.waitForHassRunning', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    fetchMock.mockReset();
     homeAssistant = new HomeAssistant('ws://localhost:8123', 'token');
   });
 
@@ -32,24 +48,20 @@ describe('HomeAssistant.waitForHassRunning', () => {
     const fetchResponse = {
       ok: true,
       text: jest.fn(async () => JSON.stringify({ state: 'RUNNING' })),
-    };
-    const fetchMock = jest.spyOn(globalThis as unknown as { fetch: (...args: [unknown?, unknown?]) => Promise<typeof fetchResponse> }, 'fetch');
+    } as unknown as FetchReturn;
+    const fetchMock = jest.spyOn(undici, 'fetch');
     fetchMock.mockResolvedValue(fetchResponse);
 
-    try {
-      await expect(homeAssistant.waitForHassRunning()).resolves.toBe(true);
+    await expect(homeAssistant.waitForHassRunning()).resolves.toBe(true);
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        'http://localhost:8123/api/core/state',
-        expect.objectContaining({
-          headers: { Authorization: 'Bearer token' },
-        }),
-      );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8123/api/core/state',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer token' },
+      }),
+    );
 
-      expect(loggerNoticeSpy).toHaveBeenCalledWith('Home Assistant core is RUNNING');
-    } finally {
-      fetchMock.mockRestore();
-    }
+    expect(loggerNoticeSpy).toHaveBeenCalledWith('Home Assistant core is RUNNING');
   });
 
   it('uses https fetch with TLS dispatcher when wsUrl is wss://', async () => {
@@ -58,23 +70,19 @@ describe('HomeAssistant.waitForHassRunning', () => {
     const fetchResponse = {
       ok: true,
       text: jest.fn(async () => JSON.stringify({ state: 'RUNNING' })),
-    };
-    const fetchMock = jest.spyOn(globalThis as unknown as { fetch: (...args: [unknown?, unknown?]) => Promise<typeof fetchResponse> }, 'fetch');
+    } as unknown as FetchReturn;
+    const fetchMock = jest.spyOn(undici, 'fetch');
     fetchMock.mockResolvedValue(fetchResponse);
 
-    try {
-      await expect(homeAssistant.waitForHassRunning()).resolves.toBe(true);
+    await expect(homeAssistant.waitForHassRunning()).resolves.toBe(true);
 
-      expect(fetchMock).toHaveBeenCalledWith('https://localhost:8123/api/core/state', expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith('https://localhost:8123/api/core/state', expect.any(Object));
 
-      const fetchOptions = fetchMock.mock.calls[0]?.[1] as { dispatcher?: unknown; headers?: Record<string, string> };
-      expect(fetchOptions?.headers).toEqual({ Authorization: 'Bearer token' });
-      expect(fetchOptions?.dispatcher).toBeInstanceOf(undici.Agent);
+    const fetchOptions = fetchMock.mock.calls[0]?.[1] as { dispatcher?: unknown; headers?: Record<string, string> };
+    expect(fetchOptions?.headers).toEqual({ Authorization: 'Bearer token' });
+    expect(fetchOptions?.dispatcher).toBeInstanceOf(undici.Agent);
 
-      expect(loggerNoticeSpy).toHaveBeenCalledWith('Home Assistant core is RUNNING');
-    } finally {
-      fetchMock.mockRestore();
-    }
+    expect(loggerNoticeSpy).toHaveBeenCalledWith('Home Assistant core is RUNNING');
   });
 
   it('loads CA certificate when certificatePath is provided', async () => {
@@ -87,29 +95,26 @@ describe('HomeAssistant.waitForHassRunning', () => {
     const fetchResponse = {
       ok: true,
       text: jest.fn(async () => JSON.stringify({ state: 'RUNNING' })),
-    };
-    const fetchMock = jest.spyOn(globalThis as unknown as { fetch: (...args: [unknown?, unknown?]) => Promise<typeof fetchResponse> }, 'fetch');
+    } as unknown as FetchReturn;
+    const fetchMock = jest.spyOn(undici, 'fetch');
     fetchMock.mockResolvedValue(fetchResponse);
 
-    try {
-      await expect(homeAssistant.waitForHassRunning()).resolves.toBe(true);
+    await expect(homeAssistant.waitForHassRunning()).resolves.toBe(true);
 
-      expect(fetchMock).toHaveBeenCalledWith('https://localhost:8123/api/core/state', expect.any(Object));
+    expect(fetchMock).toHaveBeenCalledWith('https://localhost:8123/api/core/state', expect.any(Object));
 
-      const fetchOptions = fetchMock.mock.calls[0]?.[1] as { dispatcher?: unknown; headers?: Record<string, string> };
-      expect(fetchOptions?.headers).toEqual({ Authorization: 'Bearer token' });
-      expect(fetchOptions?.dispatcher).toBeInstanceOf(undici.Agent);
+    const fetchOptions = fetchMock.mock.calls[0]?.[1] as { dispatcher?: unknown; headers?: Record<string, string> };
+    expect(fetchOptions?.headers).toEqual({ Authorization: 'Bearer token' });
+    expect(fetchOptions?.dispatcher).toBeInstanceOf(undici.Agent);
 
-      expect(loggerNoticeSpy).toHaveBeenCalledWith('Home Assistant core is RUNNING');
-    } finally {
-      fetchMock.mockRestore();
-      fs.rmSync(certificatePath, { force: true });
-    }
+    expect(loggerNoticeSpy).toHaveBeenCalledWith('Home Assistant core is RUNNING');
+
+    fs.rmSync(certificatePath, { force: true });
   });
 
   it('logs error when fetch throws', async () => {
     const fetchError = new Error('network failure');
-    const fetchMock = jest.spyOn(globalThis, 'fetch').mockRejectedValue(fetchError);
+    fetchMock.mockRejectedValue(fetchError);
 
     const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout').mockImplementation(((handler: (...args: unknown[]) => void) => {
       if (typeof handler === 'function') {
@@ -124,7 +129,6 @@ describe('HomeAssistant.waitForHassRunning', () => {
       expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Home Assistant core is not RUNNING: Error: network failure'));
       expect(fetchMock).toHaveBeenCalledTimes(20);
     } finally {
-      fetchMock.mockRestore();
       setTimeoutSpy.mockRestore();
     }
   });
@@ -133,8 +137,7 @@ describe('HomeAssistant.waitForHassRunning', () => {
     const fetchResponse = {
       ok: true,
       text: jest.fn(async () => JSON.stringify({ state: 'STARTING' })),
-    };
-    const fetchMock = jest.spyOn(globalThis as unknown as { fetch: (...args: [unknown?, unknown?]) => Promise<typeof fetchResponse> }, 'fetch');
+    } as unknown as FetchReturn;
     fetchMock.mockResolvedValue(fetchResponse);
 
     const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout').mockImplementation(((handler: (...args: unknown[]) => void) => {
@@ -150,7 +153,6 @@ describe('HomeAssistant.waitForHassRunning', () => {
       expect(fetchMock).toHaveBeenCalledTimes(20);
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 1000);
     } finally {
-      fetchMock.mockRestore();
       setTimeoutSpy.mockRestore();
     }
   });
