@@ -3,7 +3,7 @@
  * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @created 2024-09-14
- * @version 1.1.2
+ * @version 1.2.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -22,10 +22,12 @@
 /* eslint-disable jsdoc/reject-any-type */
 
 import { EventEmitter } from 'node:events';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
-import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er } from 'matterbridge/logger';
+import { Agent, fetch } from 'undici';
+import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er, rs } from 'matterbridge/logger';
 import WebSocket, { ErrorEvent } from 'ws';
+import { hasParameter } from 'matterbridge/utils';
 
 /**
  * Interface representing a Home Assistant device.
@@ -132,7 +134,13 @@ export interface HassState {
   last_changed: string;
   last_reported: string;
   last_updated: string;
-  attributes: HassStateAttributes & HassStateLightAttributes & HassStateClimateAttributes & HassStateFanAttributes & HassStateValveAttributes & HassStateVacuumAttributes;
+  attributes: HassStateAttributes &
+    HassStateLightAttributes &
+    HassStateClimateAttributes &
+    HassStateFanAttributes &
+    HassStateValveAttributes &
+    HassStateVacuumAttributes &
+    HassStateEventAttributes;
   context: HassContext;
 }
 
@@ -173,6 +181,48 @@ export interface HassStateLightAttributes {
   rgbw_color?: [number, number, number, number] | null; // RGBW color values
   rgbww_color?: [number, number, number, number, number] | null; // RGBWW color values
 }
+
+/**
+ * Enum representing the possible color modes of a Home Assistant light entity.
+ */
+export enum HomeAssistantLightColorMode {
+  // """Possible light color modes."""
+  UNKNOWN = 'unknown',
+  // """Ambiguous color mode"""
+  ONOFF = 'onoff',
+  // """Must be the only supported mode"""
+  BRIGHTNESS = 'brightness',
+  // """Must be the only supported mode"""
+  COLOR_TEMP = 'color_temp',
+  HS = 'hs',
+  XY = 'xy',
+  RGB = 'rgb',
+  RGBW = 'rgbw',
+  RGBWW = 'rgbww',
+  WHITE = 'white',
+}
+
+// Color mode of the light
+export const ATTR_COLOR_MODE = 'color_mode';
+// List of color modes supported by the light
+export const ATTR_SUPPORTED_COLOR_MODES = 'supported_color_modes';
+// Float that represents transition time in seconds to make change.
+export const ATTR_TRANSITION = 'transition';
+// Lists holding color values
+export const ATTR_RGB_COLOR = 'rgb_color';
+export const ATTR_RGBW_COLOR = 'rgbw_color';
+export const ATTR_RGBWW_COLOR = 'rgbww_color';
+export const ATTR_XY_COLOR = 'xy_color';
+export const ATTR_HS_COLOR = 'hs_color';
+export const ATTR_COLOR_TEMP_KELVIN = 'color_temp_kelvin';
+export const ATTR_MIN_COLOR_TEMP_KELVIN = 'min_color_temp_kelvin';
+export const ATTR_MAX_COLOR_TEMP_KELVIN = 'max_color_temp_kelvin';
+export const ATTR_COLOR_NAME = 'color_name';
+export const ATTR_WHITE = 'white';
+// Default to the Philips Hue value that HA has always assumed
+// https://developers.meethue.com/documentation/core-concepts
+export const DEFAULT_MIN_KELVIN = 2000; // 500 mireds
+export const DEFAULT_MAX_KELVIN = 6535; // 153 mireds
 
 /**
  * Interface representing the attributes of a Home Assistant fan entity's state.
@@ -219,6 +269,26 @@ export interface HassStateClimateAttributes {
   target_temp_low?: number | null; // Target low temperature setting (for heat_cool thermostats)
   min_temp?: number | null; // Minimum temperature setting
   max_temp?: number | null; // Maximum temperature setting
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant event entity's state.
+ */
+export interface HassStateEventAttributes {
+  event_types: string[]; // List of event types the entity is listening to
+  event_type: string | null; // Current event type the entity is listening to
+  newPosition?: number;
+  previousPosition?: number;
+  totalNumberOfPressesCounted?: number;
+}
+
+/**
+ * Enum representing the device classes for Home Assistant events.
+ */
+export enum HomeAssistantEventDeviceClass {
+  DOORBELL = 'doorbell',
+  BUTTON = 'button',
+  MOTION = 'motion',
 }
 
 /**
@@ -434,9 +504,11 @@ export class HomeAssistant extends EventEmitter {
   hassServices: HassServices | null = null;
   hassConfig: HassConfig | null = null;
   static hassConfig: HassConfig | null = null;
-  private pingInterval: NodeJS.Timeout | null = null;
-  private pingTimeout: NodeJS.Timeout | null = null;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private readonly debug = hasParameter('debug') || hasParameter('verbose');
+  private readonly verbose = hasParameter('verbose');
+  private pingInterval: NodeJS.Timeout | undefined = undefined;
+  private pingTimeout: NodeJS.Timeout | undefined = undefined;
+  private reconnectTimeout: NodeJS.Timeout | undefined = undefined;
   private readonly pingIntervalTime: number = 30000;
   private readonly pingTimeoutTime: number = 35000;
   private readonly reconnectTimeoutTime: number = 60000; // Reconnect timeout in milliseconds, 0 means no timeout.
@@ -447,7 +519,7 @@ export class HomeAssistant extends EventEmitter {
   private reconnectRetry = 1; // Reconnect retry count. It is incremented each time a reconnect is attempted till the maximum number of retries is reached.
   private requestId = 1; // Next id for WebSocket requests. It has to be incremented for each request.
 
-  private fetchTimeout: NodeJS.Timeout | null = null;
+  private fetchTimeout: NodeJS.Timeout | undefined = undefined;
   private fetchQueue = new Set<string>();
 
   /**
@@ -510,7 +582,7 @@ export class HomeAssistant extends EventEmitter {
     this.log = new AnsiLogger({
       logName: 'HomeAssistant',
       logTimestampFormat: TimestampFormat.TIME_MILLIS,
-      logLevel: LogLevel.INFO,
+      logLevel: this.debug ? LogLevel.DEBUG : LogLevel.INFO,
     });
   }
 
@@ -523,7 +595,7 @@ export class HomeAssistant extends EventEmitter {
     this.log.debug('WebSocket ping received');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      this.pingTimeout = undefined;
       this.log.debug('Stopped ping timeout');
     }
     this.emit('ping', data);
@@ -533,7 +605,7 @@ export class HomeAssistant extends EventEmitter {
     this.log.debug('WebSocket pong received');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      this.pingTimeout = undefined;
       this.log.debug('Stopped ping timeout');
     }
     this.emit('pong', data);
@@ -556,9 +628,10 @@ export class HomeAssistant extends EventEmitter {
     // console.log(`Received WebSocket message:`, response);
     if (response.type === 'pong') {
       this.log.debug(`Home Assistant pong received with id ${response.id}`);
+      // istanbul ignore else
       if (this.pingTimeout) {
         clearTimeout(this.pingTimeout);
-        this.pingTimeout = null;
+        this.pingTimeout = undefined;
         this.log.debug('Stopped ping timeout');
       }
       this.emit('pong', Buffer.from('Home Assistant pong received'));
@@ -569,12 +642,15 @@ export class HomeAssistant extends EventEmitter {
         this.emit('error', errorMessage);
         return;
       }
+      // istanbul ignore next
+      if (this.verbose) this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}:${rs}\n${debugStringify(response.event)}`);
       if (response.event.event_type === 'state_changed') {
         const entity = this.hassEntities.get(response.event.data.entity_id);
         if (!entity) {
           this.log.debug(`Entity id ${CYAN}${response.event.data.entity_id}${db} not found processing event`);
           return;
         }
+        // istanbul ignore else
         if (response.event.data.old_state && response.event.data.new_state) {
           this.hassStates.set(response.event.data.new_state.entity_id, response.event.data.new_state);
           this.emit('event', entity.device_id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
@@ -584,31 +660,32 @@ export class HomeAssistant extends EventEmitter {
         this.emit('call_service');
       } else if (response.event.event_type === 'core_config_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('get_config');
       } else if (response.event.event_type === 'device_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/device_registry/list');
       } else if (response.event.event_type === 'entity_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/entity_registry/list');
       } else if (response.event.event_type === 'area_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/area_registry/list');
       } else if (response.event.event_type === 'label_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
-        if (this.fetchTimeout) clearTimeout(this.fetchTimeout);
+        clearTimeout(this.fetchTimeout);
         this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
         this.fetchQueue.add('config/label_registry/list');
       } else {
-        this.log.debug(`*Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
+        // istanbul ignore else
+        if (this.debug) this.log.debug(`Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
       }
     }
   }
@@ -624,13 +701,14 @@ export class HomeAssistant extends EventEmitter {
   }
 
   private async onFetchTimeout() {
-    this.fetchTimeout = null;
+    this.fetchTimeout = undefined;
     this.log.debug(`Fetch timeout reached, processing fetch queue of ${this.fetchQueue.size} fetch id(s)...`);
     for (const fetchId of this.fetchQueue) {
       this.log.debug(`Fetching ${CYAN}${fetchId}${db}...`);
       try {
         const data = await this.fetch(fetchId);
         this.log.debug(`Received data for ${CYAN}${fetchId}${db}`);
+        // istanbul ignore else
         if (fetchId === 'get_config') {
           const config = data as HassConfig;
           this.log.debug(`Received config.`);
@@ -717,6 +795,7 @@ export class HomeAssistant extends EventEmitter {
             return reject(new Error(`Error parsing WebSocket message: ${error}`));
           }
           // console.log(`Received WebSocket message:`, response);
+          // istanbul ignore else
           if (response.type === 'auth_required') {
             this.log.debug(`Authentication required: ${debugStringify(response)}`);
             this.log.debug('Authentication required. Sending auth message...');
@@ -796,13 +875,13 @@ export class HomeAssistant extends EventEmitter {
     this.log.debug('Stopping ping interval...');
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
-      this.pingInterval = null;
+      this.pingInterval = undefined;
     }
     this.log.debug('Stopped ping interval');
     this.log.debug('Stopping ping timeout...');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
-      this.pingTimeout = null;
+      this.pingTimeout = undefined;
     }
     this.log.debug('Stopped ping timeout');
   }
@@ -821,7 +900,7 @@ export class HomeAssistant extends EventEmitter {
         this.log.notice(`Reconnecting attempt ${this.reconnectRetry} of ${this.reconnectRetries}...`);
         this.connect();
         this.reconnectRetry++;
-        this.reconnectTimeout = null;
+        this.reconnectTimeout = undefined;
       }, this.reconnectTimeoutTime).unref();
     } else {
       this.log.error('Restart the plugin to reconnect.');
@@ -841,7 +920,7 @@ export class HomeAssistant extends EventEmitter {
       this.stopPing();
       if (this.reconnectTimeout) {
         clearTimeout(this.reconnectTimeout);
-        this.reconnectTimeout = null;
+        this.reconnectTimeout = undefined;
       }
 
       const cleanup = () => {
@@ -981,6 +1060,7 @@ export class HomeAssistant extends EventEmitter {
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseFetch;
+          // istanbul ignore else
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1037,6 +1117,7 @@ export class HomeAssistant extends EventEmitter {
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
+          // istanbul ignore else
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1099,6 +1180,7 @@ export class HomeAssistant extends EventEmitter {
       const handleMessage = (event: WebSocket.MessageEvent) => {
         try {
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
+          // istanbul ignore else
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1200,5 +1282,64 @@ export class HomeAssistant extends EventEmitter {
         } as HassWebSocketRequestCallService),
       );
     });
+  }
+
+  /**
+   * Wait until Home Assistant core reports state RUNNING.
+   * Retries till success or timeout.
+   * The max delay is 20 retries that takes approx. 4 * 20 seconds.
+   * Logs errors but does not throw.
+   *
+   * @returns {Promise<boolean>} - A Promise that resolves to true when Home Assistant core is RUNNING, or false if an error occurs.
+   */
+  async waitForHassRunning(): Promise<boolean> {
+    const createTlsAgent = () => {
+      let ca: string | Buffer<ArrayBuffer> | undefined;
+      // Load the CA certificate if provided
+      if (this.certificatePath && existsSync(this.certificatePath)) {
+        this.log.debug(`Loading CA certificate from ${this.certificatePath}...`);
+        ca = readFileSync(this.certificatePath); // Load CA certificate from the provided path
+        this.log.debug(`CA certificate loaded successfully`);
+      }
+      return new Agent({
+        connect: {
+          ca,
+          rejectUnauthorized: this.rejectUnauthorized,
+        },
+      });
+    };
+
+    const url = new URL('/api/core/state', this.wsUrl.replace('ws://', 'http://').replace('wss://', 'https://')).toString();
+
+    let retries = 1;
+
+    this.log.debug(`Fetching ${url}...`);
+
+    while (true) {
+      try {
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${this.wsAccessToken}`,
+          },
+          dispatcher: this.wsUrl.startsWith('wss://') ? createTlsAgent() : undefined,
+        });
+
+        // istanbul ignore else
+        if (res.ok) {
+          const coreState = JSON.parse((await res.text()).trim()) as { state: string };
+          this.log.debug(`Core state is: ${debugStringify(coreState)}`);
+          if (coreState.state === 'RUNNING') {
+            this.log.notice('Home Assistant core is RUNNING');
+            return true;
+          }
+        }
+      } catch (error) {
+        this.log.debug(`Home Assistant core is not RUNNING: ${error}`);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (retries < 60) retries += 1;
+      else return false;
+    }
   }
 }

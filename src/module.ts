@@ -3,7 +3,7 @@
  * @file src\module.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.6.0
+ * @version 1.7.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -25,7 +25,7 @@
 
 // Node.js imports
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
+import fs from 'node:fs';
 
 // matterbridge imports
 import {
@@ -52,6 +52,7 @@ import {
   convertMatterXYToHA,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
+  hassDomainEventConverter,
   hassDomainSensorsConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
@@ -59,6 +60,7 @@ import {
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addSensorEntity } from './sensor.entity.js';
 import { addControlEntity } from './control.entity.js';
+import { addEventEntity } from './event.entity.js';
 
 export interface HomeAssistantPlatformConfig extends PlatformConfig {
   host: string;
@@ -134,42 +136,52 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * @param {AnsiLogger} log - The logger instance.
    * @param {PlatformConfig} config - The platform configuration.
    */
-  constructor(matterbridge: PlatformMatterbridge, log: AnsiLogger, config: HomeAssistantPlatformConfig) {
+  constructor(
+    matterbridge: PlatformMatterbridge,
+    log: AnsiLogger,
+    override config: HomeAssistantPlatformConfig,
+  ) {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.3.0')) {
+    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.4.0')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.3.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "3.4.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
     }
 
     this.log.info(`Initializing platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
 
     if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
+      setImmediate(async () => {
+        await this.onShutdown('Invalid configuration');
+      });
       throw new Error('Host and token must be defined in the configuration');
     }
 
     // Set the default values for the config for old versions of it
-    this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : '';
-    this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : true;
-    this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 30) ? config.reconnectTimeout : 60;
-    this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : 10;
-    this.config.filterByArea = isValidString(this.config.filterByArea, 1) ? this.config.filterByArea : '';
-    this.config.filterByLabel = isValidString(this.config.filterByLabel, 1) ? this.config.filterByLabel : '';
-    this.config.applyFiltersToDeviceEntities = isValidBoolean(this.config.applyFiltersToDeviceEntities) ? this.config.applyFiltersToDeviceEntities : false;
-    this.config.whiteList = isValidArray(this.config.whiteList, 1) ? this.config.whiteList : [];
-    this.config.blackList = isValidArray(this.config.blackList, 1) ? this.config.blackList : [];
-    this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
-    this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
-    this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
-    this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
-    this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
-    this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
-    this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
+    // istanbul ignore next
+    {
+      this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : '';
+      this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : true;
+      this.config.reconnectTimeout = isValidNumber(config.reconnectTimeout, 30) ? config.reconnectTimeout : 60;
+      this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : 10;
+      this.config.filterByArea = isValidString(this.config.filterByArea, 1) ? this.config.filterByArea : '';
+      this.config.filterByLabel = isValidString(this.config.filterByLabel, 1) ? this.config.filterByLabel : '';
+      this.config.applyFiltersToDeviceEntities = isValidBoolean(this.config.applyFiltersToDeviceEntities) ? this.config.applyFiltersToDeviceEntities : false;
+      this.config.whiteList = isValidArray(this.config.whiteList, 1) ? this.config.whiteList : [];
+      this.config.blackList = isValidArray(this.config.blackList, 1) ? this.config.blackList : [];
+      this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
+      this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
+      this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
+      this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
+      this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
+      this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
+      this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
+    }
 
     // Initialize air quality regex from config or use default
-    this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex as string | undefined);
+    this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex);
 
     this.ha = new HomeAssistant(config.host, config.token, config.reconnectTimeout, config.reconnectRetries, config.certificatePath, config.rejectUnauthorized);
     this.ha.log.logLevel = this.log.logLevel;
@@ -192,10 +204,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       } catch (error) {
         this.log.error(`Error subscribing to Home Assistant events: ${error}`);
       }
+      if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
+      if (this.isConfigured) this.wssSendRestartRequired();
     });
 
     this.ha.on('disconnected', () => {
       this.log.warn('Disconnected from Home Assistant');
+      if (this.isConfigured) this.wssSendSnackbarMessage('Disconnected from Home Assistant', 5, 'warning');
     });
 
     this.ha.on('error', (error: string) => {
@@ -259,7 +274,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     // Create the plugin directory inside the Matterbridge plugin directory
-    await fs.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
+    await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
+
+    // Wait until Home Assistant core is RUNNING
+    const running = await this.ha.waitForHassRunning();
+    if (!running) {
+      this.wssSendSnackbarMessage('Home Assistant core is not running. Aborting startup.', 0, 'error');
+      throw new Error('Home Assistant core is not running. Aborting startup.');
+    }
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
@@ -290,7 +312,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null)) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
-      if (!this.individualEntitiesDomains.includes(domain) && !this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+      if (
+        !this.individualEntitiesDomains.includes(domain) &&
+        !this.supportedCoreDomains.includes(domain) &&
+        domain !== 'sensor' &&
+        domain !== 'binary_sensor' &&
+        domain !== 'event'
+      ) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
         continue;
       }
@@ -388,6 +416,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, name.includes('battery'), this.log);
       // Lookup and add binary_sensor domain entity.
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
+      // Lookup and add event domain entity.
+      if (domain === 'event') addEventEntity(mutableDevice, entity, hassState, this.log);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
         mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
@@ -418,11 +448,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.destroy();
     } // End of individual entities loop
 
-    this.log.debug(`Single entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
+    this.log.debug(`Individual entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
     for (const [entity, endpoint] of this.endpointNames) {
-      this.log.debug(
-        `- ${this.matterbridgeDevices.has(entity) ? 'individual' : 'unknown'} entity ${CYAN}${entity}${db} mapped to endpoint ${CYAN}${endpoint === '' ? 'main' : endpoint}${db}`,
-      );
+      this.log.debug(`- individual entity ${CYAN}${entity}${db} mapped to endpoint ${CYAN}${endpoint === '' ? 'main' : endpoint}${db}`);
     }
 
     // *********************************************************************************************************
@@ -500,7 +528,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const entityName = entity.name ?? entity.original_name ?? deviceName;
         let endpointName = entity.entity_id;
         // Skip not supported domains.
-        if (!this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+        if (!this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor' && domain !== 'event') {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
           continue;
         }
@@ -543,6 +571,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const eBinarySensor = addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
         if (eBinarySensor !== undefined) {
           endpointName = eBinarySensor;
+          this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
+        }
+        // Lookup and add event domain entity.
+        const eEvent = addEventEntity(mutableDevice, entity, hassState, this.log);
+        if (eEvent !== undefined) {
+          endpointName = eEvent;
           this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
         }
         // Found a supported entity domain
@@ -596,7 +630,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id !== null && (this.config.splitEntities as string[]).includes(e.entity_id))) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
-      if (!this.individualEntitiesDomains.includes(domain) && !this.supportedCoreDomains.includes(domain) && domain !== 'sensor' && domain !== 'binary_sensor') {
+      if (
+        !this.individualEntitiesDomains.includes(domain) &&
+        !this.supportedCoreDomains.includes(domain) &&
+        domain !== 'sensor' &&
+        domain !== 'binary_sensor' &&
+        domain !== 'event'
+      ) {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has unsupported domain ${CYAN}${domain}${db}. Skipping...`);
         continue;
       }
@@ -652,6 +692,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'sensor') addSensorEntity(mutableDevice, entity, hassState, this.airQualityRegex, name.includes('battery'), this.log);
       // Lookup and add binary_sensor domain entity.
       if (domain === 'binary_sensor') addBinarySensorEntity(mutableDevice, entity, hassState, this.log);
+      // Lookup and add event domain entity.
+      if (domain === 'event') addEventEntity(mutableDevice, entity, hassState, this.log);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
         mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
@@ -723,12 +765,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     try {
-      await this.ha.close();
+      await this.ha?.close();
+      this.ha?.removeAllListeners();
       this.log.info('Home Assistant connection closed');
     } catch (error) {
       this.log.error(`Error closing Home Assistant connection: ${error}`);
     }
-    this.ha.removeAllListeners();
 
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
 
@@ -1000,6 +1042,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       } else {
         endpoint.log.warn(`Update binary_sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`);
       }
+    } else if (domain === 'event') {
+      // Update event of the device
+      const hassEventConverter = hassDomainEventConverter.find((c) => c.hassEventType === new_state.attributes['event_type']);
+      if (hassEventConverter) {
+        await endpoint.triggerSwitchEvent(hassEventConverter.matterbridgeEventType, endpoint.log);
+      } else {
+        endpoint.log.debug(`Update event ${CYAN}${domain}${db}:${CYAN}${new_state.attributes['event_type']}${db} not supported for entity ${entityId}`);
+      }
     } else {
       // Update state of the device
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
@@ -1040,7 +1090,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    *
    * @param {string} filename The name of the file to save the payload to.
    */
-  private savePayload(filename: string) {
+  private async savePayload(filename: string) {
     const payload = {
       devices: Array.from(this.ha.hassDevices.values()),
       entities: Array.from(this.ha.hassEntities.values()),
@@ -1050,16 +1100,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       config: this.ha.hassConfig,
       services: this.ha.hassServices,
     };
-    fs.writeFile(filename, JSON.stringify(payload, null, 2))
-      .then(() => {
-        this.log.debug(`Payload successfully written to ${filename}`);
-        return;
-      })
-      .catch((error) => {
-        this.log.error(`Error writing payload to file ${filename}: ${error}`);
-      });
+    try {
+      await fs.promises.writeFile(filename, JSON.stringify(payload, null, 2));
+      this.log.debug(`Payload successfully written to ${filename}`);
+      return;
+    } catch (error) {
+      this.log.error(`Error writing payload to file ${filename}: ${error}`);
+    }
   }
-
   /**
    * Validate the areaId and labels of a device or an entity against the configured filters.
    *
@@ -1094,7 +1142,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * @param {string | undefined} regexString - The regex pattern string from config
    * @returns {RegExp | undefined} - Valid RegExp object
    */
-  private createRegexFromConfig(regexString: string | undefined): RegExp | undefined {
+  private createRegexFromConfig(regexString: string): RegExp | undefined {
     if (!isValidString(regexString, 1)) {
       this.log.debug(`No valid custom regex provided`);
       return undefined; // Return undefined if no regex is provided or if it is an empty string

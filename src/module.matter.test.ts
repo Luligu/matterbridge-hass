@@ -9,9 +9,9 @@ const HOMEDIR = path.join('jest', NAME);
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { Endpoint, ServerNode, LogFormat as MatterLogFormat, LogLevel as MatterLogLevel, Environment, Lifecycle } from 'matterbridge/matter';
+import { Endpoint, ServerNode, Lifecycle } from 'matterbridge/matter';
 import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
-import { invokeBehaviorCommand, invokeSubscribeHandler, Matterbridge, MatterbridgeEndpoint, occupancySensor, PlatformConfig } from 'matterbridge';
+import { invokeBehaviorCommand, invokeSubscribeHandler, Matterbridge, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
 import {
   PowerSource,
@@ -45,25 +45,24 @@ import {
   Pm25ConcentrationMeasurement,
   Pm10ConcentrationMeasurement,
 } from 'matterbridge/matter/clusters';
-
-// Home Assistant Plugin
-import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
-import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import { MutableDevice } from './mutableDevice.js';
 import {
   createTestEnvironment,
   flushAsync,
   startServerNode,
   stopServerNode,
   setupTest,
-  consoleDebugSpy,
-  consoleErrorSpy,
-  consoleInfoSpy,
-  consoleLogSpy,
-  consoleWarnSpy,
   loggerLogSpy,
-  setDebug,
-} from './utils/jestHelpers.js';
+  destroyTestEnvironment,
+  logKeepAlives,
+  aggregator,
+  server,
+  addMatterbridgePlatform,
+} from 'matterbridge/jestutils';
+
+// Home Assistant Plugin
+import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
+import { HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import { MutableDevice } from './mutableDevice.js';
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);
@@ -97,6 +96,11 @@ const callServiceSpy = jest
     return Promise.resolve({ context: {} as HassContext, response: undefined });
   });
 
+const waitForHassRunningSpy = jest.spyOn(HomeAssistant.prototype, 'waitForHassRunning').mockImplementation(() => {
+  console.log(`Mocked HomeAssistant.waitForHassRunning`);
+  return Promise.resolve(true);
+});
+
 const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
 const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAttribute');
 const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
@@ -115,18 +119,15 @@ const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype,
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
 // Setup the test environment
-setupTest(NAME, false);
+await setupTest(NAME, false);
 
 // Cleanup the matter environment
-createTestEnvironment(HOMEDIR);
+createTestEnvironment(NAME);
 
 describe('Matterbridge ' + NAME, () => {
   let haPlatform: HomeAssistantPlatform;
   const log = new AnsiLogger({ logName: NAME, logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
 
-  const environment = Environment.default;
-  let server: ServerNode<ServerNode.RootEndpoint>;
-  let aggregator: Endpoint<AggregatorEndpoint>;
   let device: MatterbridgeEndpoint;
 
   const mockLog = {
@@ -159,19 +160,15 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.3.0',
+    matterbridgeVersion: '3.4.0',
     log: mockLog,
-    getDevices: jest.fn(() => {
-      return [];
-    }),
-    getPlugins: jest.fn(() => {
-      return [];
-    }),
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await aggregator.add(device);
+      await flushAsync(undefined, undefined, 10);
     }),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
+    addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {}),
   } as unknown as Matterbridge;
 
   const mockConfig: HomeAssistantPlatformConfig = {
@@ -200,7 +197,10 @@ describe('Matterbridge ' + NAME, () => {
     unregisterOnShutdown: false,
   };
 
-  beforeAll(async () => {});
+  beforeAll(async () => {
+    // Create the test environment
+    createTestEnvironment(NAME);
+  });
 
   beforeEach(async () => {
     // Clear all mocks
@@ -212,8 +212,17 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   afterAll(async () => {
+    // Destroy the test environment
+    await destroyTestEnvironment();
+
+    // Wait 500ms to allow single entities to reset to off
+    await flushAsync();
+    await flushAsync();
+
     // Restore all mocks
     jest.restoreAllMocks();
+
+    // logKeepAlives(log);
   });
 
   async function cleanup() {
@@ -226,20 +235,17 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.clear();
     for (const device of aggregator.parts) {
       await device.delete();
-      await flushAsync(1, 1, 0);
+      await flushAsync(undefined, undefined, 0);
     }
     expect(aggregator.parts.size).toBe(0);
 
     // Clean the platform environment
     await haPlatform.clearSelect();
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByUniqueId.clear();
-    // @ts-expect-error accessing private member for testing
-    haPlatform.registeredEndpointsByName.clear();
+    await haPlatform.unregisterAllDevices();
   }
 
   test('create and start the server node', async () => {
-    [server, aggregator] = await startServerNode(NAME, MATTER_PORT);
+    await startServerNode(NAME, MATTER_PORT);
     expect(server).toBeDefined();
     expect(aggregator).toBeDefined();
   });
@@ -247,6 +253,14 @@ describe('Matterbridge ' + NAME, () => {
   it('should initialize the HomeAssistantPlatform', async () => {
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, mockLog, mockConfig);
     expect(haPlatform).toBeDefined();
+    // addMatterbridgePlatform(haPlatform);
+    // @ts-expect-error - setMatterNode is intentionally private
+    haPlatform.setMatterNode?.(
+      mockMatterbridge.addBridgedEndpoint,
+      mockMatterbridge.removeBridgedEndpoint,
+      mockMatterbridge.removeAllBridgedEndpoints,
+      mockMatterbridge.addVirtualEndpoint,
+    );
     expect(mockLog.info).toHaveBeenCalledWith(`Initializing platform: ${CYAN}${haPlatform.config.name}${nf} version: ${CYAN}${haPlatform.config.version}${rs}`);
     expect(mockLog.info).toHaveBeenCalledWith(`Initialized platform: ${CYAN}${haPlatform.config.name}${nf} version: ${CYAN}${haPlatform.config.version}${rs}`);
   });
@@ -487,7 +501,7 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
 
-    haPlatform.config.airQualityRegex = undefined; // Reset the regex configuration
+    haPlatform.config.airQualityRegex = ''; // Reset the regex configuration
     haPlatform.airQualityRegex = undefined; // Reset the regex
 
     // Clean the test environment
@@ -1108,6 +1122,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(50);
 
     jest.clearAllMocks();
+    // @ts-expect-error type mismatch
     await haPlatform.updateHandler(valveDevice.id, valveEntity.entity_id, valveState, { ...valveState, state: 'closed', attributes: { current_position: 0 } });
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Closed, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 0, expect.anything());
@@ -1127,6 +1142,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   it('should call onStart and register a Vacuum device', async () => {
+    haPlatform.config.enableServerRvc = true;
     const vacuumDevice = {
       area_id: null,
       disabled_by: null,
@@ -1248,6 +1264,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
 
     // setDebug(false);
+    haPlatform.config.enableServerRvc = false;
 
     // Clean the test environment
     await cleanup();
@@ -1373,7 +1390,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(addClusterServerColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 147, 500);
+    expect(addClusterServerColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 500);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -2892,6 +2909,8 @@ describe('Matterbridge ' + NAME, () => {
       [presenceEntity, presenceStateMulti],
       [smokeEntity, smokeStateMulti],
       [coEntity, coStateMulti],
+      // event
+      [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
       haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id });
@@ -2906,7 +2925,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
-    await flushAsync(1, 1, 0); // ensure all split entity devices created
+    await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
@@ -3030,9 +3049,10 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
 
     // setDebug(false);
-  });
+  }, 30000);
 
   it('should call onStart and register all individual entities', async () => {
+    haPlatform.config.enableServerRvc = true;
     const entities: [HassEntity, HassState][] = [
       // controls
       [switchEntity, switchState],
@@ -3084,6 +3104,8 @@ describe('Matterbridge ' + NAME, () => {
       [presenceEntity, presenceStateMulti],
       [smokeEntity, smokeStateMulti],
       [coEntity, coStateMulti],
+      // event
+      [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
       haPlatform.ha.hassEntities.set(e.entity_id, { ...e });
@@ -3097,7 +3119,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
-    await flushAsync(1, 1, 0); // ensure all split entity devices created
+    await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(mockLog.info).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes((haPlatform.config.splitEntities as string[]).length);
     expect(haPlatform.matterbridgeDevices.size).toBe((haPlatform.config.splitEntities as string[]).length);
@@ -3220,7 +3242,7 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
 
     // setDebug(false);
-  });
+  }, 30000);
 
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
@@ -3237,7 +3259,6 @@ describe('Matterbridge ' + NAME, () => {
   test('close the server node', async () => {
     expect(server).toBeDefined();
     await stopServerNode(server);
-    await flushAsync(1, 1, 500); // wait for helpers timeout
   });
 });
 
@@ -3839,5 +3860,22 @@ const climateCoolState = {
     current_temperature: 18,
     min_temp: 5,
     max_temp: 35,
+  },
+} as unknown as HassState;
+
+const buttonEntity = {
+  device_id: null,
+  entity_id: 'event.shelly_button',
+  id: 'event.shelly_button-entity-id',
+  name: 'Button',
+} as unknown as HassEntity;
+const buttonState = {
+  entity_id: buttonEntity.entity_id,
+  state: 'unknown',
+  attributes: {
+    event_types: ['single', 'double', 'long'],
+    event_type: 'single',
+    device_class: 'button',
+    friendly_name: 'Shelly button',
   },
 } as unknown as HassState;

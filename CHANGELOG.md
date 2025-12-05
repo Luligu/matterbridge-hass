@@ -4,31 +4,53 @@ All notable changes to this project will be documented in this file.
 
 If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="120">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
-### Roadmap to release 1.0.0
-
-- ✅ support all single entities reusing the same code of the device entities.
-- ✅ add automatic 'merge' ability in MutableDevice: this will merge the entities that belongs to a single Matter device. Used for PowerSource, ElectricalSensor and AirQuality clusters.
-- ✅ add automatic 'remap' ability in MutableDevice for single entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the single entity. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- ✅ add automatic 'remap' ability in MutableDevice for device entities: this will remap to the main enpoint the not overlapping (the disambiguation matter rule) child endpoints from the device. Useful for Alexa users since Alexa is not able to deal with composed devices.
-- ✅ add automatic 'split' ability in MutableDevice: this will add the overlapping child endpoints from the device like a single new device with the Friendly name of the original entity. Useful for Alexa users since Alexa is not able to deal with composed devices. This should not be necessary but right now the taglist is not supported on any controller.
-- ✅ add rock direction attributes to fan domain (https://github.com/Luligu/matterbridge-hass/issues/77)
-- ✅ add vacuum domain. When pairing to Apple Home always enable enableServerRvc in the config.
-- ✅ add valve domain (requested by Ludovic BOUÉ).
-- ✅ add group helper (https://github.com/Luligu/matterbridge-hass/issues/75).
-- ✅ move from mired to kelvin.
-- add fan cluster to climate domain or use AirConditioner for climate (Tamer). On hold cause Google Home cannot show correctly the AirConditioner device type.
-- add fan preset_mode converter for "Normal" and "Auto" and not standard preset_modes.
-- add water heater domain (requested by Ludovic BOUÉ).
-- add media_player domain (requested by Tamer).
-- add event domain.
-
-### Naming issues explained
+### Naming issues on the controller side explained
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## [1.0.0] - 2025-12-05
+
+### Breaking changes
+
+Since the domain [event](https://github.com/Luligu/matterbridge-hass?tab=readme-ov-file#supported-events) is now supported, please check your filters and/or whiteList.
+
+### Race condition
+
+We have a race condition when, after a blackout or with docker compose or with other systems that start more then one process, Matterbridge starts before other required system or network components.
+
+Race condition can cause missing configuration or missed devices on the controller side.
+
+Added a fail safe check for Home Assistant core state RUNNING. The plugin and so the bridge will not start before the Home Assistant core is RUNNING (fully started).
+
+The plugin will fetch all data only after the Home Assistant core is fully started.
+
+### Added
+
+- [platform]: Added domain [event](https://github.com/Luligu/matterbridge-hass?tab=readme-ov-file#supported-events).
+- [platform]: Added rest api to check if HomeAssistant is running (startup is finished) before fetching the data. This avoid to start the plugin with incomplete data.
+- [platform]: Added platform memory cleanup before throwing error for host and token missed.
+- [platform]: Added snackbar message on the frontend when Home Assistant disconnect and reconnect.
+- [platform]: Added restart required when Home Assistant reconnect. If the configuration changed you need to restart the plugin.
+- [homeAssistant]: Added HomeAssistantLightColorMode enum, DEFAULT_MIN_KELVIN and DEFAULT_MAX_KELVIN.
+- [homeAssistant]: Added HassStateEventAttributes type.
+- [homeAssistant]: Added Home Assistant core state check.
+- [converters]: Added hassDomainEventConverter.
+- [converters]: Use HomeAssistantLightColorMode enum.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Updated to the current Matterbridge signatures.
+- [package]: Requires Matterbridge v.3.4.0.
+- [package]: Updated tests to use the Matterbridge Jest module.
+- [package]: Bumped package to automator v.2.1.0.
+- [platform]: Changed savePayload() to async.
+- [converters]: Bumped `Converters` to v.1.2.0.
+- [homeAssistant]: Bumped `HomeAssistant` to v.1.2.0.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.5.1] - 2025-11-14
 
@@ -43,9 +65,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [package]: Updated to the current Matterbridge signatures.
 - [jest]: Updated jestHelpers to v.1.0.12.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.5.0] - 2025-10-31
 
@@ -68,9 +88,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 - [fan]: Fixed wrong detection of direction and oscillating attributes. Thanks Hoppel (https://github.com/Luligu/matterbridge-hass/issues/110).
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.4.3] - 2025-10-16
 
@@ -93,9 +111,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [package]: Updated dependencies.
 - [cover]: When goToLiftPercentage is called with 0, we call the open service and when called with 10000 we call the close service. (https://github.com/Luligu/matterbridge-hass/pull/106)
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.4.2] - 2025-09-09
 
@@ -122,9 +138,7 @@ See also the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 - [update]: The attributes update is skipped when state is off only for the domains light and fan (https://github.com/Luligu/matterbridge-hass/issues/93).
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.4.1] - 2025-09-06
 
@@ -144,9 +158,7 @@ See the breaking changes of the releases 0.4.0 and 0.3.0 please.
 
 - [package]: Updated dependencies.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.4.0] - 2025-09-02
 
@@ -185,9 +197,7 @@ See also the breaking changes of the release 0.3.0 please.
 
 - [vacuum]: Fix bug causing the plugin not to load when the vaccum is a device entitiy and has no battery and enableServerRvc is enabled (https://github.com/Luligu/matterbridge-hass/issues/88).
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.3.0] - 2025-08-28
 
@@ -232,9 +242,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [climate]: Fix auto -> heat_cool.
 - [fan]: Fix subscribe for fan complete.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.2.1] - 2025-07-26
 
@@ -250,9 +258,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [package]: Updated dependencies.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.2.0] - 2025-07-14
 
@@ -288,9 +294,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [package]: Updated dependencies.
 - [storage]: Bumped `MutableDevice` to 1.2.3.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.1.5] - 2025-07-07
 
@@ -306,9 +310,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [PowerSource]: Moved PowerSource cluster to the main endpoint.
 - [package]: Updated dependencies.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.1.4] - 2025-06-28
 
@@ -342,9 +344,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [state]: Fix state update when both old and new state are unavailable.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.1.3] - 2025-06-13
 
@@ -365,9 +365,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [select]: Fixed ghost devices in the Device Home page.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.1.2] - 2025-06-07
 
@@ -384,9 +382,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [config]: Enhanced reconnect config description and set minimum value to 30 secs for reconnectTimeout.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.1.1] - 2025-06-04
 
@@ -405,9 +401,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [reconnect]: Added missed call to fetchData and subscribe on reconnect.
 - [startup]: Added the value from state for BooleanState cluster to avoid controller alarms.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.1.0] - 2025-06-02
 
@@ -437,9 +431,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [colorControl]: Fixed possibly missed attributes in the cluster creation (#39).
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.11] - 2025-05-29
 
@@ -464,9 +456,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [reconnect]: Fixed reconnection loop. Now when Home Assistant reboots, the connection is reeastablished correctly if reconnectTimeout and/or reconnectRetries are enabled.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.10] - 2025-04-04
 
@@ -485,9 +475,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [device]: Fixed case where current_temperature is not available on thermostats.
 - [device]: Fixed case with device name empty.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.9] - 2025-02-07
 
@@ -505,9 +493,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [cover]: Fixed state closed on domain cover.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.8] - 2025-02-02
 
@@ -522,9 +508,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [package]: Update dependencies.
 - [package]: Requires matterbridge 2.1.0.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.7] - 2025-01-08
 
@@ -544,9 +528,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [config]: Fix the Matter serial number postfix.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.6] - 2024-12-24
 
@@ -560,9 +542,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [package]: Update package.
 - [package]: Update dependencies.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.5] - 2024-12-16
 
@@ -577,9 +557,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [package]: Requires Matterbridege 1.6.6.
 - [package]: Update dependencies.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.4] - 2024-12-12
 
@@ -594,9 +572,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [package]: Requires Matterbridege 1.6.6.
 - [package]: Update dependencies.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.3] - 2024-12-07
 
@@ -608,9 +584,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [homeassistant]: Changed to debug the log of processing event.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.2] - 2024-12-06
 
@@ -625,9 +599,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [command]: Refactor hassCommandConverter.
 - [homeassistant]: Refactor HomeAssistant.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.1-dev.6] - 2024-12-05
 
@@ -637,9 +609,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [homeassistant]: Refactor validateDeviceWhiteBlackList and added validateEntityBlackList.
 - [homeassistant]: Add reconnectTimeout configuration.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.1-dev.5] - 2024-12-05
 
@@ -647,9 +617,7 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 
 - [homeassistant]: Add cover domain to supported devices.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.1-dev.4] - 2024-12-04
 
@@ -658,17 +626,13 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 - [homeassistant]: Change reconnect timeout to 60 seconds.
 - [homeassistant]: Add callServiceAsync and reconnect timeout.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [0.0.1-dev.2] - 2024-12-03
 
 First published release.
 
-<a href="https://www.buymeacoffee.com/luligugithub">
-  <img src="bmc-button.svg" alt="Buy me a coffee" width="80">
-</a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 <!-- Commented out section
 ## [1.1.2] - 2024-03-08

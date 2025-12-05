@@ -57,11 +57,11 @@ jobs:
       - name: Link matterbridge in the project
         run: npm link matterbridge
 
+      - name: Build the plugin
+        run: npm run build
+
       - name: Lint the plugin
         run: npm run lint
 
       - name: Test the plugin
         run: npm run test -- --forceExit
-
-      - name: Build the plugin
-        run: npm run build

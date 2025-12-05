@@ -15,14 +15,14 @@ import https from 'node:https';
 
 import { jest } from '@jest/globals';
 import { WebSocket, WebSocketServer } from 'ws';
-import { AnsiLogger, CYAN, db, er, LogLevel } from 'matterbridge/logger';
+import { CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
+import { loggerLogSpy, originalProcessArgv, setupTest } from 'matterbridge/jestutils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
-import { loggerLogSpy, setupTest } from './utils/jestHelpers.js';
 
 // Setup the test environment
-setupTest(NAME, false);
+await setupTest(NAME, false);
 
 describe('HomeAssistant', () => {
   let server: WebSocketServer;
@@ -180,7 +180,7 @@ describe('HomeAssistant', () => {
       });
     });
 
-    // jest.restoreAllMocks();
+    // jest.restoreAllMocks(); we need for the second unit test suite
   });
 
   it('client should connect', async () => {
@@ -271,9 +271,9 @@ describe('HomeAssistant', () => {
     expect(homeAssistant.ws).not.toBeNull();
     expect((homeAssistant as any).reconnectTimeoutTime).toBe(120 * 1000);
     expect((homeAssistant as any).reconnectRetries).toBe(10);
-    expect((homeAssistant as any).pingInterval).not.toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
-    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).not.toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
+    expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Connecting to Home Assistant on ${homeAssistant.wsUrl}...`);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket connection established`);
 
@@ -300,7 +300,7 @@ describe('HomeAssistant', () => {
   });
 
   it('should react to pong from Home Assistant', async () => {
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
     (homeAssistant as any).pingTimeout = setTimeout(() => {}, 10000);
     await new Promise<void>((resolve) => {
       homeAssistant.once('pong', () => {
@@ -309,7 +309,7 @@ describe('HomeAssistant', () => {
       client.send(JSON.stringify({ type: 'pong', id: -2, success: true }));
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Home Assistant pong received with id -2`);
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
   });
 
   it('should log error if event messages from Home Assistant are missing data', async () => {
@@ -485,13 +485,14 @@ describe('HomeAssistant', () => {
   });
 
   it('should log error if unknown event messages from Home Assistant', async () => {
+    (homeAssistant as any).debug = true;
     client.send(JSON.stringify({ type: 'event', event: { event_type: 'unknown' } }));
     await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `*Unknown event type ${CYAN}unknown${db} received id ${CYAN}undefined${db}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Unknown event type ${CYAN}unknown${db} received id ${CYAN}undefined${db}`);
   });
 
   it('should react to pong from websocket', async () => {
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
     await new Promise<void>((resolve) => {
       homeAssistant.once('pong', () => {
         resolve();
@@ -499,11 +500,11 @@ describe('HomeAssistant', () => {
       client.pong();
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket pong received`);
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
   });
 
   it('should react to pong from websocket and reset ping timeout', async () => {
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
     (homeAssistant as any).pingTimeout = setTimeout(() => {}, 10000);
     await new Promise<void>((resolve) => {
       homeAssistant.once('pong', () => {
@@ -512,11 +513,11 @@ describe('HomeAssistant', () => {
       client.pong();
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket pong received`);
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
   });
 
   it('should react to ping from websocket', async () => {
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
     await new Promise<void>((resolve) => {
       homeAssistant.once('ping', () => {
         resolve();
@@ -524,11 +525,11 @@ describe('HomeAssistant', () => {
       client.ping();
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket ping received`);
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
   });
 
   it('should react to ping from websocket and reset ping timeout', async () => {
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
     (homeAssistant as any).pingTimeout = setTimeout(() => {}, 10000);
     await new Promise<void>((resolve) => {
       homeAssistant.once('ping', () => {
@@ -537,7 +538,7 @@ describe('HomeAssistant', () => {
       client.ping();
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket ping received`);
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
   });
 
   it('should get the devices asyncronously from Home Assistant', async () => {
@@ -603,22 +604,27 @@ describe('HomeAssistant', () => {
       client.close(undefined, 'Bye');
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `WebSocket connection closed. Code: 1005 Reason: `);
-    expect((homeAssistant as any).reconnectTimeout).not.toBeNull();
+    expect((homeAssistant as any).reconnectTimeout).not.toBeUndefined();
     await homeAssistant.close();
-    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Closing Home Assistant connection...`);
     expect(homeAssistant.connected).toBe(false);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Home Assistant connection closed`);
     expect(homeAssistant.connected).toBe(false);
     expect(homeAssistant.ws).toBeNull();
-    expect((homeAssistant as any).pingInterval).toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
-    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
+    expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
   it('should not connect if wsUrl is not ws:// or wss://', async () => {
+    process.argv = [...originalProcessArgv, '--debug'];
     homeAssistant = new HomeAssistant('http://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries);
+    // @ts-expect-error accessing private property for test
+    expect(homeAssistant.debug).toBe(true);
+    // @ts-expect-error accessing private property for test
+    expect(homeAssistant.verbose).toBe(false);
     await expect(homeAssistant.connect()).rejects.toThrow('Invalid WebSocket URL: http://localhost:8123. It must start with ws:// or wss://');
     expect(homeAssistant.connected).toBe(false);
     await homeAssistant.close();
@@ -626,7 +632,12 @@ describe('HomeAssistant', () => {
   });
 
   it('should not connect if wsUrl is wss:// and certificate are not present', async () => {
+    process.argv = [...originalProcessArgv, '--verbose'];
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, './invalid/cert.pem');
+    // @ts-expect-error accessing private property for test
+    expect(homeAssistant.debug).toBe(true);
+    // @ts-expect-error accessing private property for test
+    expect(homeAssistant.verbose).toBe(true);
     await expect(homeAssistant.connect()).rejects.toThrow();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./invalid/cert.pem...`);
     expect(homeAssistant.connected).toBe(false);
@@ -635,6 +646,7 @@ describe('HomeAssistant', () => {
   });
 
   it('should not connect if wsUrl is wss:// and certificate are not correct', async () => {
+    process.argv = [...originalProcessArgv];
     homeAssistant = new HomeAssistant('wss://localhost:8123', accessToken, reconnectTimeoutTime, reconnectRetries, path.join('certificates', 'matterbridge-hass-ca.crt'));
 
     homeAssistant.on('error', () => {
@@ -670,9 +682,9 @@ describe('HomeAssistant', () => {
     expect(homeAssistant.ws).not.toBeNull();
     expect((homeAssistant as any).reconnectTimeoutTime).toBe(reconnectTimeoutTime * 1000);
     expect((homeAssistant as any).reconnectRetries).toBe(reconnectRetries);
-    expect((homeAssistant as any).pingInterval).not.toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
-    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).not.toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
+    expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
     expect(server.clients.size).toBe(1);
     client = Array.from(server.clients)[0];
 
@@ -689,7 +701,7 @@ describe('HomeAssistant', () => {
     });
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket connection closed. Code: 1005 Reason: ');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.NOTICE, `Reconnecting in 120 seconds...`);
-    expect((homeAssistant as any).reconnectTimeout).not.toBeNull();
+    expect((homeAssistant as any).reconnectTimeout).not.toBeUndefined();
     expect((homeAssistant as any).reconnectRetries).toBe(reconnectRetries);
 
     jest.clearAllMocks();
@@ -738,15 +750,15 @@ describe('HomeAssistant', () => {
 
     expect(homeAssistant.connected).toBe(true);
     expect(homeAssistant.ws).not.toBeNull();
-    expect((homeAssistant as any).pingInterval).not.toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
-    expect((homeAssistant as any).reconnectTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).not.toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
+    expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
 
     jest.advanceTimersByTime((homeAssistant as any).pingIntervalTime);
 
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Sending WebSocket ping...');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`Sending Home Assistant ping id`));
-    expect((homeAssistant as any).pingTimeout).not.toBeNull();
+    expect((homeAssistant as any).pingTimeout).not.toBeUndefined();
 
     jest.advanceTimersByTime((homeAssistant as any).pingTimeoutTime);
 
@@ -758,8 +770,8 @@ describe('HomeAssistant', () => {
     (homeAssistant as any).pingTimeout = setTimeout(() => {}, 30000);
 
     await homeAssistant.close();
-    expect((homeAssistant as any).pingInterval).toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 });
@@ -1068,8 +1080,8 @@ describe('HomeAssistant with ssl', () => {
   });
 
   it('should have start pingpong', async () => {
-    expect((homeAssistant as any).pingInterval).not.toBeNull();
-    expect((homeAssistant as any).pingTimeout).toBeNull();
+    expect((homeAssistant as any).pingInterval).not.toBeUndefined();
+    expect((homeAssistant as any).pingTimeout).toBeUndefined();
   });
 
   it('should get the config asyncronously from Home Assistant', async () => {

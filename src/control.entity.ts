@@ -3,7 +3,7 @@
  * @file src\control.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.0.0
+ * @version 1.0.1
  * @license Apache-2.0
  * @copyright 2025, 2026, 2027 Luca Liguori.
  *
@@ -29,9 +29,9 @@ import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
 import { ActionContext } from 'matterbridge/matter';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
-import { HassEntity, HassState } from './homeAssistant.js';
+import { DEFAULT_MAX_KELVIN, DEFAULT_MIN_KELVIN, HassEntity, HassState } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter, miredsToKelvin, kelvinToMireds } from './converters.js';
+import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter, kelvinToMireds } from './converters.js';
 
 /**
  * Look for supported binary_sensors of the current entity
@@ -108,8 +108,10 @@ export function addControlEntity(
   // prettier-ignore
   if (domain === 'light' && (mutableDevice.get(endpointName).deviceTypes.includes(colorTemperatureLight) || mutableDevice.get(endpointName).deviceTypes.includes(extendedColorLight))) {
     log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db} min_color_temp_kelvin: ${CYAN}${state.attributes['min_color_temp_kelvin']}${db} max_color_temp_kelvin: ${CYAN}${state.attributes['max_color_temp_kelvin']}${db}`);
-    const minMireds = kelvinToMireds(state.attributes['max_color_temp_kelvin'] ?? miredsToKelvin(147, 'floor'), 'floor');
-    const maxMireds = kelvinToMireds(state.attributes['min_color_temp_kelvin'] ?? miredsToKelvin(500, 'floor'), 'floor');
+    // const minMireds = kelvinToMireds(state.attributes['max_color_temp_kelvin'] ?? miredsToKelvin(147, 'floor'), 'floor');
+    // const maxMireds = kelvinToMireds(state.attributes['min_color_temp_kelvin'] ?? miredsToKelvin(500, 'floor'), 'floor');
+    const minMireds = kelvinToMireds(state.attributes['max_color_temp_kelvin'] ?? DEFAULT_MAX_KELVIN, 'floor');
+    const maxMireds = kelvinToMireds(state.attributes['min_color_temp_kelvin'] ?? DEFAULT_MIN_KELVIN, 'floor');
     log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${minMireds}${db} max_mireds: ${CYAN}${maxMireds}${db}`);
     if (isValidArray(state.attributes['supported_color_modes']) && !state.attributes['supported_color_modes'].includes('xy') && !state.attributes['supported_color_modes'].includes('hs') && !state.attributes['supported_color_modes'].includes('rgb') &&
       !state.attributes['supported_color_modes'].includes('rgbw') && !state.attributes['supported_color_modes'].includes('rgbww') && state.attributes['supported_color_modes'].includes('color_temp')
