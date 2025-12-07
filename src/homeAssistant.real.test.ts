@@ -52,7 +52,7 @@ describe('HomeAssistant real test on ubuntu', () => {
     expect(wsUrl).toBeDefined();
   });
 
-  if (!accessToken || getIpv4InterfaceAddress() !== '192.168.69.110') return;
+  if (!accessToken /* || getIpv4InterfaceAddress() !== '192.168.69.100'*/) return;
 
   it('should create an instance of HomeAssistant', () => {
     homeAssistant = new HomeAssistant(wsUrl, accessToken);

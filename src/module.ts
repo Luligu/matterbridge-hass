@@ -1019,6 +1019,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
             );
       if (hassSensorConverter) {
+        // accepted values: "0" "123" "-1" "23.5" "-0.25"
         const stateValue = /^-?\d+(\.\d+)?$/.test(new_state.state) ? parseFloat(new_state.state) : new_state.state;
         const convertedValue = hassSensorConverter.converter(stateValue, new_state.attributes['unit_of_measurement']);
         endpoint.log.debug(

@@ -2358,7 +2358,7 @@ describe('HassPlatform', () => {
       motionSensorOccupancyEntityState as unknown as HassState,
     );
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
-    motionSensorIlluminanceEntityState.state = 2500;
+    motionSensorIlluminanceEntityState.state = '2500';
     await haPlatform.updateHandler(
       motionSensorDevice.id,
       motionSensorIlluminanceEntity.entity_id,
@@ -2738,7 +2738,7 @@ const motionSensorIlluminanceEntity = {
 };
 const motionSensorIlluminanceEntityState = {
   entity_id: motionSensorIlluminanceEntity.entity_id,
-  state: 480.5,
+  state: '480.5',
   attributes: {
     state_class: 'measurement',
     device_class: 'illuminance',

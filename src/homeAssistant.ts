@@ -185,14 +185,10 @@ export interface HassStateLightAttributes {
 /**
  * Enum representing the possible color modes of a Home Assistant light entity.
  */
-export enum HomeAssistantLightColorMode {
-  // """Possible light color modes."""
-  UNKNOWN = 'unknown',
-  // """Ambiguous color mode"""
-  ONOFF = 'onoff',
-  // """Must be the only supported mode"""
-  BRIGHTNESS = 'brightness',
-  // """Must be the only supported mode"""
+export enum ColorMode {
+  UNKNOWN = 'unknown', // """Ambiguous color mode"""
+  ONOFF = 'onoff', // """Must be the only supported mode"""
+  BRIGHTNESS = 'brightness', // """Must be the only supported mode"""
   COLOR_TEMP = 'color_temp',
   HS = 'hs',
   XY = 'xy',
@@ -224,16 +220,30 @@ export const ATTR_WHITE = 'white';
 export const DEFAULT_MIN_KELVIN = 2000; // 500 mireds
 export const DEFAULT_MAX_KELVIN = 6535; // 153 mireds
 
+export const DIRECTION_FORWARD = 'forward';
+export const DIRECTION_REVERSE = 'reverse';
+
+/** Supported features of the fan entity. */
+export enum FanEntityFeature {
+  SET_SPEED = 1,
+  OSCILLATE = 2,
+  DIRECTION = 4,
+  PRESET_MODE = 8,
+  TURN_OFF = 16,
+  TURN_ON = 32,
+}
+
 /**
  * Interface representing the attributes of a Home Assistant fan entity's state.
  */
 export interface HassStateFanAttributes {
-  preset_modes?: ('auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind')[]; // List of supported fan modes
-  preset_mode?: 'auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
-  percentage?: number; // Current speed setting
-  percentage_step?: number; // Current step speed setting of the fan entity
-  direction?: 'forward' | 'reverse' | null; // Current direction of the fan
-  oscillating?: boolean | null; // Whether the fan is oscillating
+  preset_modes: ('auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind')[] | null; // List of supported fan modes
+  preset_mode: 'auto' | 'low' | 'medium' | 'high' | 'natural_wind' | 'sleep_wind' | null; // Current preset mode of the fan (e.g., "auto") but also the state of the fan entity
+  percentage: number | null; // Current speed setting. Default is 0.
+  direction: typeof DIRECTION_FORWARD | typeof DIRECTION_REVERSE | null; // Current direction of the fan
+  oscillating: boolean | null; // Whether the fan is oscillating
+  speed_count: number; // Number of speed steps supported by the fan. Default is 100.
+  supported_features?: FanEntityFeature; // Supported features of the fan entity
 }
 
 /**
@@ -253,22 +263,99 @@ export interface HassStateVacuumAttributes {
   fan_speed_list?: string[]; // List of supported implementation-specific fan speed settings.
 }
 
+// Possible climate fan state
+export const CLIMATE_FAN_ON = 'on';
+export const CLIMATE_FAN_OFF = 'off';
+export const CLIMATE_FAN_AUTO = 'auto';
+export const CLIMATE_FAN_LOW = 'low';
+export const CLIMATE_FAN_MEDIUM = 'medium';
+export const CLIMATE_FAN_HIGH = 'high';
+export const CLIMATE_FAN_TOP = 'top';
+export const CLIMATE_FAN_MIDDLE = 'middle';
+export const CLIMATE_FAN_FOCUS = 'focus';
+export const CLIMATE_FAN_DIFFUSE = 'diffuse';
+
+// Possible climate swing state
+export const CLIMATE_SWING_ON = 'on';
+export const CLIMATE_SWING_OFF = 'off';
+export const CLIMATE_SWING_BOTH = 'both';
+export const CLIMATE_SWING_VERTICAL = 'vertical';
+export const CLIMATE_SWING_HORIZONTAL = 'horizontal';
+
+// Possible climate horizontal swing state
+export const CLIMATE_SWING_HORIZONTAL_ON = 'on';
+export const CLIMATE_SWING_HORIZONTAL_OFF = 'off';
+
+// Default temperature and humidity limits
+export const DEFAULT_MIN_TEMP = 7;
+export const DEFAULT_MAX_TEMP = 35;
+export const DEFAULT_MIN_HUMIDITY = 30;
+export const DEFAULT_MAX_HUMIDITY = 99;
+
+/** HVAC mode for climate devices. */
+export enum HVACMode {
+  /** All activity disabled / Device is off/standby */
+  OFF = 'off',
+  /** Heating */
+  HEAT = 'heat',
+  /** Cooling */
+  COOL = 'cool',
+  /** The device supports heating/cooling to a range */
+  HEAT_COOL = 'heat_cool',
+  /** The temperature is set based on a schedule, learned behavior, AI or some other related mechanism. User is not able to adjust the temperature */
+  AUTO = 'auto',
+  /** Device is in Dry/Humidity mode */
+  DRY = 'dry',
+  /** Only the fan is on, not fan and another mode like cool */
+  FAN_ONLY = 'fan_only',
+}
+
+/** HVAC action for climate devices */
+export enum HVACAction {
+  COOLING = 'cooling',
+  DEFROSTING = 'defrosting',
+  DRYING = 'drying',
+  FAN = 'fan',
+  HEATING = 'heating',
+  IDLE = 'idle',
+  OFF = 'off',
+  PREHEATING = 'preheating',
+}
+
+/** Supported features of the climate entity.*/
+export enum ClimateEntityFeature {
+  TARGET_TEMPERATURE = 1,
+  TARGET_TEMPERATURE_RANGE = 2,
+  TARGET_HUMIDITY = 4,
+  FAN_MODE = 8,
+  PRESET_MODE = 16,
+  SWING_MODE = 32,
+  TURN_OFF = 128,
+  TURN_ON = 256,
+  SWING_HORIZONTAL_MODE = 512,
+}
+
 /**
  * Interface representing the attributes of a Home Assistant climate entity's state.
  */
 export interface HassStateClimateAttributes {
-  hvac_modes?: ('off' | 'heat' | 'cool' | 'heat_cool' | 'auto' | 'dry' | 'fan_only')[]; // List of supported HVAC modes
-  hvac_mode?: 'off' | 'heat' | 'cool' | 'heat_cool' | 'auto' | 'dry' | 'fan_only' | null; // Current HVAC mode but also the state of the climate entity
+  hvac_modes: HVACMode[]; // List of supported HVAC modes. Fixed set of strings defined by Home Assistant.
+  hvac_mode: HVACMode | null; // Current HVAC mode but also the state of the climate entity
+  hvac_action?: HVACAction | null; // Current HVAC action
   preset_modes?: ('none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity')[]; // List of supported preset modes
   preset_mode?: 'none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity' | null; // Current preset mode
   fan_modes?: ('on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse')[]; // List of supported fan modes
   fan_mode?: 'on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse' | null; // Fan mode
-  current_temperature?: number | null; // Current temperature of the climate entity
+  current_humidity: number | null; // Current humidity of the climate entity
+  current_temperature: number | null; // Current temperature of the climate entity
   temperature?: number | null; // Target temperature setting for the climate entity (not in heat_cool thermostats)
   target_temp_high?: number | null; // Target high temperature setting (for heat_cool thermostats)
   target_temp_low?: number | null; // Target low temperature setting (for heat_cool thermostats)
-  min_temp?: number | null; // Minimum temperature setting
-  max_temp?: number | null; // Maximum temperature setting
+  min_temp: number; // Minimum temperature setting. Default is DEFAULT_MIN_TEMP.
+  max_temp: number; // Maximum temperature setting. Default is DEFAULT_MAX_TEMP.
+  min_humidity: number; // Minimum humidity setting. Default is DEFAULT_MIN_HUMIDITY.
+  max_humidity: number; // Maximum humidity setting. Default is DEFAULT_MAX_HUMIDITY.
+  temperature_unit: UnitOfTemperature.CELSIUS | UnitOfTemperature.FAHRENHEIT; // Unit of measurement for temperature (e.g., "°C" or "°F")
 }
 
 /**
@@ -306,17 +393,254 @@ export interface HassEvent {
   context: HassContext;
 }
 
+/** #### UNITS OF MEASUREMENT #### */
+
+/** Apparent power units */
+export enum UnitOfApparentPower {
+  /** Millivolt-ampere */
+  MILLIVOLT_AMPERE = 'mVA',
+  /** Volt-ampere */
+  VOLT_AMPERE = 'VA',
+  /** Kilovolt-ampere */
+  KILO_VOLT_AMPERE = 'kVA',
+}
+/** Power units */
+export enum UnitOfPower {
+  /** Milliwatt */
+  MILLIWATT = 'mW',
+  /** Watt */
+  WATT = 'W',
+  /** Kilowatt */
+  KILO_WATT = 'kW',
+  /** Megawatt */
+  MEGA_WATT = 'MW',
+  /** Gigawatt */
+  GIGA_WATT = 'GW',
+  /** Terawatt */
+  TERA_WATT = 'TW',
+  /** British thermal units per hour */
+  BTU_PER_HOUR = 'BTU/h',
+}
+
+/** Reactive power units */
+export enum UnitOfReactivePower {
+  /** Millivolt-ampere reactive */
+  MILLIVOLT_AMPERE_REACTIVE = 'mvar',
+  /** Volt-ampere reactive */
+  VOLT_AMPERE_REACTIVE = 'var',
+  /** Kilovolt-ampere reactive */
+  KILO_VOLT_AMPERE_REACTIVE = 'kvar',
+}
+/** Energy units */
+export enum UnitOfEnergy {
+  /** Joule */
+  JOULE = 'J',
+  /** Kilojoule */
+  KILO_JOULE = 'kJ',
+  /** Megajoule */
+  MEGA_JOULE = 'MJ',
+  /** Gigajoule */
+  GIGA_JOULE = 'GJ',
+  /** Milliwatt hour */
+  MILLIWATT_HOUR = 'mWh',
+  /** Watt hour */
+  WATT_HOUR = 'Wh',
+  /** Kilowatt hour */
+  KILO_WATT_HOUR = 'kWh',
+  /** Megawatt hour */
+  MEGA_WATT_HOUR = 'MWh',
+  /** Gigawatt hour */
+  GIGA_WATT_HOUR = 'GWh',
+  /** Terawatt hour */
+  TERA_WATT_HOUR = 'TWh',
+  /** Calorie */
+  CALORIE = 'cal',
+  /** Kilocalorie */
+  KILO_CALORIE = 'kcal',
+  /** Megacalorie */
+  MEGA_CALORIE = 'Mcal',
+  /** Gigacalorie */
+  GIGA_CALORIE = 'Gcal',
+}
+/** Reactive energy units */
+export enum UnitOfReactiveEnergy {
+  /** Volt-ampere reactive hour */
+  VOLT_AMPERE_REACTIVE_HOUR = 'varh',
+  /** Kilovolt-ampere reactive hour */
+  KILO_VOLT_AMPERE_REACTIVE_HOUR = 'kvarh',
+}
+/** Energy Distance units */
+export enum UnitOfEnergyDistance {
+  /** Kilowatt hour per 100 kilometers */
+  KILO_WATT_HOUR_PER_100_KM = 'kWh/100km',
+  /** Watt hour per kilometer */
+  WATT_HOUR_PER_KM = 'Wh/km',
+  /** Miles per kilowatt hour */
+  MILES_PER_KILO_WATT_HOUR = 'mi/kWh',
+  /** Kilometers per kilowatt hour */
+  KM_PER_KILO_WATT_HOUR = 'km/kWh',
+}
+/** Electric current units */
+export enum UnitOfElectricCurrent {
+  /** Milliampere */
+  MILLIAMPERE = 'mA',
+  /** Ampere */
+  AMPERE = 'A',
+}
+/** Electric potential units */
+export enum UnitOfElectricPotential {
+  /** Microvolt */
+  MICROVOLT = 'μV',
+  /** Millivolt */
+  MILLIVOLT = 'mV',
+  /** Volt */
+  VOLT = 'V',
+  /** Kilovolt */
+  KILOVOLT = 'kV',
+  /** Megavolt */
+  MEGAVOLT = 'MV',
+}
+/** Degree units */
+export const DEGREE = '°';
+/** Currency units */
+export enum Currency {
+  EURO = '€',
+  DOLLAR = '$',
+  CENT = '¢',
+}
+/** Temperature units. */
+export enum UnitOfTemperature {
+  CELSIUS = '°C',
+  FAHRENHEIT = '°F',
+  KELVIN = 'K',
+}
+/** Time units */
+export enum UnitOfTime {
+  MICROSECONDS = 'μs',
+  MILLISECONDS = 'ms',
+  SECONDS = 's',
+  MINUTES = 'min',
+  HOURS = 'h',
+  DAYS = 'd',
+  WEEKS = 'w',
+  MONTHS = 'm',
+  YEARS = 'y',
+}
+/** Length units */
+export enum UnitOfLength {
+  MILLIMETERS = 'mm',
+  CENTIMETERS = 'cm',
+  METERS = 'm',
+  KILOMETERS = 'km',
+  INCHES = 'in',
+  FEET = 'ft',
+  YARDS = 'yd',
+  MILES = 'mi',
+  NAUTICAL_MILES = 'nmi',
+}
+/** Frequency units */
+export enum UnitOfFrequency {
+  HERTZ = 'Hz',
+  KILOHERTZ = 'kHz',
+  MEGAHERTZ = 'MHz',
+  GIGAHERTZ = 'GHz',
+}
+/** Pressure units */
+export enum UnitOfPressure {
+  MILLIPASCAL = 'mPa',
+  PA = 'Pa',
+  HPA = 'hPa',
+  KPA = 'kPa',
+  BAR = 'bar',
+  CBAR = 'cbar',
+  MBAR = 'mbar',
+  MMHG = 'mmHg',
+  INHG = 'inHg',
+  INH2O = 'inH₂O',
+  PSI = 'psi',
+}
+/** Sound pressure units */
+export enum UnitOfSoundPressure {
+  DECIBEL = 'dB',
+  WEIGHTED_DECIBEL_A = 'dBA',
+}
+/** Volume units */
+export enum UnitOfVolume {
+  CUBIC_FEET = 'ft³',
+  CENTUM_CUBIC_FEET = 'CCF',
+  MILLE_CUBIC_FEET = 'MCF',
+  CUBIC_METERS = 'm³',
+  LITERS = 'L',
+  MILLILITERS = 'mL',
+  GALLONS = 'gal',
+  FLUID_OUNCES = 'fl. oz.',
+}
+/** Volume Flow Rate units */
+export enum UnitOfVolumeFlowRate {
+  CUBIC_METERS_PER_HOUR = 'm³/h',
+  CUBIC_METERS_PER_MINUTE = 'm³/min',
+  CUBIC_METERS_PER_SECOND = 'm³/s',
+  CUBIC_FEET_PER_MINUTE = 'ft³/min',
+  LITERS_PER_HOUR = 'L/h',
+  LITERS_PER_MINUTE = 'L/min',
+  LITERS_PER_SECOND = 'L/s',
+  GALLONS_PER_HOUR = 'gal/h',
+  GALLONS_PER_MINUTE = 'gal/min',
+  GALLONS_PER_DAY = 'gal/d',
+  MILLILITERS_PER_SECOND = 'mL/s',
+}
+export enum UnitOfArea {
+  /** Square meters */
+  SQUARE_METERS = 'm²',
+  /** Square centimeters */
+  SQUARE_CENTIMETERS = 'cm²',
+  /** Square kilometers */
+  SQUARE_KILOMETERS = 'km²',
+  /** Square millimeters */
+  SQUARE_MILLIMETERS = 'mm²',
+  SQUARE_INCHES = 'in²',
+  SQUARE_FEET = 'ft²',
+  SQUARE_YARDS = 'yd²',
+  SQUARE_MILES = 'mi²',
+  ACRES = 'ac',
+  HECTARES = 'ha',
+}
+/** Mass units */
+export enum UnitOfMass {
+  /** Grams */
+  GRAMS = 'g',
+  KILOGRAMS = 'kg',
+  MILLIGRAMS = 'mg',
+  MICROGRAMS = 'μg',
+  OUNCES = 'oz',
+  POUNDS = 'lb',
+  STONES = 'st',
+}
+export enum UnitOfConductivity {
+  /** Siemens per centimeter */
+  SIEMENS_PER_CM = 'S/cm',
+  /** Microsiemens per centimeter */
+  MICROSIEMENS_PER_CM = 'μS/cm',
+  /** Millisiemens per centimeter */
+  MILLISIEMENS_PER_CM = 'mS/cm',
+}
 /**
  * Interface representing the unit system used in Home Assistant.
  */
 export interface HassUnitSystem {
+  /** 'km' or 'mi' */
   length: string;
+  /** 'mm' or 'in' */
   accumulated_precipitation: string;
+  /** 'g' or 'lb' */
   mass: string;
+  /** 'Pa' or 'inHg' */
   pressure: string;
   /** '°C' or '°F' */
-  temperature: string;
+  temperature: UnitOfTemperature.CELSIUS | UnitOfTemperature.FAHRENHEIT;
+  /** 'L' or 'gal' */
   volume: string;
+  /** 'm/s' or 'mph' */
   wind_speed: string;
 }
 
