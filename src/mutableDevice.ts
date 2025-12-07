@@ -64,6 +64,7 @@ import {
   Thermostat,
 } from 'matterbridge/matter/clusters';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
+import { isValidNumber } from 'matterbridge/utils';
 
 interface ClusterServerObj {
   id: ClusterId;
@@ -605,7 +606,7 @@ export class MutableDevice {
 
   addClusterServerAutoModeThermostat(
     endpoint: string,
-    localTemperature: number,
+    localTemperature: number | null,
     occupiedHeatingSetpoint: number,
     occupiedCoolingSetpoint: number,
     minSetpointLimit: number,
@@ -614,7 +615,7 @@ export class MutableDevice {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
       getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
-        localTemperature: localTemperature * 100,
+        localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
         systemMode: Thermostat.SystemMode.Auto,
         controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
         // Thermostat.Feature.Heating
@@ -637,11 +638,11 @@ export class MutableDevice {
     return this;
   }
 
-  addClusterServerHeatingThermostat(endpoint: string, localTemperature: number, occupiedHeatingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number): this {
+  addClusterServerHeatingThermostat(endpoint: string, localTemperature: number | null, occupiedHeatingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number): this {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
       getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating), {
-        localTemperature: localTemperature * 100,
+        localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
         systemMode: Thermostat.SystemMode.Heat,
         controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.HeatingOnly,
         // Thermostat.Feature.Heating
@@ -655,11 +656,11 @@ export class MutableDevice {
     return this;
   }
 
-  addClusterServerCoolingThermostat(endpoint: string, localTemperature: number, occupiedCoolingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number): this {
+  addClusterServerCoolingThermostat(endpoint: string, localTemperature: number | null, occupiedCoolingSetpoint: number, minSetpointLimit: number, maxSetpointLimit: number): this {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
       getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Cooling), {
-        localTemperature: localTemperature * 100,
+        localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
         systemMode: Thermostat.SystemMode.Cool,
         controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingOnly,
         // Thermostat.Feature.Cooling
