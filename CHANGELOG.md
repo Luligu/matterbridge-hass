@@ -10,6 +10,18 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.0.1] - 2025-12-12
+
+### Added
+
+- [homeAssistant]: Added timeout to Home Assistant core state check.
+
+### Changed
+
+- [package]: Updated dependencies.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.0] - 2025-12-05
 
 ### Breaking changes

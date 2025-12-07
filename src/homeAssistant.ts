@@ -105,12 +105,12 @@ export interface HassLabel {
 export interface HassArea {
   aliases: string[];
   area_id: string;
-  created_at: number;
+  created_at: number; // timestamp
   floor_id: string | null;
   humidity_entity_id: string | null;
   icon: string | null;
   labels: string[];
-  modified_at: number;
+  modified_at: number; // timestamp
   name: string;
   picture: string | null;
   temperature_entity_id: string | null;
@@ -816,7 +816,7 @@ export class HomeAssistant extends EventEmitter {
             if (this.ws) this.ws.onmessage = null; // Clear the current onmessage handler to avoid duplicate processing
             this.ws?.on('message', this.onMessage.bind(this)); // Set the new onmessage handler
             if (this.ws) this.ws.onerror = null; // Clear the current onerror handler to avoid duplicate processing
-            this.ws?.on('error', this.onError.bind(this));
+            this.ws?.on('error', this.onError.bind(this)); // Set the new onerror handler
 
             // Start ping interval
             this.startPing();
@@ -917,6 +917,7 @@ export class HomeAssistant extends EventEmitter {
   close(code: number = 1000, reason: string = 'Normal closure'): Promise<void> {
     return new Promise((resolve, reject) => {
       this.log.info('Closing Home Assistant connection...');
+
       this.stopPing();
       if (this.reconnectTimeout) {
         clearTimeout(this.reconnectTimeout);
@@ -1287,12 +1288,12 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Wait until Home Assistant core reports state RUNNING.
    * Retries till success or timeout.
-   * The max delay is 20 retries that takes approx. 4 * 20 seconds.
    * Logs errors but does not throw.
    *
-   * @returns {Promise<boolean>} - A Promise that resolves to true when Home Assistant core is RUNNING, or false if an error occurs.
+   * @param {number} timeout - The maximum time to wait for Home Assistant core to be RUNNING in seconds. Default is 110 seconds.
+   * @returns {Promise<boolean>} - A Promise that resolves to true when the Home Assistant core is RUNNING, or false if timeout or an error occur.
    */
-  async waitForHassRunning(): Promise<boolean> {
+  async waitForHassRunning(timeout: number = 110): Promise<boolean> {
     const createTlsAgent = () => {
       let ca: string | Buffer<ArrayBuffer> | undefined;
       // Load the CA certificate if provided
@@ -1312,10 +1313,12 @@ export class HomeAssistant extends EventEmitter {
     const url = new URL('/api/core/state', this.wsUrl.replace('ws://', 'http://').replace('wss://', 'https://')).toString();
 
     let retries = 1;
+    const startTime = Date.now();
 
     this.log.debug(`Fetching ${url}...`);
 
-    while (true) {
+    // Try to fetch the core state until it is RUNNING or timeout after 110 seconds
+    while (Date.now() - startTime < timeout * 1000) {
       try {
         const res = await fetch(url, {
           headers: {
@@ -1341,5 +1344,6 @@ export class HomeAssistant extends EventEmitter {
       if (retries < 60) retries += 1;
       else return false;
     }
+    return false;
   }
 }

@@ -279,8 +279,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Wait until Home Assistant core is RUNNING
     const running = await this.ha.waitForHassRunning();
     if (!running) {
-      this.wssSendSnackbarMessage('Home Assistant core is not running. Aborting startup.', 0, 'error');
-      throw new Error('Home Assistant core is not running. Aborting startup.');
+      this.wssSendSnackbarMessage('Home Assistant core is not running. Aborting startup...', 0, 'error');
+      throw new Error('Home Assistant core is not running. Aborting startup...');
     }
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events

@@ -562,13 +562,60 @@ describe('HomeAssistant', () => {
   });
 
   it('should get the areas asyncronously from Home Assistant', async () => {
+    area_registry_response.push({
+      area_id: 'myareaid',
+      name: 'My Area',
+      aliases: [],
+      created_at: 0,
+      floor_id: null,
+      humidity_entity_id: null,
+      icon: null,
+      labels: [],
+      modified_at: 0,
+      picture: null,
+      temperature_entity_id: null,
+    });
     const areas = await homeAssistant.fetch('config/area_registry/list');
-    expect(areas).toEqual([]);
+    expect(areas).toEqual([
+      {
+        aliases: [],
+        area_id: 'myareaid',
+        created_at: 0,
+        floor_id: null,
+        humidity_entity_id: null,
+        icon: null,
+        labels: [],
+        modified_at: 0,
+        name: 'My Area',
+        picture: null,
+        temperature_entity_id: null,
+      },
+    ]);
+    area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
+  });
+
+  it('should get the labels asyncronously from Home Assistant', async () => {
+    label_registry_response.push({ label_id: 'my_labelid', name: 'My Label', color: null, icon: null, description: null, created_at: 0, modified_at: 0 });
+    const labels = await homeAssistant.fetch('config/label_registry/list');
+    expect(labels).toEqual([
+      {
+        color: null,
+        created_at: 0,
+        description: null,
+        icon: null,
+        label_id: 'my_labelid',
+        modified_at: 0,
+        name: 'My Label',
+      },
+    ]);
+    label_registry_response.splice(0, label_registry_response.length); // Clear the response for next tests
   });
 
   it('should get the states asyncronously from Home Assistant', async () => {
+    states_response.push({ entity_id: 'myentityid' } as HassState);
     const states = await homeAssistant.fetch('get_states');
-    expect(states).toEqual([]);
+    expect(states).toEqual([{ entity_id: 'myentityid' }]);
+    states_response.splice(0, states_response.length); // Clear the response for next tests
   });
 
   it('should get the config asyncronously from Home Assistant', async () => {
@@ -579,6 +626,39 @@ describe('HomeAssistant', () => {
   it('should get the services asyncronously from Home Assistant', async () => {
     const services = await homeAssistant.fetch('get_services');
     expect(services).toEqual({});
+  });
+
+  it('should fetch data from Home Assistant', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    device_registry_response.push({
+      id: 'mydeviceid',
+      name: 'My Device',
+    } as HassDevice);
+    entity_registry_response.push({
+      entity_id: 'myentityid',
+      device_id: 'mydeviceid',
+    } as HassEntity);
+    area_registry_response.push({ area_id: 'myareaid', name: 'My Area' } as HassArea);
+    label_registry_response.push({ label_id: 'my_labelid', name: 'My Label' } as HassLabel);
+    states_response.push({ entity_id: 'myentityid' } as HassState);
+    await homeAssistant.fetchData();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Initial data fetched successfully.');
+    device_registry_response.splice(0, device_registry_response.length); // Clear the response for next tests
+    entity_registry_response.splice(0, entity_registry_response.length); // Clear the response for next tests
+    area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
+    label_registry_response.splice(0, label_registry_response.length); // Clear the response for next tests
+    states_response.splice(0, states_response.length); // Clear the response for next tests
+  });
+
+  it('should fetch data from Home Assistant and fail', async () => {
+    expect(homeAssistant.connected).toBe(true);
+    jest.spyOn(homeAssistant, 'fetch').mockImplementationOnce(() => {
+      return Promise.reject(new Error('Failed to fetch data'));
+    });
+    await homeAssistant.fetchData();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Error: Failed to fetch data');
   });
 
   it('should request async call_service from Home Assistant', async () => {

@@ -156,4 +156,28 @@ describe('HomeAssistant.waitForHassRunning', () => {
       setTimeoutSpy.mockRestore();
     }
   });
+
+  it('returns false after timeout when core never RUNNING', async () => {
+    const fetchResponse = {
+      ok: true,
+      text: jest.fn(async () => JSON.stringify({ state: 'STARTING' })),
+    } as unknown as FetchReturn;
+    fetchMock.mockResolvedValue(fetchResponse);
+
+    const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout').mockImplementation(((handler: (...args: unknown[]) => void) => {
+      if (typeof handler === 'function') {
+        handler();
+      }
+      return {} as NodeJS.Timeout;
+    }) as typeof setTimeout);
+
+    try {
+      await expect(homeAssistant.waitForHassRunning(0)).resolves.toBe(false);
+
+      expect(fetchMock).toHaveBeenCalledTimes(0);
+      expect(setTimeoutSpy).toHaveBeenCalledTimes(0);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
 });
