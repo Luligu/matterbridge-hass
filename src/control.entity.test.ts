@@ -16,6 +16,7 @@ import {
 import { addControlEntity } from './control.entity.js';
 import { hassCommandConverter, hassSubscribeConverter, hassDomainConverter } from './converters.js';
 import { MutableDevice } from './mutableDevice.js';
+import { HassConfig, HomeAssistant, UnitOfTemperature } from './homeAssistant.js';
 
 type HassEntity = { entity_id: string };
 type HassState = { attributes: Record<string, any> };
@@ -51,7 +52,7 @@ function createMockMutableDevice(): MutableDevice {
   } as unknown as MutableDevice;
 }
 
-const mockLog = { debug: jest.fn() } as any;
+const mockLog = { debug: jest.fn(), warn: jest.fn() } as any;
 const commandHandler = jest.fn(async () => {}); // async signature required
 const subscribeHandler = jest.fn();
 
@@ -264,21 +265,128 @@ describe('addControlEntity', () => {
     expect(args[2]).toBe(500); // default max_mireds
   });
 
-  it('thermostat auto mode fallback defaults (cover ?? branches)', () => {
+  it('thermostat auto mode fallback no hvac_modes', () => {
+    const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: [] });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerHeatingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 23, 7, 35]);
+  });
+
+  it('thermostat auto mode fallback defaults heat_cool', () => {
     const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'] });
     addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
     expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
-    expect(args.slice(1)).toEqual([23, 21, 25, 0, 50]);
+    expect(args.slice(1)).toEqual([null, 20, 26, 7, 35]);
   });
 
-  it('thermostat cool mode fallback defaults (cover ?? branches)', () => {
-    const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'] });
+  it('thermostat auto mode fallback defaults heat_cool with local', () => {
+    const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'], current_temperature: 22.2, target_temp_low: 22, target_temp_high: 24 });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([22.2, 22, 24, 7, 35]);
+  });
+
+  it('thermostat cool mode fallback defaults heat', () => {
+    const [md, e, s] = make('climate', 'heatdefaults', { hvac_modes: ['heat'] });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerHeatingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 23, 7, 35]);
+  });
+
+  it('thermostat cool mode fallback defaults heat config °C', () => {
+    HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.CELSIUS } } as HassConfig;
+    const [md, e, s] = make('climate', 'heatdefaults', { hvac_modes: ['heat'] });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerHeatingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 23, 7, 35]);
+    HomeAssistant.hassConfig = {} as HassConfig;
+  });
+
+  it('thermostat cool mode fallback defaults heat config °F', () => {
+    HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.FAHRENHEIT } } as HassConfig;
+    const [md, e, s] = make('climate', 'heatdefaults', { hvac_modes: ['heat'] });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerHeatingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 23, 7, 35]);
+    HomeAssistant.hassConfig = {} as HassConfig;
+  });
+
+  it('thermostat cool mode fallback defaults cool', () => {
+    const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], current_temperature: 23.1, temperature: 22, min_temp: 0, max_temp: 50 });
     addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
     expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerCoolingThermostat.mock.calls[0];
-    expect(args.slice(1)).toEqual([23, 21, 0, 50]);
+    expect(args.slice(1)).toEqual([23.1, 22, 0, 50]);
+  });
+
+  it('thermostat cool mode fallback defaults cool config °C', () => {
+    HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.CELSIUS } } as HassConfig;
+    const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], current_temperature: 23.7, temperature: 22, min_temp: 0, max_temp: 50 });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerCoolingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([23.7, 22, 0, 50]);
+    HomeAssistant.hassConfig = {} as HassConfig;
+  });
+
+  it('thermostat cool mode fallback defaults cool config °F', () => {
+    HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.FAHRENHEIT } } as HassConfig;
+    const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], current_temperature: 74.3, temperature: 71.8, min_temp: 32, max_temp: 122 }); // 23.5°C and 22.1111111°C and 0-50°C
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerCoolingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([23.5, expect.closeTo(22.1, 0.1), 0, 50]);
+    HomeAssistant.hassConfig = {} as HassConfig;
+  });
+
+  it('thermostat auto mode fallback defaults heat_cool °C', () => {
+    const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'], temperature_unit: '°C', target_temp_low: 18, target_temp_high: 28 });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 18, 28, 7, 35]);
+  });
+
+  it('thermostat auto mode fallback defaults heat_cool °F', () => {
+    const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'], temperature_unit: '°F', target_temp_low: 64, target_temp_high: 78 });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, expect.closeTo(17.7, 0.1), expect.closeTo(25.5, 0.1), 7, 35]);
+  });
+
+  it('thermostat cool mode fallback defaults heat °F', () => {
+    const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['heat'], temperature_unit: '°F' });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerHeatingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 23, 7, 35]);
+  });
+
+  it('thermostat cool mode fallback defaults cool °F', () => {
+    const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], temperature_unit: '°F' });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerCoolingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 23, 7, 35]);
   });
 });

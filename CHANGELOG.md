@@ -15,10 +15,15 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 ### Added
 
 - [homeAssistant]: Added timeout to Home Assistant core state check.
+- [homeAssistant]: Add types for HassUnitSystem.
 
 ### Changed
 
 - [package]: Updated dependencies.
+
+### Fixed
+
+- [climate]: Fixed thermostat configuration when unit system is UnitOfTemperature.FAHRENHEIT.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

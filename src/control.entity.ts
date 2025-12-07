@@ -24,14 +24,14 @@
 /* eslint-disable jsdoc/reject-function-type */
 
 import { colorTemperatureLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
-import { isValidArray, isValidBoolean, isValidString } from 'matterbridge/utils';
+import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
 import { ActionContext } from 'matterbridge/matter';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
-import { DEFAULT_MAX_KELVIN, DEFAULT_MIN_KELVIN, HassEntity, HassState } from './homeAssistant.js';
+import { DEFAULT_MAX_KELVIN, DEFAULT_MAX_TEMP, DEFAULT_MIN_KELVIN, DEFAULT_MIN_TEMP, HassEntity, HassState, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter, kelvinToMireds } from './converters.js';
+import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter, kelvinToMireds, temp, roundTo } from './converters.js';
 
 /**
  * Look for supported binary_sensors of the current entity
@@ -125,15 +125,31 @@ export function addControlEntity(
   // Configure the Thermostat cluster default values and features.
   // prettier-ignore
   if (domain === 'climate') {
-    if (isValidArray(state?.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes('heat_cool')) {
-      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db}`);
-      mutableDevice.addClusterServerAutoModeThermostat(endpointName, state.attributes['current_temperature'] ?? 23, state.attributes['target_temp_low'] ?? 21, state.attributes['target_temp_high'] ?? 25, state.attributes['min_temp'] ?? 0, state.attributes['max_temp'] ?? 50);
-    } else if (isValidArray(state?.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes('heat') && !state.attributes['hvac_modes'].includes('cool')) {
-      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db}`);
-      mutableDevice.addClusterServerHeatingThermostat(endpointName, state.attributes['current_temperature'] ?? 23, state.attributes['temperature'] ?? 21, state.attributes['min_temp'] ?? 0, state.attributes['max_temp'] ?? 50);
-    } else if (isValidArray(state?.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes('cool') && !state.attributes['hvac_modes'].includes('heat')) {
-      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db}`);
-      mutableDevice.addClusterServerCoolingThermostat(endpointName, state.attributes['current_temperature'] ?? 23, state.attributes['temperature'] ?? 21, state.attributes['min_temp'] ?? 0, state.attributes['max_temp'] ?? 50);
+    // Determine temperature unit and convert temperatures: 
+    // - temperature_unit is required as implementation but not on WS REST Api (never present actually)
+    // - if not present, assume Home Assistant unit_system.temperature
+    // - fallback to Home Assistant unit_system.temperature
+    const temperature_unit = state.attributes['temperature_unit'] || HomeAssistant.hassConfig?.unit_system?.temperature || UnitOfTemperature.CELSIUS;
+    const current_temperature = isValidNumber(state.attributes['current_temperature']) ? roundTo(temp(state.attributes['current_temperature'], temperature_unit), 2) : null;
+    const min_temp = isValidNumber(state.attributes['min_temp']) ? roundTo(temp(state.attributes['min_temp'], temperature_unit), 2) : DEFAULT_MIN_TEMP;
+    const max_temp = isValidNumber(state.attributes['max_temp']) ? roundTo(temp(state.attributes['max_temp'], temperature_unit), 2) : DEFAULT_MAX_TEMP;
+    const temperature = isValidNumber(state.attributes['temperature']) ? roundTo(temp(state.attributes['temperature'], temperature_unit), 2) : 23;
+    const target_temp_low = isValidNumber(state.attributes['target_temp_low']) ? roundTo(temp(state.attributes['target_temp_low'], temperature_unit), 2) : 20;
+    const target_temp_high = isValidNumber(state.attributes['target_temp_high']) ? roundTo(temp(state.attributes['target_temp_high'], temperature_unit), 2) : 26;
+    log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} hvac_modes: ${CYAN}${state.attributes['hvac_modes']}${db} temperature_unit: ${CYAN}${temperature_unit}${db} current_temperature: ${CYAN}${current_temperature}${db} min_temp: ${CYAN}${min_temp}${db} max_temp: ${CYAN}${max_temp}${db}`);
+    if(!isValidArray(state.attributes['hvac_modes'], 1)) {
+      state.attributes['hvac_modes'] = [HVACMode.HEAT];
+      log.debug(`Thermostat device ${CYAN}${entity.entity_id}${db} has no hvac_modes attribute, assuming ${CYAN}${HVACMode.HEAT}${db}.`);
+    } 
+    if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.HEAT_COOL)) {
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} target_temp_low: ${CYAN}${target_temp_low}${db} target_temp_high: ${CYAN}${target_temp_high}${db}`);
+      mutableDevice.addClusterServerAutoModeThermostat(endpointName, current_temperature, target_temp_low, target_temp_high, min_temp, max_temp);
+    } else if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.HEAT) && !state.attributes['hvac_modes'].includes(HVACMode.COOL)) {
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} temperature: ${CYAN}${temperature}${db}`);
+      mutableDevice.addClusterServerHeatingThermostat(endpointName, current_temperature, temperature, min_temp, max_temp);
+    } else if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.COOL) && !state.attributes['hvac_modes'].includes(HVACMode.HEAT)) {
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} temperature: ${CYAN}${temperature}${db}`);
+      mutableDevice.addClusterServerCoolingThermostat(endpointName, current_temperature, temperature, min_temp, max_temp);
     }
   }
 
