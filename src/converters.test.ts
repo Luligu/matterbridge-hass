@@ -20,7 +20,7 @@ import {
   miredsToKelvin,
   clamp,
 } from './converters.js';
-import { HassState, HomeAssistantLightColorMode } from './homeAssistant.js';
+import { HassState, ColorMode } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
   it('should clamp values between a minimum and maximum', () => {
@@ -84,7 +84,7 @@ describe('HassPlatform', () => {
       }
       if (converter.domain === 'light' && converter.with === 'color_temp_kelvin') {
         converter.converter(2, {
-          attributes: { color_mode: HomeAssistantLightColorMode.COLOR_TEMP },
+          attributes: { color_mode: ColorMode.COLOR_TEMP },
         } as HassState);
         converter.converter(undefined, {} as HassState);
       }

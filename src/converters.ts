@@ -86,7 +86,7 @@ import {
   RvcCleanMode,
 } from 'matterbridge/matter/clusters';
 
-import { HassState, HomeAssistant, HomeAssistantLightColorMode } from './homeAssistant.js';
+import { HassState, HomeAssistant, ColorMode } from './homeAssistant.js';
 
 /**
  * Converts mireds to kelvin.
@@ -130,6 +130,18 @@ export function kelvinToMireds(kelvin: number, round?: 'floor' | 'ceil'): number
  */
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Round a number to the number of digits specified
+ *
+ * @param {number} value - The number to round
+ * @param {number} digits - The number of digits to round to
+ * @returns {number} The rounded number
+ */
+export function roundTo(value: number, digits: number): number {
+  const factor = Math.pow(10, digits);
+  return Math.round(value * factor) / factor;
 }
 
 /**
@@ -305,11 +317,11 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
         }
       } 
     },
-    { domain: 'light', with: 'color_temp_kelvin', clusterId: ColorControl.Cluster.id, attribute: 'colorTemperatureMireds', converter: (value: number, state: HassState) => ( isValidNumber(value, 0, 65279) && state.attributes['color_mode'] === HomeAssistantLightColorMode.COLOR_TEMP ? kelvinToMireds(value, 'floor') : null ) },
-    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentHue', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) && (state.attributes['color_mode'] === HomeAssistantLightColorMode.HS || state.attributes['color_mode'] === HomeAssistantLightColorMode.RGB) ? Math.round(value[0] / 360 * 254) : null ) },
-    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentSaturation', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) && (state.attributes['color_mode'] === HomeAssistantLightColorMode.HS || state.attributes['color_mode'] === HomeAssistantLightColorMode.RGB) ? Math.round(value[1] / 100 * 254) : null ) },
-    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentX', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) && state.attributes['color_mode'] === HomeAssistantLightColorMode.XY ? value[0] : null ) },
-    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === HomeAssistantLightColorMode.XY ? value[1] : null ) },
+    { domain: 'light', with: 'color_temp_kelvin', clusterId: ColorControl.Cluster.id, attribute: 'colorTemperatureMireds', converter: (value: number, state: HassState) => ( isValidNumber(value, 0, 65279) && state.attributes['color_mode'] === ColorMode.COLOR_TEMP ? kelvinToMireds(value, 'floor') : null ) },
+    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentHue', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 360) && (state.attributes['color_mode'] === ColorMode.HS || state.attributes['color_mode'] === ColorMode.RGB) ? Math.round(value[0] / 360 * 254) : null ) },
+    { domain: 'light', with: 'hs_color', clusterId: ColorControl.Cluster.id, attribute: 'currentSaturation', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 100) && (state.attributes['color_mode'] === ColorMode.HS || state.attributes['color_mode'] === ColorMode.RGB) ? Math.round(value[1] / 100 * 254) : null ) },
+    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentX', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[0], 0, 1) && state.attributes['color_mode'] === ColorMode.XY ? value[0] : null ) },
+    { domain: 'light', with: 'xy_color', clusterId: ColorControl.Cluster.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === ColorMode.XY ? value[1] : null ) },
   
     { domain: 'fan', with: 'percentage', clusterId: FanControl.Cluster.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
     { domain: 'fan', with: 'preset_mode', clusterId: FanControl.Cluster.id, attribute: 'fanMode', converter: (value: string) => {
@@ -330,12 +342,11 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
 
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
-    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
-    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
-    { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? temp(value, HomeAssistant.hassConfig?.unit_system.temperature) * 100 : null) },
-
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
     { domain: 'valve', with: 'current_position', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value) : null) },
   ];
 
