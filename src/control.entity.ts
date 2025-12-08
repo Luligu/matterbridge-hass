@@ -172,7 +172,6 @@ export function addControlEntity(
   }
 
   // Configure the vacuum.
-  // prettier-ignore
   if (domain === 'vacuum') {
     log.debug(`= vacuum device ${CYAN}${entity.entity_id}${db} activity: ${CYAN}${state.attributes['activity']}${db}`);
     mutableDevice.addVacuum(endpointName);
