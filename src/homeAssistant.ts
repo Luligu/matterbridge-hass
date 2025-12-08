@@ -164,22 +164,27 @@ export interface HassStateAttributes {
  * Interface representing the attributes of a Home Assistant light entity's state.
  */
 export interface HassStateLightAttributes {
-  effect_list?: string[]; // List of effects available for the light
-  effect?: string | null; // Current effect of the light
-  supported_color_modes?: string[]; // List of supported color modes (e.g., "onoff", "brightness", "color_temp", "xy", "hs", "rgb", "rgbw", "rgbww")
-  color_mode?: string | null; // Current color mode of the light (e.g., "onoff", "brightness", "color_temp", "xy", "hs", "rgb", "rgbw", "rgbww")
-  brightness?: number | null;
-  // color_temp?: number | null;
-  // min_mireds?: number | null;
-  // max_mireds?: number | null;
-  color_temp_kelvin?: number | null;
-  min_color_temp_kelvin?: number | null;
-  max_color_temp_kelvin?: number | null;
-  xy_color?: [number, number] | null; // XY color values
-  hs_color?: [number, number] | null; // Hue and saturation color values
-  rgb_color?: [number, number, number] | null; // RGB color values
-  rgbw_color?: [number, number, number, number] | null; // RGBW color values
-  rgbww_color?: [number, number, number, number, number] | null; // RGBWW color values
+  effect_list: string[] | null; // List of effects available for the light
+  effect: string | null; // Current effect of the light
+  supported_color_modes: ColorMode[] | null; // List of supported color modes
+  color_mode: ColorMode | null; // Current color mode of the light
+  brightness: number | null;
+  color_temp_kelvin: number | null;
+  min_color_temp_kelvin: number | null;
+  max_color_temp_kelvin: number | null;
+  xy_color: [number, number] | null; // XY color values
+  hs_color: [number, number] | null; // Hue and saturation color values
+  rgb_color: [number, number, number] | null; // RGB color values
+  rgbw_color: [number, number, number, number] | null; // RGBW color values
+  rgbww_color: [number, number, number, number, number] | null; // RGBWW color values
+  supported_features?: LightEntityFeature; // Supported features of the light entity
+}
+
+/** Supported features of the light entity. */
+export enum LightEntityFeature {
+  EFFECT = 4,
+  FLASH = 8,
+  TRANSITION = 32,
 }
 
 /**
@@ -223,16 +228,6 @@ export const DEFAULT_MAX_KELVIN = 6535; // 153 mireds
 export const DIRECTION_FORWARD = 'forward';
 export const DIRECTION_REVERSE = 'reverse';
 
-/** Supported features of the fan entity. */
-export enum FanEntityFeature {
-  SET_SPEED = 1,
-  OSCILLATE = 2,
-  DIRECTION = 4,
-  PRESET_MODE = 8,
-  TURN_OFF = 16,
-  TURN_ON = 32,
-}
-
 /**
  * Interface representing the attributes of a Home Assistant fan entity's state.
  */
@@ -246,51 +241,123 @@ export interface HassStateFanAttributes {
   supported_features?: FanEntityFeature; // Supported features of the fan entity
 }
 
+/** Supported features of the fan entity. */
+export enum FanEntityFeature {
+  SET_SPEED = 1,
+  OSCILLATE = 2,
+  DIRECTION = 4,
+  PRESET_MODE = 8,
+  TURN_OFF = 16,
+  TURN_ON = 32,
+}
+
 /**
  * Interface representing the attributes of a Home Assistant valve entity's state.
  */
 export interface HassStateValveAttributes {
   current_position?: number | null; // Current status percentage of the valve. Null is unknown, 0 is closed, 100 is fully open.
+  supported_features?: ValveEntityFeature; // Supported features of the valve entity
+}
+
+/** Supported features of the valve entity. */
+export enum ValveEntityFeature {
+  OPEN = 1,
+  CLOSE = 2,
+  SET_POSITION = 4,
+  STOP = 8,
+}
+
+/** Device class for valve. */
+export enum ValveDeviceClass {
+  // Refer to the valve dev docs for device class descriptions
+  WATER = 'water',
+  GAS = 'gas',
+}
+
+/** State of Valve entities. */
+export enum ValveState {
+  OPENING = 'opening',
+  CLOSING = 'closing',
+  CLOSED = 'closed',
+  OPEN = 'open',
 }
 
 /**
  * Interface representing the attributes of a Home Assistant vacuum entity's state.
  */
 export interface HassStateVacuumAttributes {
-  activity?: 'idle' | 'docked' | 'cleaning' | 'paused' | 'error' | 'returning' | null; // Current state of the vacuum.
+  activity: VacuumActivity; // Current state of the vacuum.
   cleaned_area?: number; // Total area cleaned in square meters.
   fan_speed?: string; // Implementation-specific fan speed setting.
   fan_speed_list?: string[]; // List of supported implementation-specific fan speed settings.
+  battery_level?: number; // Current battery level as a percentage.
+  battery_icon?: string; // Icon representing the battery status.
+  supported_features?: VacuumEntityFeature; // Supported features of the vacuum entity
 }
 
-// Possible climate fan state
-export const CLIMATE_FAN_ON = 'on';
-export const CLIMATE_FAN_OFF = 'off';
-export const CLIMATE_FAN_AUTO = 'auto';
-export const CLIMATE_FAN_LOW = 'low';
-export const CLIMATE_FAN_MEDIUM = 'medium';
-export const CLIMATE_FAN_HIGH = 'high';
-export const CLIMATE_FAN_TOP = 'top';
-export const CLIMATE_FAN_MIDDLE = 'middle';
-export const CLIMATE_FAN_FOCUS = 'focus';
-export const CLIMATE_FAN_DIFFUSE = 'diffuse';
+/** Supported features of the vacuum entity. */
+export enum VacuumEntityFeature {
+  TURN_ON = 1, // Deprecated, not supported by StateVacuumEntity
+  TURN_OFF = 2, // Deprecated, not supported by StateVacuumEntity
+  PAUSE = 4,
+  STOP = 8,
+  RETURN_HOME = 16,
+  FAN_SPEED = 32,
+  BATTERY = 64,
+  STATUS = 128, // Deprecated, not supported by StateVacuumEntity
+  SEND_COMMAND = 256,
+  LOCATE = 512,
+  CLEAN_SPOT = 1024,
+  MAP = 2048,
+  STATE = 4096, // Must be set by vacuum platforms derived from StateVacuumEntity
+  START = 8192,
+}
+/** Vacuum activity states. */
+export enum VacuumActivity {
+  CLEANING = 'cleaning',
+  DOCKED = 'docked',
+  IDLE = 'idle',
+  PAUSED = 'paused',
+  RETURNING = 'returning',
+  ERROR = 'error',
+}
 
-// Possible climate swing state
-export const CLIMATE_SWING_ON = 'on';
-export const CLIMATE_SWING_OFF = 'off';
-export const CLIMATE_SWING_BOTH = 'both';
-export const CLIMATE_SWING_VERTICAL = 'vertical';
-export const CLIMATE_SWING_HORIZONTAL = 'horizontal';
+/**
+ * Interface representing the attributes of a Home Assistant climate entity's state.
+ */
+export interface HassStateClimateAttributes {
+  hvac_modes: HVACMode[]; // List of supported HVAC modes. Fixed set of strings defined by Home Assistant.
+  hvac_mode: HVACMode | null; // Current HVAC mode but also the state of the climate entity
+  hvac_action?: HVACAction | null; // Current HVAC action
+  preset_modes?: ('none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity')[]; // List of supported preset modes
+  preset_mode?: 'none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity' | null; // Current preset mode
+  fan_modes?: ('on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse')[]; // List of supported fan modes
+  fan_mode?: 'on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse' | null; // Current fan mode
+  current_humidity: number | null; // Current humidity of the climate entity
+  current_temperature: number | null; // Current temperature of the climate entity
+  temperature?: number | null; // Target temperature setting for the climate entity (not in heat_cool thermostats)
+  target_temp_high?: number | null; // Target high temperature setting (for heat_cool thermostats)
+  target_temp_low?: number | null; // Target low temperature setting (for heat_cool thermostats)
+  min_temp: number; // Minimum temperature setting. Default is DEFAULT_MIN_TEMP.
+  max_temp: number; // Maximum temperature setting. Default is DEFAULT_MAX_TEMP.
+  min_humidity: number; // Minimum humidity setting. Default is DEFAULT_MIN_HUMIDITY.
+  max_humidity: number; // Maximum humidity setting. Default is DEFAULT_MAX_HUMIDITY.
+  temperature_unit: UnitOfTemperature.CELSIUS | UnitOfTemperature.FAHRENHEIT; // Unit of measurement for temperature (e.g., "°C" or "°F")
+  supported_features?: ClimateEntityFeature; // Supported features of the climate entity
+}
 
-// Possible climate horizontal swing state
-export const CLIMATE_SWING_HORIZONTAL_ON = 'on';
-export const CLIMATE_SWING_HORIZONTAL_OFF = 'off';
-
-// Default temperature and humidity limits
-export const DEFAULT_MIN_TEMP = 7;
-export const DEFAULT_MAX_TEMP = 35;
-export const DEFAULT_MIN_HUMIDITY = 30;
-export const DEFAULT_MAX_HUMIDITY = 99;
+/** Supported features of the climate entity.*/
+export enum ClimateEntityFeature {
+  TARGET_TEMPERATURE = 1,
+  TARGET_TEMPERATURE_RANGE = 2,
+  TARGET_HUMIDITY = 4,
+  FAN_MODE = 8,
+  PRESET_MODE = 16,
+  SWING_MODE = 32,
+  TURN_OFF = 128,
+  TURN_ON = 256,
+  SWING_HORIZONTAL_MODE = 512,
+}
 
 /** HVAC mode for climate devices. */
 export enum HVACMode {
@@ -322,41 +389,34 @@ export enum HVACAction {
   PREHEATING = 'preheating',
 }
 
-/** Supported features of the climate entity.*/
-export enum ClimateEntityFeature {
-  TARGET_TEMPERATURE = 1,
-  TARGET_TEMPERATURE_RANGE = 2,
-  TARGET_HUMIDITY = 4,
-  FAN_MODE = 8,
-  PRESET_MODE = 16,
-  SWING_MODE = 32,
-  TURN_OFF = 128,
-  TURN_ON = 256,
-  SWING_HORIZONTAL_MODE = 512,
-}
+// Possible climate fan state
+export const CLIMATE_FAN_ON = 'on';
+export const CLIMATE_FAN_OFF = 'off';
+export const CLIMATE_FAN_AUTO = 'auto';
+export const CLIMATE_FAN_LOW = 'low';
+export const CLIMATE_FAN_MEDIUM = 'medium';
+export const CLIMATE_FAN_HIGH = 'high';
+export const CLIMATE_FAN_TOP = 'top';
+export const CLIMATE_FAN_MIDDLE = 'middle';
+export const CLIMATE_FAN_FOCUS = 'focus';
+export const CLIMATE_FAN_DIFFUSE = 'diffuse';
 
-/**
- * Interface representing the attributes of a Home Assistant climate entity's state.
- */
-export interface HassStateClimateAttributes {
-  hvac_modes: HVACMode[]; // List of supported HVAC modes. Fixed set of strings defined by Home Assistant.
-  hvac_mode: HVACMode | null; // Current HVAC mode but also the state of the climate entity
-  hvac_action?: HVACAction | null; // Current HVAC action
-  preset_modes?: ('none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity')[]; // List of supported preset modes
-  preset_mode?: 'none' | 'eco' | 'away' | 'boost' | 'comfort' | 'home' | 'sleep' | 'activity' | null; // Current preset mode
-  fan_modes?: ('on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse')[]; // List of supported fan modes
-  fan_mode?: 'on' | 'off' | 'auto' | 'low' | 'medium' | 'high' | 'top' | 'middle' | 'focus' | 'diffuse' | null; // Fan mode
-  current_humidity: number | null; // Current humidity of the climate entity
-  current_temperature: number | null; // Current temperature of the climate entity
-  temperature?: number | null; // Target temperature setting for the climate entity (not in heat_cool thermostats)
-  target_temp_high?: number | null; // Target high temperature setting (for heat_cool thermostats)
-  target_temp_low?: number | null; // Target low temperature setting (for heat_cool thermostats)
-  min_temp: number; // Minimum temperature setting. Default is DEFAULT_MIN_TEMP.
-  max_temp: number; // Maximum temperature setting. Default is DEFAULT_MAX_TEMP.
-  min_humidity: number; // Minimum humidity setting. Default is DEFAULT_MIN_HUMIDITY.
-  max_humidity: number; // Maximum humidity setting. Default is DEFAULT_MAX_HUMIDITY.
-  temperature_unit: UnitOfTemperature.CELSIUS | UnitOfTemperature.FAHRENHEIT; // Unit of measurement for temperature (e.g., "°C" or "°F")
-}
+// Possible climate swing state
+export const CLIMATE_SWING_ON = 'on';
+export const CLIMATE_SWING_OFF = 'off';
+export const CLIMATE_SWING_BOTH = 'both';
+export const CLIMATE_SWING_VERTICAL = 'vertical';
+export const CLIMATE_SWING_HORIZONTAL = 'horizontal';
+
+// Possible climate horizontal swing state
+export const CLIMATE_SWING_HORIZONTAL_ON = 'on';
+export const CLIMATE_SWING_HORIZONTAL_OFF = 'off';
+
+// Default temperature and humidity limits
+export const DEFAULT_MIN_TEMP = 7;
+export const DEFAULT_MAX_TEMP = 35;
+export const DEFAULT_MIN_HUMIDITY = 30;
+export const DEFAULT_MAX_HUMIDITY = 99;
 
 /**
  * Interface representing the attributes of a Home Assistant event entity's state.
@@ -372,7 +432,7 @@ export interface HassStateEventAttributes {
 /**
  * Enum representing the device classes for Home Assistant events.
  */
-export enum HomeAssistantEventDeviceClass {
+export enum EventDeviceClass {
   DOORBELL = 'doorbell',
   BUTTON = 'button',
   MOTION = 'motion',
