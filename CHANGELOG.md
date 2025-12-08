@@ -23,7 +23,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Fixed
 
-- [climate]: Fixed thermostat configuration when unit system is UnitOfTemperature.FAHRENHEIT.
+- [climate]: Fixed thermostat configuration when unit system is UnitOfTemperature.FAHRENHEIT. Thanks Badgersi (https://github.com/Luligu/matterbridge-hass/issues/125).
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
