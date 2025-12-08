@@ -5,7 +5,7 @@ import { Switch } from 'matterbridge/matter/clusters';
 
 import { addEventEntity } from './event.entity.js';
 import { MutableDevice } from './mutableDevice.js';
-import { HomeAssistantEventDeviceClass } from './homeAssistant.js';
+import { EventDeviceClass } from './homeAssistant.js';
 
 function createMockMutableDevice(): MutableDevice & {
   deviceTypes: Record<string, number[]>;
@@ -63,22 +63,22 @@ describe('addEventEntity', () => {
   it("doesn't add not an event domain", () => {
     const md = createMockMutableDevice();
     const entity = { entity_id: `notanevent.entity_unsupported` } as any;
-    const state = baseState(['unsupported'], HomeAssistantEventDeviceClass.MOTION, 'unknown');
+    const state = baseState(['unsupported'], EventDeviceClass.MOTION, 'unknown');
     const ep = addEventEntity(md as any, entity, state, mockLog);
     expect(ep).toBeUndefined();
   });
 
   it('adds button and friendly name', () => {
     const md = createMockMutableDevice();
-    const entity = baseEntity(HomeAssistantEventDeviceClass.BUTTON);
-    const state = baseState(['single', 'double', 'long'], HomeAssistantEventDeviceClass.BUTTON, 'unknown', 'Button Friendly');
+    const entity = baseEntity(EventDeviceClass.BUTTON);
+    const state = baseState(['single', 'double', 'long'], EventDeviceClass.BUTTON, 'unknown', 'Button Friendly');
     const ep = addEventEntity(md as any, entity, state, mockLog);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
     expect(md.friendlyNames[endpoint]).toBe('Button Friendly');
     expect(mockLog.debug).toHaveBeenCalledWith(
-      `- domain event deviceClass ${HomeAssistantEventDeviceClass.BUTTON} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+      `- domain event deviceClass ${EventDeviceClass.BUTTON} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
     expect(mockLog.debug).toHaveBeenCalledWith(
       `+ domain event supported [single, double, long] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`,
@@ -87,53 +87,53 @@ describe('addEventEntity', () => {
 
   it('adds doorbell without friendly name', () => {
     const md = createMockMutableDevice();
-    const entity = baseEntity(HomeAssistantEventDeviceClass.DOORBELL);
-    const state = baseState(['single'], HomeAssistantEventDeviceClass.DOORBELL, 'unknown');
+    const entity = baseEntity(EventDeviceClass.DOORBELL);
+    const state = baseState(['single'], EventDeviceClass.DOORBELL, 'unknown');
     const ep = addEventEntity(md as any, entity, state, mockLog);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
     expect(mockLog.debug).toHaveBeenCalledWith(
-      `- domain event deviceClass ${HomeAssistantEventDeviceClass.DOORBELL} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+      `- domain event deviceClass ${EventDeviceClass.DOORBELL} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
     expect(mockLog.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
   });
 
   it('adds motion without friendly name', () => {
     const md = createMockMutableDevice();
-    const entity = baseEntity(HomeAssistantEventDeviceClass.MOTION);
-    const state = baseState(['single'], HomeAssistantEventDeviceClass.MOTION, 'unknown');
+    const entity = baseEntity(EventDeviceClass.MOTION);
+    const state = baseState(['single'], EventDeviceClass.MOTION, 'unknown');
     const ep = addEventEntity(md as any, entity, state, mockLog);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
     expect(mockLog.debug).toHaveBeenCalledWith(
-      `- domain event deviceClass ${HomeAssistantEventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+      `- domain event deviceClass ${EventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
     expect(mockLog.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
   });
 
   it('adds unsupported', () => {
     const md = createMockMutableDevice();
-    const entity = baseEntity(HomeAssistantEventDeviceClass.MOTION);
-    const state = baseState(['unsupported'], HomeAssistantEventDeviceClass.MOTION, 'unknown');
+    const entity = baseEntity(EventDeviceClass.MOTION);
+    const state = baseState(['unsupported'], EventDeviceClass.MOTION, 'unknown');
     const ep = addEventEntity(md as any, entity, state, mockLog);
     expect(ep).toBeUndefined();
   });
 
   it('adds supported and unsupported', () => {
     const md = createMockMutableDevice();
-    const entity = baseEntity(HomeAssistantEventDeviceClass.MOTION);
-    const state = baseState(['single', 'unsupported'], HomeAssistantEventDeviceClass.MOTION, 'unknown');
+    const entity = baseEntity(EventDeviceClass.MOTION);
+    const state = baseState(['single', 'unsupported'], EventDeviceClass.MOTION, 'unknown');
     const ep = addEventEntity(md as any, entity, state, mockLog);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
     expect(mockLog.debug).toHaveBeenCalledWith(
-      `- domain event deviceClass ${HomeAssistantEventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
+      `- domain event deviceClass ${EventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
     expect(mockLog.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
   });
