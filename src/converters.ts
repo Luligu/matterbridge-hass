@@ -89,6 +89,25 @@ import {
 import { HassState, HomeAssistant, ColorMode, UnitOfTemperature } from './homeAssistant.js';
 
 /**
+ * Returns the names of enabled bit-flag features for any numeric enum.
+ *
+ * @template T
+ * @param {T} featureEnum - The enum containing bit-flag values.
+ * @param {number | undefined} supported_features - The bitmask to decode.
+ * @returns {string[]} Array of feature names enabled in the mask.
+ *
+ * @example
+ * const names = getFeatureNames(FanEntityFeature, 63);
+ * // names = ['SET_SPEED', 'DIRECTION', 'OSCILLATE', 'PRESET_MODE', 'TIMER', 'NATURAL_WIND']
+ */
+export function getFeatureNames<T extends Record<string, number | string>>(featureEnum: T, supported_features: number | undefined): string[] {
+  if (supported_features === undefined) return [];
+  return Object.entries(featureEnum)
+    .filter(([_, value]) => typeof value === 'number' && (supported_features & (value as number)) !== 0)
+    .map(([key]) => key);
+}
+
+/**
  * Converts mireds to kelvin.
  *
  * @param {number} mired - The mired value to convert.

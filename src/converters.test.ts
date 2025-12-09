@@ -21,10 +21,17 @@ import {
   miredsToKelvin,
   clamp,
   roundTo,
+  getFeatureNames,
 } from './converters.js';
-import { HassState, ColorMode, HomeAssistant, UnitOfTemperature, HassUnitSystem, HassConfig } from './homeAssistant.js';
+import { HassState, ColorMode, HomeAssistant, UnitOfTemperature, HassUnitSystem, HassConfig, FanEntityFeature } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
+  it('should return the feature names for supported features', () => {
+    expect(getFeatureNames(FanEntityFeature, 0)).toEqual([]);
+    expect(getFeatureNames(FanEntityFeature, undefined)).toEqual([]);
+    expect(getFeatureNames(FanEntityFeature, 63)).toEqual(['SET_SPEED', 'OSCILLATE', 'DIRECTION', 'PRESET_MODE', 'TURN_OFF', 'TURN_ON']);
+  });
+
   it('should clamp values between a minimum and maximum', () => {
     expect(clamp(32, 30, 40)).toBe(32);
     expect(clamp(25, 30, 40)).toBe(30);
