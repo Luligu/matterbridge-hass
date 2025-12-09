@@ -7,6 +7,7 @@ import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters
 
 import {
   temp,
+  tempToFahrenheit,
   hassDomainConverter,
   hassDomainSensorsConverter,
   hassDomainBinarySensorsConverter,
@@ -19,8 +20,9 @@ import {
   kelvinToMireds,
   miredsToKelvin,
   clamp,
+  roundTo,
 } from './converters.js';
-import { HassState, ColorMode } from './homeAssistant.js';
+import { HassState, ColorMode, HomeAssistant, UnitOfTemperature, HassUnitSystem, HassConfig } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
   it('should clamp values between a minimum and maximum', () => {
@@ -29,11 +31,32 @@ describe('HassPlatform', () => {
     expect(clamp(45, 30, 40)).toBe(40);
   });
 
-  it('should convert fahrenheit to Celsius', () => {
+  it('should convert Fahrenheit to Celsius', () => {
     expect(temp(32)).toBe(32);
     expect(temp(212, '°F')).toBe(100);
     expect(temp(-40)).toBe(-40);
     expect(temp(-148, '°F')).toBe(-100);
+  });
+
+  it('should convert Celsius to Fahrenheit', () => {
+    HomeAssistant.hassConfig = {
+      unit_system: {
+        temperature: UnitOfTemperature.FAHRENHEIT,
+      } as HassUnitSystem,
+    } as HassConfig;
+    expect(tempToFahrenheit(32)).toBe(89.6);
+    expect(tempToFahrenheit(100)).toBe(212);
+    expect(tempToFahrenheit(-40)).toBe(-40);
+    expect(tempToFahrenheit(-100)).toBe(-148);
+    HomeAssistant.hassConfig = {
+      unit_system: {
+        temperature: UnitOfTemperature.CELSIUS,
+      } as HassUnitSystem,
+    } as HassConfig;
+    expect(tempToFahrenheit(32.1)).toBe(32.1);
+    expect(tempToFahrenheit(100.8)).toBe(100.8);
+    expect(tempToFahrenheit(-40.6)).toBe(roundTo(-40.6, 2));
+    expect(tempToFahrenheit(-99.99)).toBe(roundTo(-99.99, 2));
   });
 
   it('should convert mireds and kelvin', () => {
@@ -166,7 +189,7 @@ describe('HassPlatform', () => {
     });
   });
 
-  it('should verify the hassDomainSensorsConverter convertes', () => {
+  it('should verify the hassDomainSensorsConverter converter', () => {
     hassDomainSensorsConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'temperature') {
@@ -233,7 +256,7 @@ describe('HassPlatform', () => {
     });
   });
 
-  it('should verify the hassDomainBinarySensorsConverter convertes', () => {
+  it('should verify the hassDomainBinarySensorsConverter converter', () => {
     hassDomainBinarySensorsConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.domain === 'binary_sensor') {
@@ -243,33 +266,63 @@ describe('HassPlatform', () => {
     });
   });
 
-  it('should verify the hassCommandConverter convertes', () => {
+  it('should verify the hassCommandConverter converter', () => {
     hassCommandConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
-        converter.converter({ liftPercent100thsValue: 10000 }, {}, undefined);
+        expect(converter.converter({ liftPercent100thsValue: 10000 }, {}, undefined)).toEqual({ position: 0 });
+      }
+      if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
+        expect(converter.converter({ liftPercent100thsValue: 3000 }, {}, undefined)).toEqual({ position: 70 });
+      }
+      if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
+        expect(converter.converter({ liftPercent100thsValue: 0 }, {}, undefined)).toEqual({ position: 100 });
       }
       if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
-        converter.converter({ targetLevel: 100 }, {}, undefined);
+        expect(converter.converter({ targetLevel: 100 }, {}, undefined)).toEqual({ position: 100 });
       }
-      if (converter.converter && converter.command.startsWith('moveTo') && converter.domain === 'light' && converter.service === 'turn_on') {
-        converter.converter(
-          {
-            level: 1,
-            colorTemperatureMireds: 200,
-            colorX: 0,
-            colorY: 0,
-            hue: 0,
-            saturation: 0,
-          },
-          { currentHue: 0, currentSaturation: 0 },
-          undefined,
-        );
+      if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
+        expect(converter.converter({ targetLevel: 0 }, {}, undefined)).toEqual({ position: 0 });
+      }
+      if (converter.converter && converter.command === 'moveToLevel') {
+        expect(converter.converter({ level: 254 }, undefined as any, undefined as any)).toEqual({ brightness: 255 });
+      }
+      if (converter.converter && converter.command === 'moveToLevelWithOnOff') {
+        expect(converter.converter({ level: 56 }, undefined as any, undefined as any)).toEqual({ brightness: 56 });
+      }
+      if (converter.converter && converter.command === 'moveToColorTemperature') {
+        expect(converter.converter({ colorTemperatureMireds: 200 }, undefined as any, { attributes: {} } as HassState)).toEqual({ color_temp_kelvin: 5000 });
+      }
+      if (converter.converter && converter.command === 'moveToColorTemperature') {
+        expect(
+          converter.converter({ colorTemperatureMireds: 200 }, undefined as any, { attributes: { min_color_temp_kelvin: 1, max_color_temp_kelvin: 10000 } } as HassState),
+        ).toEqual({ color_temp_kelvin: 5000 });
+      }
+      if (converter.converter && converter.command === 'moveToColor') {
+        expect(converter.converter({ colorX: 32000, colorY: 32000 }, undefined as any, undefined as any)).toEqual({ xy_color: [0.4883, 0.4883] });
+      }
+      if (converter.converter && converter.command === 'moveToHue') {
+        expect(converter.converter({ hue: 100 }, { currentSaturation: { value: 50 } }, undefined as any)).toEqual({ hs_color: [142, 20] });
+      }
+      if (converter.converter && converter.command === 'moveToSaturation') {
+        expect(converter.converter({ saturation: 50 }, { currentHue: { value: 100 } }, undefined as any)).toEqual({ hs_color: [142, 20] });
+      }
+      if (converter.converter && converter.command === 'moveToHueAndSaturation') {
+        expect(
+          converter.converter(
+            {
+              hue: 100,
+              saturation: 50,
+            },
+            undefined as any,
+            undefined as any,
+          ),
+        ).toEqual({ hs_color: [142, 20] });
       }
     });
   });
 
-  it('should verify the hassSubscribeConverter convertes', () => {
+  it('should verify the hassSubscribeConverter converter', () => {
     hassSubscribeConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.domain === 'fan' && converter.service === 'turn_on' && converter.with === 'preset_mode' && converter.converter) {
@@ -294,14 +347,25 @@ describe('HassPlatform', () => {
         expect(converter.converter({ rockRound: false } as any)).toBe(false);
       }
       if (converter.domain === 'climate' && converter.service === 'set_hvac_mode' && converter.converter) {
-        converter.converter(Thermostat.SystemMode.Auto);
-        converter.converter(Thermostat.SystemMode.Cool);
-        converter.converter(Thermostat.SystemMode.Heat);
-        converter.converter(Thermostat.SystemMode.Off);
-        converter.converter(10);
+        expect(converter.converter(Thermostat.SystemMode.Auto)).toBe('heat_cool');
+        expect(converter.converter(Thermostat.SystemMode.Cool)).toBe('cool');
+        expect(converter.converter(Thermostat.SystemMode.Heat)).toBe('heat');
+        expect(converter.converter(Thermostat.SystemMode.Off)).toBe(null);
+        expect(converter.converter(10)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.service === 'set_temperature' && converter.converter) {
-        converter.converter(10);
+        HomeAssistant.hassConfig = {
+          unit_system: {
+            temperature: UnitOfTemperature.FAHRENHEIT,
+          } as HassUnitSystem,
+        } as HassConfig;
+        expect(converter.converter(2250)).toBe(72.5);
+        HomeAssistant.hassConfig = {
+          unit_system: {
+            temperature: UnitOfTemperature.CELSIUS,
+          } as HassUnitSystem,
+        } as HassConfig;
+        expect(converter.converter(1000)).toBe(10);
       }
     });
   });

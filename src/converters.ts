@@ -86,7 +86,7 @@ import {
   RvcCleanMode,
 } from 'matterbridge/matter/clusters';
 
-import { HassState, HomeAssistant, ColorMode } from './homeAssistant.js';
+import { HassState, HomeAssistant, ColorMode, UnitOfTemperature } from './homeAssistant.js';
 
 /**
  * Converts mireds to kelvin.
@@ -152,7 +152,18 @@ export function roundTo(value: number, digits: number): number {
  * @returns {number} Temperature in Celsius
  */
 export function temp(value: number, unit?: string): number {
-  if (unit === '°F') return ((value - 32) * 5) / 9;
+  if (unit === UnitOfTemperature.FAHRENHEIT) return ((value - 32) * 5) / 9;
+  return value; // If no unit is provided or it is not '°F', return the value as is
+}
+
+/**
+ * Convert Celsius to Fahrenheit if the config.unit_system.temperature is '°F'
+ *
+ * @param {number} value - Temperature
+ * @returns {number} Temperature in Fahrenheit
+ */
+export function tempToFahrenheit(value: number): number {
+  if (HomeAssistant.hassConfig?.unit_system.temperature === UnitOfTemperature.FAHRENHEIT) return (value * 9) / 5 + 32;
   return value; // If no unit is provided or it is not '°F', return the value as is
 }
 
@@ -505,6 +516,6 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         return null;
       }
     }},
-    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.Cluster.id,  attribute: 'occupiedHeatingSetpoint', converter: (value) => { return value / 100 } },
-    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.Cluster.id,  attribute: 'occupiedCoolingSetpoint', converter: (value) => { return value / 100 } },
+    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.Cluster.id,  attribute: 'occupiedHeatingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
+    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.Cluster.id,  attribute: 'occupiedCoolingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
   ]
