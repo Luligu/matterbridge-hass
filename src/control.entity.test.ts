@@ -45,6 +45,7 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerAutoModeThermostat: jest.fn(),
     addClusterServerHeatingThermostat: jest.fn(),
     addClusterServerCoolingThermostat: jest.fn(),
+    addClusterServerHeatingCoolingThermostat: jest.fn(),
     addClusterServerCompleteFanControl: jest.fn(),
     addVacuum: jest.fn(),
     addCommandHandler: jest.fn(),
@@ -281,6 +282,15 @@ describe('addControlEntity', () => {
     // @ts-expect-error chainable return
     const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
     expect(args.slice(1)).toEqual([null, 20, 26, 7, 35]);
+  });
+
+  it('thermostat auto mode fallback defaults heat and cool', () => {
+    const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat', 'cool'] });
+    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    expect(md.addClusterServerHeatingCoolingThermostat).toHaveBeenCalled();
+    // @ts-expect-error chainable return
+    const args = md.addClusterServerHeatingCoolingThermostat.mock.calls[0];
+    expect(args.slice(1)).toEqual([null, 23, 23, 7, 35]);
   });
 
   it('thermostat auto mode fallback defaults heat_cool with local', () => {

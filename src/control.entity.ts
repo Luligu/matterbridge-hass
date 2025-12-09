@@ -30,19 +30,23 @@ import { ActionContext } from 'matterbridge/matter';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 import {
+  ClimateEntityFeature,
   ColorMode,
   DEFAULT_MAX_KELVIN,
   DEFAULT_MAX_TEMP,
   DEFAULT_MIN_KELVIN,
   DEFAULT_MIN_TEMP,
+  FanEntityFeature,
   HassEntity,
   HassState,
   HomeAssistant,
   HVACMode,
+  LightEntityFeature,
   UnitOfTemperature,
+  VacuumEntityFeature,
 } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter, kelvinToMireds, temp, roundTo } from './converters.js';
+import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter, kelvinToMireds, temp, roundTo, getFeatureNames } from './converters.js';
 
 /**
  * Look for supported binary_sensors of the current entity
@@ -119,6 +123,7 @@ export function addControlEntity(
   // prettier-ignore
   if (domain === 'light' && (mutableDevice.get(endpointName).deviceTypes.includes(colorTemperatureLight) || mutableDevice.get(endpointName).deviceTypes.includes(extendedColorLight))) {
     log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db} min_color_temp_kelvin: ${CYAN}${state.attributes['min_color_temp_kelvin']}${db} max_color_temp_kelvin: ${CYAN}${state.attributes['max_color_temp_kelvin']}${db}`);
+    log.debug(`# colorControl device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(LightEntityFeature, state.attributes.supported_features)}${db}`);
     const minMireds = kelvinToMireds(state.attributes['max_color_temp_kelvin'] ?? DEFAULT_MAX_KELVIN, 'floor');
     const maxMireds = kelvinToMireds(state.attributes['min_color_temp_kelvin'] ?? DEFAULT_MIN_KELVIN, 'floor');
     log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db} min_mireds: ${CYAN}${minMireds}${db} max_mireds: ${CYAN}${maxMireds}${db}`);
@@ -146,26 +151,33 @@ export function addControlEntity(
     const target_temp_low = isValidNumber(state.attributes['target_temp_low']) ? roundTo(temp(state.attributes['target_temp_low'], temperature_unit), 2) : 20;
     const target_temp_high = isValidNumber(state.attributes['target_temp_high']) ? roundTo(temp(state.attributes['target_temp_high'], temperature_unit), 2) : 26;
     log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} hvac_modes: ${CYAN}${state.attributes['hvac_modes']}${db} temperature_unit: ${CYAN}${temperature_unit}${db} current_temperature: ${CYAN}${current_temperature}${db} min_temp: ${CYAN}${min_temp}${db} max_temp: ${CYAN}${max_temp}${db}`);
+    log.debug(`# thermostat device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(ClimateEntityFeature, state.attributes.supported_features)}${db}`);
     if(!isValidArray(state.attributes['hvac_modes'], 1)) {
       state.attributes['hvac_modes'] = [HVACMode.HEAT];
       log.debug(`Thermostat device ${CYAN}${entity.entity_id}${db} has no hvac_modes attribute, assuming ${CYAN}${HVACMode.HEAT}${db}.`);
     } 
     if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.HEAT_COOL)) {
-      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} target_temp_low: ${CYAN}${target_temp_low}${db} target_temp_high: ${CYAN}${target_temp_high}${db}`);
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} auto target_temp_low: ${CYAN}${target_temp_low}${db} target_temp_high: ${CYAN}${target_temp_high}${db}`);
       mutableDevice.addClusterServerAutoModeThermostat(endpointName, current_temperature, target_temp_low, target_temp_high, min_temp, max_temp);
     } else if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.HEAT) && !state.attributes['hvac_modes'].includes(HVACMode.COOL)) {
-      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} temperature: ${CYAN}${temperature}${db}`);
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} heat temperature: ${CYAN}${temperature}${db}`);
       mutableDevice.addClusterServerHeatingThermostat(endpointName, current_temperature, temperature, min_temp, max_temp);
     } else if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.COOL) && !state.attributes['hvac_modes'].includes(HVACMode.HEAT)) {
-      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} temperature: ${CYAN}${temperature}${db}`);
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} cool temperature: ${CYAN}${temperature}${db}`);
       mutableDevice.addClusterServerCoolingThermostat(endpointName, current_temperature, temperature, min_temp, max_temp);
+    } else if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.COOL) && state.attributes['hvac_modes'].includes(HVACMode.HEAT)) {
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} heat cool temperature: ${CYAN}${temperature}${db}`);
+      mutableDevice.addClusterServerHeatingCoolingThermostat(endpointName, current_temperature, temperature, temperature, min_temp, max_temp);
+    } else {
+      log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} default temperature: ${CYAN}${temperature}${db}`);
     }
   }
 
   // Configure the FanControl cluster default values and features.
   // prettier-ignore
   if (domain === 'fan') {
-    log.debug(`= fanControl device ${CYAN}${entity.entity_id}${db} preset_modes: ${CYAN}${state.attributes['preset_modes']}${db} direction: ${CYAN}${state.attributes['direction']}${db} oscillating: ${CYAN}${state.attributes['oscillating']}${db}`);
+    log.debug(`= fan device ${CYAN}${entity.entity_id}${db} preset_modes: ${CYAN}${state.attributes['preset_modes']}${db} direction: ${CYAN}${state.attributes['direction']}${db} oscillating: ${CYAN}${state.attributes['oscillating']}${db}`);
+    log.debug(`# fan device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(FanEntityFeature, state.attributes.supported_features)}${db}`);
     if (isValidString(state.attributes['direction']) || isValidBoolean(state.attributes['oscillating'])) {
       mutableDevice.addClusterServerCompleteFanControl(endpointName);
     }
@@ -174,6 +186,7 @@ export function addControlEntity(
   // Configure the vacuum.
   if (domain === 'vacuum') {
     log.debug(`= vacuum device ${CYAN}${entity.entity_id}${db} activity: ${CYAN}${state.attributes['activity']}${db}`);
+    log.debug(`# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`);
     mutableDevice.addVacuum(endpointName);
   }
 
