@@ -674,6 +674,37 @@ export class MutableDevice {
     return this;
   }
 
+  addClusterServerHeatingCoolingThermostat(
+    endpoint: string,
+    localTemperature: number | null,
+    occupiedHeatingSetpoint: number,
+    occupiedCoolingSetpoint: number,
+    minSetpointLimit: number,
+    maxSetpointLimit: number,
+  ): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
+        localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
+        systemMode: Thermostat.SystemMode.Off,
+        controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
+        // Thermostat.Feature.Heating
+        occupiedHeatingSetpoint: occupiedHeatingSetpoint * 100,
+        minHeatSetpointLimit: minSetpointLimit * 100,
+        absMinHeatSetpointLimit: minSetpointLimit * 100,
+        maxHeatSetpointLimit: maxSetpointLimit * 100,
+        absMaxHeatSetpointLimit: maxSetpointLimit * 100,
+        // Thermostat.Feature.Cooling
+        occupiedCoolingSetpoint: occupiedCoolingSetpoint * 100,
+        minCoolSetpointLimit: minSetpointLimit * 100,
+        absMinCoolSetpointLimit: minSetpointLimit * 100,
+        maxCoolSetpointLimit: maxSetpointLimit * 100,
+        absMaxCoolSetpointLimit: maxSetpointLimit * 100,
+      }),
+    );
+    return this;
+  }
+
   addClusterServerCompleteFanControl(
     endpoint: string,
     fanMode: FanControl.FanMode = FanControl.FanMode.Off,

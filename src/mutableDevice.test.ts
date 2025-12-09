@@ -448,6 +448,30 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
+  it('should addClusterServerHeatingCoolingThermostat', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device heating cooling thermostat');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerHeatingCoolingThermostat('', 22, 23, 23, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addClusterServerHeatingCoolingThermostat with no local temperature', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device heating cooling thermostat');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerHeatingCoolingThermostat('', null, 23, 23, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
   it('should addClusterServerCompleteFanControl', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device complete fan control');
     mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
