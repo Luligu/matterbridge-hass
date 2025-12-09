@@ -34,6 +34,7 @@ Features:
 - Support **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
 - Support **transition time**.
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
+- Jest test coverage = 100%.
 
 ## Supported device entities:
 
