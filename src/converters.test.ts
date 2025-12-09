@@ -23,13 +23,32 @@ import {
   roundTo,
   getFeatureNames,
 } from './converters.js';
-import { HassState, ColorMode, HomeAssistant, UnitOfTemperature, HassUnitSystem, HassConfig, FanEntityFeature } from './homeAssistant.js';
+import { HassState, ColorMode, HomeAssistant, UnitOfTemperature, HassUnitSystem, HassConfig, FanEntityFeature, ClimateEntityFeature, HVACMode } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
   it('should return the feature names for supported features', () => {
     expect(getFeatureNames(FanEntityFeature, 0)).toEqual([]);
     expect(getFeatureNames(FanEntityFeature, undefined)).toEqual([]);
     expect(getFeatureNames(FanEntityFeature, 63)).toEqual(['SET_SPEED', 'OSCILLATE', 'DIRECTION', 'PRESET_MODE', 'TURN_OFF', 'TURN_ON']);
+    // hvac_modes: [ 'auto', 'heat', 'off' ]
+    expect(getFeatureNames(ClimateEntityFeature, 401)).toEqual(['TARGET_TEMPERATURE', 'PRESET_MODE', 'TURN_OFF', 'TURN_ON']);
+    // hvac_modes: [ 'off', 'heat' ]
+    expect(getFeatureNames(ClimateEntityFeature, 409)).toEqual(['TARGET_TEMPERATURE', 'FAN_MODE', 'PRESET_MODE', 'TURN_OFF', 'TURN_ON']);
+    // hvac_modes: [ 'off', 'heat', 'cool' ]
+    expect(getFeatureNames(ClimateEntityFeature, 409)).toEqual(['TARGET_TEMPERATURE', 'FAN_MODE', 'PRESET_MODE', 'TURN_OFF', 'TURN_ON']);
+    // Demo Ecobee: hvac_modes: [ "off", "cool", "heat_cool", "auto", "dry", "fan_only" ]
+    expect(getFeatureNames(ClimateEntityFeature, 442)).toEqual(['TARGET_TEMPERATURE_RANGE', 'FAN_MODE', 'PRESET_MODE', 'SWING_MODE', 'TURN_OFF', 'TURN_ON']);
+    // Demo Hvac: hvac_modes: [ "off", "heat", "cool", "auto", "dry", "fan_only" ]
+    expect(getFeatureNames(ClimateEntityFeature, 943)).toEqual([
+      'TARGET_TEMPERATURE',
+      'TARGET_TEMPERATURE_RANGE',
+      'TARGET_HUMIDITY',
+      'FAN_MODE',
+      'SWING_MODE',
+      'TURN_OFF',
+      'TURN_ON',
+      'SWING_HORIZONTAL_MODE',
+    ]);
   });
 
   it('should clamp values between a minimum and maximum', () => {
@@ -93,6 +112,9 @@ describe('HassPlatform', () => {
   it('should verify the hassUpdateStateConverter converter', () => {
     hassUpdateStateConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
+      if (converter.domain === 'climate' && converter.state === 'auto') {
+        expect(converter.clusterId).toBeUndefined();
+      }
     });
   });
 
@@ -156,36 +178,44 @@ describe('HassPlatform', () => {
         converter.converter('wrong', {} as HassState);
       }
       if (converter.domain === 'cover' && converter.with === 'current_position') {
-        converter.converter(0, {} as HassState);
-        converter.converter(100, {} as HassState);
-        converter.converter(-1, {} as HassState);
+        expect(converter.converter(0, {} as HassState)).toBe(10000);
+        expect(converter.converter(100, {} as HassState)).toBe(0);
+        expect(converter.converter(-1, {} as HassState)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.with === 'temperature') {
-        converter.converter(20, { state: 'heat' } as HassState);
-        converter.converter(20, { state: 'cool' } as HassState);
+        expect(converter.converter(20, { state: HVACMode.AUTO, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        expect(converter.converter(20, { state: HVACMode.AUTO, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        if (converter.attribute === 'occupiedHeatingSetpoint')
+          expect(converter.converter(20, { state: HVACMode.HEAT, attributes: { hvac_modes: [HVACMode.HEAT] } } as HassState)).toBe(2000);
+        if (converter.attribute === 'occupiedHeatingSetpoint')
+          expect(converter.converter(20, { state: HVACMode.COOL, attributes: { hvac_modes: [HVACMode.COOL] } } as HassState)).toBe(null);
+        if (converter.attribute === 'occupiedCoolingSetpoint')
+          expect(converter.converter(20, { state: HVACMode.COOL, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        if (converter.attribute === 'occupiedCoolingSetpoint')
+          expect(converter.converter(20, { state: HVACMode.HEAT, attributes: { hvac_modes: [HVACMode.HEAT] } } as HassState)).toBe(null);
         converter.converter(20, { state: '' } as HassState);
-        converter.converter('20', { state: '' } as HassState);
+        expect(converter.converter('20', { state: '' } as HassState)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.with === 'target_temp_high') {
-        converter.converter(20, { state: 'heat' } as HassState);
-        converter.converter(20, { state: 'cool' } as HassState);
-        converter.converter(20, { state: 'heat_cool' } as HassState);
-        converter.converter('20', { state: 'heat_cool' } as HassState);
+        expect(converter.converter(20, { state: HVACMode.HEAT, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        expect(converter.converter(20, { state: HVACMode.COOL, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        expect(converter.converter(20, { state: HVACMode.HEAT_COOL, attributes: { hvac_modes: [HVACMode.HEAT_COOL, HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        expect(converter.converter('20', { state: HVACMode.HEAT_COOL } as HassState)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.with === 'target_temp_low') {
-        converter.converter(20, { state: 'heat' } as HassState);
-        converter.converter(20, { state: 'cool' } as HassState);
-        converter.converter(20, { state: 'heat_cool' } as HassState);
-        converter.converter('20', { state: 'heat_cool' } as HassState);
+        expect(converter.converter(20, { state: HVACMode.HEAT, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        expect(converter.converter(20, { state: HVACMode.COOL, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        expect(converter.converter(20, { state: HVACMode.HEAT_COOL, attributes: { hvac_modes: [HVACMode.HEAT_COOL, HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
+        expect(converter.converter('20', { state: HVACMode.HEAT_COOL } as HassState)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.with === 'current_temperature') {
-        converter.converter(20, { state: 'heat' } as HassState);
-        converter.converter('20', { state: 'heat' } as HassState);
+        expect(converter.converter(20, {} as HassState)).toBe(2000);
+        expect(converter.converter('20', {} as HassState)).toBe(null);
       }
       if (converter.domain === 'valve' && converter.with === 'current_position') {
-        converter.converter(0, {} as HassState);
-        converter.converter(100, {} as HassState);
-        converter.converter(-1, {} as HassState);
+        expect(converter.converter(0, {} as HassState)).toBe(0);
+        expect(converter.converter(100, {} as HassState)).toBe(100);
+        expect(converter.converter(-1, {} as HassState)).toBe(null);
       }
     });
   });

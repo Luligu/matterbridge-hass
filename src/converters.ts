@@ -86,7 +86,7 @@ import {
   RvcCleanMode,
 } from 'matterbridge/matter/clusters';
 
-import { HassState, HomeAssistant, ColorMode, UnitOfTemperature } from './homeAssistant.js';
+import { HassState, HomeAssistant, ColorMode, UnitOfTemperature, HVACMode } from './homeAssistant.js';
 
 /**
  * Returns the names of enabled bit-flag features for any numeric enum.
@@ -283,7 +283,7 @@ export function convertHAXYToMatter(xyColor: [number, number]): { currentX: numb
 
 /** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
-export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId; attribute: string; value: any }[] = [
+export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId | undefined; attribute: string; value: any }[] = [
     { domain: 'switch', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
     { domain: 'switch', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
     
@@ -307,6 +307,7 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'climate', state: 'heat', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Heat },
     { domain: 'climate', state: 'cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Cool },
     { domain: 'climate', state: 'heat_cool', clusterId: Thermostat.Cluster.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
+    { domain: 'climate', state: 'auto', clusterId: undefined, attribute: '', value: null }, // 'auto' is not updated directly
 
     { domain: 'valve', state: 'opening', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
     { domain: 'valve', state: 'open', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Open },
@@ -372,11 +373,12 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.Cluster.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
 
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
-    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'cool' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
-    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
-    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && state.state === 'heat_cool' ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.state === HVACMode.HEAT || (state.state === HVACMode.AUTO && state.attributes?.hvac_modes?.includes(HVACMode.HEAT))) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'temperature',         clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.state === HVACMode.COOL || (state.state === HVACMode.AUTO && state.attributes?.hvac_modes?.includes(HVACMode.COOL))) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.Cluster.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.attributes?.hvac_modes?.includes(HVACMode.HEAT_COOL) || state.attributes?.hvac_modes?.includes(HVACMode.COOL)) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.Cluster.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.attributes?.hvac_modes?.includes(HVACMode.HEAT_COOL) || state.attributes?.hvac_modes?.includes(HVACMode.HEAT)) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
     { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.Cluster.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+
     { domain: 'valve', with: 'current_position', clusterId: ValveConfigurationAndControl.Cluster.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value) : null) },
   ];
 

@@ -631,7 +631,7 @@ export class MutableDevice {
         maxCoolSetpointLimit: maxSetpointLimit * 100,
         absMaxCoolSetpointLimit: maxSetpointLimit * 100,
         // Thermostat.Feature.AutoMode
-        minSetpointDeadBand: 1 * 100,
+        minSetpointDeadBand: 0,
         thermostatRunningMode: Thermostat.ThermostatRunningMode.Off,
       }),
     );

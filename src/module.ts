@@ -1056,7 +1056,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
       if (hassUpdateState.length > 0) {
         for (const update of hassUpdateState) {
-          await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
+          if (update.clusterId !== undefined) await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
         }
       } else {
         endpoint.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
