@@ -45,7 +45,7 @@ Features:
 | lock       | locked, locking, unlocking, unlocked      |                                                                                         |
 | fan        | on, off                                   | percentage, preset_mode (1), direction, oscillating                                     |
 | cover      | open, closed, opening, closing            | current_position                                                                        |
-| climate    | off, heat, cool, heat_cool                | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
+| climate    | off, heat, cool, heat_cool, auto          | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
 | valve      | open, closed, opening, closing            | current_position                                                                        |
 | vacuum (2) | idle, cleaning, paused, docked, returning |                                                                                         |
 

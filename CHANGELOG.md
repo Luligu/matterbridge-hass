@@ -17,6 +17,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [homeAssistant]: Added timeout to Home Assistant core state check.
 - [homeAssistant]: Add types for HassUnitSystem.
 - [climate]: Added configuration when climate has heat and cool but no heat_cool.
+- [climate]: Added `auto` conversion to domain climate (beta).
 
 ### Changed
 
