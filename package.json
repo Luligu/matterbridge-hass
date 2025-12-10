@@ -86,7 +86,7 @@
     "npmPublishTagDev": "npx shx cp package.json package.json.backup && npm run prepublishOnly && npm publish --tag dev && npx shx cp package.json.backup package.json && npx shx rm -rf package.json.backup && npm run reset",
     "npmPublishTagEdge": "npx shx cp package.json package.json.backup && npm run prepublishOnly && npm publish --tag edge && npx shx cp package.json.backup package.json && npx shx rm -rf package.json.backup && npm run reset",
     "npmPublishTagLatest": "npx shx cp package.json package.json.backup && npm run prepublishOnly && npm publish --tag latest && npx shx cp package.json.backup package.json && npx shx rm -rf package.json.backup && npm run reset",
-    "install:dependencies": "npm install --save-exact node-ansi-logger node-persist-manager ws undici && npm install --save-dev --save-exact @types/ws",
+    "install:dependencies": "npm install --save-exact node-ansi-logger node-persist-manager ws && npm install --save-dev --save-exact @types/ws",
     "install:scripts": "npm install --save-dev --save-exact npm-check-updates shx",
     "install:typescript": "npm install --save-dev --save-exact typescript @types/node",
     "install:eslint": "npm install --save-dev --save-exact eslint @eslint/js typescript-eslint eslint-plugin-import eslint-plugin-n eslint-plugin-promise eslint-plugin-jsdoc",
@@ -103,7 +103,6 @@
   "dependencies": {
     "node-ansi-logger": "3.1.1",
     "node-persist-manager": "2.0.0",
-    "undici": "7.16.0",
     "ws": "8.18.3"
   },
   "devDependencies": {

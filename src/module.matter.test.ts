@@ -96,11 +96,6 @@ const callServiceSpy = jest
     return Promise.resolve({ context: {} as HassContext, response: undefined });
   });
 
-const waitForHassRunningSpy = jest.spyOn(HomeAssistant.prototype, 'waitForHassRunning').mockImplementation(() => {
-  console.log(`Mocked HomeAssistant.waitForHassRunning`);
-  return Promise.resolve(true);
-});
-
 const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
 const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAttribute');
 const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');

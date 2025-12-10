@@ -222,7 +222,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     });
 
     this.ha.on('config', (config: HassConfig) => {
-      this.log.info(`Configuration received from Home Assistant: temperature unit '${config.unit_system.temperature}' pressure unit '${config.unit_system.pressure}'`);
+      this.log.info(
+        `Configuration received from Home Assistant: state ${CYAN}${config.state}${nf} temperature unit ${CYAN}${config.unit_system.temperature}${nf} pressure unit ${CYAN}${config.unit_system.pressure}${nf}`,
+      );
     });
 
     this.ha.on('services', (_services: HassServices) => {
@@ -275,13 +277,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // Create the plugin directory inside the Matterbridge plugin directory
     await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
-
-    // Wait until Home Assistant core is RUNNING
-    const running = await this.ha.waitForHassRunning();
-    if (!running) {
-      this.wssSendSnackbarMessage('Home Assistant core is not running. Aborting startup...', 0, 'error');
-      throw new Error('Home Assistant core is not running. Aborting startup...');
-    }
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);

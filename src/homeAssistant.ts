@@ -22,9 +22,8 @@
 /* eslint-disable jsdoc/reject-any-type */
 
 import { EventEmitter } from 'node:events';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
-import { Agent, fetch } from 'undici';
 import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er, rs } from 'matterbridge/logger';
 import WebSocket, { ErrorEvent } from 'ws';
 import { hasParameter } from 'matterbridge/utils';
@@ -1376,6 +1375,17 @@ export class HomeAssistant extends EventEmitter {
       this.log.debug('Received config.');
       this.emit('config', this.hassConfig);
 
+      // Try to fetch the core state until it is RUNNING or timeout after 100 seconds
+      let retries = 1;
+      while (this.hassConfig.state !== 'RUNNING' && retries <= 100) {
+        this.log.debug(`State is ${CYAN}${this.hassConfig.state}${db}. Waiting (${retries}/100) for Home Assistant to be RUNNING...`);
+        retries += 1;
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        this.hassConfig = (await this.fetch('get_config')) as HassConfig;
+        HomeAssistant.hassConfig = this.hassConfig;
+        this.emit('config', this.hassConfig);
+      }
+
       this.hassServices = (await this.fetch('get_services')) as HassServices;
       this.log.debug('Received services.');
       this.emit('services', this.hassServices);
@@ -1667,67 +1677,5 @@ export class HomeAssistant extends EventEmitter {
         } as HassWebSocketRequestCallService),
       );
     });
-  }
-
-  /**
-   * Wait until Home Assistant core reports state RUNNING.
-   * Retries till success or timeout.
-   * Logs errors but does not throw.
-   *
-   * @param {number} timeout - The maximum time to wait for Home Assistant core to be RUNNING in seconds. Default is 110 seconds.
-   * @returns {Promise<boolean>} - A Promise that resolves to true when the Home Assistant core is RUNNING, or false if timeout or an error occur.
-   */
-  async waitForHassRunning(timeout: number = 110): Promise<boolean> {
-    const createTlsAgent = () => {
-      let ca: string | Buffer<ArrayBuffer> | undefined;
-      // Load the CA certificate if provided
-      if (this.certificatePath && existsSync(this.certificatePath)) {
-        this.log.debug(`Loading CA certificate from ${this.certificatePath}...`);
-        ca = readFileSync(this.certificatePath); // Load CA certificate from the provided path
-        this.log.debug(`CA certificate loaded successfully`);
-      }
-      return new Agent({
-        connect: {
-          ca,
-          rejectUnauthorized: this.rejectUnauthorized,
-        },
-      });
-    };
-
-    const url = new URL('/api/core/state', this.wsUrl.replace('ws://', 'http://').replace('wss://', 'https://')).toString();
-
-    let retries = 1;
-    const startTime = Date.now();
-
-    this.log.debug(`Fetching ${url}...`);
-
-    // Try to fetch the core state until it is RUNNING or timeout after 110 seconds
-    while (Date.now() - startTime < timeout * 1000) {
-      try {
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${this.wsAccessToken}`,
-          },
-          dispatcher: this.wsUrl.startsWith('wss://') ? createTlsAgent() : undefined,
-        });
-
-        // istanbul ignore else
-        if (res.ok) {
-          const coreState = JSON.parse((await res.text()).trim()) as { state: string };
-          this.log.debug(`Core state is: ${debugStringify(coreState)}`);
-          if (coreState.state === 'RUNNING') {
-            this.log.notice('Home Assistant core is RUNNING');
-            return true;
-          }
-        }
-      } catch (error) {
-        this.log.debug(`Home Assistant core is not RUNNING: ${error}`);
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      if (retries < 60) retries += 1;
-      else return false;
-    }
-    return false;
   }
 }

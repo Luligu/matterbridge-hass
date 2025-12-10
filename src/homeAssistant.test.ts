@@ -17,7 +17,7 @@ import { jest } from '@jest/globals';
 import { WebSocket, WebSocketServer } from 'ws';
 import { CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
-import { loggerLogSpy, originalProcessArgv, setupTest } from 'matterbridge/jestutils';
+import { loggerLogSpy, originalProcessArgv, setDebug, setupTest } from 'matterbridge/jestutils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
 
@@ -40,7 +40,7 @@ describe('HomeAssistant', () => {
   const label_registry_response: HassLabel[] = [];
   const states_response: HassState[] = [];
   const services_response: HassServices = {};
-  const config_response: HassConfig = {} as HassConfig;
+  const config_response: HassConfig = { state: 'RUNNING' } as HassConfig;
 
   beforeAll(async () => {
     server = new WebSocketServer({ port: 8123, path: apiPath });
@@ -620,7 +620,7 @@ describe('HomeAssistant', () => {
 
   it('should get the config asyncronously from Home Assistant', async () => {
     const config = await homeAssistant.fetch('get_config');
-    expect(config).toEqual({});
+    expect(config).toEqual({ state: 'RUNNING' });
   });
 
   it('should get the services asyncronously from Home Assistant', async () => {
@@ -630,6 +630,7 @@ describe('HomeAssistant', () => {
 
   it('should fetch data from Home Assistant', async () => {
     expect(homeAssistant.connected).toBe(true);
+    config_response.state = 'RUNNING';
     device_registry_response.push({
       id: 'mydeviceid',
       name: 'My Device',
@@ -649,6 +650,18 @@ describe('HomeAssistant', () => {
     area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
     label_registry_response.splice(0, label_registry_response.length); // Clear the response for next tests
     states_response.splice(0, states_response.length); // Clear the response for next tests
+  });
+
+  it('should fetch data from Home Assistant and retry for state', async () => {
+    config_response.state = 'STARTING';
+    expect(homeAssistant.connected).toBe(true);
+    setTimeout(() => {
+      config_response.state = 'RUNNING';
+    }, 500);
+    await homeAssistant.fetchData();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `State is ${CYAN}STARTING${db}. Waiting (1/100) for Home Assistant to be RUNNING...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Initial data fetched successfully.');
   });
 
   it('should fetch data from Home Assistant and fail', async () => {
@@ -900,7 +913,7 @@ describe('HomeAssistant with ssl', () => {
               id: msg.id,
               type: 'result',
               success: true,
-              result: {},
+              result: { state: 'RUNNING' },
             }),
           );
         } else if (msg.type === 'get_services') {
@@ -1166,7 +1179,7 @@ describe('HomeAssistant with ssl', () => {
 
   it('should get the config asyncronously from Home Assistant', async () => {
     const config = await homeAssistant.fetch('get_config');
-    expect(config).toEqual({});
+    expect(config).toEqual({ state: 'RUNNING' });
   });
 
   it('should throw the fetch from Home Assistant', async () => {

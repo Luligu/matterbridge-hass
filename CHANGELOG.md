@@ -22,6 +22,8 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 ### Changed
 
 - [package]: Updated dependencies.
+- [config]: Changed default rejectUnauthorized to false. Unless needed leave it to false.
+- [platform]: Use ws api to check if HomeAssistant is running (startup is finished) before fetching the data. The rest api has been removed.
 
 ### Fixed
 
