@@ -388,6 +388,18 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
+  it('should addClusterServerAutoModeThermostat with no local temperature', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device auto mode thermostat');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerAutoModeThermostat('', null, 18, 26, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
   it('should addClusterServerHeatingThermostat', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device heating thermostat');
     mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
@@ -400,10 +412,58 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
+  it('should addClusterServerHeatingThermostat with no local temperature', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device heating thermostat');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerHeatingThermostat('', null, 18, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
   it('should addClusterServerCoolingThermostat', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device cooling thermostat');
     mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
     mutableDevice.addClusterServerCoolingThermostat('', 22, 26, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addClusterServerCoolingThermostat with no local temperature', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device cooling thermostat');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerCoolingThermostat('', null, 26, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addClusterServerHeatingCoolingThermostat', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device heating cooling thermostat');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerHeatingCoolingThermostat('', 22, 23, 23, 10, 35);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addClusterServerHeatingCoolingThermostat with no local temperature', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device heating cooling thermostat');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    mutableDevice.addClusterServerHeatingCoolingThermostat('', null, 23, 23, 10, 35);
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);

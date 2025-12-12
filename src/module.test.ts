@@ -144,10 +144,6 @@ describe('HassPlatform', () => {
       console.log(`Mocked HomeAssistant.callService: domain ${domain} service ${service} entityId ${entityId}`);
       return Promise.resolve({} as any);
     });
-  const waitForHassRunningSpy = jest.spyOn(HomeAssistant.prototype, 'waitForHassRunning').mockImplementation(() => {
-    console.log(`Mocked HomeAssistant.waitForHassRunning`);
-    return Promise.resolve(true);
-  });
 
   beforeAll(() => {
     // Create the test environment
@@ -615,16 +611,6 @@ describe('HassPlatform', () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 
-  it('should fail calling onStart if Hass not running', async () => {
-    waitForHassRunningSpy.mockImplementationOnce(() => {
-      console.log(`Mocked waitForHassRunning failure`);
-      return Promise.resolve(false);
-    });
-    expect(haPlatform).toBeDefined();
-    await expect(haPlatform.onStart('Test reason')).rejects.toThrow('Home Assistant core is not running. Aborting startup.');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-  });
-
   it('should fail calling onStart with reason', async () => {
     connectSpy.mockImplementationOnce(() => {
       console.log(`Mocked connect failure`);
@@ -643,7 +629,6 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     await wait(100);
     expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Payload successfully written to`));
-    expect(waitForHassRunningSpy).toHaveBeenCalled();
   });
 
   it('should call onStart with reason and fail save payload', async () => {
@@ -2358,7 +2343,7 @@ describe('HassPlatform', () => {
       motionSensorOccupancyEntityState as unknown as HassState,
     );
     expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
-    motionSensorIlluminanceEntityState.state = 2500;
+    motionSensorIlluminanceEntityState.state = '2500';
     await haPlatform.updateHandler(
       motionSensorDevice.id,
       motionSensorIlluminanceEntity.entity_id,
@@ -2738,7 +2723,7 @@ const motionSensorIlluminanceEntity = {
 };
 const motionSensorIlluminanceEntityState = {
   entity_id: motionSensorIlluminanceEntity.entity_id,
-  state: 480.5,
+  state: '480.5',
   attributes: {
     state_class: 'measurement',
     device_class: 'illuminance',

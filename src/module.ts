@@ -222,7 +222,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     });
 
     this.ha.on('config', (config: HassConfig) => {
-      this.log.info(`Configuration received from Home Assistant: temperature unit '${config.unit_system.temperature}' pressure unit '${config.unit_system.pressure}'`);
+      this.log.info(
+        `Configuration received from Home Assistant: state ${CYAN}${config.state}${nf} temperature unit ${CYAN}${config.unit_system.temperature}${nf} pressure unit ${CYAN}${config.unit_system.pressure}${nf}`,
+      );
     });
 
     this.ha.on('services', (_services: HassServices) => {
@@ -275,13 +277,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // Create the plugin directory inside the Matterbridge plugin directory
     await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
-
-    // Wait until Home Assistant core is RUNNING
-    const running = await this.ha.waitForHassRunning();
-    if (!running) {
-      this.wssSendSnackbarMessage('Home Assistant core is not running. Aborting startup.', 0, 'error');
-      throw new Error('Home Assistant core is not running. Aborting startup.');
-    }
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
@@ -1019,6 +1014,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
             );
       if (hassSensorConverter) {
+        // accepted values: "0" "123" "-1" "23.5" "-0.25"
         const stateValue = /^-?\d+(\.\d+)?$/.test(new_state.state) ? parseFloat(new_state.state) : new_state.state;
         const convertedValue = hassSensorConverter.converter(stateValue, new_state.attributes['unit_of_measurement']);
         endpoint.log.debug(
@@ -1055,7 +1051,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
       if (hassUpdateState.length > 0) {
         for (const update of hassUpdateState) {
-          await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
+          if (update.clusterId !== undefined) await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
         }
       } else {
         endpoint.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);

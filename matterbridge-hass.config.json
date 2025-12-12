@@ -4,7 +4,7 @@
   "version": "0.5.0",
   "host": "ws://homeassistant.local:8123",
   "certificatePath": "",
-  "rejectUnauthorized": true,
+  "rejectUnauthorized": false,
   "token": "",
   "reconnectTimeout": 60,
   "reconnectRetries": 10,

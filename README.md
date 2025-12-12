@@ -21,6 +21,7 @@ It is the ideal companion of the official [Matterbridge Home Assistant Add-on](h
 Features:
 
 - The plugin can be used with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
+- The state of the Home Assistant core is checked before starting. The plugin waits for the core to be `RUNNING`.
 - The connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
 - The connection with Home Assistant can be also made with ssl WebSocket (i.e. wss://homeassistant:8123). Self signed certificates are also supported.
 - It is possible to filter entities and devices by Area.
@@ -32,19 +33,21 @@ Features:
 - It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
 - Support **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
 - Support **transition time**.
+- Support system unit **CELSIUS** and **FAHRENHEIT**.
+- Jest test coverage = 100%.
 
 ## Supported device entities:
 
-| Domain     | Supported states                          | Supported attributes                                                |
-| ---------- | ----------------------------------------- | ------------------------------------------------------------------- |
-| switch     | on, off                                   |                                                                     |
-| light      | on, off                                   | brightness, color_mode, color_temp, hs_color, xy_color              |
-| lock       | locked, locking, unlocking, unlocked      |                                                                     |
-| fan        | on, off                                   | percentage, preset_mode (1), direction, oscillating                 |
-| cover      | open, closed, opening, closing            | current_position                                                    |
-| climate    | off, heat, cool, heat_cool                | temperature, current_temperature, target_temp_low, target_temp_high |
-| valve      | open, closed, opening, closing            | current_position                                                    |
-| vacuum (2) | idle, cleaning, paused, docked, returning |                                                                     |
+| Domain     | Supported states                          | Supported attributes                                                                    |
+| ---------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| switch     | on, off                                   |                                                                                         |
+| light      | on, off                                   | brightness, color_mode, color_temp, hs_color, xy_color                                  |
+| lock       | locked, locking, unlocking, unlocked      |                                                                                         |
+| fan        | on, off                                   | percentage, preset_mode (1), direction, oscillating                                     |
+| cover      | open, closed, opening, closing            | current_position                                                                        |
+| climate    | off, heat, cool, heat_cool, auto          | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
+| valve      | open, closed, opening, closing            | current_position                                                                        |
+| vacuum (2) | idle, cleaning, paused, docked, returning |                                                                                         |
 
 (1) - Supported preset_modes: auto, low, medium, high.
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config.
@@ -127,7 +130,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 If you like this project and find it useful, please consider giving it a **star** on GitHub at https://github.com/Luligu/matterbridge-hass and **sponsoring** it.
 
-<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
 ## Prerequisites
 
@@ -137,7 +140,7 @@ See the complete guidelines on [Matterbridge](https://github.com/Luligu/matterbr
 
 ## How to install the plugin
 
-Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with Docker (I suggest you do it), all plugins are already loaded in the container so you just need to select the matterbridge-hass plugin and add it.
+Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with `Docker`, all plugins are already loaded in the container so you just need to select the matterbridge-hass plugin and add it. If you are using Matterbridge with the `Matterbridge Home Assistant Add-on`, you need to install the matterbridge-hass plugin.
 
 ## How to use it
 
@@ -173,7 +176,7 @@ If any device or entity creates issues put it in the blackList.
 
 ### host
 
-Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). You can also use the IP if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selfsigned certificates you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificates you don't need ca certificate and rejectUnauthorized should be selected.
+Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). Use the IP only if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selfsigned certificates you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificates you don't need ca certificate and rejectUnauthorized should be selected.
 
 ### token
 
@@ -244,6 +247,8 @@ If you don't need the device temperature, just add it to deviceEntityBlackList.
 
 If you want a more technical explanation for the naming issues (expecially upsetting with Alexa) read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+**Adding an entity to splitEntities doesn't automatically add it to the whiteList so it has to be added manually if you use whiteList.**
+
 ### airQualityRegex
 
 Custom regex pattern to match air quality sensors that don't follow the standard Air Quality entity sensor.
@@ -259,7 +264,7 @@ If your setup has only one air quality sensor, you can simply put the exact enti
 
 ### enableServerRvc
 
-Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode!
+Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode! Don't try it with Apple Home cause the bridge will become unstable even if you remove it after.
 
 ### debug
 

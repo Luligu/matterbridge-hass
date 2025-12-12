@@ -28,7 +28,7 @@
     "rejectUnauthorized": {
       "description": "Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates.",
       "type": "boolean",
-      "default": true
+      "default": false
     },
     "token": {
       "description": "Home Assistant Long-Lived Access Token",
