@@ -15,12 +15,14 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 ### Added
 
 - [matter]: Conformance to Matter 1.4.2 and matterbridge 3.5.x.
-- [mutableDevice]: Bumb MutableDevice v.1.3.2.
+- [mutableDevice]: Updated MutableDevice to v. 1.3.2.
+- [smokeCoAlarm]: Conformance to Matter 1.4.2.
+- [rvc]: Conformance to Matter 1.4.2.
 
 ### Changed
 
 - [package]: Updated dependencies.
-- [package]: Updated package to automator v.3.0.0.
+- [package]: Updated package to automator v. 3.0.0.
 
 ### Fixed
 

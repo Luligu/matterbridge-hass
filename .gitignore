@@ -2,6 +2,7 @@
 # This file specifies intentionally untracked directories and files that Git should ignore.
 
 # Specific directories that should be ignored
+.cache/
 .vscode/
 coverage/
 dist/
@@ -18,6 +19,7 @@ temp/
 *.log
 
 # Package specific directories and files that should be ignored
+
 TODO.md
 ts_homeassistant.json
 certificates/ubuntuToken

@@ -2,6 +2,9 @@
 
 // This ESLint configuration is designed for a TypeScript project.
 
+import path from 'node:path';
+import url from 'node:url';
+
 import { defineConfig } from 'eslint/config';
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
@@ -13,10 +16,13 @@ import pluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import pluginJest from 'eslint-plugin-jest';
 import pluginVitest from '@vitest/eslint-plugin';
 
+const __filename = url.fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export default defineConfig([
   {
     name: 'Global Ignores',
-    ignores: ['dist', 'node_modules', 'coverage', 'build'],
+    ignores: ['dist', 'node_modules', 'coverage', 'build', 'scripts'],
   },
   js.configs.recommended,
   ...tseslint.configs.strict,
@@ -32,6 +38,9 @@ export default defineConfig([
     languageOptions: {
       sourceType: 'module',
       ecmaVersion: 'latest',
+      parserOptions: {
+        tsconfigRootDir: __dirname,
+      },
     },
     linterOptions: {
       reportUnusedDisableDirectives: 'error', // Report unused eslint-disable directives
@@ -66,11 +75,12 @@ export default defineConfig([
     files: ['src/**/*.ts'],
     ignores: ['src/**/*.test.ts', 'src/**/*.spec.ts'], // Ignore test files
     languageOptions: {
+      sourceType: 'module',
+      ecmaVersion: 'latest',
       parser: tseslint.parser,
       parserOptions: {
+        tsconfigRootDir: __dirname,
         project: './tsconfig.json',
-        sourceType: 'module',
-        ecmaVersion: 'latest',
       },
     },
     rules: {
@@ -94,11 +104,12 @@ export default defineConfig([
     files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
     ignores: ['vitest'], // Ignore Vitest test files
     languageOptions: {
+      sourceType: 'module',
+      ecmaVersion: 'latest',
       parser: tseslint.parser,
       parserOptions: {
+        tsconfigRootDir: __dirname,
         project: './tsconfig.jest.json', // Use a separate tsconfig for Jest tests with "isolatedModules": true
-        sourceType: 'module',
-        ecmaVersion: 'latest',
       },
     },
     plugins: {
@@ -120,11 +131,12 @@ export default defineConfig([
     name: 'Vitest Test Files',
     files: ['vitest/*.spec.ts', 'vitest/*.test.ts'],
     languageOptions: {
+      sourceType: 'module',
+      ecmaVersion: 'latest',
       parser: tseslint.parser,
       parserOptions: {
-        project: './tsconfig.jest.json', // Or your shared tsconfig
-        sourceType: 'module',
-        ecmaVersion: 'latest',
+        tsconfigRootDir: __dirname,
+        project: './tsconfig.vitest.json', // Use a separate tsconfig for Vitest tests
       },
     },
     plugins: {
