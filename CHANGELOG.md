@@ -18,6 +18,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [mutableDevice]: Updated MutableDevice to v. 1.3.2.
 - [smokeCoAlarm]: Conformance to Matter 1.4.2.
 - [rvc]: Conformance to Matter 1.4.2.
+- [thermostat]: Conformance to Matter 1.4.2.
 
 ### Changed
 

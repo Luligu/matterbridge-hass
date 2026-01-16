@@ -612,6 +612,7 @@ export class MutableDevice {
     device.clusterServersObjs.push(
       getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.AutoMode, Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
         localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
+        externalMeasuredIndoorTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : undefined,
         systemMode: Thermostat.SystemMode.Auto,
         controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
         // Thermostat.Feature.Heating
@@ -639,6 +640,7 @@ export class MutableDevice {
     device.clusterServersObjs.push(
       getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating), {
         localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
+        externalMeasuredIndoorTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : undefined,
         systemMode: Thermostat.SystemMode.Heat,
         controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.HeatingOnly,
         // Thermostat.Feature.Heating
@@ -657,6 +659,7 @@ export class MutableDevice {
     device.clusterServersObjs.push(
       getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Cooling), {
         localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
+        externalMeasuredIndoorTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : undefined,
         systemMode: Thermostat.SystemMode.Cool,
         controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingOnly,
         // Thermostat.Feature.Cooling
@@ -682,6 +685,7 @@ export class MutableDevice {
     device.clusterServersObjs.push(
       getClusterServerObj(Thermostat.Cluster.id, MatterbridgeThermostatServer.with(Thermostat.Feature.Heating, Thermostat.Feature.Cooling), {
         localTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : null,
+        externalMeasuredIndoorTemperature: isValidNumber(localTemperature) ? localTemperature * 100 : undefined,
         systemMode: Thermostat.SystemMode.Off,
         controlSequenceOfOperation: Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
         // Thermostat.Feature.Heating

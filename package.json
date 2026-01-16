@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "1.0.2",
+  "version": "1.0.2-dev-2026-01-16-2",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -105,6 +105,7 @@
     "bin",
     "dist",
     "npm-shrinkwrap.json",
+    "CHANGELOG.md",
     "*.config.json",
     "*.schema.json"
   ],
