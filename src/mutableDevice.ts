@@ -3,7 +3,7 @@
  * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @created 2024-12-08
- * @version 1.3.1
+ * @version 1.3.2
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -481,8 +481,6 @@ export class MutableDevice {
           events: {
             smokeAlarm: true,
             interconnectSmokeAlarm: false,
-            coAlarm: false,
-            interconnectCoAlarm: false,
             lowBattery: true,
             hardwareFault: true,
             endOfService: true,
@@ -513,8 +511,6 @@ export class MutableDevice {
         SmokeCoAlarm.Cluster.id,
         MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.CoAlarm).enable({
           events: {
-            smokeAlarm: false,
-            interconnectSmokeAlarm: false,
             coAlarm: true,
             interconnectCoAlarm: false,
             lowBattery: true,
