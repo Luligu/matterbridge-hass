@@ -27,6 +27,8 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Fixed
 
+- [mutableDevice]: Fixed parsing number of matterbridge dev version.
+
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.0.1] - 2025-12-12

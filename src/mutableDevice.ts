@@ -157,7 +157,7 @@ export class MutableDevice {
     this.vendorName = vendorName;
     this.productId = productId;
     this.productName = productName;
-    this.softwareVersion = softwareVersion ?? parseInt(matterbridge.matterbridgeVersion.replace(/\D/g, ''));
+    this.softwareVersion = softwareVersion ?? parseInt(matterbridge.matterbridgeVersion.split('-')[0].replace(/\D/g, ''));
     this.softwareVersionString = softwareVersionString ?? matterbridge.matterbridgeVersion;
     this.hardwareVersion = hardwareVersion ?? parseInt(this.matterbridge.systemInformation.nodeVersion.replace(/\D/g, ''));
     this.hardwareVersionString = hardwareVersionString ?? this.matterbridge.systemInformation.nodeVersion;
