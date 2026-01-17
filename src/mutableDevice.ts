@@ -47,7 +47,7 @@ import {
 } from 'matterbridge';
 import { MatterbridgeRvcCleanModeServer, MatterbridgeRvcOperationalStateServer, MatterbridgeRvcRunModeServer } from 'matterbridge/devices';
 import { db, debugStringify, idn, ign, rs, CYAN, AnsiLogger, TimestampFormat, LogLevel } from 'matterbridge/logger';
-import { ActionContext, AtLeastOne, Behavior } from 'matterbridge/matter';
+import { ActionContext, AtLeastOne, Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
 import {
   BooleanState,
@@ -64,7 +64,7 @@ import {
   Thermostat,
 } from 'matterbridge/matter/clusters';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
-import { isValidNumber } from 'matterbridge/utils';
+import { isValidNumber, isValidString } from 'matterbridge/utils';
 
 interface ClusterServerObj {
   id: ClusterId;
@@ -814,10 +814,10 @@ export class MutableDevice {
         nodeLabel: this.deviceName.slice(0, 32),
         serialNumber: this.serialNumber.slice(0, 32),
         uniqueId: this.createUniqueId(this.deviceName, this.serialNumber, this.vendorName, this.productName),
-        softwareVersion: this.softwareVersion,
-        softwareVersionString: this.softwareVersionString.slice(0, 64),
-        hardwareVersion: this.hardwareVersion,
-        hardwareVersionString: this.hardwareVersionString.slice(0, 64),
+        softwareVersion: isValidNumber(this.softwareVersion, 0, UINT32_MAX) ? this.softwareVersion : undefined,
+        softwareVersionString: isValidString(this.softwareVersionString) ? this.softwareVersionString.slice(0, 64) : undefined,
+        hardwareVersion: isValidNumber(this.hardwareVersion, 0, UINT16_MAX) ? this.hardwareVersion : undefined,
+        hardwareVersionString: isValidString(this.hardwareVersionString) ? this.hardwareVersionString.slice(0, 64) : undefined,
         reachable: true,
       }),
     );
