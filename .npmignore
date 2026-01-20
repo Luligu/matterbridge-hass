@@ -2,6 +2,7 @@
 # This file specifies directories and files that should be ignored when publishing the package to npm.
 
 # Specific directories that should be ignored
+.cache/
 .devcontainer/
 .git/
 .github/
@@ -30,7 +31,6 @@ eslint.config.*
 install-matterbridge-dev.sh
 install-matterbridge-main.sh
 jest.config.*
-jestHelpers.*
 nodemon.json
 prettier.config.*
 TODO.md
@@ -44,4 +44,5 @@ vite.config.*
 *.log
 
 # Package specific directories and files that should be ignored
+
 certificates/

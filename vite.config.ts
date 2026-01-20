@@ -7,7 +7,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['vitest/**/*.test.ts', 'vitest/**/*.spec.ts'],
-    exclude: ['dist', 'node_modules'],
+    exclude: ['dist', 'node_modules', 'src/mock'],
     globals: true,
     clearMocks: true,
     restoreMocks: true,
@@ -23,6 +23,7 @@ export default defineConfig({
         'src/**/*.spec.{ts,tsx,js,jsx}',
         // Exclude helper file(s) not meant for coverage
         'src/**/jestHelpers.ts',
+        'src/**/vitestHelpers.ts',
         // Exclude type declaration files
         'src/**/*.d.ts',
       ],
