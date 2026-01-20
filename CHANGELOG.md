@@ -25,6 +25,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [package]: Updated dependencies.
 - [package]: Updated package to automator v. 3.0.0.
 - [package]: Refactored Dev Container to use Matterbridge mDNS reflector.
+- [package]: Requires Matterbridge v.3.5.0.
 
 ### Fixed
 
