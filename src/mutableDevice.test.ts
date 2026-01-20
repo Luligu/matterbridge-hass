@@ -537,6 +537,7 @@ describe('MutableDevice', () => {
       'powerSource',
       'identify',
       'groups',
+      'scenesManagement',
       'levelControl',
       'colorControl',
     ]);
@@ -749,7 +750,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
-    expect(Object.keys(device.behaviors.supported)).toHaveLength(9); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "levelControl", "colorControl"]
+    expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "scenesManagement", "levelControl", "colorControl"]
     expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
@@ -790,7 +791,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
-    expect(Object.keys(device.behaviors.supported)).toHaveLength(9); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "levelControl", "colorControl"]
+    expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "scenesManagement", "levelControl", "colorControl"]
     expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
@@ -829,7 +830,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersIds).toHaveLength(1);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
-    expect(Object.keys(device.behaviors.supported)).toHaveLength(9); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "levelControl", "colorControl"]
+    expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "scenesManagement", "levelControl", "colorControl"]
     expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
     expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
@@ -933,6 +934,7 @@ describe('MutableDevice', () => {
       'powerSource',
       'identify',
       'groups',
+      'scenesManagement',
       'onOff',
       'levelControl',
       'colorControl',
@@ -958,7 +960,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get('child2').clusterServersObjs).toHaveLength(1);
     expect(mutableDevice.get('child2').commandHandlers).toHaveLength(1);
     expect(mutableDevice.get('child2').subscribeHandlers).toHaveLength(1);
-    expect(Object.keys(mutableDevice.getEndpoint('child2').behaviors.supported)).toEqual(['descriptor', 'matterbridge', 'onOff', 'identify', 'groups']);
+    expect(Object.keys(mutableDevice.getEndpoint('child2').behaviors.supported)).toEqual(['descriptor', 'matterbridge', 'onOff', 'identify', 'groups', 'scenesManagement']);
 
     expect(mutableDevice.getEndpoint()).toBeDefined();
     expect(mutableDevice.getEndpoint('child1')).toBeDefined();
@@ -1022,7 +1024,16 @@ describe('MutableDevice', () => {
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-onofflight', 'MA-powerSource']);
-    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'bridgedDeviceBasicInformation', 'powerSource', 'identify', 'groups']);
+    expect(device.getAllClusterServerNames()).toEqual([
+      'descriptor',
+      'matterbridge',
+      'onOff',
+      'bridgedDeviceBasicInformation',
+      'powerSource',
+      'identify',
+      'groups',
+      'scenesManagement',
+    ]);
     expect(device.getChildEndpoints().length).toBe(0);
 
     await addDevice(aggregator, device);
@@ -1165,13 +1176,13 @@ describe('MutableDevice', () => {
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-onofflight']);
-    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'identify', 'groups', 'onOff']);
+    expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'identify', 'groups', 'scenesManagement', 'onOff']);
 
     // Verify child endpoint exists and retains its clusters
     const childEndpoint = mutableDevice.getEndpoint('child1');
     expect(childEndpoint).toBeDefined();
     expect(Array.from(childEndpoint.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-onofflight']);
-    expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'identify', 'groups']);
+    expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'identify', 'groups', 'scenesManagement']);
 
     await addDevice(aggregator, device);
     mutableDevice.destroy();

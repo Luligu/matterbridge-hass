@@ -190,6 +190,7 @@ describe('HassPlatform', () => {
   });
 
   it('should return an instance of HomeAssistantPlatform', async () => {
+    matterbridge.matterbridgeVersion = '3.5.0';
     haPlatform = initializePlugin(matterbridge, log, mockConfig);
     expect(haPlatform).toBeInstanceOf(HomeAssistantPlatform);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initializing platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
@@ -233,7 +234,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     matterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow();
-    matterbridge.matterbridgeVersion = '3.4.0';
+    matterbridge.matterbridgeVersion = '3.5.0';
   });
 
   it('should validate with white and black list', () => {

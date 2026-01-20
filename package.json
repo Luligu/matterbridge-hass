@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "1.0.2-dev-2026-01-17-1",
+  "version": "1.0.2",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -46,6 +46,14 @@
   "engines": {
     "node": ">=20.0.0 <21.0.0 || >=22.0.0 <23.0.0 || >=24.0.0 <25.0.0"
   },
+  "files": [
+    "bin",
+    "dist",
+    "npm-shrinkwrap.json",
+    "CHANGELOG.md",
+    "*.config.json",
+    "*.schema.json"
+  ],
   "scripts": {
     "start": "matterbridge",
     "build": "tsc --project tsconfig.json",
@@ -57,7 +65,7 @@
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100%",
     "test:watch": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --watch",
     "test:verbose": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --verbose",
-    "test:coverage": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --coverage",
+    "test:coverage": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --coverage --maxWorkers=100% --coverageThreshold=\"{ \\\"global\\\": { \\\"lines\\\": 100, \\\"functions\\\": 100 } }\"",
     "test:vitest": "vitest run",
     "test:vitest:watch": "vitest --reporter verbose",
     "test:vitest:verbose": "vitest run --reporter verbose",
@@ -101,14 +109,6 @@
     "matterbridge:disable": "matterbridge -disable .",
     "matterbridge:list": "matterbridge -list"
   },
-  "files": [
-    "bin",
-    "dist",
-    "npm-shrinkwrap.json",
-    "CHANGELOG.md",
-    "*.config.json",
-    "*.schema.json"
-  ],
   "dependencies": {
     "node-ansi-logger": "3.1.1",
     "node-persist-manager": "2.0.0",
