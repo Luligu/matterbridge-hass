@@ -1745,17 +1745,17 @@ describe('Matterbridge ' + NAME, () => {
     // Simulate a not changed in fan mode and call the event handler
     await device.act((agent) =>
       // @ts-expect-error not typed agent
-      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Auto, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
+      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Auto, Thermostat.SystemMode.Auto, { ...agent.context, offline: false, fabric: 1 }),
     );
     // Simulate a change in fan mode and call the event handler
     await device.act((agent) =>
       // @ts-expect-error not typed agent
-      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Cool, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
+      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Cool, Thermostat.SystemMode.Auto, { ...agent.context, offline: false, fabric: 1 }),
     );
     // Simulate a change in fan mode and call the event handler with wrong parameter
     await device.act((agent) =>
       // @ts-expect-error not typed agent
-      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Heat + 1, Thermostat.SystemMode.Auto, { ...agent.context, offline: false }),
+      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Heat + 1, Thermostat.SystemMode.Auto, { ...agent.context, offline: false, fabric: 1 }),
     );
 
     // Clean the test environment
