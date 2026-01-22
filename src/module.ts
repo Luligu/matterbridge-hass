@@ -49,6 +49,7 @@ import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
+  clamp,
   convertMatterXYToHA,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
@@ -56,6 +57,7 @@ import {
   hassDomainSensorsConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
+  miredsToKelvin,
 } from './converters.js';
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addSensorEntity } from './sensor.entity.js';
@@ -856,7 +858,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
               ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
               : undefined;
-          if (isValidNumber(color_temp)) serviceAttributes['color_temp'] = color_temp;
+          if (isValidNumber(color_temp))
+            serviceAttributes['color_temp_kelvin'] =
+              state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
+                ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
+                : miredsToKelvin(color_temp, 'floor');
           const hs_color =
             data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
