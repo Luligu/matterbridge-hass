@@ -268,6 +268,8 @@ If your setup has only one air quality sensor, you can simply put the exact enti
 
 Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode! Don't try it with Apple Home cause the bridge will become unstable even if you remove it after.
 
+In addition to this well known bugs, the rvc must be a single device, it cannot have any other device types like switch or whatever. So if your integration adds any other device types, blacklist them.
+
 ### debug
 
 Should be enabled only if you want to debug some issue using the log.

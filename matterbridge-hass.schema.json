@@ -126,7 +126,7 @@
       "type": "string"
     },
     "enableServerRvc": {
-      "description": "Enable the Robot Vacuum Cleaner in server mode (Apple Home will crash unless you use this mode!)",
+      "description": "Enable the Robot Vacuum Cleaner in server mode (Apple Home will crash unless you use this mode!). Also blacklist any other entities related to the vacuum cleaner device to avoid Apple Home crashes.",
       "type": "boolean",
       "default": true
     },

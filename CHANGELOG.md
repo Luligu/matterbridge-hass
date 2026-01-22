@@ -12,6 +12,10 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ## [1.0.3] - 2026-01-23
 
+### Breaking changes for Apple Home users
+
+- [rvc]: I want to thanks skanzoa85 that discovered another bug in the rvc implementation on the Apple Home app (https://github.com/Luligu/matterbridge-hass/issues/118). In addition to the other well known bugs, the rvc must be a single device, it cannot have any other device types like switch or whatever. So if your integration adds any other device types, blacklist them.
+
 ### Added
 
 - [config]: Improved description in applyFiltersToDeviceEntities and splitEntities.
