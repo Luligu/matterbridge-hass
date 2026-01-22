@@ -249,6 +249,8 @@ If you want a more technical explanation for the naming issues (expecially upset
 
 **Adding an entity to splitEntities doesn't automatically add it to the whiteList so it has to be added manually if you use whiteList.**
 
+**If you enable the filters (area and label) also the split entity must sattisfy the filter criteria**
+
 ### airQualityRegex
 
 Custom regex pattern to match air quality sensors that don't follow the standard Air Quality entity sensor.

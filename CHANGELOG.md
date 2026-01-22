@@ -14,6 +14,9 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Added
 
+- [config]: Improved description in applyFiltersToDeviceEntities and splitEntities.
+- [readme]: Improved explanation in splitEntities.
+
 ### Changed
 
 - [package]: Updated dependencies.
@@ -22,7 +25,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ### Fixed
 
-- [mireds]: Fixed the call service turn_on with color_temp_kelvin when the light is off (Adaptive Lighting). Thanks serlinGi for https://github.com/Luligu/matterbridge-hass/issues/146.
+- [mireds]: Fixed the call service turn_on with color_temp_kelvin when the light is off (Adaptive Lighting). Thanks serlinGi and CadillacCab for https://github.com/Luligu/matterbridge-hass/issues/146.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
