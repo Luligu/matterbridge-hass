@@ -21,14 +21,14 @@ await setupTest(NAME, false);
 
 let accessToken: string | null = null;
 try {
-  accessToken = fs.readFileSync(path.join('certificates', 'ubuntuToken'), 'utf8').trim();
+  accessToken = fs.readFileSync(path.join('certificates', 'serverToken'), 'utf8').trim();
 } catch (error) {
   accessToken = null;
 }
 
-describe('HomeAssistant real test on ubuntu', () => {
+describe('HomeAssistant real test on server', () => {
   let homeAssistant: HomeAssistant;
-  const wsUrl = 'ws://192.168.69.1:8123';
+  const wsUrl = 'ws://server:8123';
   let subscriptionId = 0;
   const testEntityId = 'light.virtual_light_entity';
 
