@@ -341,7 +341,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
-        this.log.debug(
+        this.log.info(
           `Individual entity ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
@@ -479,7 +479,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectDevice(device.id, deviceName, undefined, 'hub');
       if (!this.validateDevice([deviceName, device.id], true)) continue;
       if (!this.isValidAreaLabel(device.area_id, device.labels)) {
-        this.log.debug(
+        this.log.info(
           `Device ${CYAN}${deviceName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
@@ -544,7 +544,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
         if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
         if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
-          this.log.debug(
+          this.log.info(
             `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
           );
           continue;
@@ -661,7 +661,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
-        this.log.debug(
+        this.log.info(
           `Split entity ${CYAN}${entity.entity_id}${db} name ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;

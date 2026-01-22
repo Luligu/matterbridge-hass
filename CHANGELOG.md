@@ -16,6 +16,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 - [config]: Improved description in applyFiltersToDeviceEntities and splitEntities.
 - [readme]: Improved explanation in splitEntities.
+- [log]: Changed level to info when devices and entities are skipped for filters.
 
 ### Changed
 
