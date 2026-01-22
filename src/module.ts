@@ -956,8 +956,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
     if (value !== null) {
-      console.log('Thermostat hassSubscribe:', hassSubscribe);
-      console.log('Thermostat state:', state);
       if (hassSubscribe.attribute === 'occupiedHeatingSetpoint' && state && state.state === 'heat_cool') {
         this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] });
       } else if (hassSubscribe.attribute === 'occupiedCoolingSetpoint' && state && state.state === 'heat_cool') {
