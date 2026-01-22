@@ -10,6 +10,22 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.0.3] - 2026-01-23
+
+### Added
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Updated package to automator v. 3.0.1.
+- [package]: Refactored Dev Container to use Matterbridge mDNS reflector.
+
+### Fixed
+
+- [mireds]: Fixed the call service turn_on with color_temp_kelvin when the light is off (Adaptive Lighting).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.2] - 2026-01-20
 
 ### Added

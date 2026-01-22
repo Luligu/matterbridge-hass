@@ -23,9 +23,7 @@ jobs:
         with:
           node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Clean npm cache
-        run: npm cache clean --force
+          cache: npm
 
       - name: Clone matterbridge repo branch dev
         run: git clone --depth 1 --single-branch --no-tags -b dev https://github.com/Luligu/matterbridge.git ../matterbridge
