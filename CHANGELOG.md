@@ -17,6 +17,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [config]: Improved description in applyFiltersToDeviceEntities and splitEntities.
 - [readme]: Improved explanation in splitEntities.
 - [log]: Changed level to info when devices and entities are skipped for filters.
+- [subscribe]: Removed matter.js deprecated check of context.offline in favor of context.fabric.
 
 ### Changed
 
@@ -27,6 +28,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 ### Fixed
 
 - [mireds]: Fixed the call service turn_on with color_temp_kelvin when the light is off (Adaptive Lighting). Thanks serlinGi and CadillacCab for https://github.com/Luligu/matterbridge-hass/issues/146.
+- [mireds]: Fixed the call service set_temperature when the thermostat is in heat_cool mode. Thanks Eric Qian and DarkSuperT for https://github.com/Luligu/matterbridge-hass/issues/134.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

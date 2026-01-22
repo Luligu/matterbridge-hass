@@ -911,6 +911,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     oldValue: any,
     context: ActionContext,
   ) {
+    const state = this.ha.hassStates.get(entity.entity_id);
     let endpoint: MatterbridgeEndpoint | undefined;
     if (entity.device_id) {
       // Device entity
@@ -920,7 +921,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         return;
       }
       // If it has not been remapped to the main endpoint
-      endpoint = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
+      // endpoint = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
+      endpoint = matterbridgeDevice.getChildEndpointByOriginalId(entity.entity_id);
       // If it has been remapped to the main endpoint
       if (!endpoint && this.endpointNames.get(entity.entity_id) === '') endpoint = matterbridgeDevice;
     } else {
@@ -953,7 +955,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassSubscribe.converter)
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
-    if (value !== null) this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+    if (value !== null) {
+      console.log('Thermostat hassSubscribe:', hassSubscribe);
+      console.log('Thermostat state:', state);
+      if (hassSubscribe.attribute === 'occupiedHeatingSetpoint' && state && state.state === 'heat_cool') {
+        this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] });
+      } else if (hassSubscribe.attribute === 'occupiedCoolingSetpoint' && state && state.state === 'heat_cool') {
+        this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value });
+      } else this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+    }
     // The converter returns null for fan turn_on with percentage 0 => call turn_off
     else this.ha.callService(domain, 'turn_off', entity.entity_id);
   }

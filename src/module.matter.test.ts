@@ -1691,7 +1691,7 @@ describe('Matterbridge ' + NAME, () => {
       entity_id: climateDeviceEntity.entity_id,
       state: 'heat_cool',
       attributes: {
-        hvac_modes: ['heat_cool'],
+        hvac_modes: ['heat_cool', 'heat', 'cool', 'off'],
         hvac_mode: 'heat_cool',
         current_temperature: 20,
         target_temp_low: 10,
@@ -1736,7 +1736,6 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(mockLog.debug).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${climateDeviceEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'systemMode', Thermostat.SystemMode.Auto, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedHeatingSetpoint', 1000, expect.anything());
@@ -1745,7 +1744,7 @@ describe('Matterbridge ' + NAME, () => {
     // Simulate a not changed in fan mode and call the event handler
     await device.act((agent) =>
       // @ts-expect-error not typed agent
-      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Auto, Thermostat.SystemMode.Auto, { ...agent.context, offline: false, fabric: 1 }),
+      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Auto, Thermostat.SystemMode.Off, { ...agent.context, offline: false, fabric: 1 }),
     );
     // Simulate a change in fan mode and call the event handler
     await device.act((agent) =>
@@ -1755,8 +1754,41 @@ describe('Matterbridge ' + NAME, () => {
     // Simulate a change in fan mode and call the event handler with wrong parameter
     await device.act((agent) =>
       // @ts-expect-error not typed agent
-      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Heat + 1, Thermostat.SystemMode.Auto, { ...agent.context, offline: false, fabric: 1 }),
+      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Heat, Thermostat.SystemMode.Cool, { ...agent.context, offline: false, fabric: 1 }),
     );
+    // Simulate a not changed in fan mode and call the event handler
+    await device.act((agent) =>
+      // @ts-expect-error not typed agent
+      agent['thermostat'].events['systemMode$Changed'].emit(Thermostat.SystemMode.Auto, Thermostat.SystemMode.Off, { ...agent.context, offline: false, fabric: 1 }),
+    );
+
+    // Simulate a change in occupiedHeatingSetpoint and call the event handler
+    jest.clearAllMocks();
+    await invokeSubscribeHandler(device, Thermostat.Cluster.id, 'occupiedHeatingSetpoint', 1200, 1000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(
+        `Subscribed attribute ${hk}Thermostat${db}:${hk}occupiedHeatingSetpoint${db} ` + `on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} changed`,
+      ),
+    );
+    expect(callServiceSpy).toHaveBeenCalledWith('climate', 'set_temperature', climateDeviceEntity.entity_id, {
+      target_temp_high: 30,
+      target_temp_low: 12,
+    });
+
+    // Simulate a change in occupiedCoolingSetpoint and call the event handler
+    jest.clearAllMocks();
+    await invokeSubscribeHandler(device, Thermostat.Cluster.id, 'occupiedCoolingSetpoint', 2800, 3000);
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      expect.stringContaining(
+        `Subscribed attribute ${hk}Thermostat${db}:${hk}occupiedCoolingSetpoint${db} ` + `on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} changed`,
+      ),
+    );
+    expect(callServiceSpy).toHaveBeenCalledWith('climate', 'set_temperature', climateDeviceEntity.entity_id, {
+      target_temp_high: 28,
+      target_temp_low: 10,
+    });
 
     // Clean the test environment
     await cleanup();

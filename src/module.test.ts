@@ -732,7 +732,7 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
 
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
     // Reset configuration and filters to test filter on device entities
@@ -753,7 +753,7 @@ describe('HassPlatform', () => {
     await haPlatform.onStart();
 
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
     mockConfig.filterByArea = '';
@@ -1559,7 +1559,7 @@ describe('HassPlatform', () => {
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       `Split entity ${CYAN}${duplicatednameEntity.entity_id}${wr} name ${CYAN}${duplicatednameEntity.original_name}${wr} already exists as a registered device. Please change the name in Home Assistant.`,
     );
-    expect(loggerDebugSpy).toHaveBeenCalledWith(
+    expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Split entity ${CYAN}${humidityEntity.entity_id}${db} name ${CYAN}${humidityEntity.original_name}${db} is not in the area "${CYAN}${db}" or doesn't have the label "${CYAN}${haPlatform.config.filterByLabel}${db}". Skipping...`,
     );
 
