@@ -2617,20 +2617,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
+    // This will test Adaptive Lighting
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 250 });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp_kelvin: 4000 });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
 
+    // This will test Adaptive Lighting
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp: 250 });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 255, color_temp_kelvin: 4000 });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
