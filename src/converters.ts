@@ -204,6 +204,9 @@ export function pressure(value: number, unit?: string): number | null {
   if (unit === 'inHg') {
     return Math.round(value * 33.8639);
   }
+  if (unit === 'psi') {
+    return Math.round(value * 68.9475729318);
+  }
   return null;
 }
 

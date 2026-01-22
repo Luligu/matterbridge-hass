@@ -22,6 +22,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [readme]: Improved explanation in splitEntities.
 - [log]: Changed level to info when devices and entities are skipped for filters.
 - [subscribe]: Removed matter.js deprecated check of context.offline in favor of context.fabric.
+- [pressure]: Added psi to hPa conversion.
 
 ### Changed
 
