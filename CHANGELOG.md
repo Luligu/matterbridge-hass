@@ -10,6 +10,33 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.0.3] - 2026-01-23
+
+### Breaking changes for Apple Home users
+
+- [rvc]: I want to thanks skanzoa85 that discovered another bug in the rvc implementation on the Apple Home app (https://github.com/Luligu/matterbridge-hass/issues/118). In addition to the other well known bugs, the rvc must be a single device, it cannot have any other device types like switch or whatever. So if your integration adds any other device types, blacklist them.
+
+### Added
+
+- [config]: Improved description in applyFiltersToDeviceEntities and splitEntities.
+- [readme]: Improved explanation in splitEntities.
+- [log]: Changed level to info when devices and entities are skipped for filters.
+- [subscribe]: Removed matter.js deprecated check of context.offline in favor of context.fabric.
+- [pressure]: Added psi to hPa conversion.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Updated package to automator v. 3.0.1.
+- [package]: Refactored Dev Container to use Matterbridge mDNS reflector.
+
+### Fixed
+
+- [mireds]: Fixed the call service turn_on with color_temp_kelvin when the light is off (Adaptive Lighting). Thanks serlinGi and CadillacCab for https://github.com/Luligu/matterbridge-hass/issues/146.
+- [mireds]: Fixed the call service set_temperature when the thermostat is in heat_cool mode. Thanks Eric Qian and DarkSuperT for https://github.com/Luligu/matterbridge-hass/issues/134.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.2] - 2026-01-20
 
 ### Added

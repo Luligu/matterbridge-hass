@@ -49,6 +49,7 @@ import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
+  clamp,
   convertMatterXYToHA,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
@@ -56,6 +57,7 @@ import {
   hassDomainSensorsConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
+  miredsToKelvin,
 } from './converters.js';
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addSensorEntity } from './sensor.entity.js';
@@ -339,7 +341,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
-        this.log.debug(
+        this.log.info(
           `Individual entity ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
@@ -477,7 +479,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectDevice(device.id, deviceName, undefined, 'hub');
       if (!this.validateDevice([deviceName, device.id], true)) continue;
       if (!this.isValidAreaLabel(device.area_id, device.labels)) {
-        this.log.debug(
+        this.log.info(
           `Device ${CYAN}${deviceName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
@@ -542,7 +544,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
         if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
         if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
-          this.log.debug(
+          this.log.info(
             `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
           );
           continue;
@@ -659,7 +661,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
-        this.log.debug(
+        this.log.info(
           `Split entity ${CYAN}${entity.entity_id}${db} name ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
@@ -856,7 +858,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
               ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
               : undefined;
-          if (isValidNumber(color_temp)) serviceAttributes['color_temp'] = color_temp;
+          if (isValidNumber(color_temp))
+            serviceAttributes['color_temp_kelvin'] =
+              state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
+                ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
+                : miredsToKelvin(color_temp, 'floor');
           const hs_color =
             data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
@@ -905,6 +911,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     oldValue: any,
     context: ActionContext,
   ) {
+    const state = this.ha.hassStates.get(entity.entity_id);
     let endpoint: MatterbridgeEndpoint | undefined;
     if (entity.device_id) {
       // Device entity
@@ -914,7 +921,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         return;
       }
       // If it has not been remapped to the main endpoint
-      endpoint = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
+      // endpoint = matterbridgeDevice.getChildEndpointByName(entity.entity_id) || matterbridgeDevice.getChildEndpointByName(entity.entity_id.replaceAll('.', ''));
+      endpoint = matterbridgeDevice.getChildEndpointByOriginalId(entity.entity_id);
       // If it has been remapped to the main endpoint
       if (!endpoint && this.endpointNames.get(entity.entity_id) === '') endpoint = matterbridgeDevice;
     } else {
@@ -925,7 +933,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.debug(`Subscribe handler: Endpoint ${entity.entity_id} for device ${entity.device_id} not found`);
       return;
     }
-    if (context && context.offline === true) {
+    if (context && context.fabric) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
           `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update`,
@@ -947,7 +955,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassSubscribe.converter)
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
-    if (value !== null) this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+    if (value !== null) {
+      if (hassSubscribe.attribute === 'occupiedHeatingSetpoint' && state && state.state === 'heat_cool') {
+        this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] });
+      } else if (hassSubscribe.attribute === 'occupiedCoolingSetpoint' && state && state.state === 'heat_cool') {
+        this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value });
+      } else this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+    }
     // The converter returns null for fan turn_on with percentage 0 => call turn_off
     else this.ha.callService(domain, 'turn_off', entity.entity_id);
   }

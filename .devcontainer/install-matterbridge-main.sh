@@ -21,5 +21,5 @@ cd matterbridge
 npm ci --no-fund --no-audit
 npm run build
 npm install . --global --no-fund --no-audit
-rm -rf .git .github .vscode docker systemd docs public screenshot
+rm -rf .cache .devcontainer .git .github .vscode docker docs reflector screenshots scripts systemd
 echo "Matterbridge has been installed from the main branch."

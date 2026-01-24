@@ -249,6 +249,8 @@ If you want a more technical explanation for the naming issues (expecially upset
 
 **Adding an entity to splitEntities doesn't automatically add it to the whiteList so it has to be added manually if you use whiteList.**
 
+**If you enable the filters (area and label) also the split entity must sattisfy the filter criteria**
+
 ### airQualityRegex
 
 Custom regex pattern to match air quality sensors that don't follow the standard Air Quality entity sensor.
@@ -265,6 +267,8 @@ If your setup has only one air quality sensor, you can simply put the exact enti
 ### enableServerRvc
 
 Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode! Don't try it with Apple Home cause the bridge will become unstable even if you remove it after.
+
+In addition to this well known bugs, the rvc must be a single device, it cannot have any other device types like switch or whatever. So if your integration adds any other device types, blacklist them.
 
 ### debug
 

@@ -55,7 +55,7 @@
       "default": ""
     },
     "applyFiltersToDeviceEntities": {
-      "description": "Apply the filters to device entities too. If enabled, the filters will be applied to device entities as well (both the device and its entities shall have the same filters applied). If disabled, the filters will only be applied to devices and individual entities.",
+      "description": "Apply the filters to device entities too. If enabled, the filters will be applied to device entities as well (both the device and its entities shall have the same filters applied). If disabled, the filters will only be applied to devices (all entities that belong to the device will be exposed) and individual entities.",
       "type": "boolean",
       "default": false
     },
@@ -103,7 +103,7 @@
       }
     },
     "splitEntities": {
-      "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock).",
+      "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock). Split entities must satisfy the filters (if any) and the whiteList (if any).",
       "type": "array",
       "items": {
         "type": "string"
@@ -126,7 +126,7 @@
       "type": "string"
     },
     "enableServerRvc": {
-      "description": "Enable the Robot Vacuum Cleaner in server mode (Apple Home will crash unless you use this mode!)",
+      "description": "Enable the Robot Vacuum Cleaner in server mode (Apple Home will crash unless you use this mode!). Also blacklist any other entities related to the vacuum cleaner device to avoid Apple Home crashes.",
       "type": "boolean",
       "default": true
     },

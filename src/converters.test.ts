@@ -237,6 +237,7 @@ describe('HassPlatform', () => {
         expect(converter.converter(900, 'hPa')).toBe(900);
         expect(converter.converter(90, 'kPa')).toBe(900);
         expect(converter.converter(29.4, 'inHg')).toBe(996);
+        expect(converter.converter(14.5038, 'psi')).toBe(1000);
         expect(converter.converter(29.4)).toBe(null);
         expect(converter.converter(0, 'inHg')).toBe(null);
       } else if (converter.withStateClass === 'measurement' && converter.withDeviceClass === 'voltage' && converter.deviceType === powerSource) {
