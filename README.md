@@ -50,6 +50,7 @@ Features:
 | vacuum (2) | idle, cleaning, paused, docked, returning |                                                                                         |
 
 (1) - Supported preset_modes: auto, low, medium, high.
+
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config.
 
 These domains are supported also like individual and split entities.
@@ -94,6 +95,7 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 | sensor | measurement           | pm10                       | ugm3 (2)       | airQualitySensor   |
 
 (1) - If the air quality entity is not standard (e.g. state class = measurement, device class = aqi and state number range 0-500), it is possible to set a regexp. See below.
+
 (2) - On the controller side.
 
 ## Supported binary_sensors:
