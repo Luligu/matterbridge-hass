@@ -417,6 +417,13 @@ export const DEFAULT_MAX_TEMP = 35;
 export const DEFAULT_MIN_HUMIDITY = 30;
 export const DEFAULT_MAX_HUMIDITY = 99;
 
+export interface EntityRuntimeData {
+  lightOffUpdated?: Set<typeof ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES[number]>;
+  lightOffTransitionEnd?: Date;
+}
+
+export const ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES = ['level', 'colorTemperatureMireds', 'hue', 'saturation', 'colorX', 'colorY'] as const;
+
 /**
  * Interface representing the attributes of a Home Assistant event entity's state.
  */
@@ -882,6 +889,7 @@ export class HomeAssistant extends EventEmitter {
   hassDevices = new Map<string, HassDevice>();
   hassEntities = new Map<string, HassEntity>();
   hassStates = new Map<string, HassState>();
+  entitiesRuntimeData = new Map<string, EntityRuntimeData>();
   hassAreas = new Map<string, HassArea>();
   hassLabels = new Map<string, HassLabel>();
   hassServices: HassServices | null = null;

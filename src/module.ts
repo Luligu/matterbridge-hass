@@ -46,7 +46,7 @@ import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorC
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
+import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel, ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
   clamp,
@@ -871,9 +871,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'light') {
         // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
         const onOff = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff', data.endpoint.log) as boolean | undefined;
+        let runtimeData = this.ha.entitiesRuntimeData.get(entityId);
+        if (runtimeData == undefined) {
+          runtimeData = { lightOffUpdated: new Set() };
+          this.ha.entitiesRuntimeData.set(entityId, runtimeData);
+        }
         if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
+          ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES.filter((attr) => data.request[attr] != undefined).forEach(attr => runtimeData.lightOffUpdated!.add(attr));
+          if (data.request.transitionTime > 0) {
+            runtimeData.lightOffTransitionEnd = new Date(Date.now() + (data.request.transitionTime * 100));
+          } else {
+            runtimeData.lightOffTransitionEnd = undefined;
+          }
           data.endpoint.log.debug(
-            `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it (request ${debugStringify(data.request)})`,
+            `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it` +
+            ` (payload: ${debugStringify(data.request)} - lightOffUpdated: [${runtimeData.lightOffUpdated?.values().toArray()}] - transitionTime: ${runtimeData.lightOffTransitionEnd ? (runtimeData.lightOffTransitionEnd.getTime() - Date.now()) / 1000 : undefined} seconds)`,
           );
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
@@ -894,45 +906,81 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes`,
           );
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
-          // We need to add the cluster attributes since we are turning on the light and it was off
-          const brightness =
-            data.request.level &&
-            data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
-              ? Math.round(data.request.level / 254 * 255)
+          // We need to add the cluster attributes updated while the light was off since we are turning on the light
+          const brightness = data.request.level
+            ? Math.round(data.request.level / 254 * 255)
+            : runtimeData.lightOffUpdated?.has('level') &&
+              data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
+                ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
+                : undefined;
+          if (isValidNumber(brightness, 1, 255)) {
+            serviceAttributes['brightness'] = brightness;
+            data.endpoint.log.debug(
+              `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting brightness (${brightness})`,
+            );
+          }
+          const color_temp =
+            runtimeData.lightOffUpdated?.has('colorTemperatureMireds') &&
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
+              ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
               : undefined;
-          if (isValidNumber(brightness, 1, 255)) serviceAttributes['brightness'] = brightness;
-          //const color_temp =
-          //  data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
-          //  data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
-          //    ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
-          //    : undefined;
-          //if (isValidNumber(color_temp))
-          //  serviceAttributes['color_temp_kelvin'] =
-          //    state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
-          //      ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
-          //      : miredsToKelvin(color_temp, 'floor');
-          //const hs_color =
-          //  data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
-          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
-          //  data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
-          //    ? [
-          //        Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
-          //        Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
-          //      ]
-          //    : undefined;
-          //if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
-          //const xy_color =
-          //  data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
-          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
-          //  data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
-          //    ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
-          //    : undefined;
-          //if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
+          if (isValidNumber(color_temp)) {
+            serviceAttributes['color_temp_kelvin'] =
+              state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
+                ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
+                : miredsToKelvin(color_temp, 'floor');
+            data.endpoint.log.debug(
+              `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting color_temp (${color_temp})`,
+            );
+          }
+          const hs_color =
+            (runtimeData.lightOffUpdated?.has('hue') || runtimeData.lightOffUpdated?.has('saturation')) &&
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
+              ? [
+                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
+                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+                ]
+              : undefined;
+          if (isValidArray(hs_color, 2)) {
+            serviceAttributes['hs_color'] = hs_color;
+            data.endpoint.log.debug(
+              `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting hs_color (${hs_color})`,
+            );
+          }
+          const xy_color =
+            (runtimeData.lightOffUpdated?.has('colorX') || runtimeData.lightOffUpdated?.has('colorY')) &&
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
+              ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
+              : undefined;
+          if (isValidArray(xy_color, 2)) {
+            serviceAttributes['xy_color'] = xy_color;
+            data.endpoint.log.debug(
+              `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting xy_color (${xy_color})`,
+            );
+          }
+          runtimeData.lightOffUpdated?.clear();
           // Transition time
-          if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
+          const transition = data.request.transitionTime != undefined
+            ? Math.round(data.request.transitionTime / 10)
+            : runtimeData.lightOffTransitionEnd != undefined &&
+              runtimeData.lightOffTransitionEnd.getTime() > Date.now()
+                ? Math.round((runtimeData.lightOffTransitionEnd.getTime() - Date.now()) / 1000)
+                : undefined;
+          if (isValidNumber(transition, 1)) {
+            serviceAttributes['transition'] = transition;
+            data.endpoint.log.debug(
+              `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting transition (${transition} ms)`,
+            );
+          }
+          runtimeData.lightOffTransitionEnd = undefined;
           // Call the light.turn_on service with the attributes
           await this.ha.callService('light', 'turn_on', entityId, serviceAttributes);
           return;
@@ -1123,6 +1171,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if ((domain === 'light' || domain === 'fan') && new_state.state === 'off') {
         endpoint.log.info(`State is off, skipping update of attributes for entity ${CYAN}${entityId}${nf}`);
         return;
+      }
+      if (domain === 'light' && old_state.state === 'off' && new_state.state === 'on') {
+        const runtimeData = this.ha.entitiesRuntimeData.get(entityId);
+        if (runtimeData) {
+          runtimeData.lightOffUpdated?.clear();
+          runtimeData.lightOffTransitionEnd = undefined;
+          endpoint.log.debug(`State changed from off to on, cleared attribute light-off updates queue for entity ${CYAN}${entityId}${nf}`);
+        }
       }
       // Update attributes of the device
       const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
