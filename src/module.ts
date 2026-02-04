@@ -305,7 +305,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     // Create the plugin directory inside the Matterbridge plugin directory
-    await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
+    await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass-test'), { recursive: true });
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
@@ -324,7 +324,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await waiter('Home Assistant connected', check, true, 110000, 1000); // Wait for 110 seconds with 1 second interval and throw error if not connected
 
     // Save devices, entities, states, config and services to a local file without awaiting
-    this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'));
+    this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass-test', 'homeassistant.json'));
 
     // Clean the selectDevice and selectEntity maps
     await this.ready;

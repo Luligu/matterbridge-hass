@@ -1,6 +1,6 @@
 {
   "title": "Matterbridge Home Assistant plugin",
-  "description": "matterbridge-hass v. 0.0.1 by https://github.com/Luligu",
+  "description": "matterbridge-hass-test v. 0.0.1 by https://github.com/Luligu",
   "type": "object",
   "required": ["host", "token"],
   "properties": {

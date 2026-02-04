@@ -1,5 +1,5 @@
 {
-  "name": "matterbridge-hass",
+  "name": "matterbridge-hass-test",
   "type": "DynamicPlatform",
   "version": "0.5.0",
   "host": "ws://homeassistant.local:8123",
