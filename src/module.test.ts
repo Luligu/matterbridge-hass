@@ -31,6 +31,7 @@ import {
   matterbridge,
   addMatterbridgePlatform,
   loggerNoticeSpy,
+  setDebug,
 } from 'matterbridge/jestutils';
 
 import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
@@ -696,24 +697,32 @@ describe('HassPlatform', () => {
     (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
     (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
 
-    mockConfig.filterByArea = '';
+    mockConfig.filterByArea = 'not existing';
     mockConfig.filterByLabel = 'not existing';
-    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByArea = 'not existing';
     haPlatform.config.filterByLabel = 'not existing';
 
+    haPlatform.ha.emit('areas', Array.from(haPlatform.ha.hassAreas.values()));
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Area "not existing" not found in Home Assistant. Filter by area will filter all devices and entities.`);
+
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
-    expect(loggerWarnSpy).toHaveBeenCalledWith(`Label "not existing" not found in Home Assistant. Filter by label is disabled.`);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Label "not existing" not found in Home Assistant. Filter by label will filter all devices and entities.`);
     jest.clearAllMocks();
 
-    mockConfig.filterByArea = '';
+    mockConfig.filterByArea = 'Living Room';
     mockConfig.filterByLabel = 'label_id_1';
-    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByArea = 'Living Room';
     haPlatform.config.filterByLabel = 'label_id_1';
+
+    haPlatform.ha.emit('areas', Array.from(haPlatform.ha.hassAreas.values()));
+    await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
+    expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by area: ${CYAN}Living Room${nf}`);
 
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
+    expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
 
     // Reset configuration and filters to test filter on device
     jest.clearAllMocks();
@@ -726,7 +735,7 @@ describe('HassPlatform', () => {
 
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
+    expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
     jest.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
@@ -747,7 +756,7 @@ describe('HassPlatform', () => {
 
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
+    expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by label_id: ${CYAN}label_id_1${nf}`);
     jest.clearAllMocks();
 
     await haPlatform.onStart();
@@ -823,6 +832,7 @@ describe('HassPlatform', () => {
     const entity = {
       id: '0123456789abcdef',
       entity_id: 'scene.turn_off_all_lights',
+      disabled_by: null,
       original_name: 'Turn off all lights',
       name: 'turn_off_all_lights',
       device_id: 'device1',
@@ -845,6 +855,7 @@ describe('HassPlatform', () => {
       id: '0123456789abcdef',
       entity_id: 'scene.turn_off_all_lights',
       device_id: null,
+      disabled_by: null,
     } as unknown as HassEntity;
     haPlatform.ha.hassEntities.set(entity.id, entity);
     const state = {
@@ -864,6 +875,7 @@ describe('HassPlatform', () => {
       id: '0123456789abcdef',
       entity_id: 'scene.turn_off_all_lights',
       device_id: null,
+      disabled_by: null,
       name: 'Turn off all lights',
     } as unknown as HassEntity;
     haPlatform.ha.hassEntities.set(entity.id, entity);
@@ -1337,6 +1349,7 @@ describe('HassPlatform', () => {
     const switchEntity = {
       area_id: null,
       device_id: device.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'switch.door_contact',
       has_entity_name: true,
@@ -1364,6 +1377,7 @@ describe('HassPlatform', () => {
       labels: ['matterbridge_select'],
       name: null,
       original_name: 'Switch Contact Sensor',
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const contactState = {
@@ -1385,6 +1399,7 @@ describe('HassPlatform', () => {
       labels: ['matterbridge_select'],
       name: null,
       original_name: 'Unsupported Entity',
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const nostateEntity = {
@@ -1397,6 +1412,7 @@ describe('HassPlatform', () => {
       labels: ['matterbridge_select'],
       name: null,
       original_name: 'No State Entity',
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const nonameEntity = {
@@ -1409,6 +1425,7 @@ describe('HassPlatform', () => {
       labels: ['matterbridge_select'],
       name: null,
       original_name: null,
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const nonameState = {
@@ -1430,6 +1447,7 @@ describe('HassPlatform', () => {
       labels: ['matterbridge_select'],
       name: null,
       original_name: 'Switch Contact Sensor',
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const duplicatednameState = {
@@ -1450,6 +1468,7 @@ describe('HassPlatform', () => {
       labels: ['matterbridge_select'],
       name: null,
       original_name: 'Switch with contact 2',
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const switch2State = {
@@ -1470,6 +1489,7 @@ describe('HassPlatform', () => {
       labels: ['matterbridge_select'],
       name: null,
       original_name: 'Switch with contact temperature',
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const temperatureState = {
@@ -1493,6 +1513,7 @@ describe('HassPlatform', () => {
       labels: [],
       name: null,
       original_name: 'Switch with contact humidity',
+      disabled_by: null,
     } as unknown as HassEntity;
 
     const humidityState = {
@@ -1584,6 +1605,7 @@ describe('HassPlatform', () => {
     const switchEntity = {
       area_id: null,
       device_id: 'd83398f83188759ed7329e97df00ee7c',
+      disabled_by: null,
       entity_category: null,
       entity_id: 'switch.single_entity',
       has_entity_name: true,
@@ -1635,6 +1657,7 @@ describe('HassPlatform', () => {
     const switchEntity = {
       area_id: null,
       device_id: 'd83398f83188759ed7329e97df00ee7c',
+      disabled_by: null,
       entity_category: null,
       entity_id: 'switch.single_entity_2',
       has_entity_name: true,
@@ -1690,6 +1713,7 @@ describe('HassPlatform', () => {
     const sensorEntity = {
       area_id: null,
       device_id: 'd83398f83188759ed7329e97df00ee7c',
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.single_entity',
       has_entity_name: true,
@@ -2532,6 +2556,7 @@ const switchDeviceEntityState = {
 const autoDevice = {
   area_id: null,
   id: 'd80898f83188759ed7329e97df00ee6f',
+  disabled_by: null,
   labels: [],
   manufacturer: 'Luligu',
   model: 'Matterbridge Switch',
@@ -2543,6 +2568,7 @@ const autoDevice = {
 
 const autoDeviceEntity = {
   area_id: null,
+  disabled_by: null,
   device_id: 'd80898f83188759ed7329e97df00ee6f',
   entity_id: 'climate.thermo-auto',
   id: '0b25a337cb83edefb1d310450ad2b0aa',
@@ -2567,6 +2593,7 @@ const autoDeviceEntityState = {
 const heatDevice = {
   area_id: null,
   id: 'd80898f83188759ed7329e97df00ee6a',
+  disabled_by: null,
   labels: [],
   manufacturer: 'Luligu',
   model: 'Matterbridge Switch',
@@ -2578,6 +2605,7 @@ const heatDevice = {
 
 const heatDeviceEntity = {
   area_id: null,
+  disabled_by: null,
   device_id: 'd80898f83188759ed7329e97df00ee6a',
   entity_id: 'climate.thermo',
   id: '0b25a337cb83edefb1d310450ad2b0aa',
@@ -2602,6 +2630,7 @@ const heatDeviceEntityState = {
 const coolDevice = {
   area_id: null,
   id: 'd80898f83188759ed7329e97df00ee6a',
+  disabled_by: null,
   labels: [],
   manufacturer: 'Luligu',
   model: 'Matterbridge Switch',
@@ -2613,6 +2642,7 @@ const coolDevice = {
 
 const coolDeviceEntity = {
   area_id: null,
+  disabled_by: null,
   device_id: 'd80898f83188759ed7329e97df00ee6a',
   entity_id: 'climate.thermo',
   id: '0b25a337cb83edefb1d310450ad2b0aa',
@@ -2636,6 +2666,7 @@ const coolDeviceEntityState = {
 
 const contactSensorDevice = {
   area_id: null,
+  disabled_by: null,
   hw_version: '1.0.0',
   id: '38ff72694f19502223744fbb8bfcdef9',
   labels: [],
@@ -2649,6 +2680,7 @@ const contactSensorDevice = {
 };
 const contactSensorEntity = {
   area_id: null,
+  disabled_by: null,
   device_id: contactSensorDevice.id,
   entity_category: null,
   entity_id: 'binary_sensor.eve_door_contact',
@@ -2675,6 +2707,7 @@ const contactSensorEntityState = {
 const motionSensorDevice = {
   area_id: null,
   hw_version: '1.0.0',
+  disabled_by: null,
   id: '38fc72694c39502223744fbb8bfcdef0',
   labels: [],
   manufacturer: 'Eve Systems',
@@ -2688,6 +2721,7 @@ const motionSensorDevice = {
 const motionSensorOccupancyEntity = {
   area_id: null,
   device_id: motionSensorDevice.id,
+  disabled_by: null,
   entity_category: null,
   entity_id: 'binary_sensor.eve_motion_occupancy_x',
   has_entity_name: true,
@@ -2712,6 +2746,7 @@ const motionSensorOccupancyEntityState = {
 const motionSensorIlluminanceEntity = {
   area_id: null,
   device_id: motionSensorDevice.id,
+  disabled_by: null,
   entity_category: null,
   entity_id: 'sensor.eve_motion_illuminance_x',
   has_entity_name: true,
@@ -2736,6 +2771,7 @@ const motionSensorIlluminanceEntityState = {
 };
 const buttonDevice = {
   area_id: null,
+  disabled_by: null,
   hw_version: '1.0.0',
   id: '38fc72694c39502223744fbb8bfcdef0',
   labels: [],
@@ -2750,6 +2786,7 @@ const buttonDevice = {
 const buttonEntity = {
   area_id: null,
   device_id: buttonDevice.id,
+  disabled_by: null,
   entity_category: null,
   entity_id: 'event.shelly_button',
   has_entity_name: true,

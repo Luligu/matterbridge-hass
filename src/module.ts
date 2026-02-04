@@ -127,8 +127,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Regex to match air quality sensors. It matches all domain sensor (sensor\.) with names ending in _air_quality */
   airQualityRegex: RegExp | undefined;
 
+  /** Domains that are treated as individual entities */
   readonly individualEntitiesDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
+  /** Supported core domains */
   readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve', 'vacuum'];
+
+  filterMessages: { message: string; timeout: number; severity: 'error' | 'success' | 'info' | 'warning' | undefined }[] = [];
+  filteredDevices = 0;
+  filteredEntities = 0;
 
   /**
    * Constructor for the HomeAssistantPlatform class.
@@ -212,7 +218,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.ha.on('disconnected', () => {
       this.log.warn('Disconnected from Home Assistant');
-      if (this.isConfigured) this.wssSendSnackbarMessage('Disconnected from Home Assistant', 5, 'warning');
+      if (this.isReady) this.wssSendSnackbarMessage('Disconnected from Home Assistant', 5, 'warning');
     });
 
     this.ha.on('error', (error: string) => {
@@ -241,8 +247,22 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info('Entities received from Home Assistant');
     });
 
-    this.ha.on('areas', (_areas: HassArea[]) => {
+    this.ha.on('areas', (areas: HassArea[]) => {
       this.log.info('Areas received from Home Assistant');
+      if (isValidString(this.config.filterByArea, 1)) {
+        const area = areas.find((a) => a.name === this.config.filterByArea);
+        if (area) {
+          this.log.notice(`Filtering by area: ${CYAN}${area.name}${nf}`);
+          this.filterMessages.push({ message: `Home Assistant: filtering by area "${area.name}"`, timeout: 60, severity: 'success' });
+        } else {
+          this.log.warn(`Area "${this.config.filterByArea}" not found in Home Assistant. Filter by area will filter all devices and entities.`);
+          this.filterMessages.push({
+            message: `Home Assistant: area "${this.config.filterByArea}" set in filterByArea not found. Filter by area will filter all devices and entities.`,
+            timeout: 0,
+            severity: 'warning',
+          });
+        }
+      }
     });
 
     this.ha.on('labels', (labels: HassLabel[]) => {
@@ -252,16 +272,23 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // If the label_id is already set, use it
         if (labels.find((label) => label.label_id === this.config.filterByLabel)) {
           this.labelIdFilter = this.config.filterByLabel;
-          this.log.info(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          this.log.notice(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          this.filterMessages.push({ message: `Home Assistant: filtering by label_id: ${this.labelIdFilter}`, timeout: 60, severity: 'success' });
           return;
         }
         // Look for the label_id by name
         this.labelIdFilter = labels.find((label) => label.name === this.config.filterByLabel)?.label_id ?? '';
         if (this.labelIdFilter) {
-          this.log.info(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          this.log.notice(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
+          this.filterMessages.push({ message: `Home Assistant: filtering by label_id: ${this.labelIdFilter}`, timeout: 60, severity: 'success' });
           return;
         }
-        this.log.warn(`Label "${this.config.filterByLabel}" not found in Home Assistant. Filter by label is disabled.`);
+        this.log.warn(`Label "${this.config.filterByLabel}" not found in Home Assistant. Filter by label will filter all devices and entities.`);
+        this.filterMessages.push({
+          message: `Home Assistant: label "${this.config.filterByLabel}" set in filterByLabel not found. Filter by label will filter all devices and entities.`,
+          timeout: 0,
+          severity: 'warning',
+        });
       }
     });
 
@@ -306,7 +333,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
     // ************************************* Scan the individual entities **************************************
     // *********************************************************************************************************
-    for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null)) {
+    for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null && e.disabled_by === null)) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
       if (
@@ -336,16 +363,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.warn(`Individual entity ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
-      // Set the selects and validate.
-      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
-      this.setSelectEntity(entityName, entity.entity_id, 'hub');
-      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
+      // Apply area and label filters before the select and validation
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
+        this.filteredEntities++;
         this.log.info(
           `Individual entity ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
       }
+      // Set the selects and validate.
+      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
+      this.setSelectEntity(entityName, entity.entity_id, 'hub');
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
 
       // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
@@ -453,7 +482,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
     // ******************************************* Scan the devices ********************************************
     // *********************************************************************************************************
-    for (const device of Array.from(this.ha.hassDevices.values())) {
+    for (const device of Array.from(this.ha.hassDevices.values()).filter((d) => d.disabled_by === null)) {
       // Check if we have a valid device
       const deviceName = device.name_by_user ?? device.name;
       if (!isValidString(deviceName, 1)) {
@@ -475,15 +504,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.warn(`Device ${CYAN}${deviceName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
-      // Set the device selects and validate the device.
-      this.setSelectDevice(device.id, deviceName, undefined, 'hub');
-      if (!this.validateDevice([deviceName, device.id], true)) continue;
+      // Apply area and label filters before the select and validation
       if (!this.isValidAreaLabel(device.area_id, device.labels)) {
+        this.filteredDevices++;
         this.log.info(
           `Device ${CYAN}${deviceName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
       }
+      // Set the device selects and validate the device.
+      this.setSelectDevice(device.id, deviceName, undefined, 'hub');
+      if (!this.validateDevice([deviceName, device.id], true)) continue;
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
@@ -519,7 +550,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${device.id}`);
 
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
-      for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
+      for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id && e.disabled_by === null)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
         const [domain, _name] = entity.entity_id.split('.');
         const entityName = entity.name ?? entity.original_name ?? deviceName;
@@ -535,6 +566,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
           continue;
         }
+        // Apply area and label filters before the select and validation
+        if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
+          this.filteredEntities++;
+          this.log.info(
+            `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
+          );
+          continue;
+        }
         // Set the entity selects and validate the entity.
         this.setSelectDeviceEntity(device.id, entity.entity_id, entityName, 'component');
         this.setSelectEntity(entityName, entity.entity_id, 'component');
@@ -543,12 +582,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           continue; // Skip split entities from the main device
         }
         if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
-        if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
-          this.log.info(
-            `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
-          );
-          continue;
-        }
         // Set the entity mode for the Rvc.
         if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
         if (domain === 'vacuum' && this.config.enableServerRvc && !battery) mutableDevice.addDeviceTypes('', powerSource); // Temporary fix for vacuum without battery and enableServerRvc
@@ -624,7 +657,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
     // ************************************ Scan the split entities  *******************************************
     // *********************************************************************************************************
-    for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id !== null && (this.config.splitEntities as string[]).includes(e.entity_id))) {
+    for (const entity of Array.from(this.ha.hassEntities.values()).filter(
+      (e) => e.device_id !== null && e.disabled_by === null && (this.config.splitEntities as string[]).includes(e.entity_id),
+    )) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
       if (
@@ -656,16 +691,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         );
         continue;
       }
-      // Set the selects and validate.
-      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
-      this.setSelectEntity(entityName, entity.entity_id, 'hub');
-      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
+      // Apply area and label filters before the select and validation
       if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
+        this.filteredEntities++;
         this.log.info(
           `Split entity ${CYAN}${entity.entity_id}${db} name ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
         );
         continue;
       }
+      // Set the selects and validate.
+      this.setSelectDevice(entity.id, entityName, undefined, 'hub');
+      this.setSelectEntity(entityName, entity.entity_id, 'hub');
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
 
       // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for split entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
@@ -747,6 +784,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     } catch (error) {
       this.log.error(`Error configuring platform ${idn}${this.config.name}${rs}${er}: ${error}`);
     }
+
+    // Show filter messages here to avoid multiple messages during the start process
+    for (const msg of this.filterMessages) {
+      this.wssSendSnackbarMessage(msg.message, msg.timeout, msg.severity);
+    }
+    this.log.notice(`Filtered devices: ${this.filteredDevices}`);
+    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredDevices} devices have been filtered`, 60, 'success');
+    this.log.notice(`Filtered entities: ${this.filteredEntities}`);
+    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredEntities} entities have been filtered`, 60, 'success');
   }
 
   override async onChangeLoggerLevel(logLevel: LogLevel) {
@@ -824,8 +870,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
       if (domain === 'light') {
         // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
-        const state = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff');
-        if (['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command) && state === false) {
+        const onOff = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff', data.endpoint.log) as boolean | undefined;
+        if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
           data.endpoint.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it`,
           );
@@ -839,9 +885,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           return; // Turn off the light if level <= minLevel
         }
         if (
-          command === 'on' ||
-          command === 'toggle' ||
-          (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1) && state === false)
+          onOff === false &&
+          (command === 'on' ||
+            command === 'toggle' ||
+            (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)))
         ) {
           this.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes`,

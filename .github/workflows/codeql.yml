@@ -29,4 +29,10 @@ jobs:
       - uses: github/codeql-action/init@v4
         with:
           languages: javascript
+          config: |
+            paths-ignore:
+              - 'scripts/**'
+              - '**/*.spec.ts'
+              - '**/*.test.ts'
+              - '**/__test__/*.ts'
       - uses: github/codeql-action/analyze@v4

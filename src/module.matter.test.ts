@@ -9,8 +9,7 @@ const HOMEDIR = path.join('jest', NAME);
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { Endpoint, ServerNode, Lifecycle } from 'matterbridge/matter';
-import { AggregatorEndpoint } from 'matterbridge/matter/endpoints';
+import { Lifecycle } from 'matterbridge/matter';
 import { invokeBehaviorCommand, invokeSubscribeHandler, Matterbridge, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
 import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
 import {
@@ -53,10 +52,9 @@ import {
   setupTest,
   loggerLogSpy,
   destroyTestEnvironment,
-  logKeepAlives,
   aggregator,
   server,
-  addMatterbridgePlatform,
+  logKeepAlives,
 } from 'matterbridge/jestutils';
 
 // Home Assistant Plugin
@@ -211,8 +209,8 @@ describe('Matterbridge ' + NAME, () => {
     await destroyTestEnvironment();
 
     // Wait 500ms to allow single entities to reset to off
-    await flushAsync();
-    await flushAsync();
+    // await flushAsync();
+    // await flushAsync();
 
     // Restore all mocks
     jest.restoreAllMocks();
@@ -284,6 +282,7 @@ describe('Matterbridge ' + NAME, () => {
     } as unknown as HassDevice;
     const airQualitySensorEntity = {
       area_id: null,
+      disabled_by: null,
       device_id: airQualitySensorDevice.id,
       entity_category: null,
       entity_id: 'sensor.air_quality_sensor',
@@ -342,6 +341,7 @@ describe('Matterbridge ' + NAME, () => {
     const airQualitySensorEnumEntity = {
       area_id: null,
       device_id: airQualitySensorEnumDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.air_quality_sensor_enum',
       has_entity_name: true,
@@ -421,6 +421,7 @@ describe('Matterbridge ' + NAME, () => {
     const airQualitySensorEnumEntity = {
       area_id: null,
       device_id: airQualitySensorEnumDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.air_quality_sensor_enum',
       has_entity_name: true,
@@ -517,6 +518,7 @@ describe('Matterbridge ' + NAME, () => {
     const electricalSensorVoltageEntity = {
       area_id: null,
       device_id: electricalSensorDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.electrical_sensor_voltage',
       has_entity_name: true,
@@ -529,6 +531,7 @@ describe('Matterbridge ' + NAME, () => {
     const electricalSensorCurrentEntity = {
       area_id: null,
       device_id: electricalSensorDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.electrical_sensor_current',
       has_entity_name: true,
@@ -541,6 +544,7 @@ describe('Matterbridge ' + NAME, () => {
     const electricalSensorPowerEntity = {
       area_id: null,
       device_id: electricalSensorDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.electrical_sensor_power',
       has_entity_name: true,
@@ -553,6 +557,7 @@ describe('Matterbridge ' + NAME, () => {
     const electricalSensorEnergyEntity = {
       area_id: null,
       device_id: electricalSensorDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.electrical_sensor_energy',
       has_entity_name: true,
@@ -654,6 +659,7 @@ describe('Matterbridge ' + NAME, () => {
     const batteryTemperatureEntity = {
       area_id: null,
       device_id: batteryDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.temperature',
       has_entity_name: true,
@@ -666,6 +672,7 @@ describe('Matterbridge ' + NAME, () => {
     const batteryAlertEntity = {
       area_id: null,
       device_id: batteryDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'binary_sensor.battery',
       has_entity_name: true,
@@ -678,6 +685,7 @@ describe('Matterbridge ' + NAME, () => {
     const batteryLevelEntity = {
       area_id: null,
       device_id: batteryDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.battery',
       has_entity_name: true,
@@ -690,6 +698,7 @@ describe('Matterbridge ' + NAME, () => {
     const batteryVoltageEntity = {
       area_id: null,
       device_id: batteryDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.battery_voltage',
       has_entity_name: true,
@@ -810,6 +819,7 @@ describe('Matterbridge ' + NAME, () => {
     const switch1Entity = {
       area_id: null,
       device_id: switchDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'switch.switch1',
       has_entity_name: true,
@@ -822,6 +832,7 @@ describe('Matterbridge ' + NAME, () => {
     const switch1EnergyEntity = {
       area_id: null,
       device_id: switchDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.switch1_energy',
       has_entity_name: true,
@@ -834,6 +845,7 @@ describe('Matterbridge ' + NAME, () => {
     const switch2Entity = {
       area_id: null,
       device_id: switchDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'switch.switch2',
       has_entity_name: true,
@@ -846,6 +858,7 @@ describe('Matterbridge ' + NAME, () => {
     const switch2EnergyEntity = {
       area_id: null,
       device_id: switchDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'sensor.switch2_energy',
       has_entity_name: true,
@@ -992,6 +1005,7 @@ describe('Matterbridge ' + NAME, () => {
     const switchEntity = {
       area_id: null,
       device_id: switchDevice.id,
+      disabled_by: null,
       entity_category: null,
       entity_id: 'switch.switch',
       has_entity_name: true,
@@ -1071,6 +1085,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: valveDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'valve.valve',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0aa',
@@ -1152,6 +1167,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: vacuumDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'vacuum.vacuum',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0aa',
@@ -1280,6 +1296,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: lightDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'light.light_ct',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450cc2b0aa',
@@ -1348,6 +1365,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: lightDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'light.light',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0aa',
@@ -1416,6 +1434,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: fanDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'fan.fan',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ab',
@@ -1521,6 +1540,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: fanDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'fan.fan_complete',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ab',
@@ -1679,6 +1699,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: climateDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'climate.climate_auto',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ab',
@@ -1809,6 +1830,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: contactDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'binary_sensor.door_contact',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
@@ -1874,6 +1896,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: leakDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'binary_sensor.leak_sensor',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
@@ -1939,6 +1962,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: presenceDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'binary_sensor.door_contact',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
@@ -2007,6 +2031,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: smokeDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'binary_sensor.smoke_sensor',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
@@ -2073,6 +2098,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: coDevice.id,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'binary_sensor.co_sensor',
       has_entity_name: true,
       id: '5625a337cb83edefb1d310450ad2b0ac',
@@ -2132,6 +2158,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'binary_sensor.door_contact',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
@@ -2190,6 +2217,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'sensor.temperature',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
@@ -2246,6 +2274,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'sensor.air_quality',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
@@ -2302,6 +2331,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'switch.template_switch',
       platform: 'template',
       has_entity_name: true,
@@ -2375,6 +2405,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'light.template_light',
       platform: 'template',
       has_entity_name: true,
@@ -2451,6 +2482,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'light.template_dimmer',
       platform: 'template',
       has_entity_name: true,
@@ -2591,6 +2623,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'light.template_ct',
       platform: 'template',
       has_entity_name: true,
@@ -2707,6 +2740,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'light.template_rgb',
       platform: 'template',
       has_entity_name: true,
@@ -2848,6 +2882,7 @@ describe('Matterbridge ' + NAME, () => {
       area_id: null,
       device_id: null,
       entity_category: null,
+      disabled_by: null,
       entity_id: 'sensor.unknown',
       has_entity_name: true,
       id: '0b25a337cb83edefb1d310450ad2b0ac',
@@ -2884,6 +2919,7 @@ describe('Matterbridge ' + NAME, () => {
     const hassDevice = {
       id: '560898f83188759ed7329e97df00ee7c',
       name: 'All Domain Device',
+      disabled_by: null,
     } as unknown as HassDevice;
     haPlatform.ha.hassDevices.set(hassDevice.id, hassDevice);
 
@@ -2942,7 +2978,7 @@ describe('Matterbridge ' + NAME, () => {
       [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
-      haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id });
+      haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id, disabled_by: null });
       haPlatform.ha.hassStates.set(s.entity_id, s);
     }
     haPlatform.config.splitEntities = [...entities.map(([e]) => e.entity_id)];
@@ -3137,7 +3173,7 @@ describe('Matterbridge ' + NAME, () => {
       [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
-      haPlatform.ha.hassEntities.set(e.entity_id, { ...e });
+      haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: null, disabled_by: null });
       haPlatform.ha.hassStates.set(s.entity_id, s);
     }
     haPlatform.config.splitEntities = [...entities.map(([e]) => e.entity_id)];

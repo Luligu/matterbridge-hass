@@ -2,15 +2,20 @@
 
 [![npm version](https://img.shields.io/npm/v/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
 [![npm downloads](https://img.shields.io/npm/dt/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
-[![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge?label=docker%20version&sort=semver)](https://hub.docker.com/r/luligu/matterbridge)
-[![Docker Pulls](https://img.shields.io/docker/pulls/luligu/matterbridge.svg)](https://hub.docker.com/r/luligu/matterbridge)
+[![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge/latest?label=docker%20version)](https://hub.docker.com/r/luligu/matterbridge)
+[![Docker Pulls](https://img.shields.io/docker/pulls/luligu/matterbridge?label=docker%20pulls)](https://hub.docker.com/r/luligu/matterbridge)
 ![Node.js CI](https://github.com/Luligu/matterbridge-hass/actions/workflows/build.yml/badge.svg)
 ![CodeQL](https://github.com/Luligu/matterbridge-hass/actions/workflows/codeql.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Luligu/matterbridge-hass/branch/main/graph/badge.svg)](https://codecov.io/gh/Luligu/matterbridge-hass)
+[![styled with prettier](https://img.shields.io/badge/styled_with-Prettier-f8bc45.svg?logo=prettier)](https://github.com/prettier/prettier)
+[![linted with eslint](https://img.shields.io/badge/linted_with-ES_Lint-4B32C3.svg?logo=eslint)](https://github.com/eslint/eslint)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![ESM](https://img.shields.io/badge/ESM-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/api/esm.html)
+[![matterbridge.io](https://img.shields.io/badge/matterbridge.io-online-brightgreen)](https://matterbridge.io)
 
-[![power by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
-[![power by](https://img.shields.io/badge/powered%20by-node--ansi--logger-blue)](https://www.npmjs.com/package/node-ansi-logger)
-[![power by](https://img.shields.io/badge/powered%20by-node--persist--manager-blue)](https://www.npmjs.com/package/node-persist-manager)
+[![powered by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
+[![powered by](https://img.shields.io/badge/powered%20by-node--ansi--logger-blue)](https://www.npmjs.com/package/node-ansi-logger)
+[![powered by](https://img.shields.io/badge/powered%20by-node--persist--manager-blue)](https://www.npmjs.com/package/node-persist-manager)
 
 ---
 
@@ -50,6 +55,7 @@ Features:
 | vacuum (2) | idle, cleaning, paused, docked, returning |                                                                                         |
 
 (1) - Supported preset_modes: auto, low, medium, high.
+
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config.
 
 These domains are supported also like individual and split entities.
@@ -75,8 +81,8 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 | sensor | measurement           | pressure                   | inHg, hPa, kPa | pressureSensor     |
 | sensor | measurement           | atmospheric_pressure       | inHg, hPa, kPa | pressureSensor     |
 | sensor | measurement           | illuminance                | lx             | lightSensor        |
-| sensor | measurement           | battery                    | %              | powerSource        |
-| sensor | measurement           | voltage (battery)          | mV             | powerSource        |
+| sensor | measurement           | battery (3)                | %              | powerSource        |
+| sensor | measurement           | voltage (battery) (3)      | mV             | powerSource        |
 | sensor | measurement           | voltage                    | V              | electricalSensor   |
 | sensor | measurement           | current                    | A              | electricalSensor   |
 | sensor | measurement           | power                      | W              | electricalSensor   |
@@ -94,7 +100,10 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 | sensor | measurement           | pm10                       | ugm3 (2)       | airQualitySensor   |
 
 (1) - If the air quality entity is not standard (e.g. state class = measurement, device class = aqi and state number range 0-500), it is possible to set a regexp. See below.
+
 (2) - On the controller side.
+
+(3) - Must be an entity that belongs to a device. Battery alone is not a device in Matter.
 
 ## Supported binary_sensors:
 

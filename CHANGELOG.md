@@ -10,6 +10,36 @@ If you like this project and find it useful, please consider giving it a star on
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.0.4] - 2026-02-04
+
+### Breaking changes
+
+- [disabled]: All devices and entities that are disabled are discarded (https://github.com/Luligu/matterbridge-hass/issues/141).
+- [hidden]: All entities that are hidden are discarded (https://github.com/Luligu/matterbridge-hass/issues/141).
+- [filter]: The filters (filterByLabel and filterByArea) are now applied before adding the devices and entities to the select (white list and black list). You will not find anymore devices and entities that are filtered in the Devices panel. Thanks GLSSoftware (https://github.com/Luligu/matterbridge-hass/issues/167).
+
+### Added
+
+- [publish]: Migrated publish workflow to trusted publishing / OIDC.
+- [label]: Added warning message on the frontend when the label set in **filterByLabel** is not valid.
+- [label]: Added confirmation message on the frontend when the filter set in **filterByLabel** is active.
+- [area]: Added warning message on the frontend when the area set in **filterByArea** is not valid.
+- [area]: Added confirmation message on the frontend when the filter set in **filterByArea** is active.
+- [filter]: Added confirmation message on the frontend with the total number of devices filtered and the total number of entities filtered.
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Bumped package to automator v.3.0.4.
+- [workflows]: Migrated to node 24.x.
+
+### Fixed
+
+- [ligthning]: Fixed on commands received while the light is off => turn on the light with attributes. Thanks S1146468 and nixpare (https://github.com/Luligu/matterbridge-hass/issues/162).
+- [converter]: Fixed conversion of colorXY HA => Matter. Thanks S1146468 and nixpare (https://github.com/Luligu/matterbridge-hass/issues/162).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.3] - 2026-01-23
 
 ### Breaking changes for Apple Home users
