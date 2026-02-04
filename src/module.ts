@@ -870,8 +870,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
       if (domain === 'light') {
         // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
-        const state = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff');
-        if (['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command) && state === false) {
+        const onOff = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff', data.endpoint.log) as boolean | undefined;
+        if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
           data.endpoint.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it`,
           );
@@ -885,9 +885,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           return; // Turn off the light if level <= minLevel
         }
         if (
-          command === 'on' ||
-          command === 'toggle' ||
-          (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1) && state === false)
+          onOff === false &&
+          (command === 'on' ||
+            command === 'toggle' ||
+            (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)))
         ) {
           this.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes`,
