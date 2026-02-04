@@ -46,7 +46,18 @@ import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorC
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel, ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES } from './homeAssistant.js';
+import {
+  HassDevice,
+  HassEntity,
+  HassState,
+  HomeAssistant,
+  HassConfig as HassConfig,
+  HomeAssistantPrimitive,
+  HassServices,
+  HassArea,
+  HassLabel,
+  ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES,
+} from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
   clamp,
@@ -877,10 +888,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.ha.entitiesRuntimeData.set(entityId, runtimeData);
         }
         if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
-          ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES.filter((attr) => data.request[attr] != undefined).forEach(attr => runtimeData.lightOffUpdated!.add(attr));
+          ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES.filter((attr) => data.request[attr] != undefined).forEach((attr) => runtimeData.lightOffUpdated?.add(attr));
           data.endpoint.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it` +
-            ` (payload: ${debugStringify(data.request)} - lightOffUpdated: [${runtimeData.lightOffUpdated?.values().toArray()}])`,
+              ` (payload: ${debugStringify(data.request)} - lightOffUpdated: [${runtimeData.lightOffUpdated?.values().toArray()}])`,
           );
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
@@ -903,9 +914,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
           // We need to add the cluster attributes updated while the light was off since we are turning on the light
           const brightness = data.request.level
-            ? Math.round(data.request.level / 254 * 255)
-            : runtimeData.lightOffUpdated?.has('level') &&
-              data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
+            ? Math.round((data.request.level / 254) * 255)
+            : runtimeData.lightOffUpdated?.has('level') && data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
               ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
               : undefined;
           if (isValidNumber(brightness, 1, 255)) {
@@ -916,9 +926,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           const color_temp =
             runtimeData.lightOffUpdated?.has('colorTemperatureMireds') &&
-              data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
-              data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
               ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
               : undefined;
           if (isValidNumber(color_temp)) {
@@ -932,14 +942,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           const hs_color =
             (runtimeData.lightOffUpdated?.has('hue') || runtimeData.lightOffUpdated?.has('saturation')) &&
-              data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
-              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
-              data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
               ? [
-                Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
-                Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
-              ]
+                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
+                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+                ]
               : undefined;
           if (isValidArray(hs_color, 2)) {
             serviceAttributes['hs_color'] = hs_color;
@@ -949,10 +959,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           const xy_color =
             (runtimeData.lightOffUpdated?.has('colorX') || runtimeData.lightOffUpdated?.has('colorY')) &&
-              data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
-              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
-              data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
+            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
               ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
               : undefined;
           if (isValidArray(xy_color, 2)) {
@@ -963,9 +973,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           runtimeData.lightOffUpdated?.clear();
           // Transition time
-          const transition = data.request.transitionTime != undefined
-            ? Math.round(data.request.transitionTime / 10)
-            : undefined;
+          const transition = data.request.transitionTime != undefined ? Math.round(data.request.transitionTime / 10) : undefined;
           if (isValidNumber(transition, 1)) {
             serviceAttributes['transition'] = transition;
           }
