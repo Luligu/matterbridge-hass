@@ -873,7 +873,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const onOff = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff', data.endpoint.log) as boolean | undefined;
         if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
           data.endpoint.log.debug(
-            `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it`,
+            `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it (request ${debugStringify(data.request)})`,
           );
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
@@ -895,40 +895,42 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
           // We need to add the cluster attributes since we are turning on the light and it was off
-          const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
-            ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
-            : undefined;
+          const brightness =
+            data.request.level &&
+            data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
+              ? Math.round(data.request.level / 254 * 255)
+              : undefined;
           if (isValidNumber(brightness, 1, 255)) serviceAttributes['brightness'] = brightness;
-          const color_temp =
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
-              ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
-              : undefined;
-          if (isValidNumber(color_temp))
-            serviceAttributes['color_temp_kelvin'] =
-              state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
-                ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
-                : miredsToKelvin(color_temp, 'floor');
-          const hs_color =
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
-              ? [
-                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
-                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
-                ]
-              : undefined;
-          if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
-          const xy_color =
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
-              ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
-              : undefined;
-          if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
+          //const color_temp =
+          //  data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
+          //  data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
+          //    ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
+          //    : undefined;
+          //if (isValidNumber(color_temp))
+          //  serviceAttributes['color_temp_kelvin'] =
+          //    state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
+          //      ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
+          //      : miredsToKelvin(color_temp, 'floor');
+          //const hs_color =
+          //  data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
+          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
+          //  data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
+          //    ? [
+          //        Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
+          //        Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+          //      ]
+          //    : undefined;
+          //if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
+          //const xy_color =
+          //  data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
+          //  data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
+          //  data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
+          //    ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
+          //    : undefined;
+          //if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
           // Transition time
           if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
           // Call the light.turn_on service with the attributes
