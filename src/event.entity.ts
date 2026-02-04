@@ -46,7 +46,7 @@ export function addEventEntity(mutableDevice: MutableDevice, entity: HassEntity,
   if (domain !== 'event') return undefined;
 
   log.debug(`- domain ${domain} deviceClass ${state.attributes.device_class} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`);
-  for (const eventType of state.attributes.event_types) {
+  for (const eventType of state.attributes.event_types || []) {
     if (hassDomainEventConverter.find((e) => e.hassEventType === eventType)) {
       log.debug(`+ event ${CYAN}${eventType}${db}`);
       supportedEventTypes.push(eventType);

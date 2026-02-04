@@ -68,6 +68,15 @@ describe('addEventEntity', () => {
     expect(ep).toBeUndefined();
   });
 
+  it("doesn't add not valid event state", () => {
+    const md = createMockMutableDevice();
+    const entity = { entity_id: `event.entity_invalid` } as any;
+    // @ts-expect-error Testing invalid state
+    const state = baseState(undefined, EventDeviceClass.MOTION, 'unknown');
+    const ep = addEventEntity(md as any, entity, state, mockLog);
+    expect(ep).toBeUndefined();
+  });
+
   it('adds button and friendly name', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity(EventDeviceClass.BUTTON);

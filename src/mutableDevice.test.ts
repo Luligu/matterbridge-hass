@@ -57,6 +57,7 @@ import {
 } from 'matterbridge/matter/clusters';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 import { addDevice, aggregator, createTestEnvironment, destroyTestEnvironment, logKeepAlives, server, setupTest, startServerNode, stopServerNode } from 'matterbridge/jestutils';
+import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 
 import { MutableDevice } from './mutableDevice.js';
 
@@ -176,6 +177,66 @@ describe('MutableDevice', () => {
 
   it('should add a BridgedDeviceBasicInformationCluster', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device BridgedDeviceBasicInformationCluster');
+    mutableDevice.addDeviceTypes('', bridgedNode);
+    device = (mutableDevice as any).createMainEndpoint();
+    mutableDevice.addBridgedDeviceBasicInformationClusterServer();
+
+    expect(mutableDevice.has('')).toBeTruthy();
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().tagList).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.Cluster.id);
+    expect(mutableDevice.get().clusterServersObjs[0].type).toBe(BridgedDeviceBasicInformationServer);
+    expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
+    mutableDevice.logMutableDevice();
+
+    await addDevice(aggregator, device);
+    mutableDevice.destroy();
+  });
+
+  it('should add a BridgedDeviceBasicInformationCluster with software and hardware', async () => {
+    const mutableDevice = new MutableDevice(
+      mockMatterbridge,
+      'Test Device BridgedDeviceBasicInformationClusterWithSoftwareAndHardware',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      123,
+      'v1.2.3',
+      456,
+      'v4.5.6',
+    );
+    mutableDevice.addDeviceTypes('', bridgedNode);
+    device = (mutableDevice as any).createMainEndpoint();
+    mutableDevice.addBridgedDeviceBasicInformationClusterServer();
+
+    expect(mutableDevice.has('')).toBeTruthy();
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().tagList).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.Cluster.id);
+    expect(mutableDevice.get().clusterServersObjs[0].type).toBe(BridgedDeviceBasicInformationServer);
+    expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
+    mutableDevice.logMutableDevice();
+
+    await addDevice(aggregator, device);
+    mutableDevice.destroy();
+  });
+
+  it('should add a BridgedDeviceBasicInformationCluster with invalid software and hardware', async () => {
+    const mutableDevice = new MutableDevice(
+      mockMatterbridge,
+      'Test Device BridgedDeviceBasicInformationClusterWithInvalidSoftwareAndHardware',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      UINT32_MAX + 1,
+      1 as any,
+      UINT16_MAX + 1,
+      1 as any,
+    );
     mutableDevice.addDeviceTypes('', bridgedNode);
     device = (mutableDevice as any).createMainEndpoint();
     mutableDevice.addBridgedDeviceBasicInformationClusterServer();
