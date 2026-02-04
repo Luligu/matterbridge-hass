@@ -418,8 +418,7 @@ export const DEFAULT_MIN_HUMIDITY = 30;
 export const DEFAULT_MAX_HUMIDITY = 99;
 
 export interface EntityRuntimeData {
-  lightOffUpdated?: Set<typeof ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES[number]>;
-  lightOffTransitionEnd?: Date;
+  lightOffUpdated?: Set<(typeof ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES)[number]>;
 }
 
 export const ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES = ['level', 'colorTemperatureMireds', 'hue', 'saturation', 'colorX', 'colorY'] as const;

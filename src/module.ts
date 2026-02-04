@@ -878,14 +878,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
         if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
           ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES.filter((attr) => data.request[attr] != undefined).forEach(attr => runtimeData.lightOffUpdated!.add(attr));
-          if (data.request.transitionTime > 0) {
-            runtimeData.lightOffTransitionEnd = new Date(Date.now() + (data.request.transitionTime * 100));
-          } else {
-            runtimeData.lightOffTransitionEnd = undefined;
-          }
           data.endpoint.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it` +
-            ` (payload: ${debugStringify(data.request)} - lightOffUpdated: [${runtimeData.lightOffUpdated?.values().toArray()}] - transitionTime: ${runtimeData.lightOffTransitionEnd ? (runtimeData.lightOffTransitionEnd.getTime() - Date.now()) / 1000 : undefined} seconds)`,
+            ` (payload: ${debugStringify(data.request)} - lightOffUpdated: [${runtimeData.lightOffUpdated?.values().toArray()}])`,
           );
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
@@ -970,17 +965,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           // Transition time
           const transition = data.request.transitionTime != undefined
             ? Math.round(data.request.transitionTime / 10)
-            : runtimeData.lightOffTransitionEnd != undefined &&
-              runtimeData.lightOffTransitionEnd.getTime() > Date.now()
-                ? Math.round((runtimeData.lightOffTransitionEnd.getTime() - Date.now()) / 1000)
-                : undefined;
+            : undefined;
           if (isValidNumber(transition, 1)) {
             serviceAttributes['transition'] = transition;
-            data.endpoint.log.debug(
-              `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting transition (${transition} ms)`,
-            );
           }
-          runtimeData.lightOffTransitionEnd = undefined;
           // Call the light.turn_on service with the attributes
           await this.ha.callService('light', 'turn_on', entityId, serviceAttributes);
           return;
@@ -1176,7 +1164,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const runtimeData = this.ha.entitiesRuntimeData.get(entityId);
         if (runtimeData) {
           runtimeData.lightOffUpdated?.clear();
-          runtimeData.lightOffTransitionEnd = undefined;
           endpoint.log.debug(`State changed from off to on, cleared attribute light-off updates queue for entity ${CYAN}${entityId}${nf}`);
         }
       }
