@@ -33,6 +33,11 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [package]: Bumped package to automator v.3.0.4.
 - [workflows]: Migrated to node 24.x.
 
+### Fixed
+
+- [ligthning]: Fixed on commands received while the light is off => turn on the light with attributes. Thanks S1146468 and nixpare (https://github.com/Luligu/matterbridge-hass/issues/162).
+- [converter]: Fixed conversion of colorXY HA => Matter. Thanks S1146468 and nixpare (https://github.com/Luligu/matterbridge-hass/issues/162).
+
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.0.3] - 2026-01-23
