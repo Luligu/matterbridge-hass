@@ -159,13 +159,13 @@ describe('Matterbridge ' + NAME, () => {
       await aggregator.add(device);
       await flushAsync(undefined, undefined, 10);
     }),
-    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
-    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
-    addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {}),
+    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => { }),
+    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => { }),
+    addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => { }),
   } as unknown as Matterbridge;
 
   const mockConfig: HomeAssistantPlatformConfig = {
-    name: 'matterbridge-hass-test',
+    name: 'matterbridge-hass',
     type: 'DynamicPlatform',
     version: '1.0.0',
     host: 'http://homeassistant.local:8123',

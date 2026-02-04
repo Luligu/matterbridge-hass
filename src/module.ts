@@ -305,7 +305,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     // Create the plugin directory inside the Matterbridge plugin directory
-    await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass-test'), { recursive: true });
+    await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
 
     // Wait for Home Assistant to be connected and fetch devices and entities and subscribe events
     this.log.info(`Connecting to Home Assistant at ${CYAN}${this.config.host}${nf}...`);
@@ -324,7 +324,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await waiter('Home Assistant connected', check, true, 110000, 1000); // Wait for 110 seconds with 1 second interval and throw error if not connected
 
     // Save devices, entities, states, config and services to a local file without awaiting
-    this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass-test', 'homeassistant.json'));
+    this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'));
 
     // Clean the selectDevice and selectEntity maps
     await this.ready;
@@ -906,8 +906,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             ? Math.round(data.request.level / 254 * 255)
             : runtimeData.lightOffUpdated?.has('level') &&
               data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
-                ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
-                : undefined;
+              ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
+              : undefined;
           if (isValidNumber(brightness, 1, 255)) {
             serviceAttributes['brightness'] = brightness;
             data.endpoint.log.debug(
@@ -916,9 +916,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           const color_temp =
             runtimeData.lightOffUpdated?.has('colorTemperatureMireds') &&
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
+              data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
+              data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
               ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
               : undefined;
           if (isValidNumber(color_temp)) {
@@ -932,14 +932,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           const hs_color =
             (runtimeData.lightOffUpdated?.has('hue') || runtimeData.lightOffUpdated?.has('saturation')) &&
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
+              data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
+              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
+              data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
               ? [
-                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
-                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
-                ]
+                Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
+                Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+              ]
               : undefined;
           if (isValidArray(hs_color, 2)) {
             serviceAttributes['hs_color'] = hs_color;
@@ -949,10 +949,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
           const xy_color =
             (runtimeData.lightOffUpdated?.has('colorX') || runtimeData.lightOffUpdated?.has('colorY')) &&
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
+              data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
+              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
+              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
+              data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
               ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
               : undefined;
           if (isValidArray(xy_color, 2)) {
@@ -1021,20 +1021,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (context && !context.fabric) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update`,
+        `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update`,
       );
       return; // Skip offline updates
     }
     if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} not changed`,
+        `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} not changed`,
       );
       return; // Skip unchanged values
     }
     endpoint.log.info(
       `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} ` +
-        `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
+      `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
     );
     const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
     if (hassSubscribe.converter)
@@ -1086,7 +1086,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
-        `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
+      `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
     );
     const domain = entityId.split('.')[0];
     if (['automation', 'scene', 'script', 'input_button'].includes(domain)) {
@@ -1103,15 +1103,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const hassSensorConverter =
         new_state.attributes['device_class'] === 'voltage' && new_state.attributes['unit_of_measurement'] === 'V'
           ? hassDomainSensorsConverter.find(
-              (s) =>
-                s.domain === domain &&
-                s.withStateClass === new_state.attributes['state_class'] &&
-                s.withDeviceClass === new_state.attributes['device_class'] &&
-                s.deviceType === (this.batteryVoltageEntities.has(entityId) ? powerSource : electricalSensor),
-            )
+            (s) =>
+              s.domain === domain &&
+              s.withStateClass === new_state.attributes['state_class'] &&
+              s.withDeviceClass === new_state.attributes['device_class'] &&
+              s.deviceType === (this.batteryVoltageEntities.has(entityId) ? powerSource : electricalSensor),
+          )
           : hassDomainSensorsConverter.find(
-              (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
-            );
+            (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
+          );
       if (hassSensorConverter) {
         // accepted values: "0" "123" "-1" "23.5" "-0.25"
         const stateValue = /^-?\d+(\.\d+)?$/.test(new_state.state) ? parseFloat(new_state.state) : new_state.state;

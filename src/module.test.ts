@@ -64,7 +64,7 @@ describe('HassPlatform', () => {
   let haPlatform: HomeAssistantPlatform;
 
   const mockConfig: HomeAssistantPlatformConfig = {
-    name: 'matterbridge-hass-test',
+    name: 'matterbridge-hass',
     type: 'DynamicPlatform',
     version: '1.0.0',
     host: 'http://homeassistant.local:8123',
