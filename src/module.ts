@@ -46,18 +46,7 @@ import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorC
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
-import {
-  HassDevice,
-  HassEntity,
-  HassState,
-  HomeAssistant,
-  HassConfig as HassConfig,
-  HomeAssistantPrimitive,
-  HassServices,
-  HassArea,
-  HassLabel,
-  ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES,
-} from './homeAssistant.js';
+import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
   clamp,
@@ -1036,13 +1025,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-        `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} not changed`,
+          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} not changed`,
       );
       return; // Skip unchanged values
     }
     endpoint.log.info(
       `${db}Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} ` +
-      `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
+        `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
     );
     const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
     if (hassSubscribe.converter)
@@ -1094,7 +1083,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
-      `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
+        `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
     );
     const domain = entityId.split('.')[0];
     if (['automation', 'scene', 'script', 'input_button'].includes(domain)) {
@@ -1111,15 +1100,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const hassSensorConverter =
         new_state.attributes['device_class'] === 'voltage' && new_state.attributes['unit_of_measurement'] === 'V'
           ? hassDomainSensorsConverter.find(
-            (s) =>
-              s.domain === domain &&
-              s.withStateClass === new_state.attributes['state_class'] &&
-              s.withDeviceClass === new_state.attributes['device_class'] &&
-              s.deviceType === (this.batteryVoltageEntities.has(entityId) ? powerSource : electricalSensor),
-          )
+              (s) =>
+                s.domain === domain &&
+                s.withStateClass === new_state.attributes['state_class'] &&
+                s.withDeviceClass === new_state.attributes['device_class'] &&
+                s.deviceType === (this.batteryVoltageEntities.has(entityId) ? powerSource : electricalSensor),
+            )
           : hassDomainSensorsConverter.find(
-            (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
-          );
+              (s) => s.domain === domain && s.withStateClass === new_state.attributes['state_class'] && s.withDeviceClass === new_state.attributes['device_class'],
+            );
       if (hassSensorConverter) {
         // accepted values: "0" "123" "-1" "23.5" "-0.25"
         const stateValue = /^-?\d+(\.\d+)?$/.test(new_state.state) ? parseFloat(new_state.state) : new_state.state;
