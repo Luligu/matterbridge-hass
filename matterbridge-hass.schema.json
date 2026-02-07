@@ -50,7 +50,7 @@
       "default": ""
     },
     "filterByLabel": {
-      "description": "Filter devices and individual entities by label (use label name or label_id). If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.",
+      "description": "Filter devices and individual entities by label (use label name). If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed.",
       "type": "string",
       "default": ""
     },
