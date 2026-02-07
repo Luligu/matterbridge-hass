@@ -2,13 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
-If you like this project and find it useful, please consider giving it a star on GitHub at https://github.com/Luligu/matterbridge-hass and sponsoring it.
+If you like this project and find it useful, please consider giving it a **star** on [GitHub](https://github.com/Luligu/matterbridge-hass) and **sponsoring** it.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
 ### Naming issues on the controller side explained
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## [1.0.5] - Dev branch
+
+### Breaking changes
+
+- [filters]: The filterByLabel must be the label name.
+
+### Added
+
+- [select]: Added confirmation message on the frontend with the total number of devices and entities discarded by the select (whiteList, blackList and deviceEntityBlackList).
+
+### Changed
+
+- [package]: Updated dependencies.
+- [package]: Bumped package to automator v.3.0.6.
+- [package]: Bumped node-ansi-logger to v.3.2.0.
+- [vite]: Added cache under .cache/vite.
+- [workflow]: Migrated to trusted publishing / OIDC. Since you can authorize only one workflow with OIDC, publish.yml now does both the publishing with tag latest (on release) and with tag dev (on schedule or manual trigger).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.0.4] - 2026-02-04
 
@@ -25,7 +45,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 - [label]: Added confirmation message on the frontend when the filter set in **filterByLabel** is active.
 - [area]: Added warning message on the frontend when the area set in **filterByArea** is not valid.
 - [area]: Added confirmation message on the frontend when the filter set in **filterByArea** is active.
-- [filter]: Added confirmation message on the frontend with the total number of devices filtered and the total number of entities filtered.
+- [filter]: Added confirmation message on the frontend with the total number of devices and entities discarded by filters (filterByArea and filterByLabel).
 
 ### Changed
 

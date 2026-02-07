@@ -25,6 +25,12 @@ jobs:
           node-version: '24.x'
           cache: npm
 
+      - name: Verify Node.js version
+        run: node -v
+
+      - name: Verify Npm version
+        run: npm -v
+
       - name: Clone matterbridge repo
         run: git clone --depth 1 --single-branch --no-tags https://github.com/Luligu/matterbridge.git ../matterbridge
 
