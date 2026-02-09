@@ -905,10 +905,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
           // We need to add the cluster attributes since we are turning on the light and it was off
+          // In Matter level is 1-254 while in Home Assistant brightness is 1-255
           const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
             ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
             : undefined;
           if (isValidNumber(brightness, 1, 255)) serviceAttributes['brightness'] = brightness;
+          if (command === 'moveToLevelWithOnOff' && isValidNumber(data.request['level'], 2, 254)) serviceAttributes['brightness'] = Math.round((data.request['level'] / 254) * 255);
           const color_temp =
             data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
@@ -920,6 +922,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
                 ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
                 : miredsToKelvin(color_temp, 'floor');
+          // In Matter the hue in degrees shall be related to the CurrentHue attribute by the relationship:
+          // Hue = "CurrentHue" * 360 / 254
+          // where CurrentHue is in the range from 0 to 254 inclusive.
+          // In Matter the saturation (on a scale from 0.0 to 1.0) shall be related to the CurrentSaturation attribute by the relationship:
+          // Saturation = "CurrentSaturation" / 254
+          // where CurrentSaturation is in the range from 0 to 254 inclusive.
           const hs_color =
             data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
@@ -931,6 +939,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                 ]
               : undefined;
           if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
+          // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
           const xy_color =
             data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&

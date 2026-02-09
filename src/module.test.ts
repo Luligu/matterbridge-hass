@@ -10,17 +10,15 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, Matterbridge, MatterbridgeEndpoint, onOffOutlet } from 'matterbridge';
+import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, MatterbridgeEndpoint, onOffOutlet } from 'matterbridge';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
-import { AnsiLogger, db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or, TimestampFormat } from 'matterbridge/logger';
+import { db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 import {
   flushAsync,
   setupTest,
   loggerLogSpy,
-  createTestEnvironment,
-  destroyTestEnvironment,
   createMatterbridgeEnvironment,
   destroyMatterbridgeEnvironment,
   log,
@@ -32,6 +30,12 @@ import {
   addMatterbridgePlatform,
   loggerNoticeSpy,
   setDebug,
+  addBridgedEndpointSpy,
+  removeAllBridgedEndpointsSpy,
+  removeBridgedEndpointSpy,
+  addVirtualEndpointSpy,
+  setAttributeSpy,
+  triggerSwitchEventSpy,
 } from 'matterbridge/jestutils';
 
 import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
@@ -94,22 +98,21 @@ describe('HassPlatform', () => {
     throw new Error('Failed to read or parse mock homeassistant.json file');
   }
 
-  const setAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
-  const updateAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'updateAttribute');
-  const triggerEventSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'triggerEvent');
-  const triggerSwitchEventSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'triggerSwitchEvent');
-
-  jest.spyOn(Matterbridge.prototype, 'addBridgedEndpoint').mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
+  addBridgedEndpointSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
     console.log(`Mocked Matterbridge.addBridgedEndpoint: ${pluginName} ${device.name}`);
     return Promise.resolve();
   });
-  jest.spyOn(Matterbridge.prototype, 'removeBridgedEndpoint').mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
+  removeBridgedEndpointSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
     console.log(`Mocked Matterbridge.removeBridgedEndpoint: ${pluginName} ${device.name}`);
     return Promise.resolve();
   });
-  jest.spyOn(Matterbridge.prototype, 'removeAllBridgedEndpoints').mockImplementation((pluginName: string) => {
+  removeAllBridgedEndpointsSpy.mockImplementation((pluginName: string) => {
     console.log(`Mocked Matterbridge.removeAllBridgedEndpoints: ${pluginName}`);
     return Promise.resolve();
+  });
+  addVirtualEndpointSpy.mockImplementation(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
+    console.log(`Mocked Matterbridge.addVirtualEndpoint`);
+    return true;
   });
 
   const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
