@@ -10,6 +10,18 @@ If you like this project and find it useful, please consider giving it a **star*
 
 For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.0.6] - 2026-02-10
+
+### Changed
+
+- [package]: Updated dependencies.
+
+### Fixed
+
+- [moveToLevelWithOnOff]: Fixed the case when a light is turned on with moveToLevelWithOnOff. Now takes the level from the request.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.5] - 2026-02-07
 
 ### Breaking changes
