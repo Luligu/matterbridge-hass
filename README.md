@@ -56,7 +56,7 @@ Features:
 
 (1) - Supported preset_modes: auto, low, medium, high.
 
-(2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config.
+(2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
 
 These domains are supported also like individual and split entities.
 
@@ -107,7 +107,7 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 
 ## Supported binary_sensors:
 
-| Domain        | Supported device class               | Matter device type  |
+| Domain        | Supported device class (1)           | Matter device type  |
 | ------------- | ------------------------------------ | ------------------- |
 | binary_sensor | window, garage_door, door, vibration | contactSensor       |
 | binary_sensor | motion, occupancy, presence          | occupancySensor     |
@@ -116,6 +116,8 @@ These individual entities are exposed as on/off outlets. When the outlet is turn
 | binary_sensor | smoke                                | smokeCoAlarm        |
 | binary_sensor | carbon_monoxide                      | smokeCoAlarm        |
 | binary_sensor | battery                              | powerSource         |
+
+(1) - A binary_sensor without a device class is exposed like a generic contactSensor.
 
 ## Supported events:
 
@@ -137,7 +139,7 @@ For the naming issues (expecially upsetting with Alexa) read the explanation and
 
 ## Sponsoring
 
-If you like this project and find it useful, please consider giving it a **star** on GitHub at https://github.com/Luligu/matterbridge-hass and **sponsoring** it.
+If you like this project and find it useful, please consider giving it a **star** on [GitHub](https://github.com/Luligu/matterbridge-hass) and **sponsoring** it.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
@@ -145,31 +147,23 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Matterbridge
 
-See the complete guidelines on [Matterbridge](https://github.com/Luligu/matterbridge/blob/main/README.md) for more information.
+See the complete guidelines on [Matterbridge](https://matterbridge.io) for more information.
 
 ## How to install the plugin
 
-Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with `Docker`, all plugins are already loaded in the container so you just need to select the matterbridge-hass plugin and add it. If you are using Matterbridge with the `Matterbridge Home Assistant Add-on`, you need to install the matterbridge-hass plugin.
+Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with `Docker`, all plugins are already loaded in the container so you just need to select the matterbridge-hass plugin and add it. If you are using Matterbridge with the `Matterbridge Home Assistant Application` (formerly known as add-on), you need to install the matterbridge-hass plugin.
 
 ## How to use it
 
 There are 2 different source of Matter devices coming from matterbridge-hass plugin:
 
-- Regular devices with their entities that use the main whiteList, blackList and deviceEntityBlackList.
+- Regular devices with their entities that use the main whiteList, blackList and deviceEntityBlackList. You find them in Home Assistant at http://homeassistant.local:8123/config/devices/dashboard.
 
-You find them in Home Assistant at http://localhost:8123/config/devices/dashboard.
+- Individual entities with domain scene, script, automation. You find these special entities in Home Assistant at http://homeassistant.local:8123/config/automation/dashboard, http://homeassistant.local:8123/config/scene/dashboard and http://homeassistant.local:8123/config/script/dashboard.
 
-- Individual entities with domain scene, script, automation.
+- Individual entities (helpers) with domain input_boolean, input_button. You find these special entities in Home Assistant at http://homeassistant.local:8123/config/helpers.
 
-You find these special entities in Home Assistant at http://localhost:8123/config/automation/dashboard, http://localhost:8123/config/scene/dashboard and http://localhost:8123/config/script/dashboard.
-
-- Individual entities (helpers) with domain input_boolean, input_button.
-
-You find these special entities in Home Assistant at http://localhost:8123/config/helpers.
-
-- Individual entities from template.
-
-You find these special entities in Home Assistant at http://localhost:8123/config/helpers.
+- Individual entities from template. You find these special entities in Home Assistant at http://homeassistant.local:8123/config/helpers.
 
 All the individual entities use the main whiteList, blackList.
 
@@ -209,23 +203,23 @@ Number of times to try to reconnect before giving up.
 
 ### filterByArea
 
-Filter devices and individual entities by area. If enabled, only devices and individual entities in the selected areas will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set (in this case also the device needs to belong to this area).
+Filter devices and individual entities by area. If enabled, only devices, individual entities and split entities in the selected areas will be exposed. If disabled, all devices, individual entities and split entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set (in this case also the device needs to belong to this area).
 
 ### filterByLabel
 
-Filter devices and individual entities by label. If enabled, only devices and individual entities with the selected labels will be exposed. If disabled, all devices and individual entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set is set (in this case also the device must have this label).
+Filter devices and individual entities by label. If enabled, only devices, individual entities and split entities with the selected labels will be exposed. If disabled, all devices, individual entities and split entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set (in this case also the device must have this label).
 
 ### applyFiltersToDeviceEntities
 
-Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (both the device and its entities needs to have the area and label set in the filter). If disabled, the filters will only be applied to devices (all the device entities will be included) and individual entities.
+Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities need to have the area and label that you specified in the filters). If disabled, the filters will only be applied to devices (in this case, all the entities that belong to the device will be included).
 
 ### whiteList
 
-If the whiteList is defined only the devices and the individual and split entities included are exposed to Matter. Use the device/entity name or the device/entity id.
+If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name or the device/entity id.
 
 ### blackList
 
-If the blackList is defined the devices and the individual and split entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
+If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
 
 ### deviceEntityBlackList
 
@@ -256,9 +250,9 @@ If you don't need the device temperature, just add it to deviceEntityBlackList.
 
 If you want a more technical explanation for the naming issues (expecially upsetting with Alexa) read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-**Adding an entity to splitEntities doesn't automatically add it to the whiteList so it has to be added manually if you use whiteList.**
+> **Adding an entity to splitEntities doesn't automatically add it to the whiteList so it has to be added manually if you use whiteList.**
 
-**If you enable the filters (area and label) also the split entity must sattisfy the filter criteria**
+> **If you enable the filters (area and label) also the split entity must sattisfy the filter criteria**
 
 ### airQualityRegex
 
@@ -277,7 +271,7 @@ If your setup has only one air quality sensor, you can simply put the exact enti
 
 Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode! Don't try it with Apple Home cause the bridge will become unstable even if you remove it after.
 
-In addition to this well known bugs, the rvc must be a single device, it cannot have any other device types like switch or whatever. So if your integration adds any other device types, blacklist them.
+In addition to this well known bugs, the rvc must be a single device, it cannot have any other device types like switch or whatever. So if your integration adds any other device types, blacklist or split them.
 
 ### debug
 

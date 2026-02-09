@@ -71,7 +71,9 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   token: string;
   reconnectTimeout: number;
   reconnectRetries: number;
+  /** Filter devices and entities by area name */
   filterByArea: string;
+  /** Filter devices and entities by label name */
   filterByLabel: string;
   applyFiltersToDeviceEntities: boolean;
   whiteList: string[];
@@ -112,9 +114,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Home Assistant subscription ID */
   haSubscriptionId: number | null = null;
 
-  /** Convert the label filter in the config from name to label_id */
-  labelIdFilter: string = '';
-
   /** Bridged devices map. Key is device.id for devices and entity.entity_id for individual entities (without the postfix). Value is the MatterbridgeEndpoint */
   readonly matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
 
@@ -135,6 +134,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   filterMessages: { message: string; timeout: number; severity: 'error' | 'success' | 'info' | 'warning' | undefined }[] = [];
   filteredDevices = 0;
   filteredEntities = 0;
+  unselectedDevices = 0;
+  unselectedEntities = 0;
 
   /**
    * Constructor for the HomeAssistantPlatform class.
@@ -249,15 +250,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.ha.on('areas', (areas: HassArea[]) => {
       this.log.info('Areas received from Home Assistant');
+      // Convert the area filter from the name in the config to the corresponding area_id and check if it exists.
       if (isValidString(this.config.filterByArea, 1)) {
         const area = areas.find((a) => a.name === this.config.filterByArea);
         if (area) {
           this.log.notice(`Filtering by area: ${CYAN}${area.name}${nf}`);
-          this.filterMessages.push({ message: `Home Assistant: filtering by area "${area.name}"`, timeout: 60, severity: 'success' });
+          this.filterMessages.push({ message: `Home Assistant: filtering by area "${this.config.filterByArea}"`, timeout: 60, severity: 'success' });
         } else {
-          this.log.warn(`Area "${this.config.filterByArea}" not found in Home Assistant. Filter by area will filter all devices and entities.`);
+          this.log.warn(`Area "${this.config.filterByArea}" not found in Home Assistant. Filter by area will discard all devices and entities.`);
           this.filterMessages.push({
-            message: `Home Assistant: area "${this.config.filterByArea}" set in filterByArea not found. Filter by area will filter all devices and entities.`,
+            message: `Home Assistant: area "${this.config.filterByArea}" set in filterByArea not found. Filter by area will discard all devices and entities.`,
             timeout: 0,
             severity: 'warning',
           });
@@ -267,28 +269,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.ha.on('labels', (labels: HassLabel[]) => {
       this.log.info('Labels received from Home Assistant');
-      // Convert the label filter from the name in the config to the corresponding label_id
+      // Convert the label filter from the name in the config to the corresponding label_id and check if it exists.
       if (isValidString(this.config.filterByLabel, 1)) {
-        // If the label_id is already set, use it
-        if (labels.find((label) => label.label_id === this.config.filterByLabel)) {
-          this.labelIdFilter = this.config.filterByLabel;
-          this.log.notice(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
-          this.filterMessages.push({ message: `Home Assistant: filtering by label_id: ${this.labelIdFilter}`, timeout: 60, severity: 'success' });
-          return;
+        const label = labels.find((l) => l.name === this.config.filterByLabel);
+        if (label) {
+          this.log.notice(`Filtering by label: ${CYAN}${this.config.filterByLabel}${nf}`);
+          this.filterMessages.push({ message: `Home Assistant: filtering by label: ${this.config.filterByLabel}`, timeout: 60, severity: 'success' });
+        } else {
+          this.log.warn(`Label "${this.config.filterByLabel}" not found in Home Assistant. Filter by label will discard all devices and entities.`);
+          this.filterMessages.push({
+            message: `Home Assistant: label "${this.config.filterByLabel}" set in filterByLabel not found. Filter by label will discard all devices and entities.`,
+            timeout: 0,
+            severity: 'warning',
+          });
         }
-        // Look for the label_id by name
-        this.labelIdFilter = labels.find((label) => label.name === this.config.filterByLabel)?.label_id ?? '';
-        if (this.labelIdFilter) {
-          this.log.notice(`Filtering by label_id: ${CYAN}${this.labelIdFilter}${nf}`);
-          this.filterMessages.push({ message: `Home Assistant: filtering by label_id: ${this.labelIdFilter}`, timeout: 60, severity: 'success' });
-          return;
-        }
-        this.log.warn(`Label "${this.config.filterByLabel}" not found in Home Assistant. Filter by label will filter all devices and entities.`);
-        this.filterMessages.push({
-          message: `Home Assistant: label "${this.config.filterByLabel}" set in filterByLabel not found. Filter by label will filter all devices and entities.`,
-          timeout: 0,
-          severity: 'warning',
-        });
       }
     });
 
@@ -374,7 +368,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Set the selects and validate.
       this.setSelectDevice(entity.id, entityName, undefined, 'hub');
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
-      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) {
+        this.unselectedEntities++;
+        continue;
+      }
 
       // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
@@ -514,7 +511,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
       // Set the device selects and validate the device.
       this.setSelectDevice(device.id, deviceName, undefined, 'hub');
-      if (!this.validateDevice([deviceName, device.id], true)) continue;
+      if (!this.validateDevice([deviceName, device.id], true)) {
+        this.unselectedDevices++;
+        continue;
+      }
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
@@ -581,7 +581,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} name ${CYAN}${entityName}${db} is a splitEntity. Skipping...`);
           continue; // Skip split entities from the main device
         }
-        if (!this.validateEntity(deviceName, entity.entity_id, true)) continue;
+        if (!this.validateEntity(deviceName, entity.entity_id, true)) {
+          this.unselectedEntities++;
+          continue;
+        }
         // Set the entity mode for the Rvc.
         if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
         if (domain === 'vacuum' && this.config.enableServerRvc && !battery) mutableDevice.addDeviceTypes('', powerSource); // Temporary fix for vacuum without battery and enableServerRvc
@@ -702,7 +705,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Set the selects and validate.
       this.setSelectDevice(entity.id, entityName, undefined, 'hub');
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
-      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) continue;
+      if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) {
+        this.unselectedEntities++;
+        continue;
+      }
 
       // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for split entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
@@ -790,9 +796,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.wssSendSnackbarMessage(msg.message, msg.timeout, msg.severity);
     }
     this.log.notice(`Filtered devices: ${this.filteredDevices}`);
-    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredDevices} devices have been filtered`, 60, 'success');
+    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredDevices} devices have been discarded by filters`, 60, 'success');
     this.log.notice(`Filtered entities: ${this.filteredEntities}`);
-    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredEntities} entities have been filtered`, 60, 'success');
+    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredEntities} entities have been discarded by filters`, 60, 'success');
+    this.log.notice(`Unselected devices: ${this.unselectedDevices}`);
+    this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedDevices} devices have been discarded by select`, 60, 'success');
+    this.log.notice(`Unselected entities: ${this.unselectedEntities}`);
+    this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedEntities} entities have been discarded by select`, 60, 'success');
   }
 
   override async onChangeLoggerLevel(logLevel: LogLevel) {
@@ -902,6 +912,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           );
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
           // We need to add the cluster attributes updated while the light was off since we are turning on the light
+          // In Matter level is 1-254 while in Home Assistant brightness is 1-255
           const brightness = data.request.level
             ? Math.round((data.request.level / 254) * 255)
             : runtimeData.lightOffUpdated?.has('level') && data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
@@ -929,6 +940,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting color_temp (${color_temp})`,
             );
           }
+          // In Matter the hue in degrees shall be related to the CurrentHue attribute by the relationship:
+          // Hue = "CurrentHue" * 360 / 254
+          // where CurrentHue is in the range from 0 to 254 inclusive.
+          // In Matter the saturation (on a scale from 0.0 to 1.0) shall be related to the CurrentSaturation attribute by the relationship:
+          // Saturation = "CurrentSaturation" / 254
+          // where CurrentSaturation is in the range from 0 to 254 inclusive.
           const hs_color =
             (runtimeData.lightOffUpdated?.has('hue') || runtimeData.lightOffUpdated?.has('saturation')) &&
             data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
@@ -946,6 +963,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting hs_color (${hs_color})`,
             );
           }
+          // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
           const xy_color =
             (runtimeData.lightOffUpdated?.has('colorX') || runtimeData.lightOffUpdated?.has('colorY')) &&
             data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
@@ -1210,27 +1228,49 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /**
    * Validate the areaId and labels of a device or an entity against the configured filters.
    *
-   * @param {string | null} areaId The area ID of the device / entity. It is null if the device / entity is not in any area.
+   * @param {string | null} area_id The area ID of the device / entity. It is null if the device / entity is not in any area.
    * @param {string[]} labels The labels ids of the device / entity. It is an empty array if the device / entity has no labels.
    *
    * @returns {boolean} True if the area and label are valid according to the filters, false otherwise.
+   *
+   * @remarks
+   * "area_id" is the area ID of the device / entity. It is null if the device / entity is not in any area or a string with the area ID if it is in an area.
+   * "labels" is an array of label IDs of the device / entity. It is an empty array if the device / entity has no labels.
    */
-  isValidAreaLabel(areaId: string | null, labels: string[]): boolean {
+  isValidAreaLabel(area_id: string | null, labels: string[]): boolean {
     let areaMatch = true;
     let labelMatch = true;
+
     // Filter by area if configured
     if (isValidString(this.config.filterByArea, 1)) {
-      if (!areaId) return false; // If the areaId is null, the device / entity is not in any area, so we skip it.
+      /*
+      this.log.debug(
+        `Filtering by area "${CYAN}${this.config.filterByArea}${db}" area_id "${area_id}" registry "${Array.from(this.ha.hassAreas.values())
+          .map((area) => area.area_id + '=>"' + area.name + '"')
+          .join(', ')}"...`,
+      );
+      */
+      if (!area_id) return false; // If the area_id is null, the device / entity is not in any area, so we skip it.
       areaMatch = false;
-      const area = this.ha.hassAreas.get(areaId);
-      if (!area) return false; // If the area is not found, we skip it.
+      const area = this.ha.hassAreas.get(area_id);
+      if (!area) return false; // If the area_id is not found, we skip it.
       if (area.name === this.config.filterByArea) areaMatch = true;
     }
-    // Filter by label if configured. The labelIdFilter is the label ID to filter by and it is set from the config to the label ID.
-    if (isValidString(this.labelIdFilter, 1)) {
+
+    // Filter by label if configured.
+    if (isValidString(this.config.filterByLabel, 1)) {
+      /*
+      this.log.debug(
+        `Filtering by label "${CYAN}${this.config.filterByLabel}${db}" labels (${labels.length}) "${labels.join(', ')}" registry "${Array.from(this.ha.hassLabels.values())
+          .map((label) => label.label_id + '=>"' + label.name + '"')
+          .join(', ')}"...`,
+      );
+      */
       if (labels.length === 0) return false; // If the labels array is empty, the device / entity has no labels, so we skip it.
       labelMatch = false;
-      if (labels.includes(this.labelIdFilter)) labelMatch = true;
+      const label = Array.from(this.ha.hassLabels.values()).find((l) => l.name === this.config.filterByLabel);
+      if (!label) return false; // If the label configured in the config is not found, we skip it.
+      if (labels.includes(label.label_id)) labelMatch = true;
     }
     return areaMatch && labelMatch;
   }

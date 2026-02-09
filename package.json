@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -8,6 +8,12 @@
   "type": "module",
   "main": "dist/module.js",
   "types": "dist/module.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/module.js",
+      "types": "./dist/module.d.ts"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Luligu/matterbridge-hass.git"
@@ -60,7 +66,7 @@
     "start": "matterbridge",
     "build": "tsc --project tsconfig.json",
     "buildProduction": "tsc --project tsconfig.production.json",
-    "clean": "npx shx rm -rf tsconfig.tsbuildinfo dist",
+    "clean": "npx shx rm -rf *.tsbuildinfo dist",
     "cleanBuild": "npm run clean && npm run build",
     "cleanBuildProduction": "npm run clean && npm run buildProduction",
     "watch": "tsc --watch",
@@ -68,11 +74,12 @@
     "test:watch": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --watch",
     "test:verbose": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --verbose",
     "test:coverage": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --coverage --coverageThreshold=\"{ \\\"global\\\": { \\\"lines\\\": 100, \\\"functions\\\": 100 } }\"",
+    "test:debug": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:vitest": "vitest run",
     "test:vitest:watch": "vitest --reporter verbose",
     "test:vitest:verbose": "vitest run --reporter verbose",
     "test:vitest:coverage": "vitest run --reporter verbose --coverage",
-    "deepClean": "npx shx rm -rf tsconfig.tsbuildinfo dist coverage jest temp package-lock.json npm-shrinkwrap.json .cache/* .cache/.[!.]* .cache/..?* node_modules/* node_modules/.[!.]* node_modules/..?*",
+    "deepClean": "npx shx rm -rf *.tsbuildinfo dist coverage jest temp package-lock.json npm-shrinkwrap.json .cache/* .cache/.[!.]* .cache/..?* node_modules/* node_modules/.[!.]* node_modules/..?*",
     "reset": "npm run deepClean && npm install --no-fund --no-audit && npm link --no-fund --no-audit matterbridge && npm run build",
     "softReset": "npm install --no-fund --no-audit && npm link --no-fund --no-audit matterbridge && npm run build",
     "lint": "eslint --cache --cache-location .cache/.eslintcache --max-warnings=0 .",
@@ -80,10 +87,10 @@
     "format": "prettier --cache --cache-location .cache/.prettiercache --write .",
     "format:check": "prettier --cache --cache-location .cache/.prettiercache --check .",
     "preversion": "npm run runMeBeforePublish",
-    "postversion": "git push",
-    "version:patch": "npm version patch -m \"Release %s\"",
-    "version:minor": "npm version minor -m \"Release %s\"",
-    "version:major": "npm version major -m \"Release %s\"",
+    "postversion": "npm run build",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
     "git:status": "git status && git branch -vv && git stash list && git fsck --full --no-reflogs",
     "git:remote": "git remote -v && git remote show origin",
     "git:prune": "git fetch --prune --prune-tags",
@@ -102,7 +109,7 @@
     "install:dependencies": "npm install --no-fund --no-audit --save-exact node-ansi-logger node-persist-manager ws && npm install --no-fund --no-audit --save-dev --save-exact @types/ws",
     "install:scripts": "npm install --no-fund --no-audit --save-dev --save-exact npm-check-updates shx cross-env",
     "install:typescript": "npm install --no-fund --no-audit --save-dev --save-exact typescript @types/node",
-    "install:eslint": "npm install --no-fund --no-audit --save-dev --save-exact eslint @eslint/js typescript-eslint eslint-plugin-import eslint-plugin-n eslint-plugin-promise eslint-plugin-jsdoc",
+    "install:eslint": "npm install --no-fund --no-audit --save-dev --save-exact eslint@9.39.2 @eslint/js@9.39.2 typescript-eslint eslint-plugin-import eslint-plugin-n eslint-plugin-promise eslint-plugin-jsdoc",
     "install:prettier": "npm install --no-fund --no-audit --save-dev --save-exact prettier eslint-config-prettier eslint-plugin-prettier",
     "install:jest": "npm install --no-fund --no-audit --save-dev --save-exact jest ts-jest @types/jest @jest/globals eslint-plugin-jest",
     "install:vitest": "npm install --no-fund --no-audit --save-dev --save-exact vitest @vitest/coverage-v8 @vitest/eslint-plugin",
@@ -114,7 +121,7 @@
     "matterbridge:list": "matterbridge -list"
   },
   "dependencies": {
-    "node-ansi-logger": "3.1.1",
+    "node-ansi-logger": "3.2.0",
     "node-persist-manager": "2.0.0",
     "ws": "8.19.0"
   },
@@ -122,7 +129,7 @@
     "@eslint/js": "9.39.2",
     "@jest/globals": "30.2.0",
     "@types/jest": "30.0.0",
-    "@types/node": "25.2.0",
+    "@types/node": "25.2.2",
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "4.0.18",
     "@vitest/eslint-plugin": "1.6.6",
@@ -130,8 +137,8 @@
     "eslint": "9.39.2",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-import": "2.32.0",
-    "eslint-plugin-jest": "29.12.2",
-    "eslint-plugin-jsdoc": "62.5.0",
+    "eslint-plugin-jest": "29.13.0",
+    "eslint-plugin-jsdoc": "62.5.4",
     "eslint-plugin-n": "17.23.2",
     "eslint-plugin-prettier": "5.5.5",
     "eslint-plugin-promise": "7.2.1",
@@ -141,7 +148,7 @@
     "shx": "0.4.0",
     "ts-jest": "29.4.6",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.54.0",
+    "typescript-eslint": "8.55.0",
     "vitest": "4.0.18"
   }
 }

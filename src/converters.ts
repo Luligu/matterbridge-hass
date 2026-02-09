@@ -246,6 +246,15 @@ export function aqi(value: number | string, _unit?: string): number | null {
 
 /**
  * Converts Matter currentX/currentY to Home Assistant xy_color format.
+ *
+ * The value of x shall be related to the CurrentX attribute by the relationship
+ * x = "CurrentX" / 65536
+ * where CurrentX is in the range from 0 to 65279 inclusive.
+ *
+ * The value of y shall be related to the CurrentY attribute by the relationship
+ * y = "CurrentY" / 65536
+ * where CurrentY is in the range from 0 to 65279 inclusive.
+ *
  * It clamps the input values to the range [0, 65279] and normalizes them to [0.0, 1.0].
  *
  * @param {number} currentX - The current X value (range 0–65279).
