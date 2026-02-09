@@ -211,7 +211,7 @@ Filter devices and individual entities by label. If enabled, only devices, indiv
 
 ### applyFiltersToDeviceEntities
 
-Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities need to have the area and label that you specified in the filters). If disabled, the filters will only be applied to devices (in this case, all the entities that belong to the device will be included) and individual entities.
+Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities need to have the area and label that you specified in the filters). If disabled, the filters will only be applied to devices (in this case, all the entities that belong to the device will be included).
 
 ### whiteList
 
