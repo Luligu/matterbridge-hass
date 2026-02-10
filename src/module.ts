@@ -46,7 +46,18 @@ import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorC
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel, ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES } from './homeAssistant.js';
+import {
+  HassDevice,
+  HassEntity,
+  HassState,
+  HomeAssistant,
+  HassConfig as HassConfig,
+  HomeAssistantPrimitive,
+  HassServices,
+  HassArea,
+  HassLabel,
+  ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES,
+} from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
   clamp,
@@ -1036,7 +1047,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (context && !context.fabric) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-        `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update`,
+          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update`,
       );
       return; // Skip offline updates
     }
