@@ -2930,7 +2930,7 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1); // TODO: don't know why it fails
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(lightEntity.entity_id) as MatterbridgeEndpoint;
@@ -2938,7 +2938,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getChildEndpoints()).toHaveLength(0);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // TODO: don't know why it fails
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
