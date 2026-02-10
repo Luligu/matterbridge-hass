@@ -46,7 +46,7 @@ import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorC
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
 
 // Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
+import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel, ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import {
   clamp,
