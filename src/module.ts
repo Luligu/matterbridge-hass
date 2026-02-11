@@ -901,7 +901,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES.filter((attr) => data.request[attr] != undefined).forEach((attr) => runtimeData.lightOffUpdated?.add(attr));
           data.endpoint.log.debug(
             `***Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it` +
-              ` (payload: ${debugStringify(data.request)} - lightOffUpdated: [${runtimeData.lightOffUpdated?.values().toArray()}])`,
+              ` (payload: ${debugStringify(data.request)} - lightOffUpdated: [${[...(runtimeData.lightOffUpdated?.values() ?? [])]}])`,
           );
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
