@@ -418,6 +418,18 @@ export const DEFAULT_MIN_HUMIDITY = 30;
 export const DEFAULT_MAX_HUMIDITY = 99;
 
 /**
+ * Interface representing informations about Home Assistant entities persisting through updates.
+ */
+export interface EntityRuntimeData {
+  lightOffUpdated?: Set<(typeof ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES)[number]>; // Set of attributes updated while the light was off, to be restored the first time the light is turned back on
+}
+
+/**
+ * List of attributes coming from Matter command payloads related to the light domain. This attributes are the one stored while the light is off and later restored
+ */
+export const ENTITY_RUNTIME_DATA_LIGHT_OFF_UPDATE_VALUES = ['level', 'colorTemperatureMireds', 'hue', 'saturation', 'colorX', 'colorY'] as const;
+
+/**
  * Interface representing the attributes of a Home Assistant event entity's state.
  */
 export interface HassStateEventAttributes {
@@ -882,6 +894,7 @@ export class HomeAssistant extends EventEmitter {
   hassDevices = new Map<string, HassDevice>();
   hassEntities = new Map<string, HassEntity>();
   hassStates = new Map<string, HassState>();
+  entitiesRuntimeData = new Map<string, EntityRuntimeData>(); // Map over entity IDs to store runtime informations
   hassAreas = new Map<string, HassArea>();
   hassLabels = new Map<string, HassLabel>();
   hassServices: HassServices | null = null;
