@@ -19,11 +19,11 @@ If you like this project and find it useful, please consider giving it a **star*
 ### Added
 
 - [guide]: Read the guide about using filters and select [here](https://github.com/Luligu/matterbridge-hass/discussions/186).
-- [names]: Add a warning message in the logs and on the frontend with the total number of devices and entities discarded due to duplicate names.
-- [names]: Add a warning message in the logs and on the frontend with the total number of devices and entities whose name exceeds Matter’s 32-character limit.
-- [create]: Add an error message in the logs and on the frontend with the total number of devices and entities that failed to be created.
-- [group]: Add the link on the frontend for group helpers (platform = group).
-- [unavailable]: Add check for not provided entities (state = unavailable, restored = true): they are ignored.
+- [names]: Add a warning message in the logs and on the frontend with the total number of devices and entities discarded due to `duplicate names`.
+- [names]: Add a warning message in the logs and on the frontend with the total number of devices and entities whose name exceeds Matter’s `32-character limit`.
+- [create]: Add an error message in the logs and on the frontend with the total number of devices and entities that `failed` to be created.
+- [group]: Add the link on the frontend for `group` helpers (platform = group).
+- [unavailable]: Add check for `not provided` entities (state = unavailable, restored = true): they are ignored.
 
 ### Changed
 
