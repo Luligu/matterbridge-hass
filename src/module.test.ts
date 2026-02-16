@@ -923,7 +923,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerDebugSpy).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.entity_id}${db}: state not found. Skipping...`);
   });
 
   it('should not register an individual entity with unsupported domain', async () => {

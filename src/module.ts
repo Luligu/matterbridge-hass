@@ -349,7 +349,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
       const hassState = this.ha.hassStates.get(entity.entity_id);
       if (!hassState) {
-        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db}: state not found. Skipping...`);
+        continue;
+      }
+      if (hassState.state === 'unavailable' && hassState.attributes?.['restored'] === true) {
+        this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db}: state unavailable and restored. Skipping...`);
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
@@ -588,7 +592,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (!hassState) {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}: state not found. Skipping...`);
+          this.log.debug(`Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}: state not found. Skipping...`);
+          continue;
+        }
+        if (hassState.state === 'unavailable' && hassState.attributes?.['restored'] === true) {
+          this.log.debug(`Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}: state unavailable and restored. Skipping...`);
           continue;
         }
         // Apply area and label filters before the select and validation
@@ -705,6 +713,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const hassState = this.ha.hassStates.get(entity.entity_id);
       if (!hassState) {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} state not found. Skipping...`);
+        continue;
+      }
+      if (hassState.state === 'unavailable' && hassState.attributes?.['restored'] === true) {
+        this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db}: state unavailable and restored. Skipping...`);
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
