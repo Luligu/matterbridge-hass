@@ -11,7 +11,7 @@ import path from 'node:path';
 import { jest } from '@jest/globals';
 import { Lifecycle } from 'matterbridge/matter';
 import { invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
-import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
+import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn, wr } from 'matterbridge/logger';
 import {
   PowerSource,
   BooleanState,
@@ -63,6 +63,7 @@ import {
   loggerWarnSpy,
   loggerFatalSpy,
   loggerErrorSpy,
+  setDebug,
 } from 'matterbridge/jestutils';
 
 // Home Assistant Plugin
@@ -221,6 +222,18 @@ describe('Matterbridge ' + NAME, () => {
     // Clean the platform environment
     await haPlatform.clearSelect();
     await haPlatform.unregisterAllDevices();
+
+    haPlatform.filterMessages.length = 0;
+    haPlatform.filteredDevices = 0;
+    haPlatform.filteredEntities = 0;
+    haPlatform.unselectedDevices = 0;
+    haPlatform.unselectedEntities = 0;
+    haPlatform.duplicatedDevices = 0;
+    haPlatform.duplicatedEntities = 0;
+    haPlatform.longNameDevices = 0;
+    haPlatform.longNameEntities = 0;
+    haPlatform.failedDevices = 0;
+    haPlatform.failedEntities = 0;
   }
 
   test('create and start the server node', async () => {
@@ -2616,7 +2629,7 @@ describe('Matterbridge ' + NAME, () => {
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       labels: [],
       name: null,
-      original_name: 'Single Entity Color Temperature Template',
+      original_name: 'Single Entity CT Template',
     } as unknown as HassEntity;
 
     const lightState = {
@@ -3019,7 +3032,138 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
   });
 
+  it('should call onStart and warn for a longer then 32 characters individual entity', async () => {
+    const sensorEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Longer Than 32 Characters',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Individual entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+    );
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and warn for a longer then 32 characters device', async () => {
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with long name that exceeds Matter’s 32-character limit',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Device Entity',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.splitEntities = [];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-character limit`));
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and warn for a longer then 32 characters split entity', async () => {
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with split entity with long name',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Split Entity Longer Than 32 Characters',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.splitEntities = [sensorEntity.entity_id];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+    );
+
+    // Clean the test environment
+    await cleanup();
+  });
+
   it('should call onStart and not register an unknown individual entity', async () => {
+    await setDebug(false);
     const sensorUnknownEntity = {
       area_id: null,
       device_id: null,

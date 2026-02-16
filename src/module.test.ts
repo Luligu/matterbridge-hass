@@ -1008,7 +1008,7 @@ describe('HassPlatform', () => {
     await haPlatform.registerDevice(device);
     await haPlatform.onStart('Test reason');
 
-    expect(loggerWarnSpy).toHaveBeenCalledWith(`Individual entity ${CYAN}${entity.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Individual entity "${CYAN}${entity.name}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
     await haPlatform.unregisterDevice(device);
   });
 
@@ -1399,7 +1399,7 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
 
-    expect(loggerWarnSpy).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${wr} already exists as a registered device. Please change the name in Home Assistant`);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Device "${CYAN}${device.name}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
 
     await haPlatform.unregisterDevice(mbdevice);
   });
@@ -1694,7 +1694,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Split entity ${CYAN}${nostateEntity.entity_id}${db} state not found. Skipping...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Split entity ${CYAN}${nonameEntity.entity_id}${db} has no valid name. Skipping...`);
     expect(loggerWarnSpy).toHaveBeenCalledWith(
-      `Split entity ${CYAN}${duplicatednameEntity.entity_id}${wr} name ${CYAN}${duplicatednameEntity.original_name}${wr} already exists as a registered device. Please change the name in Home Assistant.`,
+      `Split entity ${CYAN}${duplicatednameEntity.entity_id}${wr} name "${CYAN}${duplicatednameEntity.original_name}${wr}" already exists as a registered device. Please change the name in Home Assistant.`,
     );
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Split entity ${CYAN}${humidityEntity.entity_id}${db} name ${CYAN}${humidityEntity.original_name}${db} is not in the area "${CYAN}${db}" or doesn't have the label "${CYAN}${haPlatform.config.filterByLabel}${db}". Skipping...`,

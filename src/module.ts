@@ -136,6 +136,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   filteredEntities = 0;
   unselectedDevices = 0;
   unselectedEntities = 0;
+  duplicatedDevices = 0;
+  duplicatedEntities = 0;
+  longNameDevices = 0;
+  longNameEntities = 0;
+  failedDevices = 0;
+  failedEntities = 0;
 
   /**
    * Constructor for the HomeAssistantPlatform class.
@@ -352,9 +358,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
+      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
+      if (entityName.length > 32) {
+        this.longNameEntities++;
+        this.log.warn(
+          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+        );
+      }
       // If the entity has an already registered name, we skip it.
       if (this.hasDeviceName(entityName)) {
-        this.log.warn(`Individual entity ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
+        this.duplicatedEntities++;
+        this.log.warn(`Individual entity "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       // Apply area and label filters before the select and validation
@@ -446,7 +460,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
       }
 
-      if (entity.platform === 'template') {
+      if (entity.platform === 'template' || entity.platform === 'group') {
         mutableDevice.setComposedType(`Hass Template`);
         mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/helpers`);
       }
@@ -460,6 +474,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           await this.registerDevice(mutableDevice.getEndpoint());
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
         } catch (error) {
+          this.failedEntities++;
           this.log.error(`Failed to register device ${dn}${entityName}${er}: ${error}`);
         }
         this.endpointNames.set(entity.entity_id, ''); // Set the endpoint name for the individual entity to the main endpoint
@@ -496,9 +511,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
         continue;
       }
+      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
+      if (deviceName.length > 32) {
+        this.longNameDevices++;
+        this.log.warn(
+          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-character limit (${deviceName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+        );
+      }
       // If the device has an already registered name, we skip it.
       if (this.hasDeviceName(deviceName)) {
-        this.log.warn(`Device ${CYAN}${deviceName}${wr} already exists as a registered device. Please change the name in Home Assistant`);
+        this.duplicatedDevices++;
+        this.log.warn(`Device "${CYAN}${deviceName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       // Apply area and label filters before the select and validation
@@ -549,7 +572,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.setComposedType('Hass Device');
       mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${device.id}`);
 
+      // *******************************************************************************************************************
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
+      // *******************************************************************************************************************
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id && e.disabled_by === null)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
         const [domain, _name] = entity.entity_id.split('.');
@@ -563,7 +588,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // Get the entity state. If the entity is disabled, it doesn't have a state, we skip it.
         const hassState = this.ha.hassStates.get(entity.entity_id);
         if (!hassState) {
-          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} disabled by ${entity.disabled_by}: state not found. Skipping...`);
+          this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}: state not found. Skipping...`);
           continue;
         }
         // Apply area and label filters before the select and validation
@@ -630,6 +655,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           await this.registerDevice(mutableDevice.getEndpoint());
           this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
         } catch (error) {
+          this.failedDevices++;
           this.log.error(`Failed to register device ${dn}${device.name}${er}: ${error}`);
         }
         // Log all the remapped endpoints
@@ -687,10 +713,18 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
+      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
+      if (entityName.length > 32) {
+        this.longNameEntities++;
+        this.log.warn(
+          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+        );
+      }
       // If the entity has an already registered name, we skip it.
       if (this.hasDeviceName(entityName)) {
+        this.duplicatedEntities++;
         this.log.warn(
-          `Split entity ${CYAN}${entity.entity_id}${wr} name ${CYAN}${entityName}${wr} already exists as a registered device. Please change the name in Home Assistant.`,
+          `Split entity ${CYAN}${entity.entity_id}${wr} name "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant.`,
         );
         continue;
       }
@@ -749,6 +783,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
           this.endpointNames.set(entity.entity_id, ''); // Set the endpoint name for the split entity to the main endpoint
         } catch (error) {
+          this.failedEntities++;
           this.log.error(`Failed to register device ${dn}${entityName}${er}: ${error}`);
         }
       } else {
@@ -796,13 +831,29 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.wssSendSnackbarMessage(msg.message, msg.timeout, msg.severity);
     }
     this.log.notice(`Filtered devices: ${this.filteredDevices}`);
-    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredDevices} devices have been discarded by filters`, 60, 'success');
+    if (this.filteredDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredDevices} devices have been discarded by filters`, 60, 'success');
     this.log.notice(`Filtered entities: ${this.filteredEntities}`);
-    this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredEntities} entities have been discarded by filters`, 60, 'success');
+    if (this.filteredEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.filteredEntities} entities have been discarded by filters`, 60, 'success');
+
     this.log.notice(`Unselected devices: ${this.unselectedDevices}`);
-    this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedDevices} devices have been discarded by select`, 60, 'success');
+    if (this.unselectedDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedDevices} devices have been discarded by select`, 60, 'success');
     this.log.notice(`Unselected entities: ${this.unselectedEntities}`);
-    this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedEntities} entities have been discarded by select`, 60, 'success');
+    if (this.unselectedEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedEntities} entities have been discarded by select`, 60, 'success');
+
+    if (this.longNameDevices) this.log.warn(`Devices with long names: ${this.longNameDevices}`);
+    if (this.longNameDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameDevices} devices have names that exceed Matter’s 32-character limit`, 60, 'warning');
+    if (this.longNameEntities) this.log.warn(`Entities with long names: ${this.longNameEntities}`);
+    if (this.longNameEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameEntities} entities have names that exceed Matter’s 32-character limit`, 60, 'warning');
+
+    if (this.duplicatedDevices) this.log.warn(`Duplicated device names: ${this.duplicatedDevices}`);
+    if (this.duplicatedDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.duplicatedDevices} devices have been discarded due to duplicate names`, 60, 'warning');
+    if (this.duplicatedEntities) this.log.warn(`Duplicated entity names: ${this.duplicatedEntities}`);
+    if (this.duplicatedEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.duplicatedEntities} entities have been discarded due to duplicate names`, 60, 'warning');
+
+    if (this.failedDevices) this.log.error(`Failed device creation: ${this.failedDevices}`);
+    if (this.failedDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.failedDevices} devices failed to be created`, 60, 'error');
+    if (this.failedEntities) this.log.error(`Failed entity creation: ${this.failedEntities}`);
+    if (this.failedEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.failedEntities} entities failed to be created`, 60, 'error');
   }
 
   override async onChangeLoggerLevel(logLevel: LogLevel) {
