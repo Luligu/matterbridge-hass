@@ -330,6 +330,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await this.ready;
     await this.clearSelect();
 
+    // Pre-check the config
+    for (const entityId of this.config.splitEntities || []) {
+      if (!this.ha.hassEntities.has(entityId))
+        this.log.warn(`Split entity "${CYAN}${entityId}${wr}" set in splitEntities not found in Home Assistant. Please check your configuration.`);
+    }
+
     // *********************************************************************************************************
     // ************************************* Scan the individual entities **************************************
     // *********************************************************************************************************

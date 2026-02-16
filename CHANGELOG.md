@@ -24,6 +24,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [create]: Add an error message in the logs and on the frontend with the total number of devices and entities that `failed` to be created.
 - [group]: Add the link on the frontend for `group` helpers (platform = group).
 - [unavailable]: Add check for `not provided` entities (state = unavailable, restored = true): they are ignored.
+- [config]: Check if all `splitEntities` in the config exist.
 
 ### Changed
 

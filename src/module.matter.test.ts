@@ -3231,7 +3231,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
-    haPlatform.config.splitEntities = [sensorEntity.entity_id];
+    haPlatform.config.splitEntities = [sensorEntity.entity_id, 'sensor.wrong_entity_id'];
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
@@ -3239,6 +3239,9 @@ describe('Matterbridge ' + NAME, () => {
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+    );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Split entity "${CYAN}sensor.wrong_entity_id${wr}" set in splitEntities not found in Home Assistant. Please check your configuration.`),
     );
 
     // Clean the test environment
