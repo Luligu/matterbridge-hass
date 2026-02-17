@@ -1190,7 +1190,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         const runtimeData = this.ha.entitiesRuntimeData.get(entityId);
         if (runtimeData) {
           runtimeData.lightOffUpdated?.clear();
-          endpoint.log.debug(`State changed from off to on, cleared attribute light-off updates queue for entity ${CYAN}${entityId}${nf}`);
+          endpoint.log.debug(`State changed from off to on, cleared runtime attribute lightOffUpdated queue for entity ${CYAN}${entityId}${nf}`);
         }
       }
       // Update attributes of the device

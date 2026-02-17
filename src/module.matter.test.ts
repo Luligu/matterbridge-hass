@@ -2538,13 +2538,13 @@ describe('Matterbridge ' + NAME, () => {
       optionsOverride: { executeIfOff: true, coupleColorTempToLevel: false },
     });
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(10);
-    expect([...(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.values() ?? [])]).toEqual(['level']);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set(['level']));
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 10 });
-    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.size).toBe(0);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set([]));
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
@@ -2703,13 +2703,13 @@ describe('Matterbridge ' + NAME, () => {
       optionsOverride: { executeIfOff: true },
     });
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(250);
-    expect([...(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.values() ?? [])]).toEqual(['colorTemperatureMireds']);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set(['colorTemperatureMireds']));
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp_kelvin: 4000 });
-    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.size).toBe(0);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set([]));
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
@@ -2720,7 +2720,7 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
-    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.size).toBe(0);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set([]));
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
@@ -2731,7 +2731,7 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
-    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.size).toBe(0);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set([]));
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', {
@@ -2742,7 +2742,7 @@ describe('Matterbridge ' + NAME, () => {
     });
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp_kelvin: 5000 });
-    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.size).toBe(0);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set([]));
 
     // setDebug(false);
 
@@ -2978,7 +2978,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should change because the light is off and executeIfOff is true
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should remain unchanged because the command was moveToLevel which should not affect the color mode
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
-    expect([...(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.values() ?? [])]).toEqual(['level']); // Level change should be queued because command came while the light is off
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set(['level'])); // Level change should be queued because command came while the light is off
 
     /* 2) The light is off we send moveToColorTemperature 200 with executeIfOff true */
 
@@ -2994,7 +2994,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature which should set the color mode to ColorTemperatureMireds
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should change because the light is off and executeIfOff is true
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
-    expect([...(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.values() ?? [])]).toEqual(['level', 'colorTemperatureMireds']); // Color temperature change should be queued because command came while the light is off
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set(['level', 'colorTemperatureMireds'])); // Color temperature change should be queued because command came while the light is off
 
     /* 3) The light is off we send moveToHueAndSaturation 120 / 100 with executeIfOff true */
 
@@ -3012,7 +3012,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(120); // The hue should change because the light is off and executeIfOff is true
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(100); // The saturation should change because the light is off and executeIfOff is true
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
-    expect([...(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.values() ?? [])]).toEqual(['level', 'colorTemperatureMireds', 'hue', 'saturation']); // Hue and Saturation change should be queued because command came while the light is off
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set(['level', 'colorTemperatureMireds', 'hue', 'saturation'])); // Hue and Saturation change should be queued because command came while the light is off
 
     /* 4) The light is off we send moveToColor 13697 / 41877 with executeIfOff true */
 
@@ -3030,14 +3030,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(13697); // The color X should change because the light is off and executeIfOff is true
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(41877); // The color Y should change because the light is off and executeIfOff is true
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
-    expect([...(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.values() ?? [])]).toEqual([
-      'level',
-      'colorTemperatureMireds',
-      'hue',
-      'saturation',
-      'colorX',
-      'colorY',
-    ]); // X/Y color change should be queued because command came while the light is off
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(
+      new Set(['level', 'colorTemperatureMireds', 'hue', 'saturation', 'colorX', 'colorY']),
+    ); // X/Y color change should be queued because command came while the light is off
 
     /* 5) The light is off we send moveToLevelWithOnOff 50 (executeIfOff is not used here) to turn on the light */
 
@@ -3054,7 +3049,146 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(13697); // The color X should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(41877); // The color Y should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50, xy_color: [0.209, 0.639] });
-    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated?.size).toBe(0); // The queued should be empty because the light was turned on
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set([])); // The queued should be empty because the light was turned on
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('test Adaptive Lightning override from outside Matter', async () => {
+    const lightEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'light.adaptive_lighting_override',
+      platform: 'template',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Adaptive Lightning Template',
+    } as unknown as HassEntity;
+
+    const lightState = {
+      entity_id: lightEntity.entity_id,
+      state: 'on',
+      attributes: {
+        supported_color_modes: [ColorMode.COLOR_TEMP, ColorMode.XY, ColorMode.HS],
+        color_mode: ColorMode.HS,
+        brightness: 100,
+        color_temp_kelvin: 5000, // Mireds 200
+        min_color_temp_kelvin: 2500, // Mireds 400
+        max_color_temp_kelvin: 6500, // Mireds 153
+        hs_color: [180, 50],
+        friendly_name: 'Rgb Template',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
+    haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
+
+    // setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(lightEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.getChildEndpoints()).toHaveLength(0);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-colortemperaturelight${db} cluster ${CYAN}ColorControl${db}`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-extendedcolorlight${db} cluster ${CYAN}ColorControl${db}`);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(10);
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true); // The state was 'on' at the time of configuration, so it should have been set to true
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100); // The brightness was 100 at the time of configuration, so it should have been set to 100
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should be CurrentHueAndCurrentSaturation because the color_mode was hs at the time of configuration
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(127); // The hue should be 127 because 180° in HS color mode corresponds to 127 in the ColorControl cluster
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127); // The saturation should be 127 because 50% in HS color mode corresponds to 127 in the ColorControl cluster
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)).toBeUndefined(); // The light has never received a command from a matter controller yet, so the runtime object is not initialized
+
+    /* ****************** This will test Adaptive Lighting override ********************** */
+
+    /* 1) The light is off we send moveToLevel 200 with executeIfOff true */
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
+      level: 200,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: true, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: true, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should remain unchanged because the command was moveToLevel which should not affect the color mode
+    expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set(['level'])); // Level change should be queued because command came while the light is off
+
+    /* 2) The light is off we send moveToColorTemperature 200 with executeIfOff true */
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', {
+      colorTemperatureMireds: 200,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: true },
+      optionsOverride: { executeIfOff: true },
+    });
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature which should set the color mode to ColorTemperatureMireds
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should change because the light is off and executeIfOff is true
+    expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set(['level', 'colorTemperatureMireds'])); // Color temperature change should be queued because command came while the light is off
+
+    /* 3) The light is off we receive an update from HA telling the light was turned on with brightness 50% and a green colour */
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(
+      lightEntity.entity_id,
+      lightState.entity_id,
+      { ...lightState, state: 'off' },
+      {
+        ...lightState,
+        state: 'on',
+        attributes: { ...lightState.attributes, brightness: 128, color_mode: ColorMode.HS, hs_color: [120, 100] },
+      },
+    );
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    // For approximation, converting the brightness scale from 255 (HA) to 254 (Matter), the brightness becomes 127
+    expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.Cluster.id, 'currentLevel', 127, expect.anything());
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(127);
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.CurrentHueAndCurrentSaturation, expect.anything());
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation);
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentHue', Math.round((120 / 360) * 254), expect.anything());
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(Math.round((120 / 360) * 254));
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentSaturation', Math.round((100 / 100) * 254), expect.anything());
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(Math.round((100 / 100) * 254));
+    // Test updateHandler: the log declaring the clear operation should be present and lightOffUpdated should be defined and empty
+    expect(loggerDebugSpy).toHaveBeenNthCalledWith(
+      2,
+      `State changed from off to on, cleared runtime attribute lightOffUpdated queue for entity ${CYAN}${lightEntity.entity_id}${nf}`,
+    );
+    expect(haPlatform.ha.entitiesRuntimeData.get(lightEntity.entity_id)?.lightOffUpdated).toEqual(new Set([]));
 
     // Clean the test environment
     await cleanup();
