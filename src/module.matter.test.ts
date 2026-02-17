@@ -1313,8 +1313,10 @@ describe('Matterbridge ' + NAME, () => {
         color_mode: 'color_temp',
         brightness: 100,
         color_temp_kelvin: 5000, // Mireds 200
-        min_color_temp_kelvin: 2500, // Maximum mireds 400
-        max_color_temp_kelvin: 6500, // Minimum mireds 153
+        // min_color_temp_kelvin: 2500, // Maximum mireds 400
+        // max_color_temp_kelvin: 6500, // Minimum mireds 153
+        min_color_temp_kelvin: null, // Maximum mireds 400
+        max_color_temp_kelvin: null, // Minimum mireds 153
         friendly_name: 'Light Light Ct',
       },
     } as unknown as HassState;
@@ -1322,6 +1324,9 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassDevices.set(lightDevice.id, lightDevice);
     haPlatform.ha.hassEntities.set(lightDeviceEntity.entity_id, lightDeviceEntity);
     haPlatform.ha.hassStates.set(lightDeviceEntityState.entity_id, lightDeviceEntityState);
+
+    haPlatform.config.namePostfix = '#10';
+    haPlatform.config.postfix = '#10';
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
@@ -1334,7 +1339,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 400);
+    expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 500);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1345,7 +1350,33 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.ColorTemperatureMireds, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorTemperatureMireds', 200, expect.anything());
 
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_on', lightDeviceEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_off', lightDeviceEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
+      level: 50,
+      transitionTime: 100, // tenths of seconds
+      optionsMask: { executeIfOff: true, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: true, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_on', lightDeviceEntity.entity_id, {
+      brightness: 50,
+      color_temp_kelvin: 5000,
+      transition: 10,
+    }); // The last Matter state + request.level + transition time in seconds
+
     // Clean the test environment
+    haPlatform.config.namePostfix = '';
+    haPlatform.config.postfix = '';
     await cleanup();
   });
 
@@ -3060,9 +3091,12 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
+    await haPlatform.onConfigure();
+
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining(`Individual entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
     );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Entities with long names: 1`));
 
     // Clean the test environment
     await cleanup();
@@ -3143,7 +3177,10 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
+    await haPlatform.onConfigure();
+
     expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-character limit`));
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Devices with long names: 1`));
 
     // Clean the test environment
     await cleanup();
@@ -3231,11 +3268,15 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
+    haPlatform.config.namePostfix = 'Tst';
+    haPlatform.config.postfix = 'Tst';
     haPlatform.config.splitEntities = [sensorEntity.entity_id, 'sensor.wrong_entity_id'];
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
@@ -3245,6 +3286,8 @@ describe('Matterbridge ' + NAME, () => {
     );
 
     // Clean the test environment
+    haPlatform.config.namePostfix = '';
+    haPlatform.config.postfix = '';
     await cleanup();
   });
 

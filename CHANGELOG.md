@@ -35,6 +35,10 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Bump `eslint` to v.10.0.0.
 - [config]: Improve descriptions of fields in the config.
 
+### Fixed
+
+- [create]: When a device creation fails, the device is now removed from the select (Devices panel on the Home page).
+
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.0.6] - 2026-02-10

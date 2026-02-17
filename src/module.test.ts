@@ -2,7 +2,7 @@
 
 /* eslint-disable no-console */
 
-const MATTER_PORT = 0;
+const MATTER_PORT = 6000;
 const NAME = 'Platform';
 const HOMEDIR = path.join('jest', NAME);
 
@@ -36,6 +36,8 @@ import {
   addVirtualEndpointSpy,
   setAttributeSpy,
   triggerSwitchEventSpy,
+  startMatterbridgeEnvironment,
+  stopMatterbridgeEnvironment,
 } from 'matterbridge/jestutils';
 
 import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
@@ -149,9 +151,12 @@ describe('HassPlatform', () => {
       return Promise.resolve({} as any);
     });
 
-  beforeAll(() => {
+  beforeAll(async () => {
     // Create the test environment
-    createMatterbridgeEnvironment(NAME);
+    await createMatterbridgeEnvironment(NAME);
+
+    // Start the test environment
+    // await startMatterbridgeEnvironment(MATTER_PORT);
   });
 
   beforeEach(() => {
@@ -166,9 +171,9 @@ describe('HassPlatform', () => {
       haPlatform.ha.hassServices = {} as HassServices;
       haPlatform.ha.hassDevices.clear();
       haPlatform.ha.hassEntities.clear();
+      haPlatform.ha.hassStates.clear();
       // haPlatform.ha.hassAreas.clear();
       // haPlatform.ha.hassLabels.clear();
-      haPlatform.ha.hassStates.clear();
       haPlatform.endpointNames.clear();
       haPlatform.batteryVoltageEntities.clear();
     }
@@ -180,6 +185,9 @@ describe('HassPlatform', () => {
   });
 
   afterAll(async () => {
+    // Stop the test environment
+    // await stopMatterbridgeEnvironment();
+
     // Destroy the test environment
     await destroyMatterbridgeEnvironment();
 
@@ -194,7 +202,6 @@ describe('HassPlatform', () => {
   });
 
   it('should return an instance of HomeAssistantPlatform', async () => {
-    matterbridge.matterbridgeVersion = '3.5.0';
     haPlatform = initializePlugin(matterbridge, log, mockConfig);
     expect(haPlatform).toBeInstanceOf(HomeAssistantPlatform);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initializing platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
@@ -224,6 +231,7 @@ describe('HassPlatform', () => {
     mockConfig.host = 'http://homeassistant.local:8123';
     mockConfig.token = 'long-lived token';
     haPlatform = new HomeAssistantPlatform(matterbridge, log, mockConfig);
+    haPlatform.dryRun = true; // Set dryRun to true to skip validation
     addMatterbridgePlatform(haPlatform);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`MatterbridgeDynamicPlatform loaded`);
 
@@ -1315,7 +1323,7 @@ describe('HassPlatform', () => {
       `Creating device for individual entity ${idn}${entity.name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}my_template_switch${nf}`,
     );
     expect(loggerDebugSpy).not.toHaveBeenCalledWith(`Registering device ${dn}${entity.name}${db}...`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Failed to register device ${dn}${entity.name}${er}: Error: Jest test`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`Failed to register device ${dn}${entity.name}${er}: Jest test`));
     expect(matterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
   });
 
@@ -1445,7 +1453,7 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Failed to register device ${dn}${device.name}${er}: Error: Jest test`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`Failed to register device ${dn}${device.name}${er}: Jest test`));
     expect(matterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
   });
 
@@ -1861,7 +1869,7 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for split entity ${idn}${switchEntity.original_name}${rs}${nf} domain ${CYAN}${switchEntity.entity_id.split('.')[0]}${nf} name ${CYAN}${switchEntity.entity_id.split('.')[1]}${nf}`,
     );
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Failed to register device ${dn}${switchEntity.original_name}${er}: Error: Jest test`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`Failed to register device ${dn}${switchEntity.original_name}${er}: Jest test`));
     expect(matterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
   });
 
