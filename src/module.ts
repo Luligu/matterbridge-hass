@@ -117,6 +117,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Bridged devices map. Key is device.id for devices and entity.entity_id for individual entities (without the postfix). Value is the MatterbridgeEndpoint */
   readonly matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
 
+  /** Entities that are currently being updated to avoid processing multiple updates at the same time. Keyed by entity.entity_id, value is the number of ongoing updates */
+  readonly updatingEntities = new Map<string, number>();
+
   /** Endpoint names remapping for entities. Key is entity.entity_id. Value is the endpoint name ('' for the main endpoint) */
   readonly endpointNames = new Map<string, string>();
 
@@ -989,57 +992,68 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             command === 'toggle' ||
             (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)))
         ) {
-          this.log.debug(
-            `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes`,
-          );
+          // We need to add the current Matter cluster attributes since we are turning on the light and it was off
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
-          // We need to add the cluster attributes since we are turning on the light and it was off
-          // In Matter level is 1-254 while in Home Assistant brightness is 1-255
+
+          // In Matter level is 1-254 for feature Lightning while in Home Assistant brightness is 1-255
           const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
             ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
             : undefined;
           if (isValidNumber(brightness, 1, 255)) serviceAttributes['brightness'] = brightness;
+          // The moveToLevelWithOnOff command has a request with level so we use it instead of the currentLevel attribute for the other commands.
           if (command === 'moveToLevelWithOnOff' && isValidNumber(data.request['level'], 2, 254)) serviceAttributes['brightness'] = Math.round((data.request['level'] / 254) * 255);
-          const color_temp =
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.ColorTemperatureMireds
+
+          // The actual color mode is determined by the colorMode attribute of the ColorControl cluster. In Home Assistant we need to pass only a single color attribute without the 'color_mode' attribute.
+          const colorMode: ColorControl.ColorMode | undefined =
+            data.endpoint.hasClusterServer(ColorControl.Cluster.id) && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorMode')
+              ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode')
+              : undefined;
+
+          if (colorMode === ColorControl.ColorMode.ColorTemperatureMireds) {
+            // In Matter color temperature is represented in mireds while in Home Assistant it's represented in kelvin. We need to convert it before calling the service and also clamp it to the supported range if the attributes are available.
+            const color_temp = data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds')
               ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
               : undefined;
-          if (isValidNumber(color_temp))
-            serviceAttributes['color_temp_kelvin'] =
-              state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
-                ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
-                : miredsToKelvin(color_temp, 'floor');
-          // In Matter the hue in degrees shall be related to the CurrentHue attribute by the relationship:
-          // Hue = "CurrentHue" * 360 / 254
-          // where CurrentHue is in the range from 0 to 254 inclusive.
-          // In Matter the saturation (on a scale from 0.0 to 1.0) shall be related to the CurrentSaturation attribute by the relationship:
-          // Saturation = "CurrentSaturation" / 254
-          // where CurrentSaturation is in the range from 0 to 254 inclusive.
-          const hs_color =
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentHueAndCurrentSaturation
-              ? [
-                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
-                  Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
-                ]
-              : undefined;
-          if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
-          // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
-          const xy_color =
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
-            data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode') === ColorControl.ColorMode.CurrentXAndCurrentY
-              ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
-              : undefined;
-          if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
-          // Transition time
+            if (isValidNumber(color_temp))
+              serviceAttributes['color_temp_kelvin'] =
+                state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
+                  ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
+                  : miredsToKelvin(color_temp, 'floor');
+          }
+
+          if (colorMode === ColorControl.ColorMode.CurrentHueAndCurrentSaturation) {
+            // In Matter the hue in degrees shall be related to the CurrentHue attribute by the relationship:
+            // Hue = "CurrentHue" * 360 / 254
+            // where CurrentHue is in the range from 0 to 254 inclusive.
+            // In Matter the saturation (on a scale from 0.0 to 1.0) shall be related to the CurrentSaturation attribute by the relationship:
+            // Saturation = "CurrentSaturation" / 254
+            // where CurrentSaturation is in the range from 0 to 254 inclusive.
+            const hs_color =
+              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation')
+                ? [
+                    Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
+                    Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+                  ]
+                : undefined;
+            if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
+          }
+
+          if (colorMode === ColorControl.ColorMode.CurrentXAndCurrentY) {
+            // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
+            const xy_color =
+              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY')
+                ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
+                : undefined;
+            if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
+          }
+
+          // Transition time is not present in on off toggle commands. In Matter is represented in 1/10th of a second while in Home Assistant it's represented in seconds, so we need to convert it before calling the service.
           if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
-          // Call the light.turn_on service with the attributes
+
+          // Call the light.turn_on service with the attributes we found on the Matter clusters.
+          this.log.debug(
+            `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes: ${debugStringify(serviceAttributes)}`,
+          );
           await this.ha.callService('light', 'turn_on', entityId, serviceAttributes);
           return;
         }
@@ -1231,10 +1245,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         return;
       }
       // Update attributes of the device
+      endpoint.log.debug(`*Processing update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
+      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) || 0) + 1);
       const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
       if (hassUpdateAttributes.length > 0) {
         // console.error('Processing update attributes: ', hassUpdateAttributes.length);
         for (const update of hassUpdateAttributes) {
+          if ((this.updatingEntities.get(entityId) || 0) > 1) {
+            endpoint.log.debug(`**Stop processing update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
+            break;
+          }
           // console.error('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
           // @ts-expect-error: dynamic property access for Home Assistant state attribute
           const value = new_state.attributes[update.with];
@@ -1246,6 +1266,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           }
         }
       }
+      endpoint.log.debug(`*Processed update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
+      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) || 0) - 1);
     }
   }
 

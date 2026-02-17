@@ -3291,6 +3291,81 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
   });
 
+  it('should call onStart and stop multiple updates for a split entity', async () => {
+    const lightDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with split entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const lightEntity = {
+      area_id: null,
+      device_id: lightDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'light.multiple_updates',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Split Entity',
+    } as unknown as HassEntity;
+
+    const lightEntityState = {
+      entity_id: lightEntity.entity_id,
+      state: 'off',
+      attributes: { supported_color_modes: ['color_temp', 'hs', 'xy'], color_mode: 'color_temp', brightness: 100, color_temp_kelvin: 4000, friendly_name: 'Light Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(lightDevice.id, lightDevice);
+    haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
+    haPlatform.ha.hassStates.set(lightEntityState.entity_id, lightEntityState);
+
+    haPlatform.config.namePostfix = 'Tst';
+    haPlatform.config.postfix = 'Tst';
+    haPlatform.config.splitEntities = [lightEntity.entity_id, 'sensor.wrong_entity_id'];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
+
+    haPlatform.ha.emit(
+      'event',
+      null,
+      lightEntity.entity_id,
+      { ...lightEntityState, state: 'off' },
+      { ...lightEntityState, state: 'on', attributes: { ...lightEntityState.attributes, brightness: 150, color_temp_kelvin: 4500 } },
+    );
+    haPlatform.ha.emit(
+      'event',
+      null,
+      lightEntity.entity_id,
+      { ...lightEntityState, state: 'on' },
+      { ...lightEntityState, state: 'on', attributes: { ...lightEntityState.attributes, brightness: 200, color_temp_kelvin: 5000 } },
+    );
+    haPlatform.ha.emit(
+      'event',
+      null,
+      lightEntity.entity_id,
+      { ...lightEntityState, state: 'on' },
+      { ...lightEntityState, state: 'on', attributes: { ...lightEntityState.attributes, brightness: 250, color_temp_kelvin: 5500 } },
+    );
+    await flushAsync();
+
+    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Stop processing update event from Home Assistant`));
+
+    // Clean the test environment
+    haPlatform.config.namePostfix = '';
+    haPlatform.config.postfix = '';
+    await cleanup();
+  });
+
   it('should call onStart and not register a split entity unavailable and restored', async () => {
     const sensorDevice = {
       area_id: null,

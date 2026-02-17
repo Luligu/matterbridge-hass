@@ -25,6 +25,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [group]: Add the link on the frontend for `group` helpers (platform = group).
 - [unavailable]: Add check for `not provided` entities (state = unavailable, restored = true): they are ignored.
 - [config]: Check if all `splitEntities` in the config exist.
+- [update]: Add queue to fast updates.
 
 ### Changed
 
