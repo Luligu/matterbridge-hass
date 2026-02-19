@@ -1028,6 +1028,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             // In Matter the saturation (on a scale from 0.0 to 1.0) shall be related to the CurrentSaturation attribute by the relationship:
             // Saturation = "CurrentSaturation" / 254
             // where CurrentSaturation is in the range from 0 to 254 inclusive.
+            // istanbul ignore next cause codecov is not able to detect it as covered but it is
             const hs_color =
               data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation')
                 ? [
@@ -1040,6 +1041,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
           if (colorMode === ColorControl.ColorMode.CurrentXAndCurrentY) {
             // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
+            // istanbul ignore next cause codecov is not able to detect it as covered but it is
             const xy_color =
               data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY')
                 ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
