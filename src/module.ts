@@ -1013,9 +1013,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           // We may need to add the current Matter cluster attributes since we are turning on the light and it was off
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
           // In Matter level is 1-254 for feature Lightning while in Home Assistant brightness is 1-255
-          const brightness = runtimeData.lightOffUpdated?.has('level') && data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
-            ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
-            : undefined;
+          const brightness =
+            runtimeData.lightOffUpdated?.has('level') && data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
+              ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
+              : undefined;
           if (isValidNumber(brightness, 1, 255)) {
             serviceAttributes['brightness'] = brightness;
             data.endpoint.log.debug(
@@ -1035,12 +1036,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds')
           ) {
             // In Matter color temperature is represented in mireds while in Home Assistant it's represented in kelvin. We need to convert it before calling the service and also clamp it to the supported range if the attributes are available.
-            const color_temp = data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds');
+            const color_temp =
+              state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
+                ? clamp(
+                    miredsToKelvin(data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds'), 'floor'),
+                    state.attributes.min_color_temp_kelvin,
+                    state.attributes.max_color_temp_kelvin,
+                  )
+                : miredsToKelvin(data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds'), 'floor');
             if (isValidNumber(color_temp)) {
-              serviceAttributes['color_temp_kelvin'] =
-                state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
-                  ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
-                  : miredsToKelvin(color_temp, 'floor');
+              serviceAttributes['color_temp_kelvin'] = color_temp;
               data.endpoint.log.debug(
                 `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => setting color_temp (${color_temp})`,
               );
