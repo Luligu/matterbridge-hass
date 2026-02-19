@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -84,6 +84,9 @@
     "softReset": "npm install --no-fund --no-audit && npm link --no-fund --no-audit matterbridge && npm run build",
     "lint": "eslint --cache --cache-location .cache/.eslintcache --max-warnings=0 .",
     "lint:fix": "eslint --cache --cache-location .cache/.eslintcache --fix --max-warnings=0 .",
+    "lint:debug": "eslint --cache --cache-location .cache/.eslintcache --max-warnings=0 --debug",
+    "lint:config": "eslint --cache --cache-location .cache/.eslintcache --max-warnings=0 --print-config",
+    "lint:inspect": "eslint --cache --cache-location .cache/.eslintcache --max-warnings=0 --inspect-config",
     "format": "prettier --cache --cache-location .cache/.prettiercache --write .",
     "format:check": "prettier --cache --cache-location .cache/.prettiercache --check .",
     "preversion": "npm run runMeBeforePublish",
@@ -100,7 +103,7 @@
     "checkDependencies": "npx npm-check-updates",
     "updateDependencies": "npx npm-check-updates -u && npm run reset",
     "automator": "node scripts/runAutomator.mjs --plugin",
-    "runMeBeforePublish": "npm run build && npm run lint && npm run format && npm run test:coverage && npm run build",
+    "runMeBeforePublish": "npm run cleanBuild && npm run lint && npm run format && npm run test:coverage && npm run build",
     "prepublishOnly": "npm run cleanBuildProduction && npm pkg delete devDependencies scripts && npx shx rm -rf node_modules/* node_modules/.[!.]* node_modules/..?* package-lock.json npm-shrinkwrap.json && npm install --omit=dev && npm shrinkwrap --omit=dev",
     "npmPack": "npx shx cp package.json package.json.backup && node scripts/version.mjs dev && npm run prepublishOnly && npm pack && npx shx cp package.json.backup package.json && npx shx rm -f package.json.backup && npm run reset",
     "npmPublishTagDev": "npx shx cp package.json package.json.backup && node scripts/version.mjs dev && npm run prepublishOnly && npm publish --tag dev && npx shx cp package.json.backup package.json && npx shx rm -f package.json.backup && npm run reset",
@@ -109,7 +112,7 @@
     "install:dependencies": "npm install --no-fund --no-audit --save-exact node-ansi-logger node-persist-manager ws && npm install --no-fund --no-audit --save-dev --save-exact @types/ws",
     "install:scripts": "npm install --no-fund --no-audit --save-dev --save-exact npm-check-updates shx cross-env",
     "install:typescript": "npm install --no-fund --no-audit --save-dev --save-exact typescript @types/node",
-    "install:eslint": "npm install --no-fund --no-audit --save-dev --save-exact eslint@9.39.2 @eslint/js@9.39.2 typescript-eslint eslint-plugin-import eslint-plugin-n eslint-plugin-promise eslint-plugin-jsdoc",
+    "install:eslint": "npm pkg delete overrides && npm install --no-fund --no-audit --save-dev --save-exact eslint@latest @eslint/js@latest && npm pkg set \"overrides.eslint=10.0.0\" && npm pkg set \"overrides.@eslint/js=10.0.1\" && npm install --no-fund --no-audit --save-dev --save-exact typescript-eslint eslint-plugin-import eslint-plugin-n eslint-plugin-promise eslint-plugin-jsdoc",
     "install:prettier": "npm install --no-fund --no-audit --save-dev --save-exact prettier eslint-config-prettier eslint-plugin-prettier",
     "install:jest": "npm install --no-fund --no-audit --save-dev --save-exact jest ts-jest @types/jest @jest/globals eslint-plugin-jest",
     "install:vitest": "npm install --no-fund --no-audit --save-dev --save-exact vitest @vitest/coverage-v8 @vitest/eslint-plugin",
@@ -122,24 +125,24 @@
   },
   "dependencies": {
     "node-ansi-logger": "3.2.0",
-    "node-persist-manager": "2.0.0",
+    "node-persist-manager": "2.0.1",
     "ws": "8.19.0"
   },
   "devDependencies": {
-    "@eslint/js": "9.39.2",
+    "@eslint/js": "10.0.1",
     "@jest/globals": "30.2.0",
     "@types/jest": "30.0.0",
-    "@types/node": "25.2.2",
+    "@types/node": "25.2.3",
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "4.0.18",
-    "@vitest/eslint-plugin": "1.6.6",
+    "@vitest/eslint-plugin": "1.6.9",
     "cross-env": "10.1.0",
-    "eslint": "9.39.2",
+    "eslint": "10.0.0",
     "eslint-config-prettier": "10.1.8",
     "eslint-plugin-import": "2.32.0",
-    "eslint-plugin-jest": "29.13.0",
-    "eslint-plugin-jsdoc": "62.5.4",
-    "eslint-plugin-n": "17.23.2",
+    "eslint-plugin-jest": "29.15.0",
+    "eslint-plugin-jsdoc": "62.5.5",
+    "eslint-plugin-n": "17.24.0",
     "eslint-plugin-prettier": "5.5.5",
     "eslint-plugin-promise": "7.2.1",
     "jest": "30.2.0",
@@ -150,5 +153,9 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.55.0",
     "vitest": "4.0.18"
+  },
+  "overrides": {
+    "eslint": "10.0.0",
+    "@eslint/js": "10.0.1"
   }
 }

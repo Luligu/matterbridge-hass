@@ -6,9 +6,41 @@ If you like this project and find it useful, please consider giving it a **star*
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
+### How to use filters and select
+
+> Read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/186).
+
 ### Naming issues on the controller side explained
 
-For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+> For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## [1.0.7] - 2026-02-19
+
+### Added
+
+- [guide]: Add a guide about using filters and select [here](https://github.com/Luligu/matterbridge-hass/discussions/186).
+- [names]: Add a warning message in the logs and on the frontend with the total number of devices and entities discarded due to `duplicate names`.
+- [names]: Add a warning message in the logs and on the frontend with the total number of devices and entities whose name exceeds Matter’s `32-character limit`.
+- [create]: Add an error message in the logs and on the frontend with the total number of devices and entities that `failed` to be created.
+- [group]: Add the link on the frontend for `group` helpers (platform = group).
+- [unavailable]: Add check for `not provided` entities (state = unavailable, restored = true): they are ignored.
+- [config]: Check if all `splitEntities` in the config exist.
+- [update]: Add queue to fast updates: a new update stops the older ones that are still executing.
+
+### Changed
+
+- [package]: Update dependencies.
+- [package]: Bump package to `automator` v.3.0.8.
+- [package]: Bump `node-ansi-logger` to v.3.2.0.
+- [package]: Bump `node-persist-manager` to v.2.0.1.
+- [package]: Bump `eslint` to v.10.0.0.
+- [config]: Improve descriptions of fields in the config.
+
+### Fixed
+
+- [create]: When a device creation fails, the device is now removed from the select (Devices panel on the Home page).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.0.6] - 2026-02-10
 
