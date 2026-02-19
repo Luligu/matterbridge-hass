@@ -55,12 +55,12 @@
       "default": ""
     },
     "applyFiltersToDeviceEntities": {
-      "description": "Apply the filters to device entities too. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities shall have the same filters applied in order to be exposed). If disabled, the filters will only be applied to devices (all entities that belong to the device will be exposed) and individual entities.",
+      "description": "Apply the filters to device entities too. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities shall have the same filters applied in order to be exposed). If disabled, the filters will only be applied to devices (all entities that belong to the device will be exposed).",
       "type": "boolean",
       "default": false
     },
     "whiteList": {
-      "description": "Only the devices and individual entities in the list will be exposed. Use the name or the id. If the list is empty, all the devices and individual entities will be exposed.",
+      "description": "Only the devices, individual entities and split entities in the list will be exposed. Use the name or the id. If the list is empty, all the devices, individual entities and split entities will be exposed.",
       "type": "array",
       "items": {
         "type": "string"
@@ -69,7 +69,7 @@
       "selectFrom": "name"
     },
     "blackList": {
-      "description": "The devices and individual entities in the list will not be exposed. Use the name or the id. If the list is empty, no devices and individual entities will be excluded.",
+      "description": "The devices, individual entities and split entities in the list will not be exposed. Use the name or the id. If the list is empty, no devices, individual entities and split entities will be excluded.",
       "type": "array",
       "items": {
         "type": "string"
@@ -78,7 +78,7 @@
       "selectFrom": "name"
     },
     "entityBlackList": {
-      "description": "The entities in the list that belongs to a device will not be exposed (this doesn't black list the individual entities). Enter the entity name. This is only related to device entities, not individual entities.",
+      "description": "Not used in this plugin.",
       "type": "array",
       "items": {
         "type": "string"
@@ -88,7 +88,7 @@
       "ui:widget": "hidden"
     },
     "deviceEntityBlackList": {
-      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device. This is only related to device entities, not individual entities.",
+      "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device. This is only related to device entities, not individual entities or split entities.",
       "type": "object",
       "uniqueItems": true,
       "selectFrom": "name",

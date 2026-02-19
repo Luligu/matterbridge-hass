@@ -11,7 +11,7 @@ import path from 'node:path';
 import { jest } from '@jest/globals';
 import { Lifecycle } from 'matterbridge/matter';
 import { invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
-import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn } from 'matterbridge/logger';
+import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn, wr } from 'matterbridge/logger';
 import {
   PowerSource,
   BooleanState,
@@ -63,6 +63,7 @@ import {
   loggerWarnSpy,
   loggerFatalSpy,
   loggerErrorSpy,
+  setDebug,
 } from 'matterbridge/jestutils';
 
 // Home Assistant Plugin
@@ -139,7 +140,7 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.5.0',
+    matterbridgeVersion: '3.5.5',
     log,
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await aggregator.add(device);
@@ -221,6 +222,18 @@ describe('Matterbridge ' + NAME, () => {
     // Clean the platform environment
     await haPlatform.clearSelect();
     await haPlatform.unregisterAllDevices();
+
+    haPlatform.filterMessages.length = 0;
+    haPlatform.filteredDevices = 0;
+    haPlatform.filteredEntities = 0;
+    haPlatform.unselectedDevices = 0;
+    haPlatform.unselectedEntities = 0;
+    haPlatform.duplicatedDevices = 0;
+    haPlatform.duplicatedEntities = 0;
+    haPlatform.longNameDevices = 0;
+    haPlatform.longNameEntities = 0;
+    haPlatform.failedDevices = 0;
+    haPlatform.failedEntities = 0;
   }
 
   test('create and start the server node', async () => {
@@ -1300,8 +1313,10 @@ describe('Matterbridge ' + NAME, () => {
         color_mode: 'color_temp',
         brightness: 100,
         color_temp_kelvin: 5000, // Mireds 200
-        min_color_temp_kelvin: 2500, // Maximum mireds 400
-        max_color_temp_kelvin: 6500, // Minimum mireds 153
+        // min_color_temp_kelvin: 2500, // Maximum mireds 400
+        // max_color_temp_kelvin: 6500, // Minimum mireds 153
+        min_color_temp_kelvin: null, // Maximum mireds 400
+        max_color_temp_kelvin: null, // Minimum mireds 153
         friendly_name: 'Light Light Ct',
       },
     } as unknown as HassState;
@@ -1309,6 +1324,9 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassDevices.set(lightDevice.id, lightDevice);
     haPlatform.ha.hassEntities.set(lightDeviceEntity.entity_id, lightDeviceEntity);
     haPlatform.ha.hassStates.set(lightDeviceEntityState.entity_id, lightDeviceEntityState);
+
+    haPlatform.config.namePostfix = '#10';
+    haPlatform.config.postfix = '#10';
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
@@ -1321,7 +1339,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 400);
+    expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 500);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1332,7 +1350,33 @@ describe('Matterbridge ' + NAME, () => {
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.ColorTemperatureMireds, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorTemperatureMireds', 200, expect.anything());
 
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'onOff', 'on');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_on', lightDeviceEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_off', lightDeviceEntity.entity_id, undefined);
+
+    jest.clearAllMocks();
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', {
+      level: 50,
+      transitionTime: 100, // tenths of seconds
+      optionsMask: { executeIfOff: true, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: true, coupleColorTempToLevel: false },
+    });
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_on', lightDeviceEntity.entity_id, {
+      brightness: 50,
+      color_temp_kelvin: 5000,
+      transition: 10,
+    }); // The last Matter state + request.level + transition time in seconds
+
     // Clean the test environment
+    haPlatform.config.namePostfix = '';
+    haPlatform.config.postfix = '';
     await cleanup();
   });
 
@@ -2616,7 +2660,7 @@ describe('Matterbridge ' + NAME, () => {
       id: '0b25a337cb83edefb1d310450ad2b0ac',
       labels: [],
       name: null,
-      original_name: 'Single Entity Color Temperature Template',
+      original_name: 'Single Entity CT Template',
     } as unknown as HassEntity;
 
     const lightState = {
@@ -3019,7 +3063,357 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
   });
 
+  it('should call onStart and warn for a longer then 32 characters individual entity', async () => {
+    const sensorEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Longer Than 32 Characters',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Individual entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+    );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Entities with long names: 1`));
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and not register an individual entity unavailable and restored', async () => {
+    const sensorEntity = {
+      area_id: null,
+      device_id: null,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.unavailable_restored',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Single Entity Unavailable',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: 'unavailable',
+      attributes: { restored: true, state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+
+    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Individual entity ${CYAN}${sensorEntity.entity_id}${db}: state unavailable and restored. Skipping...`));
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and warn for a longer then 32 characters device', async () => {
+    await setDebug(false);
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with long name that exceeds Matter’s 32-character limit',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Device Entity',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.splitEntities = [];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-character limit`));
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Devices with long names: 1`));
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and not register a device entity unavailable and restored', async () => {
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with unavailable and restored entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.unavailable_restored',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Device Entity',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: 'unavailable',
+      attributes: { restored: true, state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.splitEntities = [];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+
+    expect(loggerDebugSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Device ${CYAN}${sensorDevice.name}${db} entity ${CYAN}${sensorEntity.entity_id}${db}: state unavailable and restored. Skipping...`),
+    );
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and warn for a longer then 32 characters split entity', async () => {
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with split entity with long name',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Split Entity Longer Than 32 Characters',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.namePostfix = 'Tst';
+    haPlatform.config.postfix = 'Tst';
+    haPlatform.config.splitEntities = [sensorEntity.entity_id, 'sensor.wrong_entity_id'];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+    );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      expect.stringContaining(`Split entity "${CYAN}sensor.wrong_entity_id${wr}" set in splitEntities not found in Home Assistant. Please check your configuration.`),
+    );
+
+    // Clean the test environment
+    haPlatform.config.namePostfix = '';
+    haPlatform.config.postfix = '';
+    await cleanup();
+  });
+
+  it('should call onStart and stop multiple updates for a split entity', async () => {
+    const lightDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with split entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const lightEntity = {
+      area_id: null,
+      device_id: lightDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'light.multiple_updates',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Split Entity',
+    } as unknown as HassEntity;
+
+    const lightEntityState = {
+      entity_id: lightEntity.entity_id,
+      state: 'off',
+      attributes: { supported_color_modes: ['color_temp', 'hs', 'xy'], color_mode: 'color_temp', brightness: 100, color_temp_kelvin: 4000, friendly_name: 'Light Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(lightDevice.id, lightDevice);
+    haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
+    haPlatform.ha.hassStates.set(lightEntityState.entity_id, lightEntityState);
+
+    haPlatform.config.namePostfix = 'Tst';
+    haPlatform.config.postfix = 'Tst';
+    haPlatform.config.splitEntities = [lightEntity.entity_id, 'sensor.wrong_entity_id'];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
+
+    haPlatform.ha.emit(
+      'event',
+      null,
+      lightEntity.entity_id,
+      { ...lightEntityState, state: 'off' },
+      { ...lightEntityState, state: 'on', attributes: { ...lightEntityState.attributes, brightness: 150, color_temp_kelvin: 4500 } },
+    );
+    haPlatform.ha.emit(
+      'event',
+      null,
+      lightEntity.entity_id,
+      { ...lightEntityState, state: 'on' },
+      { ...lightEntityState, state: 'on', attributes: { ...lightEntityState.attributes, brightness: 200, color_temp_kelvin: 5000 } },
+    );
+    haPlatform.ha.emit(
+      'event',
+      null,
+      lightEntity.entity_id,
+      { ...lightEntityState, state: 'on' },
+      { ...lightEntityState, state: 'on', attributes: { ...lightEntityState.attributes, brightness: 250, color_temp_kelvin: 5500 } },
+    );
+    await flushAsync();
+
+    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Stop processing update event from Home Assistant`));
+
+    // Clean the test environment
+    haPlatform.config.namePostfix = '';
+    haPlatform.config.postfix = '';
+    await cleanup();
+  });
+
+  it('should call onStart and not register a split entity unavailable and restored', async () => {
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Device with split entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Split Entity',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: 'unavailable',
+      attributes: { restored: true, state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor Long Name' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.splitEntities = [sensorEntity.entity_id];
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+
+    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Split entity ${CYAN}${sensorEntity.entity_id}${db}: state unavailable and restored. Skipping...`));
+
+    // Clean the test environment
+    await cleanup();
+  });
+
   it('should call onStart and not register an unknown individual entity', async () => {
+    await setDebug(false);
     const sensorUnknownEntity = {
       area_id: null,
       device_id: null,

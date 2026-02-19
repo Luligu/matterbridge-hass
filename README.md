@@ -21,11 +21,11 @@
 
 This plugin allows you to expose the Home Assistant devices and individual entities to Matter.
 
-It is the ideal companion of the official [Matterbridge Home Assistant Add-on](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
+It is the ideal companion of the official [Matterbridge Home Assistant Application](https://github.com/Luligu/matterbridge-home-assistant-addon/blob/main/README.md).
 
 Features:
 
-- The plugin can be used with Matterbridge running in the Matterbridge Official Add-on or outside Home Assistant.
+- This plugin can be used with Matterbridge running in the Matterbridge Official Application or outside Home Assistant.
 - The state of the Home Assistant core is checked before starting. The plugin waits for the core to be `RUNNING`.
 - The connection with Home Assistant is made throught WebSocket: so Matterbridge can be also in another network if the Home Assistant host is reachable.
 - The connection with Home Assistant can be also made with ssl WebSocket (i.e. wss://homeassistant:8123). Self signed certificates are also supported.
@@ -211,7 +211,7 @@ Filter devices and individual entities by label. If enabled, only devices, indiv
 
 ### applyFiltersToDeviceEntities
 
-Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities need to have the area and label that you specified in the filters). If disabled, the filters will only be applied to devices (in this case, all the entities that belong to the device will be included) and individual entities.
+Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities need to have the area and label that you specified in the filters). If disabled, the filters will only be applied to devices (in this case, all the entities that belong to the device will be included).
 
 ### whiteList
 
