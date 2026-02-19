@@ -1009,11 +1009,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode')
               : undefined;
 
-          if (colorMode === ColorControl.ColorMode.ColorTemperatureMireds) {
+          if (colorMode === ColorControl.ColorMode.ColorTemperatureMireds && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds')) {
             // In Matter color temperature is represented in mireds while in Home Assistant it's represented in kelvin. We need to convert it before calling the service and also clamp it to the supported range if the attributes are available.
-            const color_temp = data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds')
-              ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')
-              : undefined;
+            const color_temp = data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds');
             if (isValidNumber(color_temp))
               serviceAttributes['color_temp_kelvin'] =
                 state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
@@ -1021,7 +1019,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
                   : miredsToKelvin(color_temp, 'floor');
           }
 
-          if (colorMode === ColorControl.ColorMode.CurrentHueAndCurrentSaturation) {
+          if (
+            colorMode === ColorControl.ColorMode.CurrentHueAndCurrentSaturation &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation')
+          ) {
             // In Matter the hue in degrees shall be related to the CurrentHue attribute by the relationship:
             // Hue = "CurrentHue" * 360 / 254
             // where CurrentHue is in the range from 0 to 254 inclusive.
@@ -1029,23 +1031,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             // Saturation = "CurrentSaturation" / 254
             // where CurrentSaturation is in the range from 0 to 254 inclusive.
             // istanbul ignore next cause codecov is not able to detect it as covered but it is
-            const hs_color =
-              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation')
-                ? [
-                    Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
-                    Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
-                  ]
-                : undefined;
+            const hs_color = [
+              Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
+              Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+            ];
             if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
           }
 
-          if (colorMode === ColorControl.ColorMode.CurrentXAndCurrentY) {
+          if (
+            colorMode === ColorControl.ColorMode.CurrentXAndCurrentY &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY')
+          ) {
             // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
             // istanbul ignore next cause codecov is not able to detect it as covered but it is
-            const xy_color =
-              data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY')
-                ? convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'))
-                : undefined;
+            const xy_color = convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'));
             if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
           }
 
