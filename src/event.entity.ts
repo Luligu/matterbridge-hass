@@ -21,13 +21,13 @@
  */
 
 import { genericSwitch } from 'matterbridge';
-import { isValidString } from 'matterbridge/utils';
 import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
 import { Switch } from 'matterbridge/matter/clusters';
+import { isValidString } from 'matterbridge/utils';
 
+import { hassDomainEventConverter } from './converters.js';
 import { HassEntity, HassState } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassDomainEventConverter } from './converters.js';
 
 /**
  * Look for supported events of the current entity

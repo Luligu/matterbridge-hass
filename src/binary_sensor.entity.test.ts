@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals';
-import { contactSensor, smokeCoAlarm, waterFreezeDetector, waterLeakDetector, powerSource, occupancySensor } from 'matterbridge';
+import { contactSensor, occupancySensor, powerSource, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
 import { BooleanState, OccupancySensing, PowerSource, SmokeCoAlarm } from 'matterbridge/matter/clusters';
 
-import { hassDomainBinarySensorsConverter } from './converters.js';
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
+import { hassDomainBinarySensorsConverter } from './converters.js';
 import { MutableDevice } from './mutableDevice.js';
 
 function createMockMutableDevice(): MutableDevice & {

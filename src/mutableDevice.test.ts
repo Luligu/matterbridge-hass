@@ -8,56 +8,55 @@ import path from 'node:path';
 
 import { jest } from '@jest/globals';
 import {
-  Matterbridge,
-  MatterbridgeEndpoint,
   bridgedNode,
-  powerSource,
-  electricalSensor,
-  onOffOutlet,
-  onOffLight,
-  dimmableLight,
   colorTemperatureLight,
-  onOffSwitch,
-  dimmableSwitch,
-  dimmableOutlet,
   colorTemperatureSwitch,
-  temperatureSensor,
-  optionsFor,
-  extendedColorLight,
   contactSensor,
-  smokeCoAlarm,
-  thermostatDevice,
-  invokeSubscribeHandler,
-  roboticVacuumCleaner,
-  humiditySensor,
-  pressureSensor,
+  dimmableLight,
+  dimmableOutlet,
+  dimmableSwitch,
+  electricalSensor,
+  extendedColorLight,
   fanDevice,
+  humiditySensor,
+  invokeSubscribeHandler,
+  MatterbridgeEndpoint,
+  onOffLight,
+  onOffOutlet,
+  onOffSwitch,
+  optionsFor,
+  powerSource,
+  pressureSensor,
+  roboticVacuumCleaner,
+  smokeCoAlarm,
+  temperatureSensor,
+  thermostatDevice,
 } from 'matterbridge';
+import { addDevice, aggregator, createTestEnvironment, destroyTestEnvironment, logKeepAlives, server, setupTest, startServerNode, stopServerNode } from 'matterbridge/jestutils';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
+import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
+import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 import {
-  PowerSourceCluster,
-  BridgedDeviceBasicInformationCluster,
-  OnOffCluster,
-  IdentifyCluster,
-  GroupsCluster,
-  LevelControlCluster,
-  ColorControlCluster,
-  DescriptorCluster,
-  OnOff,
-  PowerSource,
   BridgedDeviceBasicInformation,
-  LevelControl,
-  FixedLabel,
+  BridgedDeviceBasicInformationCluster,
+  ColorControlCluster,
   Descriptor,
+  DescriptorCluster,
+  FanControl,
+  FixedLabel,
+  GroupsCluster,
+  IdentifyCluster,
+  LevelControl,
+  LevelControlCluster,
+  OnOff,
+  OnOffCluster,
+  PowerSource,
+  PowerSourceCluster,
+  PressureMeasurement,
+  RelativeHumidityMeasurement,
   SmokeCoAlarm,
   TemperatureMeasurement,
-  RelativeHumidityMeasurement,
-  PressureMeasurement,
-  FanControl,
 } from 'matterbridge/matter/clusters';
-import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
-import { addDevice, aggregator, createTestEnvironment, destroyTestEnvironment, logKeepAlives, server, setupTest, startServerNode, stopServerNode } from 'matterbridge/jestutils';
-import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 
 import { MutableDevice } from './mutableDevice.js';
 
@@ -81,7 +80,7 @@ describe('MutableDevice', () => {
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
-  } as unknown as Matterbridge;
+  } as any;
 
   const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 

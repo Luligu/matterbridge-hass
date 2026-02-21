@@ -1,19 +1,19 @@
 import { jest } from '@jest/globals';
-import { airQualitySensor, electricalSensor, powerSource, temperatureSensor, humiditySensor, pressureSensor, lightSensor } from 'matterbridge';
+import { airQualitySensor, electricalSensor, humiditySensor, lightSensor, powerSource, pressureSensor, temperatureSensor } from 'matterbridge';
 import {
   AirQuality,
-  TemperatureMeasurement,
-  RelativeHumidityMeasurement,
-  PressureMeasurement,
-  IlluminanceMeasurement,
-  ElectricalPowerMeasurement,
   ElectricalEnergyMeasurement,
+  ElectricalPowerMeasurement,
+  IlluminanceMeasurement,
   PowerSource as PowerSourceCluster,
+  PressureMeasurement,
+  RelativeHumidityMeasurement,
+  TemperatureMeasurement,
 } from 'matterbridge/matter/clusters';
 
-import { addSensorEntity } from './sensor.entity.js';
 import { hassDomainSensorsConverter } from './converters.js';
 import { MutableDevice } from './mutableDevice.js';
+import { addSensorEntity } from './sensor.entity.js';
 
 // Lightweight mock factory replicating just the methods used by addSensorEntity
 function createMockMutableDevice(): MutableDevice & {

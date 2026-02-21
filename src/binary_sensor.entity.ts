@@ -21,14 +21,14 @@
  */
 
 import { contactSensor, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
-import { isValidString } from 'matterbridge/utils';
 import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
-import { ClusterRegistry } from 'matterbridge/matter/types';
 import { SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { ClusterRegistry } from 'matterbridge/matter/types';
+import { isValidString } from 'matterbridge/utils';
 
+import { hassDomainBinarySensorsConverter } from './converters.js';
 import { HassEntity, HassState } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassDomainBinarySensorsConverter } from './converters.js';
 
 /**
  * Look for supported binary_sensors of the current entity

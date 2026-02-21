@@ -23,31 +23,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable jsdoc/reject-any-type */
 
-// Node.js imports
-import path from 'node:path';
 import fs from 'node:fs';
+import path from 'node:path';
 
-// matterbridge imports
 import {
-  PlatformConfig,
+  bridgedNode,
+  electricalSensor,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
-  bridgedNode,
   onOffOutlet,
+  PlatformConfig,
+  PlatformMatterbridge,
   powerSource,
   PrimitiveTypes,
-  electricalSensor,
-  PlatformMatterbridge,
 } from 'matterbridge';
+import { AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
 import { ActionContext } from 'matterbridge/matter';
-import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
-import { deepEqual, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
-import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorControl } from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformation, ColorControl, LevelControl, OnOff, PowerSource } from 'matterbridge/matter/clusters';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
+import { deepEqual, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
-// Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
-import { MutableDevice } from './mutableDevice.js';
+import { addBinarySensorEntity } from './binary_sensor.entity.js';
+import { addControlEntity } from './control.entity.js';
 import {
   clamp,
   convertMatterXYToHA,
@@ -59,10 +56,11 @@ import {
   hassUpdateStateConverter,
   miredsToKelvin,
 } from './converters.js';
-import { addBinarySensorEntity } from './binary_sensor.entity.js';
-import { addSensorEntity } from './sensor.entity.js';
-import { addControlEntity } from './control.entity.js';
 import { addEventEntity } from './event.entity.js';
+// Plugin imports
+import { HassArea, HassConfig as HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant, HomeAssistantPrimitive } from './homeAssistant.js';
+import { MutableDevice } from './mutableDevice.js';
+import { addSensorEntity } from './sensor.entity.js';
 
 export interface HomeAssistantPlatformConfig extends PlatformConfig {
   host: string;

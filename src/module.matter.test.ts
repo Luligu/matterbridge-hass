@@ -9,68 +9,67 @@ const HOMEDIR = path.join('jest', NAME);
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { Lifecycle } from 'matterbridge/matter';
 import { invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
-import { AnsiLogger, CYAN, nf, rs, TimestampFormat, LogLevel, idn, db, or, hk, dn, wr } from 'matterbridge/logger';
 import {
-  PowerSource,
-  BooleanState,
-  FanControl,
-  OnOff,
-  LevelControl,
-  DoorLock,
-  SmokeCoAlarm,
-  ColorControl,
-  Thermostat,
-  OccupancySensing,
-  RelativeHumidityMeasurement,
-  ElectricalPowerMeasurement,
-  ElectricalEnergyMeasurement,
-  PressureMeasurement,
-  IlluminanceMeasurement,
-  AirQuality,
-  TemperatureMeasurement,
-  ValveConfigurationAndControl,
-  RvcRunMode,
-  RvcOperationalState,
-  TotalVolatileOrganicCompoundsConcentrationMeasurement,
-  CarbonDioxideConcentrationMeasurement,
-  CarbonMonoxideConcentrationMeasurement,
-  NitrogenDioxideConcentrationMeasurement,
-  OzoneConcentrationMeasurement,
-  FormaldehydeConcentrationMeasurement,
-  RadonConcentrationMeasurement,
-  Pm1ConcentrationMeasurement,
-  Pm25ConcentrationMeasurement,
-  Pm10ConcentrationMeasurement,
-} from 'matterbridge/matter/clusters';
-import {
+  addMatterbridgePlatform,
+  aggregator,
   createTestEnvironment,
+  destroyTestEnvironment,
   flushAsync,
+  log,
+  loggerDebugSpy,
+  loggerErrorSpy,
+  loggerFatalSpy,
+  loggerInfoSpy,
+  loggerLogSpy,
+  loggerWarnSpy,
+  logKeepAlives,
+  matterbridge,
+  server,
+  setDebug,
+  setupTest,
   startServerNode,
   stopServerNode,
-  setupTest,
-  loggerLogSpy,
-  destroyTestEnvironment,
-  aggregator,
-  server,
-  logKeepAlives,
-  log,
-  matterbridge,
-  addMatterbridgePlatform,
-  loggerInfoSpy,
-  loggerDebugSpy,
-  loggerWarnSpy,
-  loggerFatalSpy,
-  loggerErrorSpy,
-  setDebug,
 } from 'matterbridge/jestutils';
+import { AnsiLogger, CYAN, db, dn, hk, idn, LogLevel, nf, or, rs, TimestampFormat, wr } from 'matterbridge/logger';
+import { Lifecycle } from 'matterbridge/matter';
+import {
+  AirQuality,
+  BooleanState,
+  CarbonDioxideConcentrationMeasurement,
+  CarbonMonoxideConcentrationMeasurement,
+  ColorControl,
+  DoorLock,
+  ElectricalEnergyMeasurement,
+  ElectricalPowerMeasurement,
+  FanControl,
+  FormaldehydeConcentrationMeasurement,
+  IlluminanceMeasurement,
+  LevelControl,
+  NitrogenDioxideConcentrationMeasurement,
+  OccupancySensing,
+  OnOff,
+  OzoneConcentrationMeasurement,
+  Pm1ConcentrationMeasurement,
+  Pm10ConcentrationMeasurement,
+  Pm25ConcentrationMeasurement,
+  PowerSource,
+  PressureMeasurement,
+  RadonConcentrationMeasurement,
+  RelativeHumidityMeasurement,
+  RvcOperationalState,
+  RvcRunMode,
+  SmokeCoAlarm,
+  TemperatureMeasurement,
+  Thermostat,
+  TotalVolatileOrganicCompoundsConcentrationMeasurement,
+  ValveConfigurationAndControl,
+} from 'matterbridge/matter/clusters';
 
-// Home Assistant Plugin
-import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
-import { ColorMode, HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import { MutableDevice } from './mutableDevice.js';
 import { miredsToKelvin } from './converters.js';
+import { ColorMode, HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
+import { MutableDevice } from './mutableDevice.js';
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
   console.log(`Mocked connect`);
@@ -118,6 +117,70 @@ const addClusterServerColorControlSpy = jest.spyOn(MutableDevice.prototype, 'add
 const addClusterServerAutoModeThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
 const addClusterServerHeatingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
 const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
+
+// Remove these helpers and use matterbridge when you require a new minor version
+const getMoveToLevelRequest = (level: number, transitionTime: number, executeIfOff: boolean) => {
+  const request: LevelControl.MoveToLevelRequest = {
+    level,
+    transitionTime,
+    optionsMask: { executeIfOff, coupleColorTempToLevel: false },
+    optionsOverride: { executeIfOff, coupleColorTempToLevel: false },
+  };
+  return request;
+};
+
+const getMoveToColorTemperatureRequest = (colorTemperatureMireds: number, transitionTime: number, executeIfOff: boolean) => {
+  const request: ColorControl.MoveToColorTemperatureRequest = {
+    colorTemperatureMireds,
+    transitionTime,
+    optionsMask: { executeIfOff },
+    optionsOverride: { executeIfOff },
+  };
+  return request;
+};
+
+const getMoveToHueRequest = (hue: number, transitionTime: number, executeIfOff: boolean) => {
+  const request: ColorControl.MoveToHueRequest = {
+    hue,
+    transitionTime,
+    direction: ColorControl.Direction.Shortest,
+    optionsMask: { executeIfOff },
+    optionsOverride: { executeIfOff },
+  };
+  return request;
+};
+
+const getMoveToSaturationRequest = (saturation: number, transitionTime: number, executeIfOff: boolean) => {
+  const request: ColorControl.MoveToSaturationRequest = {
+    saturation,
+    transitionTime,
+    optionsMask: { executeIfOff },
+    optionsOverride: { executeIfOff },
+  };
+  return request;
+};
+
+const getMoveToHueAndSaturationRequest = (hue: number, saturation: number, transitionTime: number, executeIfOff: boolean) => {
+  const request: ColorControl.MoveToHueAndSaturationRequest = {
+    hue,
+    saturation,
+    transitionTime,
+    optionsMask: { executeIfOff },
+    optionsOverride: { executeIfOff },
+  };
+  return request;
+};
+
+const getMoveToColorRequest = (colorX: number, colorY: number, transitionTime: number, executeIfOff: boolean) => {
+  const request: ColorControl.MoveToColorRequest = {
+    colorX,
+    colorY,
+    transitionTime,
+    optionsMask: { executeIfOff },
+    optionsOverride: { executeIfOff },
+  };
+  return request;
+};
 
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
@@ -2952,10 +3015,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(lightEntity.entity_id, lightEntity);
     haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
 
-    // setDebug(true);
-
     await haPlatform.onStart('Test reason');
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
@@ -3006,69 +3066,6 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127);
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
     expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
-
-    const getMoveToLevelRequest = (level: number, transitionTime: number, executeIfOff: boolean) => {
-      const request: LevelControl.MoveToLevelRequest = {
-        level,
-        transitionTime,
-        optionsMask: { executeIfOff, coupleColorTempToLevel: false },
-        optionsOverride: { executeIfOff, coupleColorTempToLevel: false },
-      };
-      return request;
-    };
-
-    const getMoveToColorTemperatureRequest = (colorTemperatureMireds: number, transitionTime: number, executeIfOff: boolean) => {
-      const request: ColorControl.MoveToColorTemperatureRequest = {
-        colorTemperatureMireds,
-        transitionTime,
-        optionsMask: { executeIfOff },
-        optionsOverride: { executeIfOff },
-      };
-      return request;
-    };
-
-    const getMoveToHueRequest = (hue: number, transitionTime: number, executeIfOff: boolean) => {
-      const request: ColorControl.MoveToHueRequest = {
-        hue,
-        transitionTime,
-        direction: ColorControl.Direction.Shortest,
-        optionsMask: { executeIfOff },
-        optionsOverride: { executeIfOff },
-      };
-      return request;
-    };
-
-    const getMoveToSaturationRequest = (saturation: number, transitionTime: number, executeIfOff: boolean) => {
-      const request: ColorControl.MoveToSaturationRequest = {
-        saturation,
-        transitionTime,
-        optionsMask: { executeIfOff },
-        optionsOverride: { executeIfOff },
-      };
-      return request;
-    };
-
-    const getMoveToHueAndSaturationRequest = (hue: number, saturation: number, transitionTime: number, executeIfOff: boolean) => {
-      const request: ColorControl.MoveToHueAndSaturationRequest = {
-        hue,
-        saturation,
-        transitionTime,
-        optionsMask: { executeIfOff },
-        optionsOverride: { executeIfOff },
-      };
-      return request;
-    };
-
-    const getMoveToColorRequest = (colorX: number, colorY: number, transitionTime: number, executeIfOff: boolean) => {
-      const request: ColorControl.MoveToColorRequest = {
-        colorX,
-        colorY,
-        transitionTime,
-        optionsMask: { executeIfOff },
-        optionsOverride: { executeIfOff },
-      };
-      return request;
-    };
 
     /* ****************** This will test Adaptive Lighting ********************** */
     // In Matter level is 1-254 while in Home Assistant brightness is 1-255

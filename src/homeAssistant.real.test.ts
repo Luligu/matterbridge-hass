@@ -10,8 +10,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { LogLevel } from 'matterbridge/logger';
 import { loggerLogSpy, setupTest } from 'matterbridge/jestutils';
+import { LogLevel } from 'matterbridge/logger';
 import { getIpv4InterfaceAddress } from 'matterbridge/utils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';

@@ -11,37 +11,37 @@ import * as path from 'node:path';
 
 import { jest } from '@jest/globals';
 import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, MatterbridgeEndpoint, onOffOutlet } from 'matterbridge';
-import { EndpointNumber } from 'matterbridge/matter/types';
-import { wait } from 'matterbridge/utils';
-import { db, dn, idn, LogLevel, nf, rs, CYAN, ign, wr, er, or } from 'matterbridge/logger';
-import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 import {
-  flushAsync,
-  setupTest,
-  loggerLogSpy,
+  addBridgedEndpointSpy,
+  addMatterbridgePlatform,
+  addVirtualEndpointSpy,
   createMatterbridgeEnvironment,
   destroyMatterbridgeEnvironment,
+  flushAsync,
   log,
   loggerDebugSpy,
-  loggerInfoSpy,
-  loggerWarnSpy,
   loggerErrorSpy,
-  matterbridge,
-  addMatterbridgePlatform,
+  loggerInfoSpy,
+  loggerLogSpy,
   loggerNoticeSpy,
-  setDebug,
-  addBridgedEndpointSpy,
+  loggerWarnSpy,
+  matterbridge,
   removeAllBridgedEndpointsSpy,
   removeBridgedEndpointSpy,
-  addVirtualEndpointSpy,
   setAttributeSpy,
-  triggerSwitchEventSpy,
+  setDebug,
+  setupTest,
   startMatterbridgeEnvironment,
   stopMatterbridgeEnvironment,
+  triggerSwitchEventSpy,
 } from 'matterbridge/jestutils';
+import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
+import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
+import { EndpointNumber } from 'matterbridge/matter/types';
+import { wait } from 'matterbridge/utils';
 
-import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
 import { MutableDevice } from './mutableDevice.js';
 
 const readMockHomeAssistantFile = () => {
