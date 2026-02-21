@@ -154,9 +154,6 @@ describe('HassPlatform', () => {
   beforeAll(async () => {
     // Create the test environment
     await createMatterbridgeEnvironment(NAME);
-
-    // Start the test environment
-    // await startMatterbridgeEnvironment(MATTER_PORT);
   });
 
   beforeEach(() => {
@@ -174,26 +171,22 @@ describe('HassPlatform', () => {
       haPlatform.ha.hassStates.clear();
       // haPlatform.ha.hassAreas.clear();
       // haPlatform.ha.hassLabels.clear();
+      haPlatform.matterbridgeDevices.clear();
       haPlatform.endpointNames.clear();
       haPlatform.batteryVoltageEntities.clear();
+      haPlatform.updatingEntities.clear();
+      haPlatform.offUpdatedEntities.clear();
     }
   });
 
   afterEach(async () => {
     // DrainEventLoop
-    await flushAsync(1, 1, 0);
+    await flushAsync(1, 1, 10);
   });
 
   afterAll(async () => {
-    // Stop the test environment
-    // await stopMatterbridgeEnvironment();
-
     // Destroy the test environment
     await destroyMatterbridgeEnvironment();
-
-    // Wait 500ms to allow single entities to reset to off
-    await flushAsync();
-    await flushAsync();
 
     // Restore all mocks
     jest.restoreAllMocks();
@@ -1067,6 +1060,10 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+
+    await haPlatform.onChangeLoggerLevel(LogLevel.DEBUG);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Logger level changed to ${LogLevel.DEBUG}`));
+    expect(haPlatform.matterbridgeDevices.size).toBeGreaterThan(0);
   });
 
   it('should register a Script entity', async () => {
@@ -1094,7 +1091,7 @@ describe('HassPlatform', () => {
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(2);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
@@ -1139,7 +1136,7 @@ describe('HassPlatform', () => {
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
@@ -1184,7 +1181,7 @@ describe('HassPlatform', () => {
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(4);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
@@ -1229,7 +1226,7 @@ describe('HassPlatform', () => {
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(5);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);
@@ -1275,7 +1272,7 @@ describe('HassPlatform', () => {
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
     jest.clearAllMocks();
-    expect(haPlatform.matterbridgeDevices.size).toBe(6);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
     await haPlatform.updateHandler(entity.entity_id, entity.entity_id, { state: 'off' } as HassState, { state: 'on' } as HassState);

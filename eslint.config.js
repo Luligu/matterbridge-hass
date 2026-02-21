@@ -22,7 +22,7 @@ const __dirname = path.dirname(__filename);
 export default defineConfig([
   {
     name: 'Global Ignores',
-    ignores: ['.cache', 'apps', 'build', 'coverage', 'dist', 'jest', 'node_modules', 'packages', 'screenshots', 'temp', 'vendor', 'vite.config.ts'],
+    ignores: ['.cache/', 'apps/', 'build/', 'coverage/', 'dist/', 'jest/', 'node_modules/', 'packages/', 'screenshots/', 'temp/', 'vendor/', 'vite.config.ts'],
   },
   {
     name: 'JavaScript & TypeScript Source Files',
@@ -103,7 +103,7 @@ export default defineConfig([
   {
     name: 'Jest Test Files',
     files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
-    ignores: ['vitest'], // Ignore Vitest test files
+    ignores: ['vitest/'], // Ignore Vitest test files
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
