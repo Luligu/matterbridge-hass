@@ -14,6 +14,22 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.0.8] - Dev branch
+
+### Added
+
+- [adaptive]: Add logic to send attributes updates in turn_on only when the controller may (!) have modified them while the light was off. Thanks nixpare and itsgreat2misha (https://github.com/Luligu/matterbridge-hass/pull/169).
+
+### Changed
+
+- [package]: Update dependencies.
+- [package]: Bump package to `automator` v.3.0.9.
+- [package]: Bump `eslint` to v.10.0.1.
+- [package]: Bump `typescript-eslint` to v.8.56.0.
+- [eslint]: Use minimatch in ignores.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.7] - 2026-02-19
 
 ### Added
