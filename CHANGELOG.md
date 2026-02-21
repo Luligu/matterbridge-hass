@@ -12,7 +12,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Naming issues on the controller side explained
 
-> For the naming issues (expecially upsetting with Alexa) read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+> For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
 ## [1.0.8] - Dev branch
 
