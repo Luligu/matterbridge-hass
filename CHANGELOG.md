@@ -23,9 +23,9 @@ If you like this project and find it useful, please consider giving it a **star*
 ### Changed
 
 - [package]: Update dependencies.
-- [package]: Bump package to `automator` v.3.0.9.
-- [package]: Bump `eslint` to v.10.0.1.
-- [package]: Bump `typescript-eslint` to v.8.56.0.
+- [package]: Bump package to `automator` v.3.1.0.
+- [package]: Bump `eslint` to v.10.0.2.
+- [package]: Bump `typescript-eslint` to v.8.56.1.
 - [package]: Replace `eslint-plugin-import` with `eslint-plugin-simple-import-sort`.
 - [eslint]: Use minimatch in ignores.
 
