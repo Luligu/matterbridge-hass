@@ -14,7 +14,13 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [1.0.8] - Dev branch
+## [1.0.8] - 2026-02-27
+
+### Dev Breaking Changes
+
+- [devContainer]: Add the new [dev container setup](https://matterbridge.io/reflector/MatterbridgeDevContainer.html).
+- [devContainer]: Add the new [reflector dev container setup](https://matterbridge.io/reflector/Reflector.html).
+- [devContainer]: Add the guide to [pair Matterbridge with Dev Container](https://matterbridge.io/README-DEV.html#how-to-pair-matterbridge-in-dev-containers)
 
 ### Added
 
