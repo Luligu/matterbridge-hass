@@ -23,31 +23,28 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable jsdoc/reject-any-type */
 
-// Node.js imports
-import path from 'node:path';
 import fs from 'node:fs';
+import path from 'node:path';
 
-// matterbridge imports
 import {
-  PlatformConfig,
+  bridgedNode,
+  electricalSensor,
   MatterbridgeDynamicPlatform,
   MatterbridgeEndpoint,
-  bridgedNode,
   onOffOutlet,
+  PlatformConfig,
+  PlatformMatterbridge,
   powerSource,
   PrimitiveTypes,
-  electricalSensor,
-  PlatformMatterbridge,
 } from 'matterbridge';
+import { AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
 import { ActionContext } from 'matterbridge/matter';
-import { AnsiLogger, LogLevel, dn, idn, ign, nf, rs, wr, db, or, debugStringify, YELLOW, CYAN, hk, er } from 'matterbridge/logger';
-import { deepEqual, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
-import { OnOff, LevelControl, BridgedDeviceBasicInformation, PowerSource, ColorControl } from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformation, ColorControl, LevelControl, OnOff, PowerSource } from 'matterbridge/matter/clusters';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
+import { deepEqual, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
-// Plugin imports
-import { HassDevice, HassEntity, HassState, HomeAssistant, HassConfig as HassConfig, HomeAssistantPrimitive, HassServices, HassArea, HassLabel } from './homeAssistant.js';
-import { MutableDevice } from './mutableDevice.js';
+import { addBinarySensorEntity } from './binary_sensor.entity.js';
+import { addControlEntity } from './control.entity.js';
 import {
   clamp,
   convertMatterXYToHA,
@@ -59,10 +56,11 @@ import {
   hassUpdateStateConverter,
   miredsToKelvin,
 } from './converters.js';
-import { addBinarySensorEntity } from './binary_sensor.entity.js';
-import { addSensorEntity } from './sensor.entity.js';
-import { addControlEntity } from './control.entity.js';
 import { addEventEntity } from './event.entity.js';
+// Plugin imports
+import { HassArea, HassConfig as HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant, HomeAssistantPrimitive } from './homeAssistant.js';
+import { MutableDevice } from './mutableDevice.js';
+import { addSensorEntity } from './sensor.entity.js';
 
 export interface HomeAssistantPlatformConfig extends PlatformConfig {
   host: string;
@@ -120,6 +118,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Entities that are currently being updated to avoid processing multiple updates at the same time. Keyed by entity.entity_id, value is the number of ongoing updates */
   readonly updatingEntities = new Map<string, number>();
 
+  /** Light entities that currently received updates while off. Set by entity.entity_id */
+  readonly offUpdatedEntities = new Set<string>();
+
   /** Endpoint names remapping for entities. Key is entity.entity_id. Value is the endpoint name ('' for the main endpoint) */
   readonly endpointNames = new Map<string, string>();
 
@@ -147,7 +148,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   failedDevices = 0;
   failedEntities = 0;
 
-  // Set to true to skip the check for the endpoint owner after registering a device. This is useful for testing purposes only.
+  /* Set to true to skip the check for the endpoint owner after registering a device. This is useful for testing purposes only. */
   dryRun = false;
 
   /**
@@ -918,8 +919,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
 
     this.matterbridgeDevices.clear();
-    this.batteryVoltageEntities.clear();
+    this.updatingEntities.clear();
+    this.offUpdatedEntities.clear();
     this.endpointNames.clear();
+    this.batteryVoltageEntities.clear();
     this.log.info(`Shut down platform ${idn}${this.config.name}${rs}${nf} completed`);
   }
 
@@ -977,15 +980,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           data.endpoint.log.debug(
             `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it`,
           );
+          // Add the entity to the set of entities that may (we assume options.executeIfOff) have received an update while being off, so when the light will be turned on we will apply the last updates received while it was off.
+          this.offUpdatedEntities.add(entityId);
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
+
         if (command === 'moveToLevelWithOnOff' && data.request['level'] <= (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
           data.endpoint.log.debug(
             `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received with level = minLevel => turn off the light`,
           );
           await this.ha.callService('light', 'turn_off', entityId);
-          return; // Turn off the light if level <= minLevel
+          return; // Turn off the light if level <= minLevel. Not managed by the hassCommandConverter since it's a special case for lights that we can manage better here to avoid calling the turn_on service
         }
+
         if (
           onOff === false &&
           (command === 'on' ||
@@ -999,8 +1006,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
             ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
             : undefined;
-          if (isValidNumber(brightness, 1, 255)) serviceAttributes['brightness'] = brightness;
-          // The moveToLevelWithOnOff command has a request with level so we use it instead of the currentLevel attribute for the other commands.
+          if (isValidNumber(brightness, 1, 255) && this.offUpdatedEntities.has(entityId)) serviceAttributes['brightness'] = brightness;
+          // The moveToLevelWithOnOff command has a request with level so we use it instead of the stored currentLevel attribute we use for the other commands on and toggle.
           if (command === 'moveToLevelWithOnOff' && isValidNumber(data.request['level'], 2, 254)) serviceAttributes['brightness'] = Math.round((data.request['level'] / 254) * 255);
 
           // The actual color mode is determined by the colorMode attribute of the ColorControl cluster. In Home Assistant we need to pass only a single color attribute without the 'color_mode' attribute.
@@ -1009,7 +1016,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode')
               : undefined;
 
-          if (colorMode === ColorControl.ColorMode.ColorTemperatureMireds && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds')) {
+          if (
+            colorMode === ColorControl.ColorMode.ColorTemperatureMireds &&
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
+            this.offUpdatedEntities.has(entityId)
+          ) {
             // In Matter color temperature is represented in mireds while in Home Assistant it's represented in kelvin. We need to convert it before calling the service and also clamp it to the supported range if the attributes are available.
             const color_temp = data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds');
             if (isValidNumber(color_temp))
@@ -1022,7 +1033,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           if (
             colorMode === ColorControl.ColorMode.CurrentHueAndCurrentSaturation &&
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation')
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
+            this.offUpdatedEntities.has(entityId)
           ) {
             // In Matter the hue in degrees shall be related to the CurrentHue attribute by the relationship:
             // Hue = "CurrentHue" * 360 / 254
@@ -1041,7 +1053,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           if (
             colorMode === ColorControl.ColorMode.CurrentXAndCurrentY &&
             data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY')
+            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
+            this.offUpdatedEntities.has(entityId)
           ) {
             // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
             // istanbul ignore next cause codecov is not able to detect it as covered but it is
@@ -1057,9 +1070,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => turn on the light with attributes: ${debugStringify(serviceAttributes)}`,
           );
           await this.ha.callService('light', 'turn_on', entityId, serviceAttributes);
+          // Remove the entity from the set of entities that have received an update while being off, since we are applying now the updates when turning on the light.
+          this.offUpdatedEntities.delete(entityId);
           return;
         }
       }
+      // Normal execution for all the other commands and domains, we use the converter if present to get the service attributes and then call the service.
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes, state) : undefined;
       if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
       await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);

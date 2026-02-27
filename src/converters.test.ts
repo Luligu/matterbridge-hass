@@ -6,24 +6,24 @@ import { airQualitySensor, electricalSensor, powerSource, pressureSensor } from 
 import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters';
 
 import {
-  temp,
-  tempToFahrenheit,
+  clamp,
+  convertHAXYToMatter,
+  convertMatterXYToHA,
+  getFeatureNames,
+  hassCommandConverter,
+  hassDomainBinarySensorsConverter,
   hassDomainConverter,
   hassDomainSensorsConverter,
-  hassDomainBinarySensorsConverter,
-  hassCommandConverter,
   hassSubscribeConverter,
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
-  convertMatterXYToHA,
-  convertHAXYToMatter,
   kelvinToMireds,
   miredsToKelvin,
-  clamp,
   roundTo,
-  getFeatureNames,
+  temp,
+  tempToFahrenheit,
 } from './converters.js';
-import { HassState, ColorMode, HomeAssistant, UnitOfTemperature, HassUnitSystem, HassConfig, FanEntityFeature, ClimateEntityFeature, HVACMode } from './homeAssistant.js';
+import { ClimateEntityFeature, ColorMode, FanEntityFeature, HassConfig, HassState, HassUnitSystem, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 
 describe('HassPlatform', () => {
   it('should return the feature names for supported features', () => {

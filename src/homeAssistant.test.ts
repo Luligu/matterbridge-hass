@@ -10,14 +10,14 @@ const HOMEDIR = path.join('jest', NAME);
 /* eslint-disable no-console */
 
 import fs from 'node:fs';
-import path from 'node:path';
 import https from 'node:https';
+import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { WebSocket, WebSocketServer } from 'ws';
+import { loggerLogSpy, originalProcessArgv, setDebug, setupTest } from 'matterbridge/jestutils';
 import { CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
-import { loggerLogSpy, originalProcessArgv, setDebug, setupTest } from 'matterbridge/jestutils';
+import { WebSocket, WebSocketServer } from 'ws';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
 

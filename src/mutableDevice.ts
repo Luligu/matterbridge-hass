@@ -25,30 +25,30 @@ import { createHash, randomBytes } from 'node:crypto';
 
 // Matterbridge imports
 import {
-  MatterbridgeEndpoint,
-  MatterbridgeSmokeCoAlarmServer,
-  DeviceTypeDefinition,
+  bridgedNode,
   colorTemperatureLight,
   colorTemperatureSwitch,
+  CommandHandlerData,
+  DeviceTypeDefinition,
   dimmableLight,
   dimmableOutlet,
   dimmableSwitch,
   extendedColorLight,
+  MatterbridgeColorControlServer,
+  MatterbridgeEndpoint,
+  MatterbridgeEndpointCommands,
+  MatterbridgeFanControlServer,
+  MatterbridgeSmokeCoAlarmServer,
+  MatterbridgeThermostatServer,
   onOffLight,
   onOffOutlet,
   onOffSwitch,
-  MatterbridgeColorControlServer,
-  MatterbridgeThermostatServer,
-  MatterbridgeEndpointCommands,
-  CommandHandlerData,
-  MatterbridgeFanControlServer,
-  bridgedNode,
   PlatformMatterbridge,
 } from 'matterbridge';
 import { MatterbridgeRvcCleanModeServer, MatterbridgeRvcOperationalStateServer, MatterbridgeRvcRunModeServer } from 'matterbridge/devices';
-import { db, debugStringify, idn, ign, rs, CYAN, AnsiLogger, TimestampFormat, LogLevel } from 'matterbridge/logger';
+import { AnsiLogger, CYAN, db, debugStringify, idn, ign, LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
 import { ActionContext, AtLeastOne, Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
-import { VendorId, ClusterId, Semtag, ClusterRegistry } from 'matterbridge/matter/types';
+import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
 import {
   BooleanState,
   BridgedDeviceBasicInformation,
@@ -63,7 +63,7 @@ import {
   SmokeCoAlarm,
   Thermostat,
 } from 'matterbridge/matter/clusters';
-import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
+import { ClusterId, ClusterRegistry, Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
 
 interface ClusterServerObj {

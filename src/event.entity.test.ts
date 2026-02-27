@@ -4,8 +4,8 @@ import { CYAN, db } from 'matterbridge/logger';
 import { Switch } from 'matterbridge/matter/clusters';
 
 import { addEventEntity } from './event.entity.js';
-import { MutableDevice } from './mutableDevice.js';
 import { EventDeviceClass } from './homeAssistant.js';
+import { MutableDevice } from './mutableDevice.js';
 
 function createMockMutableDevice(): MutableDevice & {
   deviceTypes: Record<string, number[]>;

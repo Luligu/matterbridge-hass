@@ -1,22 +1,22 @@
 import { jest } from '@jest/globals';
 import {
-  onOffOutlet,
-  onOffLight,
-  dimmableLight,
   colorTemperatureLight,
-  extendedColorLight,
-  doorLockDevice,
-  fanDevice,
   coverDevice,
+  dimmableLight,
+  doorLockDevice,
+  extendedColorLight,
+  fanDevice,
+  onOffLight,
+  onOffOutlet,
+  roboticVacuumCleaner,
   thermostatDevice,
   waterValve,
-  roboticVacuumCleaner,
 } from 'matterbridge';
 
 import { addControlEntity } from './control.entity.js';
-import { hassCommandConverter, hassSubscribeConverter, hassDomainConverter } from './converters.js';
-import { MutableDevice } from './mutableDevice.js';
+import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
 import { HassConfig, HomeAssistant, UnitOfTemperature } from './homeAssistant.js';
+import { MutableDevice } from './mutableDevice.js';
 
 type HassEntity = { entity_id: string };
 type HassState = { attributes: Record<string, any> };

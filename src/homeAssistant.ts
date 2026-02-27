@@ -24,9 +24,9 @@
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 
-import { AnsiLogger, LogLevel, TimestampFormat, CYAN, db, debugStringify, er, rs } from 'matterbridge/logger';
-import WebSocket, { ErrorEvent } from 'ws';
+import { AnsiLogger, CYAN, db, debugStringify, er, LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
 import { hasParameter } from 'matterbridge/utils';
+import WebSocket, { ErrorEvent } from 'ws';
 
 /**
  * Interface representing a Home Assistant device.

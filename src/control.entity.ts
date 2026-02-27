@@ -24,11 +24,12 @@
 /* eslint-disable jsdoc/reject-function-type */
 
 import { colorTemperatureLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
-import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
 import { ActionContext } from 'matterbridge/matter';
 import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
+import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
+import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -46,7 +47,6 @@ import {
   VacuumEntityFeature,
 } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-import { hassDomainConverter, hassCommandConverter, hassSubscribeConverter, kelvinToMireds, temp, roundTo, getFeatureNames } from './converters.js';
 
 /**
  * Look for supported binary_sensors of the current entity
