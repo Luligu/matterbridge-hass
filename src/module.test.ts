@@ -897,9 +897,7 @@ describe('HassPlatform', () => {
     haPlatform.config.filterByArea = '';
     haPlatform.config.filterByLabel = 'Label 1';
 
-    await setDebug(true);
     await haPlatform.onStart();
-    await setDebug(false);
 
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
