@@ -227,7 +227,6 @@ describe('Matterbridge ' + NAME, () => {
     reconnectRetries: 10,
     filterByArea: '',
     filterByLabel: '',
-    applyFiltersToDeviceEntities: false,
     whiteList: [],
     blackList: [],
     entityBlackList: [],

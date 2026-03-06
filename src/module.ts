@@ -73,7 +73,6 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   filterByArea: string;
   /** Filter devices and entities by label name */
   filterByLabel: string;
-  applyFiltersToDeviceEntities: boolean;
   whiteList: string[];
   blackList: string[];
   entityBlackList: string[];
@@ -191,7 +190,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.reconnectRetries = isValidNumber(config.reconnectRetries, 0) ? config.reconnectRetries : 10;
       this.config.filterByArea = isValidString(this.config.filterByArea, 1) ? this.config.filterByArea : '';
       this.config.filterByLabel = isValidString(this.config.filterByLabel, 1) ? this.config.filterByLabel : '';
-      this.config.applyFiltersToDeviceEntities = isValidBoolean(this.config.applyFiltersToDeviceEntities) ? this.config.applyFiltersToDeviceEntities : false;
       this.config.whiteList = isValidArray(this.config.whiteList, 1) ? this.config.whiteList : [];
       this.config.blackList = isValidArray(this.config.blackList, 1) ? this.config.blackList : [];
       this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
@@ -550,7 +548,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Apply area and label filters before the select and validation
-      if (!this.isValidAreaLabel(device.area_id, device.labels)) {
+      const hasValidEntities = Array.from(this.ha.hassEntities.values()).some(
+        (e) => e.device_id === device.id && e.disabled_by === null && this.isValidAreaLabel(e.area_id, e.labels),
+      );
+      const deviceHasValidAreaLabel = hasValidEntities ? false : this.isValidAreaLabel(device.area_id, device.labels);
+      if (!hasValidEntities && !deviceHasValidAreaLabel) {
         this.filteredDevices++;
         this.log.info(
           `Device ${CYAN}${deviceName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
@@ -622,7 +624,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           continue;
         }
         // Apply area and label filters before the select and validation
-        if (this.config.applyFiltersToDeviceEntities && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
+        if (!deviceHasValidAreaLabel && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
           this.filteredEntities++;
           this.log.info(
             `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,

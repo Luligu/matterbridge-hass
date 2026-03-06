@@ -14,7 +14,17 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [1.0.9] - Dev branch
+## [1.0.9] - 2026-03-06
+
+### Breaking Changes
+
+- [applyFiltersToDeviceEntities]: Remove applyFiltersToDeviceEntities config option and use unified logic. A device is exposed if it is in a valid area or has a valid label or has any entities that are in a valid area or have a valid label. Thanks trilu2000, Trushna and itsgreat2misha (https://github.com/Luligu/matterbridge-hass/issues/171).
+
+  If you want to expose all entities, use the filters on the device and don't use them on its entities.
+
+  If you want to expose only some entities, don't use the filters on the device and apply them only to the entities you want to expose.
+
+- [logger]: The logger is no more in debug mode as default: you need to set debug for the plugin in the config to have a log suitable for debug.
 
 ### Changed
 

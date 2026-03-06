@@ -203,15 +203,11 @@ Number of times to try to reconnect before giving up.
 
 ### filterByArea
 
-Filter devices and individual entities by area. If enabled, only devices, individual entities and split entities in the selected areas will be exposed. If disabled, all devices, individual entities and split entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set (in this case also the device needs to belong to this area).
+Filter devices and individual entities by area. If enabled, only devices, individual entities, and split entities in the selected area will be exposed. If disabled, all devices, individual entities, and split entities will be exposed. A device is also exposed if it has any entities that satisfy the filters.
 
 ### filterByLabel
 
-Filter devices and individual entities by label. If enabled, only devices, individual entities and split entities with the selected labels will be exposed. If disabled, all devices, individual entities and split entities will be exposed. This doesn't filter entities that belong to a device unless applyFiltersToDeviceEntities is set (in this case also the device must have this label).
-
-### applyFiltersToDeviceEntities
-
-Apply the filters also to device entities. If enabled, the filters will be applied to device entities as well (in this case both the device and its entities need to have the area and label that you specified in the filters). If disabled, the filters will only be applied to devices (in this case, all the entities that belong to the device will be included).
+Filter devices and individual entities by label. If enabled, only devices, individual entities, and split entities with the selected label will be exposed. If disabled, all devices, individual entities, and split entities will be exposed. A device is also exposed if it has any entities that satisfy the filters.
 
 ### whiteList
 
