@@ -417,6 +417,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         0x8000,
         domain,
       );
+      mutableDevice.setLogLevel(this.log.logLevel);
       mutableDevice.addDeviceTypes('', bridgedNode);
 
       // Lookup and add individual entities domains.
@@ -588,6 +589,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         0x8000,
         device.model ?? 'Unknown',
       );
+      mutableDevice.setLogLevel(this.log.logLevel);
       mutableDevice.addDeviceTypes('', bridgedNode);
       if (battery) {
         mutableDevice.addDeviceTypes('', powerSource);
@@ -790,6 +792,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         0x8000,
         domain,
       );
+      mutableDevice.setLogLevel(this.log.logLevel);
       mutableDevice.addDeviceTypes('', bridgedNode);
 
       // Set the device mode for the Rvc.

@@ -1,6 +1,6 @@
 // src\mutableDevice.test.ts
 
-const MATTER_PORT = 6000;
+const MATTER_PORT = 6200;
 const NAME = 'MutableDevice';
 const HOMEDIR = path.join('jest', NAME);
 
