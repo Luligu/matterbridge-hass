@@ -81,7 +81,6 @@ describe('HassPlatform', () => {
     reconnectRetries: 10,
     filterByArea: '',
     filterByLabel: '',
-    applyFiltersToDeviceEntities: false,
     whiteList: [],
     blackList: [],
     entityBlackList: [],
@@ -843,10 +842,8 @@ describe('HassPlatform', () => {
     jest.clearAllMocks();
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = 'Label 1';
-    mockConfig.applyFiltersToDeviceEntities = false;
     haPlatform.config.filterByArea = '';
     haPlatform.config.filterByLabel = 'Label 1';
-    haPlatform.config.applyFiltersToDeviceEntities = false;
 
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
@@ -864,10 +861,8 @@ describe('HassPlatform', () => {
     (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, { ...d, labels: ['label_id_1'] }));
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = 'Label 1';
-    mockConfig.applyFiltersToDeviceEntities = true;
     haPlatform.config.filterByArea = '';
     haPlatform.config.filterByLabel = 'Label 1';
-    haPlatform.config.applyFiltersToDeviceEntities = true;
 
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
@@ -878,14 +873,73 @@ describe('HassPlatform', () => {
 
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
-    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(24);
 
+    await haPlatform.unregisterAllDevices();
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = '';
-    mockConfig.applyFiltersToDeviceEntities = false;
     haPlatform.config.filterByArea = '';
     haPlatform.config.filterByLabel = '';
-    haPlatform.config.applyFiltersToDeviceEntities = false;
+  });
+
+  it('should register a device with label filter', async () => {
+    expect(haPlatform).toBeDefined();
+
+    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
+
+    (mockData.devices as HassDevice[]).filter((d) => d.name === '1PM Plus II').forEach((d) => haPlatform.ha.hassDevices.set(d.id, { ...d, labels: ['label_id_1'] }));
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = 'Label 1';
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = 'Label 1';
+
+    await setDebug(true);
+    await haPlatform.onStart();
+    await setDebug(false);
+
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.unregisterAllDevices();
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = '';
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = '';
+  });
+
+  it('should register a device with 1 entity label filter', async () => {
+    expect(haPlatform).toBeDefined();
+
+    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
+
+    (mockData.entities as HassEntity[])
+      .filter((e) => e.entity_id === 'sensor.my_shelly_1pm_plus_ii_switch_0_current')
+      .forEach((e) => haPlatform.ha.hassEntities.set(e.id, { ...e, labels: ['label_id_1'] }));
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = 'Label 1';
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = 'Label 1';
+
+    await haPlatform.onStart();
+
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.unregisterAllDevices();
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = '';
+    haPlatform.config.filterByArea = '';
+    haPlatform.config.filterByLabel = '';
   });
 
   it('should not register any devices and individual entities without white lists', async () => {
@@ -895,6 +949,7 @@ describe('HassPlatform', () => {
     (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
     (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
     (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
 
     mockConfig.whiteList = ['1PM Plus II'];
     mockConfig.blackList = [];

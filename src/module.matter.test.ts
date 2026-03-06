@@ -2,7 +2,7 @@
 
 /* eslint-disable no-console */
 
-const MATTER_PORT = 6001;
+const MATTER_PORT = 6100;
 const NAME = 'PlatformMatter';
 const HOMEDIR = path.join('jest', NAME);
 
@@ -227,7 +227,6 @@ describe('Matterbridge ' + NAME, () => {
     reconnectRetries: 10,
     filterByArea: '',
     filterByLabel: '',
-    applyFiltersToDeviceEntities: false,
     whiteList: [],
     blackList: [],
     entityBlackList: [],

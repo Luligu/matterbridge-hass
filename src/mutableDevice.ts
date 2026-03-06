@@ -148,7 +148,7 @@ export class MutableDevice {
     hardwareVersion?: number,
     hardwareVersionString?: string,
   ) {
-    this.log = new AnsiLogger({ logName: 'MutableDevice', logTimestampFormat: TimestampFormat.TIME_MILLIS, logLevel: LogLevel.DEBUG });
+    this.log = new AnsiLogger({ logName: 'MutableDevice', logTimestampFormat: TimestampFormat.TIME_MILLIS });
 
     this.matterbridge = matterbridge;
     this.deviceName = deviceName;
@@ -162,6 +162,15 @@ export class MutableDevice {
     this.hardwareVersion = hardwareVersion ?? parseInt(this.matterbridge.systemInformation.nodeVersion.replace(/\D/g, ''));
     this.hardwareVersionString = hardwareVersionString ?? this.matterbridge.systemInformation.nodeVersion;
     this.initializeEndpoint('');
+  }
+
+  /**
+   * Sets the log level for the mutable device and clears all internal maps and sets to reset the device state.
+   *
+   * @param {LogLevel} level - The log level to set for the mutable device.
+   */
+  setLogLevel(level: LogLevel) {
+    this.log.logLevel = level;
   }
 
   /**
@@ -952,7 +961,7 @@ export class MutableDevice {
       mainDevice.deviceTypes = mainDevice.deviceTypes.filter((deviceType) => deviceType.code !== bridgedNode.code);
     }
     mainDevice.friendlyName = this.deviceName;
-    mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { id: this.deviceName, mode: this.mode }, true);
+    mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { id: this.deviceName, mode: this.mode });
     mainDevice.endpoint.log.logName = this.deviceName;
     this.endpoints.set('', mainDevice.endpoint);
     return mainDevice.endpoint;
@@ -972,7 +981,6 @@ export class MutableDevice {
         endpoint,
         device.deviceTypes as AtLeastOne<DeviceTypeDefinition>,
         device.tagList.length ? { tagList: device.tagList } : {},
-        true,
       );
       device.endpoint.log.logName = device.friendlyName;
       this.endpoints.set(endpoint, device.endpoint);
