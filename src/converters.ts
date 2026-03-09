@@ -134,9 +134,9 @@ export function miredsToKelvin(mired: number, round?: 'floor' | 'ceil'): number 
  * HomeAssistant uses always floor.
  */
 export function kelvinToMireds(kelvin: number, round?: 'floor' | 'ceil'): number {
-  if (round === 'floor') return Math.floor(1000000 / kelvin);
-  else if (round === 'ceil') return Math.ceil(1000000 / kelvin);
-  else return Math.round(1000000 / kelvin);
+  if (round === 'floor') return clamp(Math.floor(1000000 / kelvin), 1, 65279);
+  else if (round === 'ceil') return clamp(Math.ceil(1000000 / kelvin), 1, 65279);
+  else return clamp(Math.round(1000000 / kelvin), 1, 65279);
 }
 
 /**
