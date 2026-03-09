@@ -1079,6 +1079,37 @@ describe('HassPlatform', () => {
     await haPlatform.unregisterDevice(device);
   });
 
+  it('should not register an individual entity with the same name and friendly name', async () => {
+    expect(haPlatform).toBeDefined();
+
+    haPlatform.config.splitNameStrategy = 'Friendly name';
+    const entity = {
+      id: '0123456789abcdef',
+      entity_id: 'scene.turn_off_all_lights',
+      device_id: null,
+      disabled_by: null,
+      name: 'Turn off all lights',
+    } as unknown as HassEntity;
+    haPlatform.ha.hassEntities.set(entity.id, entity);
+    const state = {
+      state: 'off',
+      attributes: { friendly_name: 'Friendly Turn off all lights' },
+    } as HassState;
+    haPlatform.ha.hassStates.set(entity.entity_id, state);
+
+    expect(entity.name).toBeDefined();
+    if (!entity.name) return;
+    const device = new MatterbridgeEndpoint([onOffOutlet, bridgedNode], { id: 'test' }, true)
+      .createDefaultBridgedDeviceBasicInformationClusterServer(entity.name, entity.entity_id)
+      .addRequiredClusterServers();
+    await haPlatform.registerDevice(device);
+    await haPlatform.onStart('Test reason');
+
+    await haPlatform.unregisterDevice(device);
+
+    haPlatform.config.splitNameStrategy = 'Entity name';
+  });
+
   it('should register a Scene entity', async () => {
     expect(haPlatform).toBeDefined();
 
