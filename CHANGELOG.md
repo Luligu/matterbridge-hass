@@ -14,7 +14,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [1.0.10] - Dev branch
+## [1.0.10] - 2026-03-09
 
 ### Breaking Changes
 
@@ -37,7 +37,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Fixed
 
-- [logger]: Fix the maximum mireds value. Thanks jvmahon (https://github.com/Luligu/matterbridge/issues/523).
+- [mireds]: Fix the maximum mireds value. Thanks jvmahon (https://github.com/Luligu/matterbridge/issues/523).
 - [split]: Fix the name priority for split entities.
 - [filter]: Ignore area for device entities and split entities.
 

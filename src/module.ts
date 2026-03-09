@@ -1087,7 +1087,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
               serviceAttributes['color_temp_kelvin'] =
                 state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
                   ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
-                  : miredsToKelvin(color_temp, 'floor');
+                  : // istanbul ignore next cause is just a safety check, it should never happen that we don't have the min and max color temp attributes
+                    miredsToKelvin(color_temp, 'floor');
           }
 
           if (

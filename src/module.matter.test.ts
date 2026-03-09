@@ -3101,6 +3101,27 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
 
+    /* 2bis) The light is off we send moveToColorTemperature 200 with executeIfOff true and no min max attributes */
+    jest.clearAllMocks();
+    lightState.attributes.min_color_temp_kelvin = null;
+    lightState.attributes.max_color_temp_kelvin = null;
+    haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(200, 0, true));
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature
+    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(127);
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127);
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
+    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
+    expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
+    expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
+    haPlatform.offUpdatedEntities.clear();
+    lightState.attributes.min_color_temp_kelvin = 2500;
+    lightState.attributes.max_color_temp_kelvin = 6500;
+    haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
+
     /* 3) The light is off we send moveToHue moveToSaturation moveToHueAndSaturation with executeIfOff true */
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToHue', getMoveToHueRequest(120, 0, true));
