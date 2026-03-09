@@ -16,6 +16,19 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## [1.0.10] - Dev branch
 
+### Breaking Changes
+
+- [split]: The names of split entities may now be chosen using this logic:
+  - `Friendly name` => `Name` => `Original name` (i.e. Computer Plug Child Lock). This avoids most duplicate-name issues, but the name will probably be truncated to 32 characters.
+  - `Name` => `Original name` => `Friendly name` (i.e. Child Lock). This will probably create duplicate-name issues unless you change the name.
+
+  If you change this option, check the whiteList and blackList if you use them.
+
+### Added
+
+- [report]: A new file `report.log` is generated in the `Matterbridge/matterbridge-hass` directory. It contains the list of devices and entities, highlighting whether they are in filterByArea, have filterByLabel, or are in splitEntities.
+- [config]: Add the `splitNameStrategy` config option to select the naming strategy for split entities: `Entity name` (i.e. Child Lock) or `Friendly name` (i.e. Computer Plug Child Lock).
+
 ### Changed
 
 - [package]: Update dependencies.
@@ -24,7 +37,8 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Fixed
 
-- [logger]: Fix mireds max value. Thanks jvmahon (https://github.com/Luligu/matterbridge/issues/523).
+- [logger]: Fix the maximum mireds value. Thanks jvmahon (https://github.com/Luligu/matterbridge/issues/523).
+- [split]: Fix the name priority for split entities.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

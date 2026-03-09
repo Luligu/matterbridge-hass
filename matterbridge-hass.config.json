@@ -15,6 +15,7 @@
   "entityBlackList": [],
   "deviceEntityBlackList": {},
   "splitEntities": [],
+  "splitNameStrategy": "Entity name",
   "namePostfix": "",
   "postfix": "",
   "airQualityRegex": "",

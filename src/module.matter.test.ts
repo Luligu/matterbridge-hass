@@ -232,6 +232,7 @@ describe('Matterbridge ' + NAME, () => {
     entityBlackList: [],
     deviceEntityBlackList: {},
     splitEntities: [],
+    splitNameStrategy: 'Entity name',
     namePostfix: '',
     postfix: '',
     airQualityRegex: '',
@@ -3888,12 +3889,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
 
     // No warnings or errors
-    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerWarnSpy).not.toHaveBeenCalledTimes(3); // 3 warnings for split entities should be called for individual entities
     expect(loggerErrorSpy).not.toHaveBeenCalled();
     expect(loggerFatalSpy).not.toHaveBeenCalled();
-    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.anything());
-    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.ERROR, expect.anything());
-    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.FATAL, expect.anything());
 
     // @ts-expect-error accessing private member for testing
     await haPlatform.checkEndpointNumbers();

@@ -5,56 +5,67 @@
   "required": ["host", "token"],
   "properties": {
     "name": {
+      "title": "Name",
       "description": "Plugin name",
       "type": "string",
       "readOnly": true,
       "ui:widget": "hidden"
     },
     "type": {
+      "title": "Type",
       "description": "Plugin type",
       "type": "string",
       "readOnly": true,
       "ui:widget": "hidden"
     },
     "host": {
+      "title": "Host",
       "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://homeassistant:8123 or ws://<IP-ADDRESS>:8123). For ssl connections use wss:// (eg. wss://homeassistant.local:8123) and enable rejectUnauthorized or provide certificatePath.",
       "type": "string",
       "default": "ws://homeassistant.local:8123"
     },
     "certificatePath": {
+      "title": "CA Certificate Path",
       "description": "Fully qualified path to the SSL ca certificate file. This is only needed if you use a self-signed certificate and rejectUnauthorized is enabled.",
       "type": "string"
     },
     "rejectUnauthorized": {
+      "title": "Reject Unauthorized",
       "description": "Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates.",
       "type": "boolean",
       "default": false
     },
     "token": {
+      "title": "Token",
       "description": "Home Assistant Long-Lived Access Token",
       "type": "string"
     },
     "reconnectTimeout": {
+      "title": "Reconnect Timeout",
       "description": "Reconnect timeout in seconds (minimum 30 seconds). If the connection is lost, the plugin will try to reconnect after this timeout.",
       "type": "number",
       "default": 60
     },
     "reconnectRetries": {
+      "title": "Reconnect Retries",
       "description": "Number of times to try to reconnect before giving up. Set to 0 for no reconnects.",
       "type": "number",
       "default": 10
     },
     "filterByArea": {
+      "title": "Filter By Area",
       "description": "Filter devices and individual entities by area (use area name). If enabled, only devices and individual entities in the selected area will be exposed. If disabled, all devices and individual entities will be exposed.",
       "type": "string",
       "default": ""
     },
     "filterByLabel": {
-      "description": "Filter devices and individual entities by label (use label name). If enabled, only devices and individual entities with the selected label will be exposed. If disabled, all devices and individual entities will be exposed.",
+      "title": "Filter By Label",
+      "description": "Filter devices and individual entities by label (use label name). If enabled, only devices, device entities and individual entities with the selected label will be exposed. If disabled, all devices, device entities and individual entities will be exposed.",
       "type": "string",
       "default": ""
     },
     "whiteList": {
+      "title": "Whitelist",
       "description": "Only the devices, individual entities and split entities in the list will be exposed. Use the name or the id. If the list is empty, all the devices, individual entities and split entities will be exposed.",
       "type": "array",
       "items": {
@@ -64,6 +75,7 @@
       "selectFrom": "name"
     },
     "blackList": {
+      "title": "Blacklist",
       "description": "The devices, individual entities and split entities in the list will not be exposed. Use the name or the id. If the list is empty, no devices, individual entities and split entities will be excluded.",
       "type": "array",
       "items": {
@@ -73,6 +85,7 @@
       "selectFrom": "name"
     },
     "entityBlackList": {
+      "title": "Entity Blacklist",
       "description": "Not used in this plugin.",
       "type": "array",
       "items": {
@@ -83,6 +96,7 @@
       "ui:widget": "hidden"
     },
     "deviceEntityBlackList": {
+      "title": "Device Entity Blacklist",
       "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device. This is only related to device entities, not individual entities or split entities.",
       "type": "object",
       "uniqueItems": true,
@@ -98,6 +112,7 @@
       }
     },
     "splitEntities": {
+      "title": "Split Entities",
       "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock). Split entities must satisfy the filters (if any) and the whiteList (if any).",
       "type": "array",
       "items": {
@@ -106,31 +121,44 @@
       "uniqueItems": true,
       "selectEntityFrom": "description"
     },
+    "splitNameStrategy": {
+      "title": "Split Name Strategy",
+      "description": "Strategy used for split entity names. Entity name: use the entity name (i.e. Child Lock) if it exists, otherwise use the friendly name. Friendly name: use the friendly name (i.e. Computer Plug Child Lock) if it exists, otherwise use the entity name. You will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller.",
+      "type": "string",
+      "enum": ["Entity name", "Friendly name"],
+      "default": "Entity name"
+    },
     "namePostfix": {
-      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
+      "title": "Name Postfix",
+      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",
       "type": "string",
       "default": ""
     },
     "postfix": {
-      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you may loose the configuration of the devices in your controller when changing this value or you may need to pair again the controller).",
+      "title": "Serial Postfix",
+      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",
       "type": "string",
       "default": ""
     },
     "airQualityRegex": {
+      "title": "Air Quality Regex",
       "description": "Custom regex pattern to match not standard air quality sensors entities (e.g., '^sensor\\..*_air_quality$').",
       "type": "string"
     },
     "enableServerRvc": {
+      "title": "Enable Server Rvc",
       "description": "Enable the Robot Vacuum Cleaner in server mode (Apple Home will crash unless you use this mode!). Also blacklist any other entities related to the vacuum cleaner device to avoid Apple Home crashes.",
       "type": "boolean",
       "default": true
     },
     "debug": {
+      "title": "Debug",
       "description": "Enable the debug for the plugin (development only)",
       "type": "boolean",
       "default": false
     },
     "unregisterOnShutdown": {
+      "title": "Unregister On Shutdown",
       "description": "Unregister all devices on shutdown (development only)",
       "type": "boolean",
       "default": false,

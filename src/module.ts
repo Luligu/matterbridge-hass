@@ -23,7 +23,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable jsdoc/reject-any-type */
 
-import fs from 'node:fs';
+import fs, { appendFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -78,6 +78,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   entityBlackList: string[];
   deviceEntityBlackList: Record<string, string[]>;
   splitEntities: string[];
+  splitNameStrategy: 'Entity name' | 'Friendly name';
   namePostfix: string;
   postfix: string;
   airQualityRegex: string;
@@ -195,6 +196,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
       this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
       this.config.splitEntities = this.config.splitEntities === undefined ? [] : this.config.splitEntities;
+      this.config.splitNameStrategy =
+        isValidString(this.config.splitNameStrategy, 10) && ['Entity name', 'Friendly name'].includes(this.config.splitNameStrategy)
+          ? this.config.splitNameStrategy
+          : 'Entity name';
       this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
       this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
       this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
@@ -333,6 +338,48 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Save devices, entities, states, config and services to a local file without awaiting
     this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'));
 
+    // Create a map of entity_id to device_id for quick lookup of the device of an entity
+    const areaId = this.ha.hassAreas.values().find((a) => a.name === this.config.filterByArea)?.area_id;
+    const labelId = this.ha.hassLabels.values().find((l) => l.name === this.config.filterByLabel)?.label_id;
+    const reportPath = path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'report.log');
+    writeFileSync(reportPath, `Home Assistant Devices and Entities Report\n\n`); // Create or overwrite the report file
+    appendFileSync(reportPath, `Filter by area: ${this.config.filterByArea ? this.config.filterByArea + ' >>> ' + areaId : 'None'}\n\n`); // Create or overwrite the report file
+    appendFileSync(reportPath, `Filter by label: ${this.config.filterByLabel ? this.config.filterByLabel + ' >>> ' + labelId : 'None'}\n\n`); // Create or overwrite the report file
+    appendFileSync(reportPath, `Device Entities\n\n`);
+    for (const device of this.ha.hassDevices.values()) {
+      appendFileSync(
+        reportPath,
+        `Device: "${device.name_by_user ?? device.name}"` +
+          `${(device.name_by_user ?? device.name ?? '').length > 32 ? ' LONGNAME' : ''}` +
+          `${device.entry_type === 'service' ? ' SERVICE' : ''}` +
+          `${areaId && device.area_id === areaId ? ' AREA' : ''}` +
+          `${labelId && device.labels?.includes(labelId) ? ' LABEL' : ''}` +
+          `\n`,
+      );
+      for (const entity of this.ha.hassEntities.values().filter((e) => e.device_id === device.id)) {
+        const state = this.ha.hassStates.get(entity.entity_id);
+        appendFileSync(
+          reportPath,
+          `-  Entity: ${entity.entity_id} "${state?.attributes?.friendly_name}" - "${entity.name ?? entity.original_name}"` +
+            `${(state?.attributes?.friendly_name ?? entity.name ?? entity.original_name ?? '').length > 32 ? ' LONGNAME' : ''}` +
+            `${areaId && entity.area_id === areaId ? ' AREA' : ''}` + // Devices entities cannot be in a different area than their device.
+            `${labelId && entity.labels?.includes(labelId) ? ' LABEL' : ''}` +
+            `${this.config.splitEntities?.includes(entity.entity_id) ? ' SPLIT' : ''}\n`,
+        );
+      }
+    }
+    appendFileSync(reportPath, `\nIndividual Entities\n\n`);
+    for (const entity of this.ha.hassEntities.values().filter((e) => e.device_id === null)) {
+      const state = this.ha.hassStates.get(entity.entity_id);
+      appendFileSync(
+        reportPath,
+        `Individual Entity: ${entity.entity_id} "${state?.attributes?.friendly_name}" - "${entity.name ?? entity.original_name}"` +
+          `${(state?.attributes?.friendly_name ?? entity.name ?? entity.original_name ?? '').length > 32 ? ' LONGNAME' : ''}` +
+          `${areaId && entity.area_id === areaId ? ' AREA' : ''}` +
+          `${labelId && entity.labels?.includes(labelId) ? ' LABEL' : ''}\n`,
+      );
+    }
+
     // Clean the selectDevice and selectEntity maps
     await this.ready;
     await this.clearSelect();
@@ -341,6 +388,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     for (const entityId of this.config.splitEntities || []) {
       if (!this.ha.hassEntities.has(entityId))
         this.log.warn(`Split entity "${CYAN}${entityId}${wr}" set in splitEntities not found in Home Assistant. Please check your configuration.`);
+      if (this.ha.hassEntities.has(entityId) && this.ha.hassEntities.get(entityId)?.device_id === null)
+        this.log.warn(`Split entity "${CYAN}${entityId}${wr}" set in splitEntities is an individual entity. Please check your configuration.`);
     }
 
     // *********************************************************************************************************
@@ -370,7 +419,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName = entity.name ?? entity.original_name;
+      const entityName =
+        this.config.splitNameStrategy === 'Friendly name'
+          ? (hassState.attributes?.friendly_name ?? entity.name ?? entity.original_name)
+          : (entity.name ?? entity.original_name ?? hassState.attributes?.friendly_name);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
@@ -549,7 +601,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
       // Apply area and label filters before the select and validation
       const hasValidEntities = Array.from(this.ha.hassEntities.values()).some(
-        (e) => e.device_id === device.id && e.disabled_by === null && this.isValidAreaLabel(e.area_id, e.labels),
+        (e) => e.device_id === device.id && e.disabled_by === null && this.isValidAreaLabel(e.area_id, e.labels, true), // Only check labels
       );
       const deviceHasValidAreaLabel = hasValidEntities ? false : this.isValidAreaLabel(device.area_id, device.labels);
       if (!hasValidEntities && !deviceHasValidAreaLabel) {
@@ -624,7 +676,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           continue;
         }
         // Apply area and label filters before the select and validation
-        if (!deviceHasValidAreaLabel && !this.isValidAreaLabel(entity.area_id, entity.labels)) {
+        if (!deviceHasValidAreaLabel && !this.isValidAreaLabel(entity.area_id, entity.labels, true)) {
           this.filteredEntities++;
           this.log.info(
             `Device ${CYAN}${deviceName}${db} entity ${CYAN}${entity.entity_id}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
@@ -747,7 +799,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName = entity.name ?? entity.original_name;
+      const entityName =
+        this.config.splitNameStrategy === 'Friendly name'
+          ? (hassState.attributes?.friendly_name ?? entity.name ?? entity.original_name)
+          : (entity.name ?? entity.original_name ?? hassState.attributes?.friendly_name);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
@@ -768,7 +823,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Apply area and label filters before the select and validation
-      if (!this.isValidAreaLabel(entity.area_id, entity.labels)) {
+      if (!this.isValidAreaLabel(entity.area_id, entity.labels, true)) {
         this.filteredEntities++;
         this.log.info(
           `Split entity ${CYAN}${entity.entity_id}${db} name ${CYAN}${entityName}${db} is not in the area "${CYAN}${this.config.filterByArea}${db}" or doesn't have the label "${CYAN}${this.config.filterByLabel}${db}". Skipping...`,
@@ -1323,6 +1378,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    *
    * @param {string | null} area_id The area ID of the device / entity. It is null if the device / entity is not in any area.
    * @param {string[]} labels The labels ids of the device / entity. It is an empty array if the device / entity has no labels.
+   * @param {boolean} [labelOnly] If true, only the label filter will be applied, otherwise both area and label filters will be applied.
    *
    * @returns {boolean} True if the area and label are valid according to the filters, false otherwise.
    *
@@ -1330,19 +1386,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * "area_id" is the area ID of the device / entity. It is null if the device / entity is not in any area or a string with the area ID if it is in an area.
    * "labels" is an array of label IDs of the device / entity. It is an empty array if the device / entity has no labels.
    */
-  isValidAreaLabel(area_id: string | null, labels: string[]): boolean {
+  isValidAreaLabel(area_id: string | null, labels: string[], labelOnly: boolean = false): boolean {
     let areaMatch = true;
     let labelMatch = true;
 
     // Filter by area if configured
-    if (isValidString(this.config.filterByArea, 1)) {
-      /*
-      this.log.debug(
-        `Filtering by area "${CYAN}${this.config.filterByArea}${db}" area_id "${area_id}" registry "${Array.from(this.ha.hassAreas.values())
-          .map((area) => area.area_id + '=>"' + area.name + '"')
-          .join(', ')}"...`,
-      );
-      */
+    if (!labelOnly && isValidString(this.config.filterByArea, 1)) {
       if (!area_id) return false; // If the area_id is null, the device / entity is not in any area, so we skip it.
       areaMatch = false;
       const area = this.ha.hassAreas.get(area_id);
@@ -1352,13 +1401,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     // Filter by label if configured.
     if (isValidString(this.config.filterByLabel, 1)) {
-      /*
-      this.log.debug(
-        `Filtering by label "${CYAN}${this.config.filterByLabel}${db}" labels (${labels.length}) "${labels.join(', ')}" registry "${Array.from(this.ha.hassLabels.values())
-          .map((label) => label.label_id + '=>"' + label.name + '"')
-          .join(', ')}"...`,
-      );
-      */
       if (labels.length === 0) return false; // If the labels array is empty, the device / entity has no labels, so we skip it.
       labelMatch = false;
       const label = Array.from(this.ha.hassLabels.values()).find((l) => l.name === this.config.filterByLabel);

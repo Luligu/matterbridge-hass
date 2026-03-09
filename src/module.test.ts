@@ -86,6 +86,7 @@ describe('HassPlatform', () => {
     entityBlackList: [],
     deviceEntityBlackList: {},
     splitEntities: [],
+    splitNameStrategy: 'Entity name',
     namePostfix: '',
     postfix: '',
     airQualityRegex: '',
@@ -372,10 +373,22 @@ describe('HassPlatform', () => {
     expect(haPlatform.isValidAreaLabel(null, ['foo'])).toBe(false);
   });
 
+  it('returns true if filterByArea is set and areaId is null and labelOnly is true', () => {
+    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
+    mockConfig.filterByLabel = '';
+    expect(haPlatform.isValidAreaLabel(null, ['foo'], true)).toBe(true);
+  });
+
   it('returns false if filterByArea is set and areaId does not match', () => {
     mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
     mockConfig.filterByLabel = '';
     expect(haPlatform.isValidAreaLabel('area2', ['foo'])).toBe(false);
+  });
+
+  it('returns true if filterByArea is set and areaId does not match and labelOnly is true', () => {
+    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
+    mockConfig.filterByLabel = '';
+    expect(haPlatform.isValidAreaLabel('area2', ['foo'], true)).toBe(true);
   });
 
   it('returns false if filterByArea is set and areaId does not exist', () => {
@@ -1607,7 +1620,6 @@ describe('HassPlatform', () => {
       state: 'off', // 'on' for detected, 'off' for not detected
       attributes: {
         device_class: 'door',
-        friendly_name: 'Switch Contact Sensor',
       },
     } as unknown as HassState;
 
@@ -1766,7 +1778,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassLabels.clear();
   });
 
-  it('should register a Switch split entity', async () => {
+  it('should register a Switch split entity with entity name', async () => {
     const device = {
       area_id: null,
       disabled_by: null,
@@ -1803,6 +1815,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
 
     haPlatform.config.splitEntities = [switchEntity.entity_id];
+    haPlatform.config.splitNameStrategy = 'Entity name';
 
     await haPlatform.onStart('Test reason');
 
@@ -1812,6 +1825,57 @@ describe('HassPlatform', () => {
     );
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${switchEntity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
+  });
+
+  it('should register a Switch split entity with friendly name', async () => {
+    const device = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd83398f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Switch with single entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const switchEntity = {
+      area_id: null,
+      device_id: 'd83398f83188759ed7329e97df00ee7c',
+      disabled_by: null,
+      entity_category: null,
+      entity_id: 'switch.single_entity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Switch single entity',
+    } as unknown as HassEntity;
+
+    const switchState = {
+      entity_id: switchEntity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch single entity friendly name',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(device.id, device);
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+
+    haPlatform.config.splitEntities = [switchEntity.entity_id];
+    haPlatform.config.splitNameStrategy = 'Friendly name';
+
+    await haPlatform.onStart('Test reason');
+
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(
+      `Creating device for split entity ${idn}${switchState.attributes.friendly_name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}single_entity${nf}`,
+    );
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${switchState.attributes.friendly_name}${db}...`);
+    expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
+
+    haPlatform.config.splitNameStrategy = 'Entity name';
   });
 
   it('should not register a Switch split entity if blacklisted', async () => {
