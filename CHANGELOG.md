@@ -39,6 +39,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 - [logger]: Fix the maximum mireds value. Thanks jvmahon (https://github.com/Luligu/matterbridge/issues/523).
 - [split]: Fix the name priority for split entities.
+- [filter]: Ignore area for device entities and split entities.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
