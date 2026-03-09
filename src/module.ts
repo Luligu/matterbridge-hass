@@ -339,14 +339,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.savePayload(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'));
 
     // Create a map of entity_id to device_id for quick lookup of the device of an entity
-    const areaId = this.ha.hassAreas.values().find((a) => a.name === this.config.filterByArea)?.area_id;
-    const labelId = this.ha.hassLabels.values().find((l) => l.name === this.config.filterByLabel)?.label_id;
+    const areaId = Array.from(this.ha.hassAreas.values()).find((a) => a.name === this.config.filterByArea)?.area_id;
+    const labelId = Array.from(this.ha.hassLabels.values()).find((l) => l.name === this.config.filterByLabel)?.label_id;
     const reportPath = path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'report.log');
     writeFileSync(reportPath, `Home Assistant Devices and Entities Report\n\n`); // Create or overwrite the report file
     appendFileSync(reportPath, `Filter by area: ${this.config.filterByArea ? this.config.filterByArea + ' >>> ' + areaId : 'None'}\n\n`); // Create or overwrite the report file
     appendFileSync(reportPath, `Filter by label: ${this.config.filterByLabel ? this.config.filterByLabel + ' >>> ' + labelId : 'None'}\n\n`); // Create or overwrite the report file
     appendFileSync(reportPath, `Device Entities\n\n`);
-    for (const device of this.ha.hassDevices.values()) {
+    for (const device of Array.from(this.ha.hassDevices.values())) {
       appendFileSync(
         reportPath,
         `Device: "${device.name_by_user ?? device.name}"` +
@@ -356,7 +356,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           `${labelId && device.labels?.includes(labelId) ? ' LABEL' : ''}` +
           `\n`,
       );
-      for (const entity of this.ha.hassEntities.values().filter((e) => e.device_id === device.id)) {
+      for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         const state = this.ha.hassStates.get(entity.entity_id);
         appendFileSync(
           reportPath,
@@ -369,7 +369,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
     }
     appendFileSync(reportPath, `\nIndividual Entities\n\n`);
-    for (const entity of this.ha.hassEntities.values().filter((e) => e.device_id === null)) {
+    for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null)) {
       const state = this.ha.hassStates.get(entity.entity_id);
       appendFileSync(
         reportPath,
