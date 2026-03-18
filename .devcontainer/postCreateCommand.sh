@@ -21,7 +21,7 @@ echo "Npm version: $(npm -v)"
 echo ""
 
 echo "1 - Installing updates and scripts..."
-npm install --global --no-fund --no-audit npm npm-check-updates shx cross-env 
+npm install --global --no-fund --no-audit npm-check-updates shx cross-env 
 
 echo "2 - Building Matterbridge..."
 sudo chmod +x .devcontainer/install-matterbridge-*.sh
