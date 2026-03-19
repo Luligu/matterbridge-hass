@@ -11,7 +11,6 @@ import path from 'node:path';
 import { jest } from '@jest/globals';
 import { invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
 import {
-  addMatterbridgePlatform,
   aggregator,
   createTestEnvironment,
   destroyTestEnvironment,
@@ -23,15 +22,13 @@ import {
   loggerInfoSpy,
   loggerLogSpy,
   loggerWarnSpy,
-  logKeepAlives,
-  matterbridge,
   server,
   setDebug,
   setupTest,
   startServerNode,
   stopServerNode,
 } from 'matterbridge/jestutils';
-import { AnsiLogger, CYAN, db, dn, hk, idn, LogLevel, nf, or, rs, TimestampFormat, wr } from 'matterbridge/logger';
+import { CYAN, db, dn, hk, idn, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
 import { Lifecycle } from 'matterbridge/matter';
 import {
   AirQuality,
@@ -186,9 +183,6 @@ MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for Matterb
 
 // Setup the test environment
 await setupTest(NAME, false);
-
-// Cleanup the matter environment
-createTestEnvironment(NAME);
 
 describe('Matterbridge ' + NAME, () => {
   let haPlatform: HomeAssistantPlatform;
@@ -1086,8 +1080,6 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
     haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
 
-    // setDebug(true);
-
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
@@ -1103,29 +1095,28 @@ describe('Matterbridge ' + NAME, () => {
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
-    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switchEntity.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(switchDevice.id, switchEntity.entity_id, switchState, { ...switchState, state: 'off' });
-    // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff', device.log)).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_on', switchEntity.entity_id, undefined);
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff', device.log)).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_off', switchEntity.entity_id, undefined);
 
+    jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.Cluster.id, 'onOff', device.log)).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'toggle', switchEntity.entity_id, undefined);
-
-    // setDebug(false);
 
     // Clean the test environment
     await cleanup();

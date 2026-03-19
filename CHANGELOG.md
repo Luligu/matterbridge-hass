@@ -19,7 +19,9 @@ If you like this project and find it useful, please consider giving it a **star*
 ### Changed
 
 - [package]: Update dependencies.
+- [package]: Bump package to `automator` v.3.1.3.
 - [package]: Bump `typescript-eslint` to v.8.57.1.
+- [devcontainer]: Update `Dev Container` configuration.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

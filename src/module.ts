@@ -500,17 +500,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           } else {
             await this.ha.callService(domain, 'turn_on', entity.entity_id);
           }
-          // We revert the state after 500ms except for input_boolean and switch template that mantain the state
-          if (domain !== 'input_boolean' && domain !== 'switch') {
-            setTimeout(() => {
+          // We revert the state after 500ms except for input_boolean that mantain the state
+          if (domain !== 'input_boolean') {
+            setTimeout(async () => {
               // istanbul ignore next cause is too long
-              data.endpoint.setAttribute(OnOff.Cluster.id, 'onOff', false, data.endpoint.log);
+              await data.endpoint.setAttribute(OnOff.Cluster, 'onOff', false, data.endpoint.log);
             }, 500).unref();
           }
         });
         mutableDevice.addCommandHandler('', 'off', async (_data, _endpointName, _command) => {
-          // We don't revert only for input_boolean and switch template
-          if (domain === 'input_boolean' /* || domain === 'switch'*/) await this.ha.callService(domain, 'turn_off', entity.entity_id);
+          // We don't revert only for input_boolean
+          if (domain === 'input_boolean') await this.ha.callService(domain, 'turn_off', entity.entity_id);
         });
       }
 

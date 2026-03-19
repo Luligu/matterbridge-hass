@@ -1027,16 +1027,16 @@ describe('MutableDevice', () => {
     expect(mutableDevice.getEndpoint('child2')).toBeDefined();
 
     jest.clearAllMocks();
-    await mutableDevice.getEndpoint('').executeCommandHandler('identify', { identifyTime: 10 });
-    expect(commandHandler).toHaveBeenCalledWith({ endpoint: undefined, cluster: undefined, attributes: undefined, request: { identifyTime: 10 } }, '', 'identify');
+    await mutableDevice.getEndpoint('').executeCommandHandler('identify', { identifyTime: 10 }, 'identify', {} as any, {} as any);
+    expect(commandHandler).toHaveBeenCalledWith({ endpoint: {}, cluster: 'identify', command: 'identify', attributes: {}, request: { identifyTime: 10 } }, '', 'identify');
 
     jest.clearAllMocks();
-    await mutableDevice.getEndpoint('child1').executeCommandHandler('identify', { identifyTime: 10 });
-    expect(commandHandler).toHaveBeenCalledWith({ endpoint: undefined, cluster: undefined, attributes: undefined, request: { identifyTime: 10 } }, 'child1', 'identify');
+    await mutableDevice.getEndpoint('child1').executeCommandHandler('identify', { identifyTime: 10 }, 'identify', {} as any, {} as any);
+    expect(commandHandler).toHaveBeenCalledWith({ endpoint: {}, cluster: 'identify', command: 'identify', attributes: {}, request: { identifyTime: 10 } }, 'child1', 'identify');
 
     jest.clearAllMocks();
-    await mutableDevice.getEndpoint('child2').executeCommandHandler('identify', { identifyTime: 10 });
-    expect(commandHandler).toHaveBeenCalledWith({ endpoint: undefined, cluster: undefined, attributes: undefined, request: { identifyTime: 10 } }, 'child2', 'identify');
+    await mutableDevice.getEndpoint('child2').executeCommandHandler('identify', { identifyTime: 10 }, 'identify', {} as any, {} as any);
+    expect(commandHandler).toHaveBeenCalledWith({ endpoint: {}, cluster: 'identify', command: 'identify', attributes: {}, request: { identifyTime: 10 } }, 'child2', 'identify');
 
     jest.clearAllMocks();
     await invokeSubscribeHandler(mutableDevice.getEndpoint(), OnOff.Cluster.id, 'onOff', false, true);
