@@ -1147,8 +1147,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
-    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1196,8 +1196,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
-    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1241,8 +1241,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
-    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1286,8 +1286,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
-    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1331,8 +1331,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
-    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1377,8 +1377,8 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {}, device);
-    await device.executeCommandHandler('off', {}, 'onOff', {}, device);
+    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
@@ -2105,8 +2105,8 @@ describe('HassPlatform', () => {
     expect(child).toBeDefined();
     if (!child) return;
     */
-    await mbdevice.executeCommandHandler('on', {}, 'onOff', {}, mbdevice);
-    await mbdevice.executeCommandHandler('off', {}, 'onOff', {}, mbdevice);
+    await mbdevice.executeCommandHandler('on', {}, 'onOff', {} as any, mbdevice);
+    await mbdevice.executeCommandHandler('off', {}, 'onOff', {} as any, mbdevice);
   });
 
   it('should register a Light (on/off) device from ha', async () => {
