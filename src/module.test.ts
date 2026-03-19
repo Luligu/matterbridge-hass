@@ -31,8 +31,6 @@ import {
   setAttributeSpy,
   setDebug,
   setupTest,
-  startMatterbridgeEnvironment,
-  stopMatterbridgeEnvironment,
   triggerSwitchEventSpy,
 } from 'matterbridge/jestutils';
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
@@ -239,7 +237,7 @@ describe('HassPlatform', () => {
   it('should not initialize platform with wrong version', () => {
     matterbridge.matterbridgeVersion = '1.5.5';
     expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow();
-    matterbridge.matterbridgeVersion = '3.5.0';
+    matterbridge.matterbridgeVersion = '3.7.0';
   });
 
   it('should validate with white and black list', () => {
