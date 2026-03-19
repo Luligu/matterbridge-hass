@@ -21,6 +21,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Update dependencies.
 - [package]: Bump package to `automator` v.3.1.3.
 - [package]: Bump `typescript-eslint` to v.8.57.1.
+- [package]: Refactor build.yml to use matterbridge dev branch if the push is from the dev branch.
 - [devcontainer]: Update `Dev Container` configuration.
 - [platform]: Require Matterbridge v.3.7.0.
 
