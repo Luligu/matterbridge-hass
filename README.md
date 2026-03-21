@@ -53,6 +53,7 @@ Features:
 | climate    | off, heat, cool, heat_cool, auto          | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
 | valve      | open, closed, opening, closing            | current_position                                                                        |
 | vacuum (2) | idle, cleaning, paused, docked, returning |                                                                                         |
+| button     |                                           |                                                                                         |
 
 (1) - Supported preset_modes: auto, low, medium, high.
 
@@ -71,6 +72,8 @@ These domains are supported also like individual and split entities.
 | input_button  | Helpers     |
 
 These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helper of domain input_boolean maintains the on/off state.
+
+These domains are supported also like device entities and split entities.
 
 ## Supported sensors:
 
