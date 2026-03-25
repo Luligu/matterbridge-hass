@@ -378,8 +378,7 @@ async function fileExists(filePath) {
  * @returns {Promise<string>} Absolute path to chosen tsconfig.
  */
 async function pickWorkspaceTsconfig(mode) {
-  const candidates =
-    mode === 'production' ? ['tsconfig.production.build.json', 'tsconfig.production.json', 'tsconfig.build.json', 'tsconfig.json'] : ['tsconfig.build.json', 'tsconfig.json'];
+  const candidates = mode === 'production' ? ['tsconfig.build.production.json', 'tsconfig.build.json', 'tsconfig.json'] : ['tsconfig.build.json', 'tsconfig.json'];
 
   for (const name of candidates) {
     const candidatePath = path.join(repoRoot, name);

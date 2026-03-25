@@ -1,11 +1,13 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "types": ["node", "jest"],
+    "rootDir": ".",
     "noEmit": true,
     "composite": false,
     "incremental": false,
     "isolatedModules": true
   },
-  "include": ["**/*.spec.ts", "**/*.test.ts", "**/__test__/**/*.ts"],
+  "include": ["src/**/*.spec.ts", "src/**/*.test.ts", "src/**/__test__/**/*.ts", "test/**/*.spec.ts", "test/**/*.test.ts", "test/**/__test__/**/*.ts"],
   "exclude": ["**/vitest/**"]
 }

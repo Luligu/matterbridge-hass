@@ -5,14 +5,14 @@
   "required": ["host", "token"],
   "properties": {
     "name": {
-      "title": "Name",
+      "title": "Plugin Name",
       "description": "Plugin name",
       "type": "string",
       "readOnly": true,
       "ui:widget": "hidden"
     },
     "type": {
-      "title": "Type",
+      "title": "Plugin Type",
       "description": "Plugin type",
       "type": "string",
       "readOnly": true,
@@ -152,7 +152,7 @@
       "default": true
     },
     "debug": {
-      "title": "Debug",
+      "title": "Enable Debug",
       "description": "Enable the debug for the plugin (development only)",
       "type": "boolean",
       "default": false
