@@ -170,6 +170,10 @@ describe('HomeAssistant', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   afterAll(async () => {
     for (const client of server.clients) {
       client.terminate();
@@ -765,8 +769,6 @@ describe('HomeAssistant', () => {
   it('should react to connection events with Home Assistant', async () => {
     homeAssistant = new HomeAssistant(wsUrl, accessToken, reconnectTimeoutTime, reconnectRetries);
 
-    jest.useFakeTimers();
-
     await new Promise<void>((resolve) => {
       homeAssistant.once('connected', () => {
         resolve();
@@ -782,6 +784,10 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
     expect(server.clients.size).toBe(1);
     client = Array.from(server.clients)[0];
+
+    (homeAssistant as any).stopPing();
+    jest.useFakeTimers();
+    (homeAssistant as any).startPing();
 
     jest.clearAllMocks();
     (homeAssistant as any).startPing();
@@ -834,8 +840,6 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).reconnectTimeoutTime).toBe(0);
     expect((homeAssistant as any).reconnectRetries).toBe(0);
 
-    jest.useFakeTimers();
-
     await new Promise((resolve) => {
       homeAssistant.once('connected', () => {
         resolve(undefined);
@@ -848,6 +852,10 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).pingInterval).not.toBeUndefined();
     expect((homeAssistant as any).pingTimeout).toBeUndefined();
     expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
+
+    (homeAssistant as any).stopPing();
+    jest.useFakeTimers();
+    (homeAssistant as any).startPing();
 
     jest.advanceTimersByTime((homeAssistant as any).pingIntervalTime);
 
@@ -1082,6 +1090,10 @@ describe('HomeAssistant with ssl', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   afterAll(async () => {
