@@ -879,10 +879,15 @@ export class HomeAssistant extends EventEmitter {
   wsUrl: string;
   wsAccessToken: string;
   log: AnsiLogger;
+  /** Map of Home Assistant devices keyed by their device.id */
   hassDevices = new Map<string, HassDevice>();
+  /** Map of Home Assistant entities keyed by their entity.entity_id */
   hassEntities = new Map<string, HassEntity>();
+  /** Map of Home Assistant states keyed by their entity.entity_id */
   hassStates = new Map<string, HassState>();
+  /** Map of Home Assistant areas keyed by their area.area_id */
   hassAreas = new Map<string, HassArea>();
+  /** Map of Home Assistant labels keyed by their label.label_id */
   hassLabels = new Map<string, HassLabel>();
   hassServices: HassServices | null = null;
   hassConfig: HassConfig | null = null;

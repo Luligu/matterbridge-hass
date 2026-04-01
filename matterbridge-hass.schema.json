@@ -121,6 +121,12 @@
       "uniqueItems": true,
       "selectEntityFrom": "description"
     },
+    "splitByLabel": {
+      "title": "Split By Label",
+      "description": "Split device entities by label (use label name).",
+      "type": "string",
+      "default": ""
+    },
     "splitNameStrategy": {
       "title": "Split Name Strategy",
       "description": "Strategy used for split entity names. Entity name: use the entity name (i.e. Child Lock) if it exists, otherwise use the friendly name. Friendly name: use the friendly name (i.e. Computer Plug Child Lock) if it exists, otherwise use the entity name. You will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller.",

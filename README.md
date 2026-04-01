@@ -249,9 +249,21 @@ If you don't need the device temperature, just add it to deviceEntityBlackList.
 
 If you want a more technical explanation for the naming issues (expecially upsetting with Alexa) read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-> **Adding an entity to splitEntities doesn't automatically add it to the whiteList so it has to be added manually if you use whiteList.**
+> **Adding an entity to splitEntities doesn't automatically add it to the whiteList, so it must be added manually if you use the whiteList.**
 
-> **If you enable the filters (area and label) also the split entity must sattisfy the filter criteria**
+> **If you enable the filters (area and label), the split entity must also satisfy the filter criteria.**
+
+### splitByLabel
+
+Any device entity with this label will be split.
+
+> **Adding splitByLabel to an entity doesn't automatically add it to the whiteList, so it must be added manually if you use the whiteList.**
+
+> **If you enable the filters (area and label), the split entity must also satisfy the filter criteria.**
+
+### splitNameStrategy
+
+Strategy used for split entity names. "Entity name": use the entity name (i.e. Child Lock) if it exists; otherwise, use the friendly name. "Friendly name": use the friendly name (i.e. Computer Plug Child Lock) if it exists; otherwise, use the entity name. Changing this value will cause you to lose the device configuration in your controller, and you may need to pair the controller again.
 
 ### airQualityRegex
 

@@ -84,6 +84,7 @@ describe('HassPlatform', () => {
     entityBlackList: [],
     deviceEntityBlackList: {},
     splitEntities: [],
+    splitByLabel: '',
     splitNameStrategy: 'Entity name',
     namePostfix: '',
     postfix: '',

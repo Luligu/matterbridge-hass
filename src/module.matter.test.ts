@@ -226,6 +226,7 @@ describe('Matterbridge ' + NAME, () => {
     entityBlackList: [],
     deviceEntityBlackList: {},
     splitEntities: [],
+    splitByLabel: '',
     splitNameStrategy: 'Entity name',
     namePostfix: '',
     postfix: '',
