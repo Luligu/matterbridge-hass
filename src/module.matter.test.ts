@@ -228,6 +228,7 @@ describe('Matterbridge ' + NAME, () => {
     splitEntities: [],
     splitByLabel: '',
     splitNameStrategy: 'Entity name',
+    controllerStrategy: 'Merge',
     namePostfix: '',
     postfix: '',
     airQualityRegex: '',

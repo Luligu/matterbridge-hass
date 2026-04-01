@@ -73,6 +73,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   splitEntities: string[];
   splitByLabel: string;
   splitNameStrategy: 'Entity name' | 'Friendly name';
+  controllerStrategy: 'Merge' | 'Matter';
   namePostfix: string;
   postfix: string;
   airQualityRegex: string;
@@ -195,6 +196,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         isValidString(this.config.splitNameStrategy, 10) && ['Entity name', 'Friendly name'].includes(this.config.splitNameStrategy)
           ? this.config.splitNameStrategy
           : 'Entity name';
+      this.config.controllerStrategy =
+        isValidString(this.config.controllerStrategy, 5) && ['Merge', 'Matter'].includes(this.config.controllerStrategy) ? this.config.controllerStrategy : 'Merge';
       this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
       this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
       this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
@@ -492,7 +495,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Register the device if we have found a supported domain
       if (mutableDevice.get().deviceTypes.length > 1 || mutableDevice.size() > 1) {
         try {
-          mutableDevice.create(true); // Use remap for individual entities
+          mutableDevice.create(this.config.controllerStrategy === 'Merge');
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
@@ -723,7 +726,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             }
           }
           this.log.debug(`Registering device ${dn}${device.name}${db}...`);
-          mutableDevice.create(true); // Use remap for device entities
+          mutableDevice.create(this.config.controllerStrategy === 'Merge');
           mutableDevice.logMutableDevice();
           await this.registerDevice(mutableDevice.getEndpoint());
           // istanbul ignore next cause is not testable
@@ -882,7 +885,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Register the device if we have found a supported domain
       if (mutableDevice.get().deviceTypes.length > 1 || mutableDevice.size() > 1) {
         try {
-          mutableDevice.create(true); // Use remap for split entities
+          mutableDevice.create(this.config.controllerStrategy === 'Merge');
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
@@ -1056,12 +1059,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           return; // Skip the command if the light is off. Matter will store the values in the clusters and we apply them when the light is turned on
         }
 
+        // Turn off the light if level <= minLevel. Not managed by the hassCommandConverter since it's a special case for lights that we can manage better here to avoid calling the turn_on service.
         if (command === 'moveToLevelWithOnOff' && data.request['level'] <= (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
           data.endpoint.log.debug(
             `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received with level = minLevel => turn off the light`,
           );
           await this.ha.callService('light', 'turn_off', entityId);
-          return; // Turn off the light if level <= minLevel. Not managed by the hassCommandConverter since it's a special case for lights that we can manage better here to avoid calling the turn_on service
+          return;
         }
 
         if (

@@ -255,7 +255,7 @@ If you want a more technical explanation for the naming issues (expecially upset
 
 ### splitByLabel
 
-Any device entity with this label will be split.
+Any device entity with this label will be split. This is faster to setup then splitEntities on huge setups.
 
 > **Adding splitByLabel to an entity doesn't automatically add it to the whiteList, so it must be added manually if you use the whiteList.**
 
@@ -264,6 +264,10 @@ Any device entity with this label will be split.
 ### splitNameStrategy
 
 Strategy used for split entity names. "Entity name": use the entity name (i.e. Child Lock) if it exists; otherwise, use the friendly name. "Friendly name": use the friendly name (i.e. Computer Plug Child Lock) if it exists; otherwise, use the entity name. Changing this value will cause you to lose the device configuration in your controller, and you may need to pair the controller again.
+
+### controllerStrategy
+
+Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers. Changing this setting may require you to pair the controller again.
 
 ### airQualityRegex
 

@@ -86,6 +86,7 @@ describe('HassPlatform', () => {
     splitEntities: [],
     splitByLabel: '',
     splitNameStrategy: 'Entity name',
+    controllerStrategy: 'Merge',
     namePostfix: '',
     postfix: '',
     airQualityRegex: '',

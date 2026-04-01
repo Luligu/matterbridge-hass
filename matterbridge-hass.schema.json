@@ -134,6 +134,13 @@
       "enum": ["Entity name", "Friendly name"],
       "default": "Entity name"
     },
+    "controllerStrategy": {
+      "title": "Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers. Changing this setting may require you to pair the controller again.",
+      "description": "Strategy used for controller.",
+      "type": "string",
+      "enum": ["Merge", "Matter"],
+      "default": "Merge"
+    },
     "namePostfix": {
       "title": "Name Postfix",
       "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",

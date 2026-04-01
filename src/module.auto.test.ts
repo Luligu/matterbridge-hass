@@ -6,24 +6,28 @@ const MATTER_PORT = 6200;
 const NAME = 'PlatformAuto';
 const HOMEDIR = path.join('.cache', 'jest', NAME);
 const MATTER_CREATE_ONLY = true;
+const MATTER_PAUSE = 50;
 
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
 import { MatterbridgeEndpoint } from 'matterbridge';
 import {
+  addDevice,
   aggregator,
   createTestEnvironment,
+  deleteDevice,
   destroyTestEnvironment,
   flushAsync,
   log,
+  loggerDebugSpy,
   loggerInfoSpy,
   server,
   setupTest,
   startServerNode,
   stopServerNode,
 } from 'matterbridge/jestutils';
-import { CYAN, idn, LogLevel, nf, rs } from 'matterbridge/logger';
+import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
 
 import { generateArea, generateDevice, generateEntity, generateLabel, generateState } from './helpers.js';
 import { HassConfig, HassContext, HassServices, HomeAssistant } from './homeAssistant.js';
@@ -79,7 +83,6 @@ await setupTest(NAME, false);
 
 describe('Matterbridge ' + NAME, () => {
   let haPlatform: HomeAssistantPlatform;
-  let device: MatterbridgeEndpoint;
 
   const mockMatterbridge = {
     matterbridgeDirectory: HOMEDIR + '/.matterbridge',
@@ -93,17 +96,14 @@ describe('Matterbridge ' + NAME, () => {
     matterbridgeVersion: '3.7.2',
     log,
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await aggregator.add(device);
-      await flushAsync(undefined, undefined, 10);
+      await addDevice(aggregator, device, MATTER_PAUSE);
     }),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await device.delete();
-      await flushAsync(undefined, undefined, 10);
+      await deleteDevice(aggregator, device, MATTER_PAUSE);
     }),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
       for (const device of aggregator.parts) {
-        await device.delete();
-        await flushAsync(undefined, undefined, 10);
+        await deleteDevice(aggregator, device, MATTER_PAUSE);
       }
     }),
     addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {}),
@@ -128,6 +128,7 @@ describe('Matterbridge ' + NAME, () => {
     splitEntities: [],
     splitByLabel: '',
     splitNameStrategy: 'Entity name',
+    controllerStrategy: 'Merge',
     namePostfix: '',
     postfix: '',
     airQualityRegex: '',
@@ -150,7 +151,7 @@ describe('Matterbridge ' + NAME, () => {
 
   afterEach(async () => {
     await cleanup();
-    await flushAsync(1, 1, 10);
+    await flushAsync(undefined, undefined, MATTER_PAUSE);
   });
 
   afterAll(async () => {
@@ -167,37 +168,40 @@ describe('Matterbridge ' + NAME, () => {
 
   async function cleanup() {
     // Clean the test environment
-    haPlatform.matterbridgeDevices.clear();
-    haPlatform.endpointNames.clear();
-    haPlatform.batteryVoltageEntities.clear();
-    haPlatform.updatingEntities.clear();
-    haPlatform.offUpdatedEntities.clear();
-    haPlatform.ha.hassDevices.clear();
-    haPlatform.ha.hassEntities.clear();
-    haPlatform.ha.hassStates.clear();
-    haPlatform.ha.hassAreas.clear();
-    haPlatform.ha.hassLabels.clear();
-    for (const device of aggregator.parts) {
-      await device.delete();
-      await flushAsync(undefined, undefined, 0);
+    if (haPlatform) {
+      haPlatform.matterbridgeDevices.clear();
+      haPlatform.endpointNames.clear();
+      haPlatform.batteryVoltageEntities.clear();
+      haPlatform.updatingEntities.clear();
+      haPlatform.offUpdatedEntities.clear();
+      haPlatform.ha.hassDevices.clear();
+      haPlatform.ha.hassEntities.clear();
+      haPlatform.ha.hassStates.clear();
+      haPlatform.ha.hassAreas.clear();
+      haPlatform.ha.hassLabels.clear();
+    }
+    for (const device of Array.from(aggregator.parts)) {
+      await deleteDevice(aggregator, device, MATTER_PAUSE);
     }
     expect(aggregator.parts.size).toBe(0);
 
     // Clean the platform environment
-    await haPlatform.clearSelect();
-    await haPlatform.unregisterAllDevices();
+    if (haPlatform) {
+      await haPlatform.clearSelect();
+      await haPlatform.unregisterAllDevices();
 
-    haPlatform.filterMessages.length = 0;
-    haPlatform.filteredDevices = 0;
-    haPlatform.filteredEntities = 0;
-    haPlatform.unselectedDevices = 0;
-    haPlatform.unselectedEntities = 0;
-    haPlatform.duplicatedDevices = 0;
-    haPlatform.duplicatedEntities = 0;
-    haPlatform.longNameDevices = 0;
-    haPlatform.longNameEntities = 0;
-    haPlatform.failedDevices = 0;
-    haPlatform.failedEntities = 0;
+      haPlatform.filterMessages.length = 0;
+      haPlatform.filteredDevices = 0;
+      haPlatform.filteredEntities = 0;
+      haPlatform.unselectedDevices = 0;
+      haPlatform.unselectedEntities = 0;
+      haPlatform.duplicatedDevices = 0;
+      haPlatform.duplicatedEntities = 0;
+      haPlatform.longNameDevices = 0;
+      haPlatform.longNameEntities = 0;
+      haPlatform.failedDevices = 0;
+      haPlatform.failedEntities = 0;
+    }
 
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = '';
@@ -208,6 +212,7 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.splitEntities = [];
     mockConfig.splitByLabel = '';
     mockConfig.splitNameStrategy = 'Entity name';
+    mockConfig.controllerStrategy = 'Merge';
     mockConfig.namePostfix = '';
     mockConfig.postfix = '';
     mockConfig.airQualityRegex = '';
@@ -261,6 +266,39 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(aggregator.parts.size).toBe(1);
+  });
+
+  it('should call onStart and register a device with three entities', async () => {
+    const device = generateDevice('Climate Device');
+    const temperature = generateEntity('Temperature', 'sensor', device);
+    const humidity = generateEntity('Humidity', 'sensor', device);
+    const pressure = generateEntity('Pressure', 'sensor', device);
+    const temperatureState = generateState(temperature, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    const humidityState = generateState(humidity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    const pressureState = generateState(pressure, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    haPlatform.ha.hassDevices.set(device.id, device);
+
+    haPlatform.ha.hassEntities.set(temperature.entity_id, temperature);
+    haPlatform.ha.hassEntities.set(humidity.entity_id, humidity);
+    haPlatform.ha.hassEntities.set(pressure.entity_id, pressure);
+
+    haPlatform.ha.hassStates.set(temperatureState.entity_id, temperatureState);
+    haPlatform.ha.hassStates.set(humidityState.entity_id, humidityState);
+    haPlatform.ha.hassStates.set(pressureState.entity_id, pressureState);
+
+    haPlatform.config.controllerStrategy = 'Matter';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(aggregator.parts.size).toBe(1);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(3);
   });
 
   it('should call onShutdown and unregister', async () => {
