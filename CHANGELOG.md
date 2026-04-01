@@ -24,6 +24,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 - [rvc]: Add warning when enableServerRvc is true and the rvc has more entities. With Apple Home the rvc must be the unique device type: filter out or unselect all other entities that belong to the rvc device. Thanks hoppel118.
 - [splitByLabel]: Split device entities by label (use label name).
+- [split]: Split device entities have the link to the main device and composed type "Hass Split".
 
 ### Changed
 

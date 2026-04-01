@@ -123,7 +123,7 @@
     },
     "splitByLabel": {
       "title": "Split By Label",
-      "description": "Split device entities by label (use label name).",
+      "description": "Split device entities by label (use label name). Split entities must satisfy the filters (if any) and the whiteList (if any).",
       "type": "string",
       "default": ""
     },

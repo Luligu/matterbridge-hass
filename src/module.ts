@@ -874,6 +874,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
         mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
       }
+      mutableDevice.setComposedType('Hass Split');
+      mutableDevice.setConfigUrl(
+        `${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${entity.device_id}`,
+      );
 
       // Register the device if we have found a supported domain
       if (mutableDevice.get().deviceTypes.length > 1 || mutableDevice.size() > 1) {
