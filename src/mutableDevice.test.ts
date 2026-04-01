@@ -3,6 +3,7 @@
 const MATTER_PORT = 6200;
 const NAME = 'MutableDevice';
 const HOMEDIR = path.join('jest', NAME);
+const MATTER_CREATE_ONLY = true;
 
 import path from 'node:path';
 
@@ -85,8 +86,10 @@ describe('MutableDevice', () => {
   const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
   beforeAll(async () => {
-    // Create the test environment
-    createTestEnvironment(NAME);
+    // Setup the Matter test environment
+    createTestEnvironment(NAME, MATTER_CREATE_ONLY);
+    // Start the server node and aggregator
+    await startServerNode(NAME, MATTER_PORT, undefined, MATTER_CREATE_ONLY);
   });
 
   beforeEach(() => {
@@ -98,19 +101,15 @@ describe('MutableDevice', () => {
   });
 
   afterAll(async () => {
-    // Destroy the test environment
-    await destroyTestEnvironment();
+    // Stop the server node
+    await stopServerNode(server, MATTER_CREATE_ONLY);
+    // Destroy the Matter test environment
+    await destroyTestEnvironment(MATTER_CREATE_ONLY);
 
     // Restore all mocks
     jest.restoreAllMocks();
 
     // logKeepAlives(mockMatterbridge.log);
-  });
-
-  test('create and start the server node', async () => {
-    await startServerNode(NAME, MATTER_PORT);
-    expect(server).toBeDefined();
-    expect(aggregator).toBeDefined();
   });
 
   it('should initialize with an empty mutableDevice', () => {
@@ -127,6 +126,9 @@ describe('MutableDevice', () => {
 
     mutableDevice.setConfigUrl('http://example.com/config');
     expect((mutableDevice as any).configUrl).toBe('http://example.com/config');
+
+    mutableDevice.setLogLevel(LogLevel.NONE);
+    expect((mutableDevice as any).log.logLevel).toBe(LogLevel.NONE);
 
     mutableDevice.destroy();
   });
@@ -1322,10 +1324,5 @@ describe('MutableDevice', () => {
 
     await addDevice(aggregator, device);
     mutableDevice.destroy();
-  });
-
-  test('close the server node', async () => {
-    expect(server).toBeDefined();
-    await stopServerNode(server);
   });
 });
