@@ -49,6 +49,7 @@ import {
 } from './converters.js';
 import { addEventEntity } from './event.entity.js';
 import { addHelperEntity } from './helper.entity.js';
+import { getEntityName } from './helpers.js';
 // Plugin imports
 import { HassArea, HassConfig as HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant, HomeAssistantPrimitive } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
@@ -413,10 +414,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName =
-        this.config.splitNameStrategy === 'Friendly name'
-          ? (hassState.attributes?.friendly_name ?? entity.name ?? entity.original_name)
-          : (entity.name ?? entity.original_name ?? hassState.attributes?.friendly_name);
+      const entityName = getEntityName(entity, hassState, this.config.splitNameStrategy);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
@@ -790,10 +788,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName =
-        this.config.splitNameStrategy === 'Friendly name'
-          ? (hassState.attributes?.friendly_name ?? entity.name ?? entity.original_name)
-          : (entity.name ?? entity.original_name ?? hassState.attributes?.friendly_name);
+      const entityName = getEntityName(entity, hassState, this.config.splitNameStrategy);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
