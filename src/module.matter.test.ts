@@ -4,7 +4,7 @@
 
 const MATTER_PORT = 6100;
 const NAME = 'PlatformMatter';
-const HOMEDIR = path.join('jest', NAME);
+const HOMEDIR = path.join('.cache', 'jest', NAME);
 
 import path from 'node:path';
 
