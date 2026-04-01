@@ -25,7 +25,7 @@ import {
 } from './converters.js';
 import { ClimateEntityFeature, ColorMode, FanEntityFeature, HassConfig, HassState, HassUnitSystem, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 
-describe('HassPlatform', () => {
+describe('HassPlatform converters', () => {
   it('should return the feature names for supported features', () => {
     expect(getFeatureNames(FanEntityFeature, 0)).toEqual([]);
     expect(getFeatureNames(FanEntityFeature, undefined)).toEqual([]);
