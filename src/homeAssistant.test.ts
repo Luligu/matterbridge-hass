@@ -23,6 +23,7 @@ import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, 
 
 // Setup the test environment
 await setupTest(NAME, false);
+process.argv = ['node', 'homeAssistant.test.js'];
 
 describe('HomeAssistant', () => {
   let server: WebSocketServer;
@@ -713,7 +714,7 @@ describe('HomeAssistant', () => {
   });
 
   it('should not connect if wsUrl is not ws:// or wss://', async () => {
-    process.argv = [...originalProcessArgv, '--debug'];
+    process.argv = ['node', 'homeAssistant.test.js', '--debug'];
     homeAssistant = new HomeAssistant(`http://localhost:${port}`, accessToken, reconnectTimeoutTime, reconnectRetries);
     // @ts-expect-error accessing private property for test
     expect(homeAssistant.debug).toBe(true);
@@ -726,7 +727,7 @@ describe('HomeAssistant', () => {
   });
 
   it('should not connect if wsUrl is wss:// and certificate are not present', async () => {
-    process.argv = [...originalProcessArgv, '--verbose'];
+    process.argv = ['node', 'homeAssistant.test.js', '--verbose'];
     homeAssistant = new HomeAssistant(`wss://localhost:${port}`, accessToken, reconnectTimeoutTime, reconnectRetries, './invalid/cert.pem');
     // @ts-expect-error accessing private property for test
     expect(homeAssistant.debug).toBe(true);
@@ -740,7 +741,7 @@ describe('HomeAssistant', () => {
   });
 
   it('should not connect if wsUrl is wss:// and certificate are not correct', async () => {
-    process.argv = [...originalProcessArgv];
+    process.argv = ['node', 'homeAssistant.test.js'];
     homeAssistant = new HomeAssistant(`wss://localhost:${port}`, accessToken, reconnectTimeoutTime, reconnectRetries, path.join('certificates', 'matterbridge-hass-ca.crt'));
 
     homeAssistant.on('error', () => {
