@@ -16,6 +16,14 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## [1.0.12] - Dev branch
 
+### Breaking Changes
+
+- [button]: The domain `button` (added in 1.0.11) can cause the lights to not be anymore on the root endpoint. You can filter out or unselect the button entity (or split it) in that case (for Alexa). Thanks Rogibaer (https://github.com/Luligu/matterbridge-hass/issues/205);
+
+### Added
+
+- [rvc]: Add warning when enableServerRvc is true and the rvc has more entities. With Apple Home the rvc must be the unique device type: filter out or unselect all other entities that belong to the rvc device. Thanks hoppel118.
+
 ### Changed
 
 - [package]: Update dependencies.

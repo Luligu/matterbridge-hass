@@ -3,7 +3,7 @@
  * @file src\module.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.7.0
+ * @version 1.7.1
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -387,6 +387,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
     // ************************************* Scan the individual entities **************************************
     // *********************************************************************************************************
+
     for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === null && e.disabled_by === null)) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
@@ -522,6 +523,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
     // ******************************************* Scan the devices ********************************************
     // *********************************************************************************************************
+
     for (const device of Array.from(this.ha.hassDevices.values()).filter((d) => d.disabled_by === null)) {
       // Check if we have a valid device
       const deviceName = device.name_by_user ?? device.name;
@@ -608,6 +610,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // *******************************************************************************************************************
       // Scan entities that belong to this device for supported domains and services and add them to the Matterbridge device
       // *******************************************************************************************************************
+
+      let hasRvc = false;
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id && e.disabled_by === null)) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db}`);
         const [domain, _name] = entity.entity_id.split('.');
@@ -654,15 +658,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.unselectedEntities++;
           continue;
         }
+        // Set the entity mode for the Rvc.
+        if (domain === 'vacuum' && this.config.enableServerRvc) {
+          hasRvc = true;
+          mutableDevice.setMode('server');
+          // istanbul ignore else
+          if (!battery) mutableDevice.addDeviceTypes('', powerSource); // Temporary fix for vacuum without battery and enableServerRvc
+        }
         // Lookup and add helpers domain entity.
         const eHelper = addHelperEntity(mutableDevice, entity.entity_id, entity, hassState, this);
         if (eHelper !== undefined) {
           endpointName = eHelper;
           this.endpointNames.set(entity.entity_id, endpointName); // Set the endpoint name for the entity
         }
-        // Set the entity mode for the Rvc.
-        if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
-        if (domain === 'vacuum' && this.config.enableServerRvc && !battery) mutableDevice.addDeviceTypes('', powerSource); // Temporary fix for vacuum without battery and enableServerRvc
         // Lookup and add core domains entity.
         const eControl = addControlEntity(mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this), this.log);
         if (eControl !== undefined) {
@@ -705,6 +713,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Register the device if we have found supported domains and entities
       if (mutableDevice.size() > 1) {
         try {
+          if (this.config.enableServerRvc && hasRvc) {
+            this.log.debug(`Checking server RVC for device ${dn}${device.name}${db} with enabled server RVC...`);
+            for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
+              const domain = entity.entity_id.split('.')[0];
+              if (domain !== 'vacuum' && mutableDevice.has(entity.entity_id)) {
+                this.log.warn(`Device ${dn}${device.name}${wr} has more entities with enabled server RVC. Please filter out or unselect all other entities.`);
+              }
+            }
+          }
           this.log.debug(`Registering device ${dn}${device.name}${db}...`);
           mutableDevice.create(true); // Use remap for device entities
           mutableDevice.logMutableDevice();
@@ -745,6 +762,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
     // ************************************ Scan the split entities  *******************************************
     // *********************************************************************************************************
+
     for (const entity of Array.from(this.ha.hassEntities.values()).filter(
       (e) => e.device_id !== null && e.disabled_by === null && (this.config.splitEntities as string[]).includes(e.entity_id),
     )) {

@@ -1231,12 +1231,33 @@ describe('Matterbridge ' + NAME, () => {
     const vacuumState = {
       entity_id: vacuumEntity.entity_id,
       state: 'docked',
-      attributes: { current_position: 50, friendly_name: 'Vacuum' },
+      attributes: { friendly_name: 'Vacuum' },
+    } as unknown as HassState;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: vacuumDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'binary_sensor.vacuum',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0aa',
+      labels: [],
+      name: null,
+      original_name: 'Vacuum Binary Sensor',
+    } as unknown as HassEntity;
+
+    const sensorState = {
+      entity_id: sensorEntity.entity_id,
+      state: 'off',
+      attributes: { device_class: 'door', friendly_name: 'Vacuum Binary Sensor' },
     } as unknown as HassState;
 
     haPlatform.ha.hassDevices.set(vacuumDevice.id, vacuumDevice);
     haPlatform.ha.hassEntities.set(vacuumEntity.entity_id, vacuumEntity);
     haPlatform.ha.hassStates.set(vacuumState.entity_id, vacuumState);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorState.entity_id, sensorState);
 
     // setDebug(true);
 
@@ -1247,6 +1268,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(vacuumDevice.id)).toBeDefined();
     device = haPlatform.matterbridgeDevices.get(vacuumDevice.id) as MatterbridgeEndpoint;
+    expect(device.mode).toBe('server');
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
@@ -1255,6 +1277,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(
       `Creating endpoint ${CYAN}${vacuumEntity.entity_id}${db} for device ${idn}${vacuumDevice.name}${rs}${db} id ${CYAN}${vacuumDevice.id}${db}...`,
     );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`has more entities with enabled server RVC`));
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(4);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
 
