@@ -23,9 +23,9 @@ If you like this project and find it useful, please consider giving it a **star*
 ### Added
 
 - [rvc]: Add warning when enableServerRvc is true and the rvc has more entities. With Apple Home the rvc must be the unique device type: filter out or unselect all other entities that belong to the rvc device. Thanks hoppel118.
-- [splitByLabel]: Split device entities by label (use label name).
+- [splitByLabel]: Split device entities by label (use label name). All device entities with this label will be split. See the [readme](./README.md#splitbylabel) for more informations.
 - [split]: Split device entities have the link to the main device and composed type "Hass Split".
-- [controllerStrategy]: Add `controllerStrategy` config option. 'Merge' will merge each not overlapping device types on the main endpoint. 'Matter' will create a separate endpoint for each device type. Use Merge strategy for legacy controller. Change this setting may require to pair again the controller.",.
+- [controllerStrategy]: Add `controllerStrategy` config option. 'Merge' will merge each not overlapping device types on the main endpoint. 'Matter' will create a separate endpoint for each device type. Use Merge strategy for legacy controller. Change this setting may require to pair again the controller. See the [readme](./README.md#controllerstrategy) for more informations.
 
 ### Changed
 
