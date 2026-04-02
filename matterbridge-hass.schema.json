@@ -135,8 +135,8 @@
       "default": "Entity name"
     },
     "controllerStrategy": {
-      "title": "Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers. Changing this setting may require you to pair the controller again.",
-      "description": "Strategy used for controller.",
+      "title": "Controller Strategy",
+      "description": "Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers. Changing this setting may require you to pair the controller again.",
       "type": "string",
       "enum": ["Merge", "Matter"],
       "default": "Merge"

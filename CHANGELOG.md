@@ -14,6 +14,14 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.0.13] - Dev branch
+
+### Fixed
+
+- [schema]: Fix controllerStrategy schema.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.12] - 2026-04-02
 
 ### Breaking Changes
