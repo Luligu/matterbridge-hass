@@ -14,7 +14,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [1.0.12] - Dev branch
+## [1.0.12] - 2026-04-02
 
 ### Breaking Changes
 
@@ -32,6 +32,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Update dependencies.
 - [package]: Bump package to `automator` v.3.1.4.
 - [package]: Bump `typescript` to v.6.0.2.
+- [package]: Bump `typescript-eslint` to v.8.58.0.
 - [package]: Add `CODE_OF_CONDUCT.md`.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
