@@ -16,9 +16,21 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## [1.0.13] - Dev branch
 
+### Breaking Changes
+
+- [domains] Add `Domain Whitelist` and `Domain Blacklist`.
+
+### Added
+
+- [helpers]: Add `helpers module` to make the platform code easier to read and maintain.
+- [helpers]: Add `payload module` to make the platform code easier to read and maintain.
+- [helpers]: Add `report module` to make the platform code easier to read and maintain.
+- [scripts]: Add script to prune GitHub releases based on tag prefix.
+
 ### Fixed
 
 - [schema]: Fix controllerStrategy schema.
+- [devcontainer]: Fix pull of new image.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

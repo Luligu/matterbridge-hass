@@ -84,17 +84,6 @@
       "uniqueItems": true,
       "selectFrom": "name"
     },
-    "entityBlackList": {
-      "title": "Entity Blacklist",
-      "description": "Not used in this plugin.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "uniqueItems": true,
-      "selectEntityFrom": "description",
-      "ui:widget": "hidden"
-    },
     "deviceEntityBlackList": {
       "title": "Device Entity Blacklist",
       "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device. This is only related to device entities, not individual entities or split entities.",
@@ -110,6 +99,24 @@
         "uniqueItems": true,
         "selectDeviceEntityFrom": "name"
       }
+    },
+    "entityWhiteList": {
+      "title": "Domain Whitelist",
+      "description": "Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "entityBlackList": {
+      "title": "Domain Blacklist",
+      "description": "Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
     },
     "splitEntities": {
       "title": "Split Entities",

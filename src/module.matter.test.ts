@@ -6,6 +6,7 @@ const MATTER_PORT = 6100;
 const NAME = 'PlatformMatter';
 const HOMEDIR = path.join('.cache', 'jest', NAME);
 
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
@@ -65,7 +66,7 @@ import {
 
 import { miredsToKelvin } from './converters.js';
 import { ColorMode, HassConfig, HassContext, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
+import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from './module.js';
 import { MutableDevice } from './mutableDevice.js';
 
 const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
@@ -87,6 +88,19 @@ const fetchDataSpy = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplem
   console.log(`Mocked fetchData`);
   return Promise.resolve();
 });
+
+const savePayloadMock = jest.fn(async () => undefined);
+const writeReportMock = jest.fn(async () => '');
+
+jest.unstable_mockModule('./payload.js', () => ({
+  savePayload: savePayloadMock,
+}));
+
+jest.unstable_mockModule('./report.js', () => ({
+  writeReport: writeReportMock,
+}));
+
+const { HomeAssistantPlatform } = await import('./module.js');
 
 const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((api: string) => {
   console.log(`Mocked fetchAsync: ${api}`);
@@ -185,7 +199,7 @@ MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for Matterb
 await setupTest(NAME, false);
 
 describe('Matterbridge ' + NAME, () => {
-  let haPlatform: HomeAssistantPlatform;
+  let haPlatform: HomeAssistantPlatformType;
 
   let device: MatterbridgeEndpoint;
 
@@ -209,33 +223,8 @@ describe('Matterbridge ' + NAME, () => {
     addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {}),
   } as any;
 
-  const mockConfig: HomeAssistantPlatformConfig = {
-    name: 'matterbridge-hass',
-    type: 'DynamicPlatform',
-    version: '1.0.0',
-    host: 'http://homeassistant.local:8123',
-    token: 'long-lived token',
-    certificatePath: '',
-    rejectUnauthorized: true,
-    reconnectTimeout: 60,
-    reconnectRetries: 10,
-    filterByArea: '',
-    filterByLabel: '',
-    whiteList: [],
-    blackList: [],
-    entityBlackList: [],
-    deviceEntityBlackList: {},
-    splitEntities: [],
-    splitByLabel: '',
-    splitNameStrategy: 'Entity name',
-    controllerStrategy: 'Merge',
-    namePostfix: '',
-    postfix: '',
-    airQualityRegex: '',
-    enableServerRvc: false,
-    debug: false,
-    unregisterOnShutdown: false,
-  };
+  const mockConfig: HomeAssistantPlatformConfig = JSON.parse(readFileSync(path.join('.', 'matterbridge-hass.config.json'), 'utf-8'));
+  mockConfig.token = 'long-lived token'; // Replace with a valid long-lived token for actual testing
 
   beforeAll(async () => {
     // Create the test environment

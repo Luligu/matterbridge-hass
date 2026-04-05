@@ -224,6 +224,14 @@ If the blackList is defined the devices, the individual and split entities inclu
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
 
+### domain whiteList
+
+Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains.
+
+### domain blackList
+
+Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains.
+
 ### splitEntities
 
 The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).

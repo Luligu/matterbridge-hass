@@ -1,7 +1,7 @@
 {
   "name": "matterbridge-hass",
   "type": "DynamicPlatform",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "host": "ws://homeassistant.local:8123",
   "certificatePath": "",
   "rejectUnauthorized": false,
@@ -12,6 +12,7 @@
   "filterByLabel": "",
   "whiteList": [],
   "blackList": [],
+  "entityWhiteList": [],
   "entityBlackList": [],
   "deviceEntityBlackList": {},
   "splitEntities": [],
