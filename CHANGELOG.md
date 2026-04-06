@@ -27,10 +27,19 @@ If you like this project and find it useful, please consider giving it a **star*
 - [helpers]: Add `report module` to make the platform code easier to read and maintain.
 - [scripts]: Add script to prune GitHub releases based on tag prefix.
 
+### Changed
+
+- [package]: Update dependencies.
+- [package]: Bump package to `automator` v.3.1.5.
+- [package]: Bump `eslint` to v.10.2.0.
+- [devcontainer]: Update VS Code settings.
+- [scripts]: Update mb-run script.
+
 ### Fixed
 
 - [schema]: Fix controllerStrategy schema.
 - [devcontainer]: Fix pull of new image.
+- [devcontainer]: Fix matterbridge scripts.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

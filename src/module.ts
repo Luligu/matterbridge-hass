@@ -412,14 +412,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         );
         continue;
       }
+      // Pre validate the domains
+      if (!this.validateEntity('', entity.entity_id, true)) {
+        this.unselectedEntities++;
+        continue;
+      }
       // Set the selects and validate.
       this.setSelectDevice(entity.id, entityName, undefined, 'hub');
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) {
-        this.unselectedEntities++;
-        continue;
-      }
-      if (!this.validateEntity('', entity.entity_id, true)) {
         this.unselectedEntities++;
         continue;
       }
@@ -785,14 +786,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.filteredEntities++;
         continue;
       }
+      // Pre validate the domains
+      if (!this.validateEntity('', entity.entity_id, true)) {
+        this.unselectedEntities++;
+        continue;
+      }
       // Set the selects and validate.
       this.setSelectDevice(entity.id, entityName, undefined, 'hub');
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) {
-        this.unselectedEntities++;
-        continue;
-      }
-      if (!this.validateEntity('', entity.entity_id, true)) {
         this.unselectedEntities++;
         continue;
       }
@@ -1183,7 +1185,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
-    // const matterbridgeDevice = this.matterbridgeDevices.get(deviceId ?? entityId);
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found`);
