@@ -424,6 +424,9 @@ export function generateEntity(
  */
 export function generateState(ha: HomeAssistant, entity: HassEntity, state: string = 'unknown', attributes: Record<string, string | number | boolean | null> = {}): HassState {
   const timestamp = new Date().toISOString();
+  const entityFriendlyName = entity.original_name ?? entity.name ?? undefined;
+  const deviceName = entity.device_id ? (ha.hassDevices.get(entity.device_id)?.name_by_user ?? ha.hassDevices.get(entity.device_id)?.name ?? undefined) : undefined;
+  const friendlyName = isValidString(deviceName) && isValidString(entityFriendlyName) ? `${deviceName} ${entityFriendlyName}` : entityFriendlyName;
 
   const hassState: HassState = {
     entity_id: entity.entity_id,
@@ -432,7 +435,7 @@ export function generateState(ha: HomeAssistant, entity: HassEntity, state: stri
     last_reported: timestamp,
     last_updated: timestamp,
     attributes: {
-      friendly_name: entity.original_name ?? entity.name ?? undefined,
+      friendly_name: friendlyName,
       ...attributes,
     } as HassState['attributes'],
     context: {

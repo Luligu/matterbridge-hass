@@ -200,7 +200,7 @@ describe('HassPlatform helpers', () => {
     expect(entity.unique_id).toMatch(/^[0-9a-f]{32}$/);
     expect(homeAssistant.hassEntities.get(entity.entity_id)).toBe(entity);
     expect(state?.state).toBe('unknown');
-    expect(state?.attributes.friendly_name).toBe('Test Entity Default');
+    expect(state?.attributes.friendly_name).toBe('Test Device Test Entity Default');
   });
 
   it('should generate a Home Assistant entity with the provided labels', () => {
@@ -291,6 +291,38 @@ describe('HassPlatform helpers', () => {
     expect(state.context.parent_id).toBeNull();
     expect(state.context.user_id).toBeNull();
     expect(homeAssistant.hassStates.get(state.entity_id)).toBe(state);
+  });
+
+  it('should prefix the friendly name with the parent device name', () => {
+    const homeAssistant = createHomeAssistant();
+    const device: HassDevice = generateDevice(homeAssistant, 'Kitchen Sensor');
+    const entity: HassEntity = generateEntity(homeAssistant, 'Temperature', 'sensor', device);
+    const state: HassState = generateState(homeAssistant, entity, '21');
+
+    expect(state.state).toBe('21');
+    expect(state.attributes.friendly_name).toBe('Kitchen Sensor Temperature');
+  });
+
+  it('should prefer the user-defined device name when prefixing the friendly name', () => {
+    const homeAssistant = createHomeAssistant();
+    const device: HassDevice = generateDevice(homeAssistant, 'Kitchen Sensor');
+    device.name_by_user = 'Kitchen Climate';
+    const entity: HassEntity = generateEntity(homeAssistant, 'Temperature', 'sensor', device);
+    const state: HassState = generateState(homeAssistant, entity, '21');
+
+    expect(state.state).toBe('21');
+    expect(state.attributes.friendly_name).toBe('Kitchen Climate Temperature');
+  });
+
+  it('should fall back to the entity name when the parent device has no usable name', () => {
+    const homeAssistant = createHomeAssistant();
+    // @ts-expect-error Testing edge case where device name is undefined
+    const device: HassDevice = generateDevice(homeAssistant, undefined);
+    const entity: HassEntity = generateEntity(homeAssistant, 'Temperature', 'sensor', device);
+    const state: HassState = generateState(homeAssistant, entity, '21');
+
+    expect(state.state).toBe('21');
+    expect(state.attributes.friendly_name).toBe('Temperature');
   });
 
   it('should generate a Home Assistant state with an overridden friendly name', () => {
