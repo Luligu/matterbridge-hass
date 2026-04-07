@@ -59,7 +59,7 @@ describe('addButtonEntity', () => {
     const md = createMockMutableDevice();
     const platform = createPlatform();
 
-    const ep = addButtonEntity(md as any, undefined, { entity_id: 'switch.kitchen' } as any, {} as any, platform);
+    const ep = addButtonEntity(platform, md as any, { entity_id: 'switch.kitchen' } as any, {} as any);
 
     expect(ep).toBeUndefined();
     expect(Object.keys(md.deviceTypes)).toHaveLength(0);
@@ -72,11 +72,11 @@ describe('addButtonEntity', () => {
     const platform = createPlatform();
     const entity = { entity_id: 'button.doorbell', platform: 'demo' } as any;
 
-    const ep = addButtonEntity(md as any, undefined, entity, {} as any, platform);
+    const ep = addButtonEntity(platform, md as any, entity, {} as any);
 
     expect(ep).toBe(entity.entity_id);
-    expect(md.deviceTypes['']).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
-    expect(md.commandHandlers['']).toHaveProperty('on');
+    expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+    expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
 
     const endpoint = {
       setAttribute: jest.fn(async () => undefined),
@@ -91,7 +91,7 @@ describe('addButtonEntity', () => {
     }) as any);
 
     try {
-      await md.commandHandlers[''].on({ endpoint });
+      await md.commandHandlers[entity.entity_id].on({ endpoint });
       await Promise.all(timeoutPromises);
 
       expect(platform.ha.callService).toHaveBeenCalledWith('button', 'press', entity.entity_id);
@@ -103,16 +103,15 @@ describe('addButtonEntity', () => {
     }
   });
 
-  it('uses the provided endpoint name', () => {
+  it('uses entity id as endpoint name', () => {
     const md = createMockMutableDevice();
     const platform = createPlatform();
-    const endpointName = 'custom-button-endpoint';
     const entity = { entity_id: 'button.scene_trigger', platform: 'demo' } as any;
 
-    const ep = addButtonEntity(md as any, endpointName, entity, {} as any, platform);
+    const ep = addButtonEntity(platform, md as any, entity, {} as any);
 
-    expect(ep).toBe(endpointName);
-    expect(md.deviceTypes[endpointName]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
-    expect(md.commandHandlers[endpointName]).toHaveProperty('on');
+    expect(ep).toBe(entity.entity_id);
+    expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+    expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
   });
 });

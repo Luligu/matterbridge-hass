@@ -15,11 +15,8 @@ import {
 
 import { addControlEntity } from './control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
-import { HassConfig, HomeAssistant, UnitOfTemperature } from './homeAssistant.js';
+import { type HassConfig, type HassEntity, type HassState, HomeAssistant, UnitOfTemperature } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
-
-type HassEntity = { entity_id: string };
-type HassState = { attributes: Record<string, any> };
 
 function createMockMutableDevice(): MutableDevice {
   const endpoints: Record<string, { deviceTypes: any[]; clusters: number[] }> = {};
@@ -54,6 +51,7 @@ function createMockMutableDevice(): MutableDevice {
 }
 
 const mockLog = { debug: jest.fn(), warn: jest.fn() } as any;
+const mockPlatform = { log: mockLog } as any;
 const commandHandler = jest.fn(async () => {}); // async signature required
 const subscribeHandler = jest.fn();
 
@@ -67,19 +65,19 @@ describe('addControlEntity', () => {
 
   it('returns undefined for unsupported domain', () => {
     const [md, e, s] = make('media_player', 'x', {});
-    expect(addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog)).toBeUndefined();
+    expect(addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any)).toBeUndefined();
   });
 
   it('returns undefined for sensor & binary_sensor with null deviceType', () => {
     const [md1, e1, s1] = make('sensor', 'x', {});
     const [md2, e2, s2] = make('binary_sensor', 'x', {});
-    expect(addControlEntity(md1, e1 as any, s1 as any, commandHandler, subscribeHandler, mockLog)).toBeUndefined();
-    expect(addControlEntity(md2, e2 as any, s2 as any, commandHandler, subscribeHandler, mockLog)).toBeUndefined();
+    expect(addControlEntity(mockPlatform, md1, e1 as any, s1 as any, commandHandler, subscribeHandler as any)).toBeUndefined();
+    expect(addControlEntity(mockPlatform, md2, e2 as any, s2 as any, commandHandler, subscribeHandler as any)).toBeUndefined();
   });
 
   it('switch domain adds onOffOutlet and friendly name', () => {
     const [md, e, s] = make('switch', 'plug', { friendly_name: 'Plug' });
-    const ep = addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    const ep = addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(ep).toBeDefined();
     expect(ep).toBe(e.entity_id);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffOutlet);
@@ -95,7 +93,7 @@ describe('addControlEntity', () => {
       max_color_temp_kelvin: 6500,
       friendly_name: 'CT Light',
     });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, colorTemperatureLight);
@@ -111,7 +109,7 @@ describe('addControlEntity', () => {
       min_mireds: 150,
       max_mireds: 400,
     });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, extendedColorLight);
     expect(md.addClusterServerColorControl).toHaveBeenCalled();
     expect(md.addClusterServerColorTemperatureColorControl).not.toHaveBeenCalled();
@@ -119,37 +117,37 @@ describe('addControlEntity', () => {
 
   it('light without friendly_name does not call setFriendlyName', () => {
     const [md, e, s] = make('light', 'plain', { brightness: 90, supported_color_modes: ['color_temp'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.setFriendlyName).not.toHaveBeenCalled();
   });
 
   it('thermostat auto/heat/cool branches', () => {
     let [md, e, s] = make('climate', 'auto', { hvac_modes: ['heat_cool'], current_temperature: 22, target_temp_low: 20, target_temp_high: 25 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
     [md, e, s] = make('climate', 'heat', { hvac_modes: ['heat'], current_temperature: 21, temperature: 23 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
     [md, e, s] = make('climate', 'cool', { hvac_modes: ['cool'], current_temperature: 24, temperature: 22 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
   });
 
   it('fan extended features when direction/oscillating, basic otherwise', () => {
     let [md, e, s] = make('fan', 'dir', { direction: 'forward', preset_modes: ['low', 'high'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCompleteFanControl).toHaveBeenCalledTimes(1);
     [md, e, s] = make('fan', 'osc', { oscillating: true, preset_modes: ['low'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCompleteFanControl).toHaveBeenCalledTimes(1); // fresh mock count
     [md, e, s] = make('fan', 'simple', { preset_modes: ['low', 'high'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCompleteFanControl).not.toHaveBeenCalled();
   });
 
   it('vacuum triple device type mapping and configuration', () => {
     const [md, e, s] = make('vacuum', 'robby', { activity: 'idle' });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addVacuum).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const vacuumCalls = md.addDeviceTypes.mock.calls.filter((c: any[]) => c[1] === roboticVacuumCleaner);
@@ -158,31 +156,31 @@ describe('addControlEntity', () => {
 
   it('valve mapping', () => {
     const [md, e, s] = make('valve', 'water', { current_position: 70 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, waterValve);
   });
 
   it('lock and cover mapping', () => {
     let [md, e, s] = make('lock', 'front', {});
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, doorLockDevice);
     [md, e, s] = make('cover', 'shade', { current_position: 55 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, coverDevice);
   });
 
   it('thermostat base & fan base device types', () => {
     const [md1, e1, s1] = make('climate', 'base', { hvac_modes: ['heat'] });
-    addControlEntity(md1, e1 as any, s1 as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md1, e1 as any, s1 as any, commandHandler, subscribeHandler as any);
     expect(md1.addDeviceTypes).toHaveBeenCalledWith(e1.entity_id, thermostatDevice);
     const [md2, e2, s2] = make('fan', 'base', { preset_modes: ['low'] });
-    addControlEntity(md2, e2 as any, s2 as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md2, e2 as any, s2 as any, commandHandler, subscribeHandler as any);
     expect(md2.addDeviceTypes).toHaveBeenCalledWith(e2.entity_id, fanDevice);
   });
 
   it('registers all command handlers for light domain', () => {
     const [md, e, s] = make('light', 'cmds', {});
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     const expected = hassCommandConverter.filter((c) => c.domain === 'light').map((c) => c.command);
     // @ts-expect-error chainable return
     const registered = md.addCommandHandler.mock.calls.map((c: any[]) => c[1]);
@@ -191,7 +189,7 @@ describe('addControlEntity', () => {
 
   it('registers all subscribe handlers for fan domain', () => {
     const [md, e, s] = make('fan', 'sub', {});
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     const expected = hassSubscribeConverter.filter((x) => x.domain === 'fan').length;
     // @ts-expect-error chainable return
     expect(md.addSubscribeHandler.mock.calls.length).toBe(expected);
@@ -199,7 +197,7 @@ describe('addControlEntity', () => {
 
   it('executes registered command handler callbacks (light domain)', async () => {
     const [md, e, s] = make('light', 'cb', {});
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     // @ts-expect-error chainable return
     const calls = md.addCommandHandler.mock.calls;
     expect(calls.length).toBeGreaterThan(0);
@@ -213,7 +211,7 @@ describe('addControlEntity', () => {
 
   it('executes registered subscribe handler callbacks (fan domain)', () => {
     const [md, e, s] = make('fan', 'cb', { preset_modes: ['low'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     // @ts-expect-error chainable return
     const calls = md.addSubscribeHandler.mock.calls;
     expect(calls.length).toBeGreaterThan(0);
@@ -226,7 +224,7 @@ describe('addControlEntity', () => {
 
   it('climate domain with unsupported hvac modes adds no thermostat cluster servers', () => {
     const [md, e, s] = make('climate', 'none', { hvac_modes: ['dry'], current_temperature: 20 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerAutoModeThermostat).not.toHaveBeenCalled();
     expect(md.addClusterServerHeatingThermostat).not.toHaveBeenCalled();
     expect(md.addClusterServerCoolingThermostat).not.toHaveBeenCalled();
@@ -237,7 +235,7 @@ describe('addControlEntity', () => {
     // Inject a temporary null mapping into hassDomainConverter
     const originalLength = hassDomainConverter.length;
     (hassDomainConverter as any).push({ domain: 'light', withAttribute: 'dummy_null', deviceType: null, clusterId: null });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     // Only the base light device type should be added (no extra from dummy_null)
     // @ts-expect-error chainable return
     const deviceTypeCalls = md.addDeviceTypes.mock.calls.filter((c: any[]) => c[0] === e.entity_id);
@@ -248,7 +246,7 @@ describe('addControlEntity', () => {
 
   it('light color temperature fallback defaults', () => {
     const [md, e, s] = make('light', 'ctdefaults', { supported_color_modes: ['color_temp'], color_temp_kelvin: undefined });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerColorTemperatureColorControl).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerColorTemperatureColorControl.mock.calls[0];
@@ -258,7 +256,7 @@ describe('addControlEntity', () => {
 
   it('light extended color fallback defaults', () => {
     const [md, e, s] = make('light', 'rgbdefaults', { supported_color_modes: ['hs'], hs_color: [0, 0] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerColorControl).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerColorControl.mock.calls[0];
@@ -268,7 +266,7 @@ describe('addControlEntity', () => {
 
   it('thermostat auto mode fallback no hvac_modes', () => {
     const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: [] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerHeatingThermostat.mock.calls[0];
@@ -277,7 +275,7 @@ describe('addControlEntity', () => {
 
   it('thermostat auto mode fallback defaults heat_cool', () => {
     const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
@@ -286,7 +284,7 @@ describe('addControlEntity', () => {
 
   it('thermostat auto mode fallback defaults heat and cool', () => {
     const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat', 'cool'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerHeatingCoolingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerHeatingCoolingThermostat.mock.calls[0];
@@ -295,7 +293,7 @@ describe('addControlEntity', () => {
 
   it('thermostat auto mode fallback defaults heat_cool with local', () => {
     const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'], current_temperature: 22.2, target_temp_low: 22, target_temp_high: 24 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
@@ -304,7 +302,7 @@ describe('addControlEntity', () => {
 
   it('thermostat cool mode fallback defaults heat', () => {
     const [md, e, s] = make('climate', 'heatdefaults', { hvac_modes: ['heat'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerHeatingThermostat.mock.calls[0];
@@ -314,7 +312,7 @@ describe('addControlEntity', () => {
   it('thermostat cool mode fallback defaults heat config °C', () => {
     HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.CELSIUS } } as HassConfig;
     const [md, e, s] = make('climate', 'heatdefaults', { hvac_modes: ['heat'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerHeatingThermostat.mock.calls[0];
@@ -325,7 +323,7 @@ describe('addControlEntity', () => {
   it('thermostat cool mode fallback defaults heat config °F', () => {
     HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.FAHRENHEIT } } as HassConfig;
     const [md, e, s] = make('climate', 'heatdefaults', { hvac_modes: ['heat'] });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerHeatingThermostat.mock.calls[0];
@@ -335,7 +333,7 @@ describe('addControlEntity', () => {
 
   it('thermostat cool mode fallback defaults cool', () => {
     const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], current_temperature: 23.1, temperature: 22, min_temp: 0, max_temp: 50 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerCoolingThermostat.mock.calls[0];
@@ -345,7 +343,7 @@ describe('addControlEntity', () => {
   it('thermostat cool mode fallback defaults cool config °C', () => {
     HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.CELSIUS } } as HassConfig;
     const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], current_temperature: 23.7, temperature: 22, min_temp: 0, max_temp: 50 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerCoolingThermostat.mock.calls[0];
@@ -356,7 +354,7 @@ describe('addControlEntity', () => {
   it('thermostat cool mode fallback defaults cool config °F', () => {
     HomeAssistant.hassConfig = { unit_system: { temperature: UnitOfTemperature.FAHRENHEIT } } as HassConfig;
     const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], current_temperature: 74.3, temperature: 71.8, min_temp: 32, max_temp: 122 }); // 23.5°C and 22.1111111°C and 0-50°C
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerCoolingThermostat.mock.calls[0];
@@ -366,7 +364,7 @@ describe('addControlEntity', () => {
 
   it('thermostat auto mode fallback defaults heat_cool °C', () => {
     const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'], temperature_unit: '°C', target_temp_low: 18, target_temp_high: 28 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
@@ -375,7 +373,7 @@ describe('addControlEntity', () => {
 
   it('thermostat auto mode fallback defaults heat_cool °F', () => {
     const [md, e, s] = make('climate', 'autodefaults', { hvac_modes: ['heat_cool'], temperature_unit: '°F', target_temp_low: 64, target_temp_high: 78 });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerAutoModeThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerAutoModeThermostat.mock.calls[0];
@@ -384,7 +382,7 @@ describe('addControlEntity', () => {
 
   it('thermostat cool mode fallback defaults heat °F', () => {
     const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['heat'], temperature_unit: '°F' });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerHeatingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerHeatingThermostat.mock.calls[0];
@@ -393,7 +391,7 @@ describe('addControlEntity', () => {
 
   it('thermostat cool mode fallback defaults cool °F', () => {
     const [md, e, s] = make('climate', 'cooldefaults', { hvac_modes: ['cool'], temperature_unit: '°F' });
-    addControlEntity(md, e as any, s as any, commandHandler, subscribeHandler, mockLog);
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const args = md.addClusterServerCoolingThermostat.mock.calls[0];

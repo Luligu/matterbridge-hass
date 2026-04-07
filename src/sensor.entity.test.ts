@@ -49,6 +49,7 @@ function createMockMutableDevice(): MutableDevice & {
 }
 
 const mockLog = { debug: jest.fn() } as any;
+const mockPlatform = { log: mockLog } as any;
 
 describe('addSensorEntity', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -59,11 +60,20 @@ describe('addSensorEntity', () => {
       attributes: { device_class, state_class, friendly_name: friendly },
     }) as any;
 
+  it('returns undefined for unsupported domain', () => {
+    const md = createMockMutableDevice();
+    const entity = { entity_id: 'binary_sensor.not_a_sensor' } as any;
+    const state = buildState('temperature', 'measurement', 'Temp');
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false);
+    expect(ep).toBeUndefined();
+    expect(Object.keys(md.deviceTypes).length).toBe(0);
+  });
+
   it('handles air quality regex match with friendly name', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('aqi_regex');
     const state = buildState('aqi', 'measurement', 'AQI Friendly');
-    const ep = addSensorEntity(md as any, entity, state, /test_aqi_regex$/, false, mockLog);
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, /test_aqi_regex$/, false);
     expect(ep).toBe('AirQuality');
     expect(md.deviceTypes['AirQuality'][0]).toBe(airQualitySensor.code);
     expect(md.clusters['AirQuality']).toContain(AirQuality.Cluster.id);
@@ -74,7 +84,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('aqi_regex2');
     const state = buildState('aqi', 'measurement'); // no friendly_name
-    const ep = addSensorEntity(md as any, entity, state, /test_aqi_regex2$/, false, mockLog);
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, /test_aqi_regex2$/, false);
     expect(ep).toBe('AirQuality');
     expect(md.friendlyNames['AirQuality']).toBeUndefined();
   });
@@ -83,7 +93,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('temp');
     const state = buildState('temperature', 'measurement', 'Temp Friendly');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog) as string;
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false) as string;
     expect(ep).toBe(entity.entity_id);
     expect(md.deviceTypes[ep][0]).toBe(temperatureSensor.code);
     expect(md.clusters[ep]).toContain(TemperatureMeasurement.Cluster.id);
@@ -94,7 +104,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('voltage_ps');
     const state = buildState('voltage', 'measurement', 'Voltage PS');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog) as string;
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false) as string;
     expect(ep).toBe('PowerEnergy'); // electricalSensor mapping
     expect(md.deviceTypes['PowerEnergy']).toContain(electricalSensor.code);
     // Ensure powerSource device type not added
@@ -105,7 +115,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('voltage_ps_batt');
     const state = buildState('voltage', 'measurement', 'Voltage Batt');
-    const ep = addSensorEntity(md as any, entity, state, undefined, true, mockLog);
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, true);
     expect(ep).toBe(''); // endpoint remapped to ''
     expect(md.deviceTypes[''][0]).toBe(powerSource.code);
     expect(md.clusters['']).toContain(PowerSourceCluster.Cluster.id);
@@ -115,7 +125,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('battery_ps');
     const state = buildState('battery', 'measurement', 'Battery Percent');
-    const ep = addSensorEntity(md as any, entity, state, undefined, true, mockLog);
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, true);
     expect(ep).toBe('');
     expect(md.deviceTypes['']).toContain(powerSource.code);
     expect(md.clusters['']).toContain(PowerSourceCluster.Cluster.id);
@@ -125,7 +135,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('voltage_el_batt');
     const state = buildState('voltage', 'measurement', 'Voltage El Batt');
-    const ep = addSensorEntity(md as any, entity, state, undefined, true, mockLog) as string;
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, true) as string;
     expect(ep).toBe(''); // powerSource converter endpoint
     expect(md.deviceTypes['']).toContain(powerSource.code);
     expect(Object.values(md.deviceTypes).flat()).not.toContain(electricalSensor.code);
@@ -135,7 +145,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('voltage_el');
     const state = buildState('voltage', 'measurement', 'Voltage El');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog);
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false);
     // Two potential converters (powerSource & electrical). Non-battery skip removes powerSource voltage, leaving electrical with endpoint PowerEnergy
     expect(ep).toBe('PowerEnergy');
     expect(md.deviceTypes['PowerEnergy']).toContain(electricalSensor.code);
@@ -146,7 +156,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('humidity');
     const state = buildState('humidity', 'measurement');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog) as string;
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false) as string;
     expect(md.friendlyNames[ep]).toBeUndefined();
     expect(md.deviceTypes[ep][0]).toBe(humiditySensor.code);
     expect(md.clusters[ep]).toContain(RelativeHumidityMeasurement.Cluster.id);
@@ -156,7 +166,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('pressure');
     const state = buildState('pressure', 'measurement', 'Press');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog) as string;
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false) as string;
     expect(md.deviceTypes[ep][0]).toBe(pressureSensor.code);
     expect(md.clusters[ep]).toContain(PressureMeasurement.Cluster.id);
   });
@@ -165,7 +175,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('lux');
     const state = buildState('illuminance', 'measurement', 'Lux');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog) as string;
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false) as string;
     expect(md.deviceTypes[ep][0]).toBe(lightSensor.code);
     expect(md.clusters[ep]).toContain(IlluminanceMeasurement.Cluster.id);
   });
@@ -174,14 +184,14 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entityEnergy = baseEntity('energy');
     const stateEnergy = buildState('energy', 'total_increasing', 'Energy');
-    const epEnergy = addSensorEntity(md as any, entityEnergy, stateEnergy, undefined, false, mockLog) as string;
+    const epEnergy = addSensorEntity(mockPlatform, md as any, entityEnergy, stateEnergy, undefined, false) as string;
     expect(epEnergy).toBe('PowerEnergy');
     expect(md.deviceTypes['PowerEnergy']).toContain(electricalSensor.code);
     expect(md.clusters['PowerEnergy']).toContain(ElectricalEnergyMeasurement.Cluster.id);
 
     const entityPower = baseEntity('power');
     const statePower = buildState('power', 'measurement', 'Power');
-    const epPower = addSensorEntity(md as any, entityPower, statePower, undefined, false, mockLog) as string;
+    const epPower = addSensorEntity(mockPlatform, md as any, entityPower, statePower, undefined, false) as string;
     expect(epPower).toBe('PowerEnergy');
     expect(md.clusters['PowerEnergy']).toContain(ElectricalPowerMeasurement.Cluster.id);
   });
@@ -190,7 +200,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('aqi_conv');
     const state = buildState('aqi', 'measurement', 'AQI Converter');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog) as string;
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false) as string;
     expect(ep).toBe('AirQuality');
     expect(md.deviceTypes['AirQuality']).toContain(airQualitySensor.code);
     expect(md.clusters['AirQuality']).toContain(AirQuality.Cluster.id);
@@ -200,7 +210,7 @@ describe('addSensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('unknown');
     const state = buildState('not_supported', 'measurement', 'Unknown');
-    const ep = addSensorEntity(md as any, entity, state, undefined, false, mockLog);
+    const ep = addSensorEntity(mockPlatform, md as any, entity, state, undefined, false);
     expect(ep).toBeUndefined();
   });
 
@@ -209,7 +219,7 @@ describe('addSensorEntity', () => {
     for (const conv of hassDomainSensorsConverter) {
       const entity = { entity_id: `sensor.coverage_${conv.withDeviceClass}` } as any;
       const state = { attributes: { device_class: conv.withDeviceClass, state_class: conv.withStateClass, friendly_name: conv.withDeviceClass } } as any;
-      addSensorEntity(md as any, entity, state, undefined, conv.deviceType === powerSource, mockLog);
+      addSensorEntity(mockPlatform, md as any, entity, state, undefined, conv.deviceType === powerSource);
     }
     expect(Object.keys(md.deviceTypes).length).toBeGreaterThan(0);
   });

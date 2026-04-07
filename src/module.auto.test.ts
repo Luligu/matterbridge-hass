@@ -6,9 +6,9 @@ const MATTER_PORT = 6200;
 const NAME = 'PlatformAuto';
 const HOMEDIR = path.join('.cache', 'jest', NAME);
 const MATTER_CREATE_ONLY = true;
-const MATTER_PAUSE = 50;
+const MATTER_PAUSE = 10;
 
-import { fstat, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
@@ -224,6 +224,8 @@ describe('Matterbridge ' + NAME, () => {
   it('should initialize the HomeAssistantPlatform', async () => {
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, log, mockConfig);
     expect(haPlatform).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.endpointNames.size).toBe(0);
     haPlatform.name = mockConfig.name;
     haPlatform.type = mockConfig.type as 'DynamicPlatform';
     haPlatform.version = mockConfig.version;
@@ -256,6 +258,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(0);
   });
 
@@ -275,6 +280,10 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(0);
   });
 
@@ -295,6 +304,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(0);
   });
 
@@ -314,6 +326,10 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(0);
   });
 
@@ -336,6 +352,10 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(0);
   });
 
@@ -355,6 +375,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
     expect(aggregator.parts.size).toBe(1);
   });
 
@@ -374,6 +399,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
     expect(aggregator.parts.size).toBe(1);
   });
 
@@ -396,6 +426,10 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(0);
   });
 
@@ -415,10 +449,55 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(0);
   });
 
-  it('should call onStart and register the individual entities', async () => {
+  it('should call onStart and register the individual entities with Merge strategy', async () => {
+    // await setDebug(true);
+    const individualEntities: { generatedEntity?: HassEntity; generatedState?: HassState; name: string; domain: string; state: string; attributes: Record<string, any> }[] = [
+      { name: 'Scene', domain: 'scene', state: 'unknown', attributes: {} },
+      { name: 'Temperature', domain: 'sensor', state: '20.5', attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' } },
+      { name: 'Humidity', domain: 'sensor', state: '50', attributes: { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' } },
+      { name: 'Pressure', domain: 'sensor', state: '1013', attributes: { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' } },
+    ];
+    for (const entityData of individualEntities) {
+      entityData.generatedEntity = generateEntity(haPlatform.ha, entityData.name, entityData.domain as any, undefined, null, [], entityData.state);
+      entityData.generatedState = generateState(haPlatform.ha, entityData.generatedEntity, entityData.state, entityData.attributes);
+    }
+
+    haPlatform.config.controllerStrategy = 'Merge';
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    for (const entityData of individualEntities) {
+      if (!entityData.generatedEntity) throw new Error('Entity not generated');
+      expect(loggerInfoSpy).toHaveBeenCalledWith(
+        `Creating device for individual entity ${idn}${entityData.name}${rs}${nf} domain ${CYAN}${getDomain(entityData.generatedEntity)}${nf} name ${CYAN}${getName(entityData.generatedEntity)}${nf}`,
+      );
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${getEntityName(haPlatform, entityData.generatedEntity)}${db}...`);
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`- individual entity ${CYAN}${entityData.generatedEntity.entity_id}${db} mapped to endpoint ${CYAN}main${db}`);
+    }
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(individualEntities.length);
+    expect(haPlatform.matterbridgeDevices.size).toBe(individualEntities.length);
+    expect(haPlatform.endpointNames.size).toBe(individualEntities.length);
+    for (const entityData of individualEntities) {
+      if (!entityData.generatedEntity) throw new Error('Entity not generated');
+      expect(haPlatform.matterbridgeDevices.has(entityData.generatedEntity.entity_id)).toBe(true);
+      expect(haPlatform.matterbridgeDevices.get(entityData.generatedEntity.entity_id)).toBeDefined();
+      expect(haPlatform.endpointNames.get(entityData.generatedEntity.entity_id)).toBe('');
+    }
+    expect(aggregator.parts.size).toBe(individualEntities.length);
+  });
+
+  it('should call onStart and register the individual entities with Matter strategy', async () => {
     // await setDebug(true);
     const individualEntities: { generatedEntity?: HassEntity; generatedState?: HassState; name: string; domain: string; state: string; attributes: Record<string, any> }[] = [
       { name: 'Scene', domain: 'scene', state: 'unknown', attributes: {} },
@@ -443,10 +522,21 @@ describe('Matterbridge ' + NAME, () => {
       expect(loggerInfoSpy).toHaveBeenCalledWith(
         `Creating device for individual entity ${idn}${entityData.name}${rs}${nf} domain ${CYAN}${getDomain(entityData.generatedEntity)}${nf} name ${CYAN}${getName(entityData.generatedEntity)}${nf}`,
       );
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${getEntityName(haPlatform, entityData.generatedEntity)}${db}...`);
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        `- individual entity ${CYAN}${entityData.generatedEntity.entity_id}${db} mapped to endpoint ${CYAN}${entityData.generatedEntity.entity_id}${db}`,
+      );
     }
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(individualEntities.length);
     expect(haPlatform.matterbridgeDevices.size).toBe(individualEntities.length);
+    expect(haPlatform.endpointNames.size).toBe(individualEntities.length);
+    for (const entityData of individualEntities) {
+      if (!entityData.generatedEntity) throw new Error('Entity not generated');
+      expect(haPlatform.matterbridgeDevices.has(entityData.generatedEntity.entity_id)).toBe(true);
+      expect(haPlatform.matterbridgeDevices.get(entityData.generatedEntity.entity_id)).toBeDefined();
+      expect(haPlatform.endpointNames.get(entityData.generatedEntity.entity_id)).toBe(entityData.generatedEntity.entity_id);
+    }
     expect(aggregator.parts.size).toBe(individualEntities.length);
   });
 
@@ -464,11 +554,16 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for split entity ${idn}${getEntityName(haPlatform, entity)}${rs}${nf} domain ${CYAN}${getDomain(entity)}${nf} name ${CYAN}${getName(entity)}${nf}`,
     );
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${getEntityName(haPlatform, entity)}${db}...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledWith(mockConfig.name, haPlatform.matterbridgeDevices.get(entity.entity_id));
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
     expect(aggregator.parts.size).toBe(1);
   });
 
@@ -489,6 +584,14 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBe(humidity.entity_id);
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBe(pressure.entity_id);
     expect(aggregator.parts.size).toBe(1);
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
@@ -514,6 +617,14 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBe(humidity.entity_id);
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBe(pressure.entity_id);
     expect(aggregator.parts.size).toBe(1);
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
@@ -539,6 +650,14 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBeUndefined();
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(1);
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
@@ -564,7 +683,83 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBeUndefined();
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBeUndefined();
     expect(aggregator.parts.size).toBe(1);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(1);
+  });
+
+  it('should call onStart and register an individual entity, a device with two entities, one normal and one split with Merge strategy', async () => {
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperatureIndividualEntity = generateEntity(haPlatform.ha, 'Temperature', 'sensor');
+    const humidityDeviceEntity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressureSplitEntity = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperatureIndividualEntity, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    haPlatform.config.splitEntities = [pressureSplitEntity.entity_id];
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${temperatureIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${pressureSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(temperatureIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(humidityDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressureSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperatureIndividualEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(humidityDeviceEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(pressureSplitEntity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(3);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(0);
+  });
+
+  it('should call onStart and register an individual entity, a device with two entities, one normal and one split with Matter strategy', async () => {
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperatureIndividualEntity = generateEntity(haPlatform.ha, 'Temperature', 'sensor');
+    const humidityDeviceEntity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressureSplitEntity = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperatureIndividualEntity, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    haPlatform.config.splitEntities = [pressureSplitEntity.entity_id];
+    haPlatform.config.controllerStrategy = 'Matter';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${temperatureIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${pressureSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(temperatureIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(humidityDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressureSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperatureIndividualEntity.entity_id)).toBe(temperatureIndividualEntity.entity_id);
+    expect(haPlatform.endpointNames.get(humidityDeviceEntity.entity_id)).toBe(humidityDeviceEntity.entity_id);
+    expect(haPlatform.endpointNames.get(pressureSplitEntity.entity_id)).toBe(pressureSplitEntity.entity_id);
+    expect(aggregator.parts.size).toBe(3);
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(1);

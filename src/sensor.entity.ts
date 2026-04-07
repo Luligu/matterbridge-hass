@@ -3,7 +3,7 @@
  * @file src\sensor.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.0.0
+ * @version 1.0.1
  * @license Apache-2.0
  * @copyright 2025, 2026, 2027 Luca Liguori.
  *
@@ -21,41 +21,44 @@
  */
 
 import { airQualitySensor, electricalSensor, powerSource } from 'matterbridge';
-import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
+import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import { AirQuality } from 'matterbridge/matter/clusters';
 import { ClusterRegistry } from 'matterbridge/matter/types';
 import { isValidString } from 'matterbridge/utils';
 
 import { hassDomainSensorsConverter } from './converters.js';
-import { HassEntity, HassState } from './homeAssistant.js';
-import { MutableDevice } from './mutableDevice.js';
+import { getDomain } from './helpers.js';
+import type { HassEntity, HassState } from './homeAssistant.js';
+import type { HomeAssistantPlatform } from './module.js';
+import type { MutableDevice } from './mutableDevice.js';
 
 /**
  * Look for supported sensors of the current entity
  *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance
  * @param {MutableDevice} mutableDevice - The mutable device to which the sensor will be added
  * @param {HassEntity} entity - The Home Assistant entity to check
  * @param {HassState} state - The state of the Home Assistant entity
  * @param {RegExp | undefined} airQualityRegex - The regex to match air quality sensor entities
  * @param {boolean} battery - If the entity belongs to a battery powered device
- * @param {AnsiLogger} log - The logger instance to log messages
  *
  * @returns {string | undefined} - The endpoint name for the sensor, if found; otherwise, undefined
  */
 export function addSensorEntity(
+  platform: HomeAssistantPlatform,
   mutableDevice: MutableDevice,
   entity: HassEntity,
   state: HassState,
   airQualityRegex: RegExp | undefined,
   battery: boolean,
-  log: AnsiLogger,
 ): string | undefined {
   let endpointName: string | undefined = undefined;
-  const [domain, _name] = entity.entity_id.split('.');
+  const domain = getDomain(entity.entity_id);
+  if (domain !== 'sensor') return undefined;
 
   // Look for air_quality sensor entity using airqualityRegex
   if (airQualityRegex && airQualityRegex.test(entity.entity_id)) {
-    log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found for device ${CYAN}${mutableDevice.name()}${db}`);
+    platform.log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found for device ${CYAN}${mutableDevice.name()}${db}`);
     endpointName = 'AirQuality'; // Remap the endpoint name for the entity
     mutableDevice.addDeviceTypes('AirQuality', airQualitySensor); // Add the air quality sensor device type
     mutableDevice.addClusterServerIds('AirQuality', AirQuality.Cluster.id); // Add the AirQuality cluster
@@ -73,17 +76,17 @@ export function addSensorEntity(
       if (hassDomainSensor.deviceType === electricalSensor && state.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage' && battery) return; // Skip electricalSensor voltage sensor if the device is battery powered
       if (hassDomainSensor.endpoint !== undefined) {
         endpointName = hassDomainSensor.endpoint; // Remap the endpoint name for the entity
-        log.debug(
+        platform.log.debug(
           `- sensor domain ${hassDomainSensor.domain} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
         );
       } else {
         endpointName = entity.entity_id; // Use the entity ID as the endpoint name
       }
-      log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
+      platform.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
       mutableDevice.addDeviceTypes(endpointName, hassDomainSensor.deviceType);
       mutableDevice.addClusterServerIds(endpointName, hassDomainSensor.clusterId);
       if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
-      log.debug(`- state ${debugStringify(state)}`);
+      platform.log.debug(`- state ${debugStringify(state)}`);
     });
   return endpointName;
 }

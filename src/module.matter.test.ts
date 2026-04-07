@@ -3632,6 +3632,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   it('should call onStart and register all split entities', async () => {
+    haPlatform.config.enableServerRvc = true;
     const hassDevice = {
       id: '560898f83188759ed7329e97df00ee7c',
       name: 'All Domain Device',

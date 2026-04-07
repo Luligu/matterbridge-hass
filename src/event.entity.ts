@@ -3,7 +3,7 @@
  * @file src/event.entity.ts
  * @author Luca Liguori
  * @created 2025-12-03
- * @version 1.0.0
+ * @version 1.0.1
  * @license Apache-2.0
  * @copyright 2025, 2026, 2027 Luca Liguori.
  *
@@ -21,43 +21,45 @@
  */
 
 import { genericSwitch } from 'matterbridge';
-import { AnsiLogger, CYAN, db, debugStringify } from 'matterbridge/logger';
+import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import { Switch } from 'matterbridge/matter/clusters';
 import { isValidString } from 'matterbridge/utils';
 
 import { hassDomainEventConverter } from './converters.js';
-import { HassEntity, HassState } from './homeAssistant.js';
-import { MutableDevice } from './mutableDevice.js';
+import { getDomain } from './helpers.js';
+import type { HassEntity, HassState } from './homeAssistant.js';
+import type { HomeAssistantPlatform } from './module.js';
+import type { MutableDevice } from './mutableDevice.js';
 
 /**
  * Look for supported events of the current entity
  *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance
  * @param {MutableDevice} mutableDevice - The mutable device to which the events will be added
  * @param {HassEntity} entity - The Home Assistant entity to check
  * @param {HassState} state - The state of the Home Assistant entity to check
- * @param {AnsiLogger} log - The logger instance to log messages
  *
  * @returns {string | undefined} - The endpoint name for the event, if found; otherwise, undefined
  */
-export function addEventEntity(mutableDevice: MutableDevice, entity: HassEntity, state: HassState, log: AnsiLogger): string | undefined {
+export function addEventEntity(platform: HomeAssistantPlatform, mutableDevice: MutableDevice, entity: HassEntity, state: HassState): string | undefined {
   const endpointName = entity.entity_id;
-  const [domain, _name] = entity.entity_id.split('.');
+  const domain = getDomain(entity.entity_id);
   const supportedEventTypes: string[] = [];
   if (domain !== 'event') return undefined;
 
-  log.debug(`- domain ${domain} deviceClass ${state.attributes.device_class} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`);
+  platform.log.debug(`- domain ${domain} deviceClass ${state.attributes.device_class} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`);
   for (const eventType of state.attributes.event_types || []) {
     if (hassDomainEventConverter.find((e) => e.hassEventType === eventType)) {
-      log.debug(`+ event ${CYAN}${eventType}${db}`);
+      platform.log.debug(`+ event ${CYAN}${eventType}${db}`);
       supportedEventTypes.push(eventType);
     }
   }
   if (supportedEventTypes.length === 0) return undefined;
 
-  log.debug(`+ domain event supported [${supportedEventTypes.join(', ')}] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+  platform.log.debug(`+ domain event supported [${supportedEventTypes.join(', ')}] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
   mutableDevice.addDeviceTypes(endpointName, genericSwitch);
   mutableDevice.addClusterServerIds(endpointName, Switch.Cluster.id);
   if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
-  log.debug(`- state ${debugStringify(state)}`);
+  platform.log.debug(`- state ${debugStringify(state)}`);
   return endpointName;
 }

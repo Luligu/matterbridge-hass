@@ -14,7 +14,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [1.0.13] - Dev branch
+## [1.1.0] - Dev branch
 
 ### Breaking Changes
 
@@ -34,6 +34,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Bump `eslint` to v.10.2.0.
 - [devcontainer]: Update VS Code settings.
 - [scripts]: Update mb-run script.
+- [entity]: Refactor entity helper signatures to be uniform across all helpers.
 
 ### Fixed
 

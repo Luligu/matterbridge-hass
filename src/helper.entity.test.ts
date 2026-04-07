@@ -4,7 +4,7 @@ import { OnOff } from 'matterbridge/matter/clusters';
 
 import { addHelperEntity } from './helper.entity.js';
 
-type CommandHandler = (data: { endpoint: { setAttribute: (...args: unknown[]) => unknown; log: unknown } }) => void | Promise<void>;
+type CommandHandler = (data?: { endpoint: { setAttribute: (...args: unknown[]) => unknown; log: unknown } }) => void | Promise<void>;
 
 type MutableDeviceLike = {
   setComposedType: (type: string) => unknown;
@@ -74,7 +74,7 @@ describe('addHelperEntity', () => {
     const md = createMockMutableDevice();
     const platform = createPlatform('ws://ha:8123');
 
-    const ep = addHelperEntity(md as any, undefined, { entity_id: 'light.kitchen' } as any, {} as any, platform);
+    const ep = addHelperEntity(platform, md as any, { entity_id: 'light.kitchen' } as any, {} as any, true);
 
     expect(ep).toBeUndefined();
     expect(Object.keys(md.deviceTypes).length).toBe(0);
@@ -87,14 +87,14 @@ describe('addHelperEntity', () => {
     const platform = createPlatform('ws://homeassistant.local:8123');
     const entity = { entity_id: 'automation.test_auto' } as any;
 
-    const ep = addHelperEntity(md as any, undefined, entity, {} as any, platform);
+    const ep = addHelperEntity(platform, md as any, entity, {} as any, true);
 
     expect(ep).toBe(entity.entity_id);
     expect(md.lastComposedType).toBe('Hass Automation');
     expect(md.lastConfigUrl).toBe('http://homeassistant.local:8123/config/automation/dashboard');
-    expect(md.deviceTypes['']).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
-    expect(md.commandHandlers['']).toHaveProperty('on');
-    expect(md.commandHandlers['']).toHaveProperty('off');
+    expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+    expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
+    expect(md.commandHandlers[entity.entity_id]).toHaveProperty('off');
   });
 
   it('converts wss host to https for scene configUrl', () => {
@@ -102,7 +102,7 @@ describe('addHelperEntity', () => {
     const platform = createPlatform('wss://ha.example:8123');
     const entity = { entity_id: 'scene.movie_time' } as any;
 
-    addHelperEntity(md as any, undefined, entity, {} as any, platform);
+    addHelperEntity(platform, md as any, entity, {} as any, true);
 
     expect(md.lastComposedType).toBe('Hass Scene');
     expect(md.lastConfigUrl).toBe('https://ha.example:8123/config/scene/dashboard');
@@ -113,7 +113,7 @@ describe('addHelperEntity', () => {
     const platform = createPlatform('ws://ha:8123');
     const entity = { entity_id: 'script.good_morning' } as any;
 
-    const ep = addHelperEntity(md as any, undefined, entity, {} as any, platform);
+    const ep = addHelperEntity(platform, md as any, entity, {} as any, true);
 
     expect(ep).toBe(entity.entity_id);
     expect(md.lastComposedType).toBe('Hass Script');
@@ -121,21 +121,20 @@ describe('addHelperEntity', () => {
   });
 
   it.each(['automation.test_auto', 'scene.movie_time', 'script.good_morning', 'input_boolean.night_mode', 'input_button.doorbell'])(
-    'uses the provided endpoint name without changing composed type or configUrl for %s',
+    'does not set composed type/configUrl when not an individual entity for %s',
     (entityId) => {
       const md = createMockMutableDevice();
       const platform = createPlatform('ws://ha:8123');
-      const endpointName = 'custom-endpoint';
       const entity = { entity_id: entityId } as any;
 
-      const ep = addHelperEntity(md as any, endpointName, entity, {} as any, platform);
+      const ep = addHelperEntity(platform, md as any, entity, {} as any, false);
 
-      expect(ep).toBe(endpointName);
+      expect(ep).toBe(entity.entity_id);
       expect(md.lastComposedType).toBeUndefined();
       expect(md.lastConfigUrl).toBeUndefined();
-      expect(md.deviceTypes[endpointName]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
-      expect(md.commandHandlers[endpointName]).toHaveProperty('on');
-      expect(md.commandHandlers[endpointName]).toHaveProperty('off');
+      expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+      expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
+      expect(md.commandHandlers[entity.entity_id]).toHaveProperty('off');
     },
   );
 
@@ -144,10 +143,10 @@ describe('addHelperEntity', () => {
     const platform = createPlatform('ws://ha:8123');
     const entity = { entity_id: 'automation.test_auto' } as any;
 
-    addHelperEntity(md as any, undefined, entity, {} as any, platform);
+    addHelperEntity(platform, md as any, entity, {} as any, true);
 
-    const handler = md.commandHandlers[''].on;
-    const offHandler = md.commandHandlers[''].off;
+    const handler = md.commandHandlers[entity.entity_id].on;
+    const offHandler = md.commandHandlers[entity.entity_id].off;
 
     const endpoint = {
       setAttribute: jest.fn(async () => undefined),
@@ -163,7 +162,7 @@ describe('addHelperEntity', () => {
 
     try {
       await handler({ endpoint });
-      await offHandler({ endpoint }); // covers off-handler false path for non-input_boolean domains
+      await offHandler(); // off handler does nothing except for input_boolean
       await Promise.all(timeoutPromises);
 
       expect(platform.ha.callService).toHaveBeenCalledWith('automation', 'trigger', entity.entity_id);
@@ -179,9 +178,9 @@ describe('addHelperEntity', () => {
     const platform = createPlatform('ws://ha:8123');
     const entity = { entity_id: 'input_button.doorbell' } as any;
 
-    addHelperEntity(md as any, undefined, entity, {} as any, platform);
+    addHelperEntity(platform, md as any, entity, {} as any, true);
 
-    const handler = md.commandHandlers[''].on;
+    const handler = md.commandHandlers[entity.entity_id].on;
 
     const endpoint = {
       setAttribute: jest.fn(async () => undefined),
@@ -212,10 +211,10 @@ describe('addHelperEntity', () => {
     const platform = createPlatform('ws://ha:8123');
     const entity = { entity_id: 'input_boolean.night_mode' } as any;
 
-    addHelperEntity(md as any, undefined, entity, {} as any, platform);
+    addHelperEntity(platform, md as any, entity, {} as any, true);
 
-    const onHandler = md.commandHandlers[''].on;
-    const offHandler = md.commandHandlers[''].off;
+    const onHandler = md.commandHandlers[entity.entity_id].on;
+    const offHandler = md.commandHandlers[entity.entity_id].off;
 
     const endpoint = {
       setAttribute: jest.fn(async () => undefined),
