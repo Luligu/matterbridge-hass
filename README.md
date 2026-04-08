@@ -226,11 +226,11 @@ List of entities not to be exposed for a single device. Enter in the first field
 
 ### domain whiteList
 
-Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains.
+Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains. Enter the domain name (i.e. switch, light, sensor).
 
 ### domain blackList
 
-Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains.
+Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains. Enter the domain name (i.e. automation, scene, button).
 
 ### splitEntities
 
