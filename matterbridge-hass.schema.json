@@ -105,7 +105,26 @@
       "description": "Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains. Enter the domain name (i.e. switch, light, sensor).",
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "automation",
+          "scene",
+          "script",
+          "input_boolean",
+          "input_button",
+          "switch",
+          "light",
+          "lock",
+          "fan",
+          "cover",
+          "climate",
+          "valve",
+          "vacuum",
+          "sensor",
+          "binary_sensor",
+          "event",
+          "button"
+        ]
       },
       "uniqueItems": true
     },
@@ -114,7 +133,26 @@
       "description": "Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains. Enter the domain name (i.e. automation, scene, button).",
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "enum": [
+          "automation",
+          "scene",
+          "script",
+          "input_boolean",
+          "input_button",
+          "switch",
+          "light",
+          "lock",
+          "fan",
+          "cover",
+          "climate",
+          "valve",
+          "vacuum",
+          "sensor",
+          "binary_sensor",
+          "event",
+          "button"
+        ]
       },
       "uniqueItems": true
     },
