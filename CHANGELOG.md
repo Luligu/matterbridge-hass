@@ -32,6 +32,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Update dependencies.
 - [package]: Bump package to `automator` v.3.1.5.
 - [package]: Bump `eslint` to v.10.2.0.
+- [package]: Bump `typescript-eslint` to v.8.58.1.
 - [devcontainer]: Update VS Code settings.
 - [scripts]: Update mb-run script.
 - [entity]: Refactor entity helper signatures to be uniform across all helpers.
