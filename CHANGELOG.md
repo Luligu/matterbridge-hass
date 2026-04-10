@@ -14,7 +14,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [1.1.0] - Dev branch
+## [1.1.0] - 2026-04-10
 
 ### Breaking Changes
 
@@ -32,6 +32,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Update dependencies.
 - [package]: Bump package to `automator` v.3.1.5.
 - [package]: Bump `eslint` to v.10.2.0.
+- [package]: Bump `prettier` to v.3.8.2.
 - [package]: Bump `typescript-eslint` to v.8.58.1.
 - [devcontainer]: Update VS Code settings.
 - [scripts]: Update mb-run script.
