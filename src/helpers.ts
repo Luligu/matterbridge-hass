@@ -24,7 +24,8 @@ import { randomBytes } from 'node:crypto';
 
 import { isValidArray, isValidObject, isValidString } from 'matterbridge/utils';
 
-import { HassArea, HassDevice, HassEntity, HassLabel, HassState } from './homeAssistant.js';
+import { HassArea, HassDevice, HassEntity, HassLabel, HassState, type HomeAssistant } from './homeAssistant.js';
+import type { HomeAssistantPlatform } from './module.js';
 
 const generatedEntityIds = new Set<string>();
 const generatedAreaIds = new Set<string>();
@@ -88,15 +89,25 @@ function createLabelId(name: string): string {
 /**
  * Checks if a given entity has a specific label.
  *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
  * @param {HassEntity} entity - The Home Assistant entity to check.
- * @param {HassLabel[]} labels - The Home Assistant labels registry.
  * @param {string} label - The label name to check for.
  * @returns {boolean} - Returns true if the entity has the specified label, false otherwise.
  */
-export function entityHasLabel(entity: HassEntity, labels: HassLabel[], label: string): boolean {
-  if (!isValidObject(entity) || !isValidArray(entity.labels) || !isValidArray(labels) || !label || !isValidString(label)) {
+export function entityHasLabel(platform: HomeAssistantPlatform, entity: HassEntity, label: string): boolean {
+  if (
+    !isValidObject(platform) ||
+    !isValidObject(platform.ha) ||
+    !isValidObject(platform.ha.hassLabels) ||
+    !isValidObject(entity) ||
+    !isValidArray(entity.labels) ||
+    !label ||
+    !isValidString(label)
+  ) {
     return false;
   }
+
+  const labels = Array.from(platform.ha.hassLabels.values());
   const entry = labels.find((entry) => entry.name === label);
   if (!entry) {
     return false;
@@ -105,47 +116,193 @@ export function entityHasLabel(entity: HassEntity, labels: HassLabel[], label: s
 }
 
 /**
- * Checks if a given entity is a split entity based on the provided split entities list and label.
+ * Checks if a given entity is a split entity based on the platform split configuration.
  *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
  * @param {HassEntity} entity - The Home Assistant entity to check.
- * @param {string[]} splitEntities - The list of split entities.
- * @param {HassLabel[]} labels - The Home Assistant labels registry.
- * @param {string} label - The label name to check for.
  * @returns {boolean} - Returns true if the entity is a split entity, false otherwise.
  */
-export function isSplitEntity(entity: HassEntity, splitEntities: string[], labels: HassLabel[], label: string): boolean {
-  if (!isValidObject(entity) || !isValidArray(splitEntities) || !isValidArray(labels) || !isValidString(label)) {
+export function isSplitEntity(platform: HomeAssistantPlatform, entity: HassEntity): boolean {
+  if (
+    !isValidObject(platform) ||
+    !isValidObject(platform.config) ||
+    !isValidObject(platform.ha) ||
+    !isValidObject(platform.ha.hassLabels) ||
+    !isValidObject(entity) ||
+    !isValidArray(platform.config.splitEntities) ||
+    !isValidString(platform.config.splitByLabel)
+  ) {
     return false;
   }
-  return splitEntities.includes(entity.entity_id) || entityHasLabel(entity, labels, label);
+  return platform.config.splitEntities.includes(entity.entity_id) || entityHasLabel(platform, entity, platform.config.splitByLabel);
 }
 
 /**
- * Checks if a given entity is disabled.
+ * Checks if a given entity belongs to a device.
  *
  * @param {HassEntity} entity - The Home Assistant entity to check.
- * @returns {boolean} - Returns true if the entity is disabled, false otherwise.
+ * @returns {boolean} - Returns true if the entity has a device_id, false otherwise.
  */
-export function entityDisabled(entity: HassEntity): boolean {
-  if (!isValidObject(entity) || (typeof entity.disabled_by !== 'string' && entity.disabled_by !== null)) {
+export function isDeviceEntity(entity: HassEntity): entity is HassEntity & { device_id: string } {
+  if (!isValidObject(entity)) {
     return false;
   }
-  return entity.disabled_by !== null;
+  return entity.device_id != null;
+}
+
+/**
+ * Checks if a given entity is an individual entity.
+ *
+ * @param {HassEntity} entity - The Home Assistant entity to check.
+ * @returns {boolean} - Returns true if the entity does not belong to a device, false otherwise.
+ */
+export function isIndividualEntity(entity: HassEntity): entity is HassEntity & { device_id: null } {
+  if (!isValidObject(entity)) {
+    return false;
+  }
+  return entity.device_id === null;
+}
+
+/**
+ * Checks if a given entity or device is disabled.
+ *
+ * @param {HassEntity | HassDevice} entityOrDevice - The Home Assistant entity or device to check.
+ * @returns {boolean} - Returns true if the entity or device is disabled, false otherwise.
+ */
+export function isDisabled(entityOrDevice: HassEntity | HassDevice): boolean {
+  if (!isValidObject(entityOrDevice) || (typeof entityOrDevice.disabled_by !== 'string' && entityOrDevice.disabled_by !== null)) {
+    return false;
+  }
+  return entityOrDevice.disabled_by !== null;
+}
+
+/**
+ * Checks if a given entity or device satisfies the configured area filter.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {HassEntity | HassDevice} deviceOrEntity - The Home Assistant entity or device to check.
+ * @returns {boolean} - Returns true if no area filter is configured or the entity/device belongs to the configured area.
+ */
+export function satisfiesAreaFilter(platform: HomeAssistantPlatform, deviceOrEntity: HassEntity | HassDevice): boolean {
+  if (!isValidObject(platform) || !isValidObject(platform.config) || !isValidObject(platform.ha) || !isValidObject(deviceOrEntity)) {
+    // Invalid inputs cannot satisfy the configured filter.
+    return false;
+  }
+
+  if (!isValidString(platform.config.filterByArea, 1)) {
+    // No area filter configured means every device or entity passes.
+    return true;
+  }
+
+  if (!isValidObject(platform.ha.hassAreas) || typeof deviceOrEntity.area_id !== 'string') {
+    // A configured area filter requires a valid area registry and area_id.
+    return false;
+  }
+
+  const area = platform.ha.hassAreas.get(deviceOrEntity.area_id);
+  // The device or entity passes only when its resolved area name matches the configured filter.
+  return area?.name === platform.config.filterByArea;
+}
+
+/**
+ * Checks if a given entity or device satisfies the configured label filter.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {HassEntity | HassDevice} deviceOrEntity - The Home Assistant entity or device to check.
+ * @returns {boolean} - Returns true if no label filter is configured or the entity/device has the configured label.
+ */
+export function satisfiesLabelFilter(platform: HomeAssistantPlatform, deviceOrEntity: HassEntity | HassDevice): boolean {
+  if (!isValidObject(platform) || !isValidObject(platform.config) || !isValidObject(platform.ha) || !isValidObject(deviceOrEntity)) {
+    // Invalid inputs cannot satisfy the configured filter.
+    return false;
+  }
+
+  if (!isValidString(platform.config.filterByLabel, 1)) {
+    // No label filter configured means every device or entity passes.
+    return true;
+  }
+
+  if (!isValidObject(platform.ha.hassLabels) || !isValidArray(deviceOrEntity.labels, 1)) {
+    // A configured label filter requires a valid label registry and label ids on the device or entity.
+    return false;
+  }
+
+  const label = Array.from(platform.ha.hassLabels.values()).find((entry) => entry.name === platform.config.filterByLabel);
+  // The device or entity passes only when it contains the configured label id.
+  return label !== undefined && deviceOrEntity.labels.includes(label.label_id);
+}
+
+/**
+ * Returns the domain of a Home Assistant entity.
+ *
+ * @param {HassEntity | string} entity - The Home Assistant entity or entity_id.
+ * @returns {string} - The entity domain.
+ * @throws {Error} - Throws when the entity_id does not contain a domain.
+ */
+export function getDomain(entity: HassEntity | string): string {
+  const entityId = typeof entity === 'string' ? entity : entity?.entity_id;
+
+  if (!isValidString(entityId)) {
+    throw new Error('The entity_id does not contain a domain');
+  }
+
+  const separatorIndex = entityId.indexOf('.');
+
+  if (separatorIndex <= 0) {
+    throw new Error(`The entity_id "${entityId}" does not contain a domain`);
+  }
+
+  return entityId.slice(0, separatorIndex);
+}
+
+/**
+ * Returns the name segment of a Home Assistant entity.
+ *
+ * @param {HassEntity | string} entity - The Home Assistant entity or entity_id.
+ * @returns {string} - The entity name after the dot.
+ * @throws {Error} - Throws when the entity_id does not contain a name.
+ */
+export function getName(entity: HassEntity | string): string {
+  const entityId = typeof entity === 'string' ? entity : entity?.entity_id;
+
+  if (!isValidString(entityId)) {
+    throw new Error('The entity_id does not contain a name');
+  }
+
+  const separatorIndex = entityId.indexOf('.');
+
+  if (separatorIndex === -1 || separatorIndex === entityId.length - 1) {
+    throw new Error(`The entity_id "${entityId}" does not contain a name`);
+  }
+
+  return entityId.slice(separatorIndex + 1);
 }
 
 /**
  * Returns the name of a given entity based on the specified strategy.
  *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
  * @param {HassEntity} entity - The Home Assistant entity to check.
- * @param {HassState} state - The current state of the entity.
- * @param {"Entity name" | "Friendly name"} splitNameStrategy - The strategy to determine the entity's name.
  * @returns {string | null} - Returns the entity's name if valid, null otherwise.
  */
-export function getEntityName(entity: HassEntity, state: HassState, splitNameStrategy: 'Entity name' | 'Friendly name'): string | null {
-  if (!isValidObject(entity) || !isValidObject(state) || (splitNameStrategy !== 'Entity name' && splitNameStrategy !== 'Friendly name')) {
+export function getEntityName(platform: HomeAssistantPlatform, entity: HassEntity): string | null {
+  if (
+    !isValidObject(platform) ||
+    !isValidObject(platform.config) ||
+    !isValidObject(platform.ha) ||
+    !isValidObject(platform.ha.hassStates) ||
+    !isValidObject(entity) ||
+    (platform.config.splitNameStrategy !== 'Entity name' && platform.config.splitNameStrategy !== 'Friendly name')
+  ) {
     return null;
   }
-  return splitNameStrategy === 'Friendly name'
+
+  const state = platform.ha.hassStates.get(entity.entity_id);
+  if (!isValidObject(state)) {
+    return null;
+  }
+
+  return platform.config.splitNameStrategy === 'Friendly name'
     ? (state.attributes?.friendly_name ?? entity.name ?? entity.original_name ?? null)
     : (entity.name ?? entity.original_name ?? state.attributes?.friendly_name ?? null);
 }
@@ -162,16 +319,17 @@ export function createUniqueId(): string {
 /**
  * Creates a Home Assistant device with default properties.
  *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
  * @param {string} name - The device name.
  * @param {string | null} area_id - The related area ID.
  * @param {string[]} labels - The related labels.
  * @returns {HassDevice} - A Home Assistant device.
  */
-export function generateDevice(name: string, area_id: string | null = null, labels: string[] = []): HassDevice {
+export function generateDevice(ha: HomeAssistant, name: string, area_id: string | null = null, labels: string[] = []): HassDevice {
   const timestamp = Date.now() / 1000;
   const serialNumber = '0x' + randomBytes(8).toString('hex');
 
-  return {
+  const device: HassDevice = {
     id: createUniqueId(),
     area_id,
     configuration_url: null,
@@ -195,25 +353,40 @@ export function generateDevice(name: string, area_id: string | null = null, labe
     sw_version: null,
     via_device_id: null,
   };
+
+  ha.hassDevices.set(device.id, device);
+  return device;
 }
 
 /**
  * Creates a Home Assistant entity with default properties.
  *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
  * @param {string} name - The entity name.
  * @param {string} domain - The entity domain.
  * @param {HassDevice | null} device - The related device.
  * @param {string | null} area_id - The related area ID.
  * @param {string[]} labels - The related labels.
+ * @param {string} state - The initial state value.
+ * @param {Record<string, string | number | boolean | null>} attributes - The initial state attributes.
  * @returns {HassEntity} - A Home Assistant entity.
  */
-export function generateEntity(name: string, domain: string, device: HassDevice | null = null, area_id: string | null = null, labels: string[] = []): HassEntity {
+export function generateEntity(
+  ha: HomeAssistant,
+  name: string,
+  domain: string,
+  device: HassDevice | null = null,
+  area_id: string | null = null,
+  labels: string[] = [],
+  state: string = 'unknown',
+  attributes: Record<string, string | number | boolean | null> = {},
+): HassEntity {
   const timestamp = Date.now() / 1000;
-  const entityId = createEntityId(name, domain);
+  const entity_id = createEntityId(name, domain);
 
-  return {
+  const entity: HassEntity = {
     id: createUniqueId(),
-    entity_id: entityId,
+    entity_id,
     area_id: device !== null ? null : area_id,
     categories: {},
     config_entry_id: null,
@@ -234,27 +407,35 @@ export function generateEntity(name: string, domain: string, device: HassDevice 
     translation_key: null,
     unique_id: createUniqueId(),
   };
+
+  ha.hassEntities.set(entity.entity_id, entity);
+  generateState(ha, entity, state, attributes);
+  return entity;
 }
 
 /**
  * Creates a Home Assistant state with default properties.
  *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
  * @param {HassEntity} entity - The related entity.
  * @param {string} state - The state value.
  * @param {Record<string, string | number | boolean | null>} attributes - The related state attributes.
  * @returns {HassState} - A Home Assistant state.
  */
-export function generateState(entity: HassEntity, state: string = 'unknown', attributes: Record<string, string | number | boolean | null> = {}): HassState {
+export function generateState(ha: HomeAssistant, entity: HassEntity, state: string = 'unknown', attributes: Record<string, string | number | boolean | null> = {}): HassState {
   const timestamp = new Date().toISOString();
+  const entityFriendlyName = entity.original_name ?? entity.name ?? undefined;
+  const deviceName = entity.device_id ? (ha.hassDevices.get(entity.device_id)?.name_by_user ?? ha.hassDevices.get(entity.device_id)?.name ?? undefined) : undefined;
+  const friendlyName = isValidString(deviceName) && isValidString(entityFriendlyName) ? `${deviceName} ${entityFriendlyName}` : entityFriendlyName;
 
-  return {
+  const hassState: HassState = {
     entity_id: entity.entity_id,
     state,
     last_changed: timestamp,
     last_reported: timestamp,
     last_updated: timestamp,
     attributes: {
-      friendly_name: entity.original_name ?? entity.name ?? undefined,
+      friendly_name: friendlyName,
       ...attributes,
     } as HassState['attributes'],
     context: {
@@ -263,19 +444,23 @@ export function generateState(entity: HassEntity, state: string = 'unknown', att
       user_id: null,
     },
   };
+
+  ha.hassStates.set(hassState.entity_id, hassState);
+  return hassState;
 }
 
 /**
  * Creates a Home Assistant area with default properties.
  *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
  * @param {string} name - The area name.
  * @param {string[]} labels - The related labels.
  * @returns {HassArea} - A Home Assistant area.
  */
-export function generateArea(name: string, labels: string[] = []): HassArea {
+export function generateArea(ha: HomeAssistant, name: string, labels: string[] = []): HassArea {
   const timestamp = Date.now() / 1000;
 
-  return {
+  const area: HassArea = {
     aliases: [],
     area_id: createAreaId(name),
     created_at: timestamp,
@@ -288,18 +473,22 @@ export function generateArea(name: string, labels: string[] = []): HassArea {
     picture: null,
     temperature_entity_id: null,
   };
+
+  ha.hassAreas.set(area.area_id, area);
+  return area;
 }
 
 /**
  * Creates a Home Assistant label with default properties.
  *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
  * @param {string} name - The label name.
  * @returns {HassLabel} - A Home Assistant label.
  */
-export function generateLabel(name: string): HassLabel {
+export function generateLabel(ha: HomeAssistant, name: string): HassLabel {
   const timestamp = Date.now() / 1000;
 
-  return {
+  const label: HassLabel = {
     label_id: createLabelId(name),
     color: null,
     created_at: timestamp,
@@ -308,4 +497,7 @@ export function generateLabel(name: string): HassLabel {
     modified_at: timestamp,
     name: isValidString(name) ? name : 'Unnamed Label',
   };
+
+  ha.hassLabels.set(label.label_id, label);
+  return label;
 }

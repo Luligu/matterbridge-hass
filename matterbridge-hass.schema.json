@@ -84,17 +84,6 @@
       "uniqueItems": true,
       "selectFrom": "name"
     },
-    "entityBlackList": {
-      "title": "Entity Blacklist",
-      "description": "Not used in this plugin.",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "uniqueItems": true,
-      "selectEntityFrom": "description",
-      "ui:widget": "hidden"
-    },
     "deviceEntityBlackList": {
       "title": "Device Entity Blacklist",
       "description": "List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the list add all the entity names you want to exclude for that device. This is only related to device entities, not individual entities or split entities.",
@@ -110,6 +99,62 @@
         "uniqueItems": true,
         "selectDeviceEntityFrom": "name"
       }
+    },
+    "entityWhiteList": {
+      "title": "Domain Whitelist",
+      "description": "Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains. Enter the domain name (i.e. switch, light, sensor).",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "automation",
+          "scene",
+          "script",
+          "input_boolean",
+          "input_button",
+          "switch",
+          "light",
+          "lock",
+          "fan",
+          "cover",
+          "climate",
+          "valve",
+          "vacuum",
+          "sensor",
+          "binary_sensor",
+          "event",
+          "button"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "entityBlackList": {
+      "title": "Domain Blacklist",
+      "description": "Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains. Enter the domain name (i.e. automation, scene, button).",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "automation",
+          "scene",
+          "script",
+          "input_boolean",
+          "input_button",
+          "switch",
+          "light",
+          "lock",
+          "fan",
+          "cover",
+          "climate",
+          "valve",
+          "vacuum",
+          "sensor",
+          "binary_sensor",
+          "event",
+          "button"
+        ]
+      },
+      "uniqueItems": true
     },
     "splitEntities": {
       "title": "Split Entities",
@@ -135,8 +180,8 @@
       "default": "Entity name"
     },
     "controllerStrategy": {
-      "title": "Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers. Changing this setting may require you to pair the controller again.",
-      "description": "Strategy used for controller.",
+      "title": "Controller Strategy",
+      "description": "Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers. Changing this setting may require you to pair the controller again.",
       "type": "string",
       "enum": ["Merge", "Matter"],
       "default": "Merge"

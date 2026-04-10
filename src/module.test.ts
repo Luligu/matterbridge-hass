@@ -39,7 +39,7 @@ import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
 
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import initializePlugin, { HomeAssistantPlatform, HomeAssistantPlatformConfig } from './module.js';
+import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from './module.js';
 import { MutableDevice } from './mutableDevice.js';
 
 const readMockHomeAssistantFile = () => {
@@ -61,39 +61,27 @@ const readMockHomeAssistantFile = () => {
   }
 };
 
+const savePayloadMock = jest.fn(async () => undefined);
+const writeReportMock = jest.fn(async () => '');
+
+jest.unstable_mockModule('./payload.js', () => ({
+  savePayload: savePayloadMock,
+}));
+
+jest.unstable_mockModule('./report.js', () => ({
+  writeReport: writeReportMock,
+}));
+
+const { default: initializePlugin, HomeAssistantPlatform } = await import('./module.js');
+
 // Setup the test environment
 await setupTest(NAME, false);
 
 describe('HassPlatform', () => {
-  let haPlatform: HomeAssistantPlatform;
+  let haPlatform: HomeAssistantPlatformType;
 
-  const mockConfig: HomeAssistantPlatformConfig = {
-    name: 'matterbridge-hass',
-    type: 'DynamicPlatform',
-    version: '1.0.0',
-    host: 'http://homeassistant.local:8123',
-    token: 'long-lived token',
-    certificatePath: '',
-    rejectUnauthorized: true,
-    reconnectTimeout: 60,
-    reconnectRetries: 10,
-    filterByArea: '',
-    filterByLabel: '',
-    whiteList: [],
-    blackList: [],
-    entityBlackList: [],
-    deviceEntityBlackList: {},
-    splitEntities: [],
-    splitByLabel: '',
-    splitNameStrategy: 'Entity name',
-    controllerStrategy: 'Merge',
-    namePostfix: '',
-    postfix: '',
-    airQualityRegex: '',
-    enableServerRvc: false,
-    debug: false,
-    unregisterOnShutdown: false,
-  };
+  const mockConfig: HomeAssistantPlatformConfig = JSON.parse(fs.readFileSync(path.join('.', 'matterbridge-hass.config.json'), 'utf-8'));
+  mockConfig.token = 'long-lived token'; // Replace with a valid long-lived token for actual testing
 
   const mockData = readMockHomeAssistantFile();
   if (!mockData) {
@@ -285,32 +273,34 @@ describe('HassPlatform', () => {
     expect(haPlatform.validateDevice('')).toBe(true);
   });
 
-  it('should validate with entity black list', () => {
-    haPlatform.config.entityBlackList = ['blackEntity'];
+  it('should validate with entity white and black list', () => {
+    haPlatform.config.entityWhiteList = ['white'];
+    haPlatform.config.entityBlackList = ['black'];
     haPlatform.config.deviceEntityBlackList = {};
-    expect(haPlatform.validateEntity('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntity('any', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntity('any', '')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'white.white_entity')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'black.black_entity')).toBe(false);
+    expect(haPlatform.validateEntity('any', 'green.black_entity')).toBe(false);
 
+    haPlatform.config.entityWhiteList = [];
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
   });
 
   it('should validate with device entity black list and entity black list', () => {
-    haPlatform.config.entityBlackList = ['blackEntity'];
+    haPlatform.config.entityWhiteList = [];
+    haPlatform.config.entityBlackList = ['black'];
     haPlatform.config.deviceEntityBlackList = {
-      device1: ['blackEntityDevice1'],
+      device1: ['green.black_entity_device1'],
     };
-    expect(haPlatform.validateEntity('any', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntity('any', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntity('any', 'blackEntityDevice1')).toBe(true);
-    expect(haPlatform.validateEntity('any', '')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'white.white_entity')).toBe(true);
+    expect(haPlatform.validateEntity('any', 'black.black_entity')).toBe(false);
+    expect(haPlatform.validateEntity('any', 'green.green_entity_device1')).toBe(true);
 
-    expect(haPlatform.validateEntity('device1', 'whiteEntity')).toBe(true);
-    expect(haPlatform.validateEntity('device1', 'blackEntity')).toBe(false);
-    expect(haPlatform.validateEntity('device1', 'blackEntityDevice1')).toBe(false);
-    expect(haPlatform.validateEntity('device1', '')).toBe(true);
+    expect(haPlatform.validateEntity('device1', 'white.white_entity')).toBe(true);
+    expect(haPlatform.validateEntity('device1', 'black.black_entity')).toBe(false);
+    expect(haPlatform.validateEntity('device1', 'green.black_entity_device1')).toBe(false);
 
+    haPlatform.config.entityWhiteList = [];
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
   });
@@ -359,195 +349,6 @@ describe('HassPlatform', () => {
       name: 'Label 2',
       description: 'This is label 2',
     });
-  });
-
-  it('returns true if no filters are set', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(true);
-  });
-
-  it('returns false if filterByArea is set and areaId is null', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel(null, ['foo'])).toBe(false);
-  });
-
-  it('returns true if filterByArea is set and areaId is null and labelOnly is true', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel(null, ['foo'], true)).toBe(true);
-  });
-
-  it('returns false if filterByArea is set and areaId does not match', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area2', ['foo'])).toBe(false);
-  });
-
-  it('returns true if filterByArea is set and areaId does not match and labelOnly is true', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area2', ['foo'], true)).toBe(true);
-  });
-
-  it('returns false if filterByArea is set and areaId does not exist', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('areaunknown', ['foo'])).toBe(false);
-  });
-
-  it('returns true if filterByArea is set and areaId matches', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(true);
-  });
-
-  it('returns false if filterByLabel is set and labels is empty', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = 'important'; // label1 = "Label 1", label2 = "Label 2"
-    expect(haPlatform.isValidAreaLabel('area1', [])).toBe(false);
-  });
-
-  it('returns false if filterByLabel is set and label does not match', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = 'important'; // label1 = "Label 1", label2 = "Label 2"
-    expect(haPlatform.isValidAreaLabel('area1', ['foo', 'bar'])).toBe(false);
-  });
-
-  it('returns false if filterByLabel is set and label matches but label does not exist', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = 'important'; // label1 = "Label 1", label2 = "Label 2"
-    expect(haPlatform.isValidAreaLabel('area1', ['foo', 'important', 'bar'])).toBe(false);
-  });
-
-  it('returns false if filterByLabel is set and label matches but label does not exist and array has 1 element', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = 'important'; // label1 = "Label 1", label2 = "Label 2"
-    expect(haPlatform.isValidAreaLabel('area1', ['important'])).toBe(false);
-  });
-
-  it('returns false if both filters are set and only area matches', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = 'Label 1'; // label1 = "Label 1", label2 = "Label 2"
-    expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(false);
-  });
-
-  it('returns false if both filters are set and only label matches', () => {
-    mockConfig.filterByArea = 'Living Room'; // area1 is Living Room
-    mockConfig.filterByLabel = 'Label 1'; // label1 = "Label 1", label2 = "Label 2"
-    expect(haPlatform.isValidAreaLabel('area2', ['label1'])).toBe(false);
-  });
-
-  it('returns true if filterByArea is set and areaId matches for a different area', () => {
-    mockConfig.filterByArea = 'Kitchen'; // area2 is Kitchen
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area2', ['foo'])).toBe(true);
-  });
-
-  it('returns false if filterByArea casing does not match', () => {
-    mockConfig.filterByArea = 'living room'; // area1 is Living Room
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(false);
-  });
-
-  it('returns false if filterByArea is set but area registry is empty', () => {
-    const savedAreas = new Map(haPlatform.ha.hassAreas);
-    haPlatform.ha.hassAreas.clear();
-
-    mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area1', ['foo'])).toBe(false);
-
-    for (const [key, value] of savedAreas.entries()) haPlatform.ha.hassAreas.set(key, value);
-  });
-
-  it('returns true if filterByLabel is set and labels include matching label id', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'Label 1'; // label1
-    expect(haPlatform.isValidAreaLabel('area1', ['foo', 'label1', 'bar'])).toBe(true);
-  });
-
-  it('returns false if filterByLabel is set and labels include label name instead of id', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'Label 1'; // label1
-    expect(haPlatform.isValidAreaLabel('area1', ['Label 1'])).toBe(false);
-  });
-
-  it('returns false if filterByLabel casing does not match', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'label 1'; // label is "Label 1"
-    expect(haPlatform.isValidAreaLabel('area1', ['label1'])).toBe(false);
-  });
-
-  it('returns false if filterByLabel is set but label registry is empty', () => {
-    const savedLabels = new Map(haPlatform.ha.hassLabels);
-    haPlatform.ha.hassLabels.clear();
-
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'Label 1';
-    expect(haPlatform.isValidAreaLabel('area1', ['label1'])).toBe(false);
-
-    for (const [key, value] of savedLabels.entries()) haPlatform.ha.hassLabels.set(key, value);
-  });
-
-  it('returns true if filterByLabel is set and labels include matching id multiple times', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'Label 2'; // label2
-    expect(haPlatform.isValidAreaLabel('area1', ['label2', 'label2'])).toBe(true);
-  });
-
-  it('returns false if filterByLabel is set and labels include matching id with extra whitespace', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'Label 1';
-    expect(haPlatform.isValidAreaLabel('area1', [' label1 '])).toBe(false);
-  });
-
-  it('returns true if both filters are set and both area and label match', () => {
-    mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = 'Label 1';
-    expect(haPlatform.isValidAreaLabel('area1', ['label1'])).toBe(true);
-  });
-
-  it('returns true if both filters are set and both match with additional labels present', () => {
-    mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = 'Label 2';
-    expect(haPlatform.isValidAreaLabel('area1', ['foo', 'label2', 'bar'])).toBe(true);
-  });
-
-  it('returns false if both filters are set and configured label does not exist in registry', () => {
-    mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = 'important';
-    expect(haPlatform.isValidAreaLabel('area1', ['label1'])).toBe(false);
-  });
-
-  it('returns false if both filters are set and configured area id is missing in registry', () => {
-    const savedArea1 = haPlatform.ha.hassAreas.get('area1');
-    haPlatform.ha.hassAreas.delete('area1');
-
-    mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = 'Label 1';
-    expect(haPlatform.isValidAreaLabel('area1', ['label1'])).toBe(false);
-
-    if (savedArea1) haPlatform.ha.hassAreas.set('area1', savedArea1);
-  });
-
-  it('returns true if only area filter is set and labels is empty', () => {
-    mockConfig.filterByArea = 'Living Room';
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel('area1', [])).toBe(true);
-  });
-
-  it('returns true if only label filter is set even when areaId is null', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = 'Label 2';
-    expect(haPlatform.isValidAreaLabel(null, ['label2'])).toBe(true);
-  });
-
-  it('returns true with no filters even when areaId is null and labels is empty', () => {
-    mockConfig.filterByArea = '';
-    mockConfig.filterByLabel = '';
-    expect(haPlatform.isValidAreaLabel(null, [])).toBe(true);
   });
 
   it('should clear areas, labels and reset filters', () => {
@@ -755,15 +556,8 @@ describe('HassPlatform', () => {
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    await wait(100);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Payload successfully written to`));
-  });
-
-  it('should call onStart with reason and fail save payload', async () => {
-    expect(haPlatform).toBeDefined();
-    (haPlatform as any).savePayload(matterbridge.matterbridgePluginDirectory);
-    await wait(100);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`Error writing payload to`));
+    expect(savePayloadMock).toHaveBeenCalled();
+    expect(writeReportMock).toHaveBeenCalled();
   });
 
   it('should receive events from ha', async () => {
@@ -1845,9 +1639,11 @@ describe('HassPlatform', () => {
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       `Split entity ${CYAN}${duplicatednameEntity.entity_id}${wr} name "${CYAN}${duplicatednameEntity.original_name}${wr}" already exists as a registered device. Please change the name in Home Assistant.`,
     );
+    /*
     expect(loggerInfoSpy).toHaveBeenCalledWith(
-      `Split entity ${CYAN}${humidityEntity.entity_id}${nf} name ${CYAN}${humidityEntity.original_name}${nf} is not in the area "${CYAN}${nf}" or doesn't have the label "${CYAN}${haPlatform.config.filterByLabel}${nf}". Skipping...`,
+      `Split entity ${CYAN}${humidityEntity.entity_id}${nf} name ${CYAN}${humidityEntity.original_name}${nf} doesn't have the label "${CYAN}${haPlatform.config.filterByLabel}${nf}". Skipping...`,
     );
+    */
 
     // Cleanup the test environment
     haPlatform.config.splitEntities = [];

@@ -42,7 +42,13 @@ function createMockMutableDevice(): MutableDevice & {
   } as any;
 }
 
-const mockLog = { debug: jest.fn() } as any;
+function createPlatform() {
+  return {
+    log: {
+      debug: jest.fn(),
+    },
+  } as any;
+}
 
 describe('addEventEntity', () => {
   beforeEach(() => {
@@ -62,88 +68,99 @@ describe('addEventEntity', () => {
 
   it("doesn't add not an event domain", () => {
     const md = createMockMutableDevice();
+    const platform = createPlatform();
     const entity = { entity_id: `notanevent.entity_unsupported` } as any;
     const state = baseState(['unsupported'], EventDeviceClass.MOTION, 'unknown');
-    const ep = addEventEntity(md as any, entity, state, mockLog);
+    const ep = addEventEntity(platform, md as any, entity, state);
     expect(ep).toBeUndefined();
   });
 
   it("doesn't add not valid event state", () => {
     const md = createMockMutableDevice();
+    const platform = createPlatform();
     const entity = { entity_id: `event.entity_invalid` } as any;
     // @ts-expect-error Testing invalid state
     const state = baseState(undefined, EventDeviceClass.MOTION, 'unknown');
-    const ep = addEventEntity(md as any, entity, state, mockLog);
+    const ep = addEventEntity(platform, md as any, entity, state);
     expect(ep).toBeUndefined();
   });
 
   it('adds button and friendly name', () => {
     const md = createMockMutableDevice();
+    const platform = createPlatform();
     const entity = baseEntity(EventDeviceClass.BUTTON);
     const state = baseState(['single', 'double', 'long'], EventDeviceClass.BUTTON, 'unknown', 'Button Friendly');
-    const ep = addEventEntity(md as any, entity, state, mockLog);
+    const ep = addEventEntity(platform, md as any, entity, state);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
+    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
     expect(md.friendlyNames[endpoint]).toBe('Button Friendly');
-    expect(mockLog.debug).toHaveBeenCalledWith(
+    expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.BUTTON} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(mockLog.debug).toHaveBeenCalledWith(
+    expect(platform.log.debug).toHaveBeenCalledWith(
       `+ domain event supported [single, double, long] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`,
     );
   });
 
   it('adds doorbell without friendly name', () => {
     const md = createMockMutableDevice();
+    const platform = createPlatform();
     const entity = baseEntity(EventDeviceClass.DOORBELL);
     const state = baseState(['single'], EventDeviceClass.DOORBELL, 'unknown');
-    const ep = addEventEntity(md as any, entity, state, mockLog);
+    const ep = addEventEntity(platform, md as any, entity, state);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
+    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
-    expect(mockLog.debug).toHaveBeenCalledWith(
+    expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.DOORBELL} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(mockLog.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
   });
 
   it('adds motion without friendly name', () => {
     const md = createMockMutableDevice();
+    const platform = createPlatform();
     const entity = baseEntity(EventDeviceClass.MOTION);
     const state = baseState(['single'], EventDeviceClass.MOTION, 'unknown');
-    const ep = addEventEntity(md as any, entity, state, mockLog);
+    const ep = addEventEntity(platform, md as any, entity, state);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
+    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
-    expect(mockLog.debug).toHaveBeenCalledWith(
+    expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(mockLog.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
   });
 
   it('adds unsupported', () => {
     const md = createMockMutableDevice();
+    const platform = createPlatform();
     const entity = baseEntity(EventDeviceClass.MOTION);
     const state = baseState(['unsupported'], EventDeviceClass.MOTION, 'unknown');
-    const ep = addEventEntity(md as any, entity, state, mockLog);
+    const ep = addEventEntity(platform, md as any, entity, state);
     expect(ep).toBeUndefined();
   });
 
   it('adds supported and unsupported', () => {
     const md = createMockMutableDevice();
+    const platform = createPlatform();
     const entity = baseEntity(EventDeviceClass.MOTION);
     const state = baseState(['single', 'unsupported'], EventDeviceClass.MOTION, 'unknown');
-    const ep = addEventEntity(md as any, entity, state, mockLog);
+    const ep = addEventEntity(platform, md as any, entity, state);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
+    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
-    expect(mockLog.debug).toHaveBeenCalledWith(
+    expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(mockLog.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
   });
 });

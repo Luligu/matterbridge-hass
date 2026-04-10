@@ -14,6 +14,38 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.1.0] - 2026-04-10
+
+### Breaking Changes
+
+- [domains] Add `Domain Whitelist` and `Domain Blacklist`.
+
+### Added
+
+- [helpers]: Add `helpers module` to make the platform code easier to read and maintain.
+- [helpers]: Add `payload module` to make the platform code easier to read and maintain.
+- [helpers]: Add `report module` to make the platform code easier to read and maintain.
+- [scripts]: Add script to prune GitHub releases based on tag prefix.
+
+### Changed
+
+- [package]: Update dependencies.
+- [package]: Bump package to `automator` v.3.1.5.
+- [package]: Bump `eslint` to v.10.2.0.
+- [package]: Bump `prettier` to v.3.8.2.
+- [package]: Bump `typescript-eslint` to v.8.58.1.
+- [devcontainer]: Update VS Code settings.
+- [scripts]: Update mb-run script.
+- [entity]: Refactor entity helper signatures to be uniform across all helpers.
+
+### Fixed
+
+- [schema]: Fix controllerStrategy schema.
+- [devcontainer]: Fix pull of new image.
+- [devcontainer]: Fix matterbridge scripts.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.0.12] - 2026-04-02
 
 ### Breaking Changes

@@ -22,5 +22,5 @@ SHA7=$(git rev-parse --short=7 HEAD) && BASE_VERSION=$(node -p "require('./packa
 npm ci --no-fund --no-audit && npm run build
 cd apps/frontend && npm ci --no-fund --no-audit && npm run build && cd ../..
 npm install . --global --no-fund --no-audit
-rm -rf .cache .devcontainer .git .github .vscode docker docs reflector screenshots scripts systemd
+rm -rf .cache .devcontainer .git .github .vscode docker docs reflector screenshots systemd
 echo "Matterbridge has been installed from the dev branch."

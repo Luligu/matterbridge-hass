@@ -7,10 +7,10 @@
 ![Node.js CI](https://github.com/Luligu/matterbridge-hass/actions/workflows/build.yml/badge.svg)
 ![CodeQL](https://github.com/Luligu/matterbridge-hass/actions/workflows/codeql.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Luligu/matterbridge-hass/branch/main/graph/badge.svg)](https://codecov.io/gh/Luligu/matterbridge-hass)
-[![styled with prettier](https://img.shields.io/badge/styled_with-Prettier-f8bc45.svg?logo=prettier)](https://github.com/prettier/prettier)
-[![linted with eslint](https://img.shields.io/badge/linted_with-ES_Lint-4B32C3.svg?logo=eslint)](https://github.com/eslint/eslint)
+[![styled with prettier](https://img.shields.io/badge/styled_with-Prettier-f8bc45.svg?logo=prettier)](https://prettier.io/)
+[![linted with eslint](https://img.shields.io/badge/linted_with-ES_Lint-4B32C3.svg?logo=eslint)](https://eslint.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![ESM](https://img.shields.io/badge/ESM-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/api/esm.html)
+[![ESM](https://img.shields.io/badge/ESM-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![matterbridge.io](https://img.shields.io/badge/matterbridge.io-online-brightgreen)](https://matterbridge.io)
 
 [![powered by](https://img.shields.io/badge/powered%20by-matterbridge-blue)](https://www.npmjs.com/package/matterbridge)
@@ -223,6 +223,14 @@ If the blackList is defined the devices, the individual and split entities inclu
 ### deviceEntityBlackList
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
+
+### domain whiteList
+
+Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains. Enter the domain name (i.e. switch, light, sensor).
+
+### domain blackList
+
+Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains. Enter the domain name (i.e. automation, scene, button).
 
 ### splitEntities
 
