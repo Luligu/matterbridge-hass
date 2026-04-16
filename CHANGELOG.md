@@ -24,7 +24,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [readme]: Changed config headers in the [README](README.md#config) to reflect schema titles.
 - [select]: Add definitions for `select` and `input_select` domain.
 - [media_player]: Add definitions for `media_player` domain.
-- [binary_sensor]: The default implementation without device_class is a contant sensor.
+- [binary_sensor]: The default implementation without device_class is a contact sensor.
 
 ### Changed
 
