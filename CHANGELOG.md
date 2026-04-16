@@ -32,6 +32,10 @@ If you like this project and find it useful, please consider giving it a **star*
 - [agent]: Add agent custom instructions (`testing`) for copilot and claude.
 - [agent]: Add agent custom instructions (`matterbridge`) for copilot and claude.
 
+### Fixed
+
+- [reconnect]: Prevent unhandled promise rejection during reconnect attempts. Thanks UltronOfSpace (https://github.com/Luligu/matterbridge-hass/issues/211).
+
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.1.0] - 2026-04-10

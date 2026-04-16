@@ -1135,6 +1135,7 @@ export class HomeAssistant extends EventEmitter {
    * Connects to Home Assistant WebSocket API. It establishes a WebSocket connection and authenticates.
    *
    * @returns {Promise<string>} - A Promise that resolves to the HA version when the connection is established and authenticated, or rejects with an error if the connection fails.
+   * @throws {Error} - Throws an error if already connected or if there is an error during connection or authentication.
    */
   connect(): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -1285,8 +1286,13 @@ export class HomeAssistant extends EventEmitter {
     if (this.reconnectTimeoutTime && this.reconnectRetry <= this.reconnectRetries) {
       this.log.notice(`Reconnecting in ${this.reconnectTimeoutTime / 1000} seconds...`);
       this.reconnectTimeout = setTimeout(() => {
-        this.log.notice(`Reconnecting attempt ${this.reconnectRetry} of ${this.reconnectRetries}...`);
-        this.connect();
+        const attempt = this.reconnectRetry;
+        this.log.notice(`Reconnecting attempt ${attempt} of ${this.reconnectRetries}...`);
+        void this.connect().catch((error) => {
+          // istanbul ignore next
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          this.log.debug(`Reconnection attempt ${attempt} failed: ${errorMessage}`);
+        });
         this.reconnectRetry++;
         this.reconnectTimeout = undefined;
       }, this.reconnectTimeoutTime).unref();
