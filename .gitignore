@@ -3,7 +3,8 @@
 
 # Specific directories that should be ignored
 .cache/
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 coverage/
 dist/
 jest/
