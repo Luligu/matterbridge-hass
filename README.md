@@ -300,8 +300,6 @@ In addition to this well known bugs, the rvc must be a single device, it cannot 
 
 If enabled (default), the plugin discards entities that are hidden in Home Assistant (i.e. entities whose `hidden_by` field is not `null` in the entity registry). Hidden entities will not be exposed as device entities, individual entities, or split entities.
 
-This option is `discardHiddenEntities`.
-
 ### Enable Debug
 
 Should be enabled only if you want to debug some issue using the log.
