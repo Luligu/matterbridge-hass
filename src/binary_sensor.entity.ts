@@ -23,7 +23,7 @@
 import { contactSensor, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import { SmokeCoAlarm } from 'matterbridge/matter/clusters';
-import { ClusterRegistry } from 'matterbridge/matter/types';
+import { getClusterNameById } from 'matterbridge/matter/types';
 import { isValidString } from 'matterbridge/utils';
 
 import { hassDomainBinarySensorsConverter } from './converters.js';
@@ -59,7 +59,7 @@ export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDe
         endpointName = entity.entity_id; // Use the entity ID as the endpoint name
       }
       platform.log.debug(
-        `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainBinarySensor.clusterId)?.name}${db}`,
+        `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${getClusterNameById(hassDomainBinarySensor.clusterId)}${db}`,
       );
       mutableDevice.addDeviceTypes(endpointName, hassDomainBinarySensor.deviceType);
       mutableDevice.addClusterServerIds(endpointName, hassDomainBinarySensor.clusterId);

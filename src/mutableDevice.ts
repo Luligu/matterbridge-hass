@@ -63,7 +63,7 @@ import {
   SmokeCoAlarm,
   Thermostat,
 } from 'matterbridge/matter/clusters';
-import { ClusterId, ClusterRegistry, Semtag, VendorId } from 'matterbridge/matter/types';
+import { ClusterId, getClusterNameById, Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
 
 interface ClusterServerObj {
@@ -1114,10 +1114,8 @@ export class MutableDevice {
     );
     for (const [endpoint, device] of this.mutableDevices) {
       const deviceTypes = device.deviceTypes.map((d) => '0x' + d.code.toString(16) + '-' + d.name);
-      const clusterServersIds = device.clusterServersIds.map((clusterServerId) => '0x' + clusterServerId.toString(16) + '-' + ClusterRegistry.get(clusterServerId)?.name);
-      const clusterServersObjsIds = device.clusterServersObjs.map(
-        (clusterServerObj) => '0x' + clusterServerObj.id.toString(16) + '-' + ClusterRegistry.get(clusterServerObj.id)?.name,
-      );
+      const clusterServersIds = device.clusterServersIds.map((clusterServerId) => '0x' + clusterServerId.toString(16) + '-' + getClusterNameById(clusterServerId));
+      const clusterServersObjsIds = device.clusterServersObjs.map((clusterServerObj) => '0x' + clusterServerObj.id.toString(16) + '-' + getClusterNameById(clusterServerObj.id));
       this.log.debug(
         `- endpoint: ${ign}${endpoint === '' ? 'main' : endpoint}${rs}${db} => friendlyName ${CYAN}${device.friendlyName}${db} ` +
           `${db}tagList: ${debugStringify(device.tagList)}${db} deviceTypes: ${debugStringify(deviceTypes)}${db} ` +
