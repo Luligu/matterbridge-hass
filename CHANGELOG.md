@@ -22,7 +22,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [hidden]: All entities that are hidden are discarded unless `discardHiddenEntities` options is unchecked. Thanks kristian (https://github.com/Luligu/matterbridge-hass/issues/213).
 - [report]: Update the `report` to show the hidden entities.
 - [readme]: Changed config headers in the [README](README.md#config) to reflect schema titles.
-- [select]: Add definitions for `select` domain.
+- [select]: Add definitions for `select` and `input_select` domain.
 - [media_player]: Add definitions for `media_player` domain.
 - [binary_sensor]: The default implementation without device_class is a contant sensor.
 
