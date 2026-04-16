@@ -1912,6 +1912,72 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
   });
 
+  it('should call onStart and register a binary_sensor without device_class', async () => {
+    const contactDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Contact Sensor',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const contactDeviceEntity = {
+      area_id: null,
+      device_id: contactDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'binary_sensor.door_contact',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Contact Sensor',
+    } as unknown as HassEntity;
+
+    const contactDeviceEntityState = {
+      entity_id: contactDeviceEntity.entity_id,
+      state: 'on', // 'on' for open, 'off' for closed
+      attributes: { friendly_name: 'Contact Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(contactDevice.id, contactDevice);
+    haPlatform.ha.hassEntities.set(contactDeviceEntity.entity_id, contactDeviceEntity);
+    haPlatform.ha.hassStates.set(contactDeviceEntityState.entity_id, contactDeviceEntityState);
+
+    await haPlatform.onStart('Test reason');
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(contactDevice.id)).toBeDefined();
+    device = haPlatform.matterbridgeDevices.get(contactDevice.id) as MatterbridgeEndpoint;
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(aggregator.parts.has(device.id)).toBeTruthy();
+    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
+    expect(device.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactDeviceEntity.entity_id, false);
+
+    jest.clearAllMocks();
+    await haPlatform.onConfigure();
+    // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactDeviceEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'off' }); // 'on' for open, 'off' for closed
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'on' }); // 'on' for open, 'off' for closed
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+
+    // Clean the test environment
+    await cleanup();
+  });
+
   it('should call onStart and register a Contact device', async () => {
     const contactDevice = {
       area_id: null,

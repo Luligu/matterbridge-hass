@@ -134,6 +134,8 @@ export interface HassState {
   last_reported: string;
   last_updated: string;
   attributes: HassStateAttributes &
+    HassStateSelectAttributes &
+    HassStateMediaPlayerAttributes &
     HassStateLightAttributes &
     HassStateClimateAttributes &
     HassStateFanAttributes &
@@ -157,6 +159,249 @@ export interface HassStateAttributes {
   device_class?: string;
   state_class?: string;
   restored?: boolean;
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant select entity's state.
+ */
+export interface HassStateSelectAttributes {
+  options: string[]; // List of available options for the select entity
+}
+
+/**
+ * Select services for the select domain.
+ *
+ * Call via {@link HomeAssistant.callService}:
+ *
+ * @example
+ * await ha.callService('select', SelectService.SELECT_OPTION, 'select.living_room_mode', { option: 'Eco' });
+ * @example
+ * await ha.callService('select', SelectService.SELECT_NEXT, 'select.living_room_mode', { cycle: false });
+ */
+export enum SelectService {
+  SELECT_FIRST = 'select_first',
+  SELECT_LAST = 'select_last',
+  SELECT_NEXT = 'select_next',
+  SELECT_OPTION = 'select_option',
+  SELECT_PREVIOUS = 'select_previous',
+}
+
+/** Select service/attribute keys for the select domain. */
+export enum SelectAttribute {
+  CYCLE = 'cycle',
+  OPTIONS = 'options',
+  OPTION = 'option',
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant media player entity's state.
+ */
+export interface HassStateMediaPlayerAttributes {
+  app_id?: string | null;
+  app_name?: string | null;
+  group_members?: string[] | null;
+  source?: string | null;
+  source_list?: string[] | null;
+  volume_level?: number | null; // Volume level of the media player (0..1).
+  is_volume_muted?: boolean | null;
+  media_content_id?: string | null;
+  media_content_type?: MediaType | string | null;
+  media_duration?: number | null; // Duration in seconds.
+  media_position?: number | null; // Position in seconds.
+  media_position_updated_at?: string | null; // ISO timestamp.
+  media_image_url?: string | null;
+  media_image_remotely_accessible?: boolean | null;
+  media_title?: string | null;
+  media_artist?: string | null;
+  media_album_name?: string | null;
+  media_album_artist?: string | null;
+  media_track?: number | null;
+  media_series_title?: string | null;
+  media_season?: string | number | null;
+  media_episode?: string | number | null;
+  media_channel?: string | null;
+  media_playlist?: string | null;
+  shuffle?: boolean | null;
+  repeat?: RepeatMode | string | null;
+  sound_mode?: string | null;
+  sound_mode_list?: string[] | null;
+  seek_position?: number | null;
+  entity_picture_local?: string | null;
+  media_filter_classes?: string[] | null;
+  extra?: Record<string, HomeAssistantPrimitive> | null;
+  supported_features?: MediaPlayerEntityFeature;
+}
+
+/** Media player services for the media_player domain. */
+export enum MediaPlayerService {
+  BROWSE_MEDIA = 'browse_media',
+  CLEAR_PLAYLIST = 'clear_playlist',
+  JOIN = 'join',
+  MEDIA_NEXT_TRACK = 'media_next_track',
+  MEDIA_PAUSE = 'media_pause',
+  MEDIA_PLAY = 'media_play',
+  MEDIA_PLAY_PAUSE = 'media_play_pause',
+  MEDIA_PREVIOUS_TRACK = 'media_previous_track',
+  MEDIA_SEEK = 'media_seek',
+  MEDIA_STOP = 'media_stop',
+  PLAY_MEDIA = 'play_media',
+  REPEAT_SET = 'repeat_set',
+  SEARCH_MEDIA = 'search_media',
+  SELECT_SOUND_MODE = 'select_sound_mode',
+  SELECT_SOURCE = 'select_source',
+  SHUFFLE_SET = 'shuffle_set',
+  TOGGLE = 'toggle',
+  TURN_OFF = 'turn_off',
+  TURN_ON = 'turn_on',
+  UNJOIN = 'unjoin',
+  VOLUME_DOWN = 'volume_down',
+  VOLUME_MUTE = 'volume_mute',
+  VOLUME_SET = 'volume_set',
+  VOLUME_UP = 'volume_up',
+}
+
+/** Media player attribute keys for the media_player domain. */
+export enum MediaPlayerAttribute {
+  APP_ID = 'app_id',
+  APP_NAME = 'app_name',
+  ENTITY_PICTURE_LOCAL = 'entity_picture_local',
+  GROUP_MEMBERS = 'group_members',
+  INPUT_SOURCE = 'source',
+  INPUT_SOURCE_LIST = 'source_list',
+  MEDIA_ALBUM_ARTIST = 'media_album_artist',
+  MEDIA_ALBUM_NAME = 'media_album_name',
+  MEDIA_ARTIST = 'media_artist',
+  MEDIA_CHANNEL = 'media_channel',
+  MEDIA_CONTENT_ID = 'media_content_id',
+  MEDIA_CONTENT_TYPE = 'media_content_type',
+  MEDIA_DURATION = 'media_duration',
+  MEDIA_EPISODE = 'media_episode',
+  MEDIA_EXTRA = 'extra',
+  MEDIA_FILTER_CLASSES = 'media_filter_classes',
+  MEDIA_IMAGE_REMOTELY_ACCESSIBLE = 'media_image_remotely_accessible',
+  MEDIA_IMAGE_URL = 'media_image_url',
+  MEDIA_PLAYLIST = 'media_playlist',
+  MEDIA_POSITION = 'media_position',
+  MEDIA_POSITION_UPDATED_AT = 'media_position_updated_at',
+  MEDIA_REPEAT = 'repeat',
+  MEDIA_SEASON = 'media_season',
+  MEDIA_SEEK_POSITION = 'seek_position',
+  MEDIA_SERIES_TITLE = 'media_series_title',
+  MEDIA_SHUFFLE = 'shuffle',
+  MEDIA_TITLE = 'media_title',
+  MEDIA_TRACK = 'media_track',
+  MEDIA_VOLUME_LEVEL = 'volume_level',
+  MEDIA_VOLUME_MUTED = 'is_volume_muted',
+  SOUND_MODE = 'sound_mode',
+  SOUND_MODE_LIST = 'sound_mode_list',
+}
+
+/** State of media player entities. */
+export enum MediaPlayerState {
+  OFF = 'off',
+  ON = 'on',
+  IDLE = 'idle',
+  PLAYING = 'playing',
+  PAUSED = 'paused',
+  STANDBY = 'standby',
+  BUFFERING = 'buffering',
+}
+
+/** Media class for media player entities. */
+export enum MediaClass {
+  ALBUM = 'album',
+  APP = 'app',
+  ARTIST = 'artist',
+  CHANNEL = 'channel',
+  COMPOSER = 'composer',
+  CONTRIBUTING_ARTIST = 'contributing_artist',
+  DIRECTORY = 'directory',
+  EPISODE = 'episode',
+  GAME = 'game',
+  GENRE = 'genre',
+  IMAGE = 'image',
+  MOVIE = 'movie',
+  MUSIC = 'music',
+  PLAYLIST = 'playlist',
+  PODCAST = 'podcast',
+  SEASON = 'season',
+  TRACK = 'track',
+  TV_SHOW = 'tv_show',
+  URL = 'url',
+  VIDEO = 'video',
+}
+
+/** Media type for media player entities. */
+export enum MediaType {
+  ALBUM = 'album',
+  APP = 'app',
+  APPS = 'apps',
+  ARTIST = 'artist',
+  CHANNEL = 'channel',
+  CHANNELS = 'channels',
+  COMPOSER = 'composer',
+  CONTRIBUTING_ARTIST = 'contributing_artist',
+  EPISODE = 'episode',
+  GAME = 'game',
+  GENRE = 'genre',
+  IMAGE = 'image',
+  MOVIE = 'movie',
+  MUSIC = 'music',
+  PLAYLIST = 'playlist',
+  PODCAST = 'podcast',
+  SEASON = 'season',
+  TRACK = 'track',
+  TVSHOW = 'tvshow',
+  URL = 'url',
+  VIDEO = 'video',
+}
+
+/** Repeat mode for media player entities. */
+export enum RepeatMode {
+  ALL = 'all',
+  OFF = 'off',
+  ONE = 'one',
+}
+
+/** Device class for media players. */
+export enum MediaPlayerDeviceClass {
+  TV = 'tv',
+  SPEAKER = 'speaker',
+  RECEIVER = 'receiver',
+}
+
+/** Enqueue types for playing media. */
+export enum MediaPlayerEnqueue {
+  ADD = 'add',
+  NEXT = 'next',
+  PLAY = 'play',
+  REPLACE = 'replace',
+}
+
+/** Supported features of the media player entity. */
+export enum MediaPlayerEntityFeature {
+  PAUSE = 1,
+  SEEK = 2,
+  VOLUME_SET = 4,
+  VOLUME_MUTE = 8,
+  PREVIOUS_TRACK = 16,
+  NEXT_TRACK = 32,
+  TURN_ON = 128,
+  TURN_OFF = 256,
+  PLAY_MEDIA = 512,
+  VOLUME_STEP = 1024,
+  SELECT_SOURCE = 2048,
+  STOP = 4096,
+  CLEAR_PLAYLIST = 8192,
+  PLAY = 16384,
+  SHUFFLE_SET = 32768,
+  SELECT_SOUND_MODE = 65536,
+  BROWSE_MEDIA = 131072,
+  REPEAT_SET = 262144,
+  GROUPING = 524288,
+  MEDIA_ANNOUNCE = 1048576,
+  MEDIA_ENQUEUE = 2097152,
+  SEARCH_MEDIA = 4194304,
 }
 
 /**

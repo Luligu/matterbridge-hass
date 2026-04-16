@@ -86,6 +86,38 @@ describe('addBinarySensorEntity', () => {
     expect(Object.keys(md.deviceTypes).length).toBe(0);
   });
 
+  it('adds default contactSensor when device_class is missing', () => {
+    const md = createMockMutableDevice();
+    const entity = { entity_id: 'binary_sensor.entity_no_device_class' } as any;
+    const state = { state: 'on', attributes: { friendly_name: 'No DC' } } as any;
+
+    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    expect(ep).toBe(entity.entity_id);
+
+    expect(md.deviceTypes[entity.entity_id][0]).toBe(contactSensor.code);
+    expect(md.clusters[entity.entity_id]).toContain(BooleanState.Cluster.id);
+    expect(md.friendlyNames[entity.entity_id]).toBe('No DC');
+
+    // contactSensor uses inverse boolean logic (on => false)
+    expect(md.booleanDefaults[entity.entity_id]).toBe(false);
+  });
+
+  it('does not setFriendlyName when missing device_class and friendly_name is missing', () => {
+    const md = createMockMutableDevice();
+    const entity = { entity_id: 'binary_sensor.entity_no_device_class_no_friendly' } as any;
+    const state = { state: 'off', attributes: {} } as any;
+
+    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    expect(ep).toBe(entity.entity_id);
+
+    expect(md.deviceTypes[entity.entity_id][0]).toBe(contactSensor.code);
+    expect(md.clusters[entity.entity_id]).toContain(BooleanState.Cluster.id);
+    expect(md.friendlyNames[entity.entity_id]).toBeUndefined();
+
+    // contactSensor uses inverse boolean logic (off => true)
+    expect(md.booleanDefaults[entity.entity_id]).toBe(true);
+  });
+
   it('adds contactSensor (door) with inverse boolean logic and friendly name', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('door', 'door');

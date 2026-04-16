@@ -682,7 +682,7 @@ describe('HassPlatform', () => {
 
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
-    expect(haPlatform.matterbridgeDevices.size).toBe(24);
+    expect(haPlatform.matterbridgeDevices.size).toBe(25);
 
     await haPlatform.unregisterAllDevices();
     mockConfig.filterByArea = '';

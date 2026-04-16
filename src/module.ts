@@ -1269,7 +1269,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
     } else if (domain === 'binary_sensor') {
       // Update binary_sensors of the device
-      const hassBinarySensorConverter = hassDomainBinarySensorsConverter.find((s) => s.domain === domain && s.withDeviceClass === new_state.attributes['device_class']);
+      const hassBinarySensorConverter = hassDomainBinarySensorsConverter.find((s) => s.domain === domain && s.withDeviceClass === (new_state.attributes['device_class'] ?? 'door'));
       if (hassBinarySensorConverter) {
         const convertedValue = hassBinarySensorConverter.converter(new_state.state);
         endpoint.log.debug(

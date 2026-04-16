@@ -22,7 +22,7 @@
 
 import { contactSensor, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
-import { SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { BooleanState, SmokeCoAlarm } from 'matterbridge/matter/clusters';
 import { getClusterNameById } from 'matterbridge/matter/types';
 import { isValidString } from 'matterbridge/utils';
 
@@ -46,6 +46,19 @@ export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDe
   let endpointName: string | undefined = undefined;
   const domain = getDomain(entity.entity_id);
   if (domain !== 'binary_sensor') return undefined;
+
+  // No device_class attribute, try to match with the contactSensor device type as default for binary_sensor domain.
+  if (state.attributes['device_class'] === null || state.attributes['device_class'] === undefined) {
+    endpointName = entity.entity_id; // Use the entity ID as the endpoint name
+    platform.log.debug(`+ binary_sensor device ${CYAN}${contactSensor.name}${db} cluster ${CYAN}${getClusterNameById(BooleanState.Cluster.id)}${db}`);
+    mutableDevice.addDeviceTypes(endpointName, contactSensor);
+    mutableDevice.addClusterServerIds(endpointName, BooleanState.Cluster.id);
+    if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
+    platform.log.debug(`- state ${debugStringify(state)}`);
+    platform.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.state}${db}`);
+    mutableDevice.addClusterServerBooleanState(endpointName, state.state === 'on' ? false : true);
+    return endpointName;
+  }
 
   hassDomainBinarySensorsConverter
     .filter((d) => d.domain === domain && d.withDeviceClass === state.attributes['device_class'])
