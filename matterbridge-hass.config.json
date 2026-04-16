@@ -23,6 +23,7 @@
   "postfix": "",
   "airQualityRegex": "",
   "enableServerRvc": true,
+  "discardHiddenEntities": true,
   "debug": false,
   "unregisterOnShutdown": false
 }

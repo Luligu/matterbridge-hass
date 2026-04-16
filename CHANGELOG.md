@@ -16,6 +16,14 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## [1.1.1] - Dev branch
 
+### Added
+
+- [package]: Preliminary compatibility update to `matterbridge 3.8.0`, matter 1.5.1 and matter.js 0.17.0.
+- [hidden]: All entities that are hidden are discarded unless `discardHiddenEntities` options is unchecked. Thanks kristian (https://github.com/Luligu/matterbridge-hass/issues/213).
+- [report]: Update the `report` to show the hidden entities.
+
+### Changed
+
 - [package]: Update dependencies.
 - [package]: Bump package to `automator` v.3.1.6.
 - [package]: Bump `typescript-eslint` to v.8.58.2.

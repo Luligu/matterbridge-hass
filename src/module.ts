@@ -49,7 +49,7 @@ import {
 } from './converters.js';
 import { addEventEntity } from './event.entity.js';
 import { addHelperEntity } from './helper.entity.js';
-import { getDomain, getEntityName, isDeviceEntity, isDisabled, isIndividualEntity, isSplitEntity, satisfiesAreaFilter, satisfiesLabelFilter } from './helpers.js';
+import { getDomain, getEntityName, isDeviceEntity, isDisabled, isHidden, isIndividualEntity, isSplitEntity, satisfiesAreaFilter, satisfiesLabelFilter } from './helpers.js';
 import { HassArea, HassConfig as HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant, HomeAssistantPrimitive } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import { savePayload } from './payload.js';
@@ -80,6 +80,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   postfix: string;
   airQualityRegex: string;
   enableServerRvc: boolean;
+  discardHiddenEntities: boolean;
 }
 
 /**
@@ -209,6 +210,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
       this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
       this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
+      this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
     }
 
     // Initialize air quality regex from config or use default
@@ -362,7 +364,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // ************************************* Scan the individual entities **************************************
     // *********************************************************************************************************
 
-    for (const entity of Array.from(this.ha.hassEntities.values()).filter((entity) => isIndividualEntity(entity) && !isDisabled(entity))) {
+    for (const entity of Array.from(this.ha.hassEntities.values()).filter(
+      (entity) => isIndividualEntity(entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
+    )) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
       if (!this.supportedDomains.includes(domain)) {
@@ -585,7 +589,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // *******************************************************************************************************************
 
       let hasRvc = false;
-      for (const entity of Array.from(this.ha.hassEntities.values()).filter((entity) => entity.device_id === device.id && !isDisabled(entity))) {
+      for (const entity of Array.from(this.ha.hassEntities.values()).filter(
+        (entity) => entity.device_id === device.id && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
+      )) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} labels ${CYAN}${entity.labels?.join(', ') ?? ''}${db}...`);
         const [domain, _name] = entity.entity_id.split('.');
         const entityName = entity.name ?? entity.original_name ?? deviceName;
@@ -727,7 +733,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // ************************************ Scan the split entities  *******************************************
     // *********************************************************************************************************
 
-    for (const entity of Array.from(this.ha.hassEntities.values()).filter((entity) => isDeviceEntity(entity) && !isDisabled(entity) && isSplitEntity(this, entity))) {
+    for (const entity of Array.from(this.ha.hassEntities.values()).filter(
+      (entity) => isDeviceEntity(entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities) && isSplitEntity(this, entity),
+    )) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
       if (!this.supportedDomains.includes(domain)) {

@@ -23,7 +23,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { isIndividualEntity, isSplitEntity } from './helpers.js';
+import { isHidden, isIndividualEntity, isSplitEntity } from './helpers.js';
 import type { HomeAssistantPlatform } from './module.js';
 
 /**
@@ -88,6 +88,7 @@ export function createReport(platform: HomeAssistantPlatform): string {
           `${getLongNameSuffix(reportName)}` +
           `${areaId && entity.area_id === areaId ? ' AREA' : ''}` +
           `${labelId && entity.labels?.includes(labelId) ? ' LABEL' : ''}` +
+          `${isHidden(entity) ? ' HIDDEN' : ''}` +
           `${isSplitEntity(platform, entity) ? ' SPLIT' : ''}`,
       );
     }
@@ -104,7 +105,8 @@ export function createReport(platform: HomeAssistantPlatform): string {
       `Individual Entity: ${entity.entity_id} "${state?.attributes?.friendly_name}" - "${entityName}"` +
         `${getLongNameSuffix(reportName)}` +
         `${areaId && entity.area_id === areaId ? ' AREA' : ''}` +
-        `${labelId && entity.labels?.includes(labelId) ? ' LABEL' : ''}`,
+        `${labelId && entity.labels?.includes(labelId) ? ' LABEL' : ''}` +
+        `${isHidden(entity) ? ' HIDDEN' : ''}`,
     );
   }
 

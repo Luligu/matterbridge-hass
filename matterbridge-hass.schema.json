@@ -209,6 +209,12 @@
       "type": "boolean",
       "default": true
     },
+    "discardHiddenEntities": {
+      "title": "Discard Hidden Entities",
+      "description": "Discard entities with 'hidden' attribute set to true. This will prevent the plugin from exposing entities that are hidden in Home Assistant.",
+      "type": "boolean",
+      "default": true
+    },
     "debug": {
       "title": "Enable Debug",
       "description": "Enable the debug for the plugin (development only)",

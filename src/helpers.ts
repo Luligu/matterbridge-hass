@@ -177,6 +177,19 @@ export function isDisabled(entityOrDevice: HassEntity | HassDevice): boolean {
 }
 
 /**
+ * Checks if a given entity is hidden.
+ *
+ * @param {HassEntity} entity - The Home Assistant entity to check.
+ * @returns {boolean} - Returns true if the entity is hidden, false otherwise.
+ */
+export function isHidden(entity: HassEntity): boolean {
+  if (!isValidObject(entity) || (typeof entity.hidden_by !== 'string' && entity.hidden_by !== null)) {
+    return false;
+  }
+  return entity.hidden_by !== null;
+}
+
+/**
  * Checks if a given entity or device satisfies the configured area filter.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.

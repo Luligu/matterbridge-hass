@@ -48,6 +48,7 @@ describe('report', () => {
               device_id: 'device-1',
               area_id: 'area-1',
               labels: ['label-1', 'label-split'],
+              hidden_by: 'user',
               name: 'Desk Light',
               original_name: 'Desk Light Original',
             },
@@ -60,6 +61,7 @@ describe('report', () => {
               device_id: 'device-1',
               area_id: null,
               labels: [],
+              hidden_by: null,
               name: 'Temperature',
               original_name: 'Temperature',
             },
@@ -72,8 +74,22 @@ describe('report', () => {
               device_id: null,
               area_id: 'area-1',
               labels: ['label-1'],
+              hidden_by: 'user',
               name: 'Movie Mode',
               original_name: 'Movie Mode',
+            },
+          ],
+          [
+            'script.night',
+            {
+              id: 'entity-4',
+              entity_id: 'script.night',
+              device_id: null,
+              area_id: 'area-2',
+              labels: [],
+              hidden_by: null,
+              name: 'Night Mode',
+              original_name: 'Night Mode',
             },
           ],
         ]),
@@ -97,6 +113,13 @@ describe('report', () => {
             {
               entity_id: 'scene.movie',
               attributes: { friendly_name: 'Movie Mode' },
+            },
+          ],
+          [
+            'script.night',
+            {
+              entity_id: 'script.night',
+              attributes: { friendly_name: 'Night Mode' },
             },
           ],
         ]),
@@ -185,7 +208,7 @@ describe('report', () => {
 
   it('should create the Home Assistant report content', () => {
     expect(createReport(createPlatform())).toBe(
-      `Home Assistant Devices and Entities Report\n\nFilter by area: Living Room >>> area-1\n\nFilter by label: Important >>> label-1\n\nDevice Entities\n\nDevice: "Desk Lamp Renamed With A Very Long Name" LONGNAME SERVICE AREA LABEL\n-  Entity: light.desk "Desk Accent Light With A Very Long Friendly Name" - "Desk Light" LONGNAME AREA LABEL SPLIT\n-  Entity: sensor.temperature "Temperature" - "Temperature"\n\nIndividual Entities\n\nIndividual Entity: scene.movie "Movie Mode" - "Movie Mode" AREA LABEL\n`,
+      `Home Assistant Devices and Entities Report\n\nFilter by area: Living Room >>> area-1\n\nFilter by label: Important >>> label-1\n\nDevice Entities\n\nDevice: "Desk Lamp Renamed With A Very Long Name" LONGNAME SERVICE AREA LABEL\n-  Entity: light.desk "Desk Accent Light With A Very Long Friendly Name" - "Desk Light" LONGNAME AREA LABEL HIDDEN SPLIT\n-  Entity: sensor.temperature "Temperature" - "Temperature"\n\nIndividual Entities\n\nIndividual Entity: scene.movie "Movie Mode" - "Movie Mode" AREA LABEL HIDDEN\nIndividual Entity: script.night "Night Mode" - "Night Mode"\n`,
     );
   });
 
