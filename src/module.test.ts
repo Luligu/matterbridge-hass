@@ -12,9 +12,9 @@ import * as path from 'node:path';
 import { jest } from '@jest/globals';
 import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, MatterbridgeEndpoint, onOffOutlet } from 'matterbridge';
 import {
-  addBridgedEndpointSpy,
+  addBridgedEndpointMatterbridgeSpy,
   addMatterbridgePlatform,
-  addVirtualEndpointSpy,
+  addVirtualEndpointMatterbridgeSpy,
   createMatterbridgeEnvironment,
   destroyMatterbridgeEnvironment,
   flushAsync,
@@ -26,12 +26,12 @@ import {
   loggerNoticeSpy,
   loggerWarnSpy,
   matterbridge,
-  removeAllBridgedEndpointsSpy,
-  removeBridgedEndpointSpy,
-  setAttributeSpy,
+  removeAllBridgedEndpointsMatterbridgeSpy,
+  removeBridgedEndpointMatterbridgeSpy,
+  setAttributeMatterbridgeEndpointSpy,
   setDebug,
   setupTest,
-  triggerSwitchEventSpy,
+  triggerSwitchEventMatterbridgeEndpointSpy,
 } from 'matterbridge/jestutils';
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
@@ -88,22 +88,24 @@ describe('HassPlatform', () => {
     throw new Error('Failed to read or parse mock homeassistant.json file');
   }
 
-  addBridgedEndpointSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
+  addBridgedEndpointMatterbridgeSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
     console.log(`Mocked Matterbridge.addBridgedEndpoint: ${pluginName} ${device.name}`);
     return Promise.resolve();
   });
-  removeBridgedEndpointSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
+  removeBridgedEndpointMatterbridgeSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
     console.log(`Mocked Matterbridge.removeBridgedEndpoint: ${pluginName} ${device.name}`);
     return Promise.resolve();
   });
-  removeAllBridgedEndpointsSpy.mockImplementation((pluginName: string) => {
+  removeAllBridgedEndpointsMatterbridgeSpy.mockImplementation((pluginName: string) => {
     console.log(`Mocked Matterbridge.removeAllBridgedEndpoints: ${pluginName}`);
     return Promise.resolve();
   });
-  addVirtualEndpointSpy.mockImplementation(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
-    console.log(`Mocked Matterbridge.addVirtualEndpoint`);
-    return true;
-  });
+  addVirtualEndpointMatterbridgeSpy.mockImplementation(
+    async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
+      console.log(`Mocked Matterbridge.addVirtualEndpoint`);
+      return true;
+    },
+  );
 
   const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
     console.log(`Mocked HomeAssistant.connect`);
@@ -680,7 +682,7 @@ describe('HassPlatform', () => {
 
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
-    expect(haPlatform.matterbridgeDevices.size).toBe(24);
+    expect(haPlatform.matterbridgeDevices.size).toBe(25);
 
     await haPlatform.unregisterAllDevices();
     mockConfig.filterByArea = '';
@@ -2398,7 +2400,7 @@ describe('HassPlatform', () => {
     await haPlatform.updateHandler(device.id, 'fan.fan_fan', state, state);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Update state ${CYAN}fan${wr}:${CYAN}unknownstate${wr} not supported for entity fan.fan_fan`));
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
 
     /*
     const child = mbDevice?.getChildEndpointByName('fanfan_fan');
@@ -2506,7 +2508,7 @@ describe('HassPlatform', () => {
       }
     }
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
-    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.Cluster.id, 'currentPositionLiftPercent100ths', expect.anything(), expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.Cluster.id, 'currentPositionLiftPercent100ths', expect.anything(), expect.anything());
   });
 
   it('should register a Contact device from ha', async () => {
@@ -2542,7 +2544,7 @@ describe('HassPlatform', () => {
       }
     }
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', expect.anything(), expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', expect.anything(), expect.anything());
   });
 
   it('should register a switch device from ha', async () => {
@@ -2635,34 +2637,34 @@ describe('HassPlatform', () => {
 
     contactSensorEntityState.state = 'off';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything());
 
     jest.clearAllMocks();
     contactSensorEntityState.state = 'on';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
     const oldState = { ...contactSensorEntityState };
     contactSensorEntityState.state = 'unavailable';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, expect.anything());
 
     jest.clearAllMocks();
     oldState.state = 'unavailable';
     contactSensorEntityState.state = 'off';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', true, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', true, expect.anything());
 
     jest.clearAllMocks();
     contactSensorEntityState.attributes.device_class = 'cold';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
     contactSensorEntityState.attributes.device_class = 'moisture';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
   });
 
   it('should register a motion sensor device from ha', async () => {
@@ -2690,7 +2692,7 @@ describe('HassPlatform', () => {
       motionSensorOccupancyEntityState as unknown as HassState,
       motionSensorOccupancyEntityState as unknown as HassState,
     );
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
     motionSensorIlluminanceEntityState.state = '2500';
     await haPlatform.updateHandler(
       motionSensorDevice.id,
@@ -2698,7 +2700,7 @@ describe('HassPlatform', () => {
       motionSensorIlluminanceEntityState as unknown as HassState,
       motionSensorIlluminanceEntityState as unknown as HassState,
     );
-    expect(setAttributeSpy).toHaveBeenCalledWith(IlluminanceMeasurement.Cluster.id, 'measuredValue', 33979, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(IlluminanceMeasurement.Cluster.id, 'measuredValue', 33979, expect.anything());
     (motionSensorIlluminanceEntityState.state as any) = 'unknownstate';
     await haPlatform.updateHandler(
       motionSensorDevice.id,
@@ -2733,21 +2735,21 @@ describe('HassPlatform', () => {
 
     buttonEntityState.attributes.event_type = 'single';
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
-    expect(triggerSwitchEventSpy).toHaveBeenCalledWith('Single', expect.anything());
+    expect(triggerSwitchEventMatterbridgeEndpointSpy).toHaveBeenCalledWith('Single', expect.anything());
 
     buttonEntityState.attributes.event_type = 'double';
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
-    expect(triggerSwitchEventSpy).toHaveBeenCalledWith('Double', expect.anything());
+    expect(triggerSwitchEventMatterbridgeEndpointSpy).toHaveBeenCalledWith('Double', expect.anything());
 
     buttonEntityState.attributes.event_type = 'long';
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
-    expect(triggerSwitchEventSpy).toHaveBeenCalledWith('Long', expect.anything());
+    expect(triggerSwitchEventMatterbridgeEndpointSpy).toHaveBeenCalledWith('Long', expect.anything());
 
     jest.clearAllMocks();
     buttonEntityState.attributes.event_type = 'unsupported';
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
     expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`not supported for entity`));
-    expect(triggerSwitchEventSpy).not.toHaveBeenCalled();
+    expect(triggerSwitchEventMatterbridgeEndpointSpy).not.toHaveBeenCalled();
   });
 
   it('should call onConfigure', async () => {

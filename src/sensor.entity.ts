@@ -23,7 +23,7 @@
 import { airQualitySensor, electricalSensor, powerSource } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import { AirQuality } from 'matterbridge/matter/clusters';
-import { ClusterRegistry } from 'matterbridge/matter/types';
+import { getClusterNameById } from 'matterbridge/matter/types';
 import { isValidString } from 'matterbridge/utils';
 
 import { hassDomainSensorsConverter } from './converters.js';
@@ -82,7 +82,7 @@ export function addSensorEntity(
       } else {
         endpointName = entity.entity_id; // Use the entity ID as the endpoint name
       }
-      platform.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomainSensor.clusterId)?.name}${db}`);
+      platform.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${getClusterNameById(hassDomainSensor.clusterId)}${db}`);
       mutableDevice.addDeviceTypes(endpointName, hassDomainSensor.deviceType);
       mutableDevice.addClusterServerIds(endpointName, hassDomainSensor.clusterId);
       if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);

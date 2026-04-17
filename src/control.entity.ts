@@ -26,7 +26,7 @@
 import { colorTemperatureLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { ClusterId, ClusterRegistry } from 'matterbridge/matter/types';
+import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
 import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
@@ -96,7 +96,7 @@ export function addControlEntity(
     .forEach((hassDomain) => {
       if (!hassDomain.deviceType || !hassDomain.clusterId) return;
       endpointName = entity.entity_id;
-      platform.log.debug(`+ ${domain} device ${CYAN}${hassDomain.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomain.clusterId)?.name}${db}`);
+      platform.log.debug(`+ ${domain} device ${CYAN}${hassDomain.deviceType.name}${db} cluster ${CYAN}${getClusterNameById(hassDomain.clusterId)}${db}`);
       mutableDevice.addDeviceTypes(endpointName, hassDomain.deviceType);
       mutableDevice.addClusterServerIds(endpointName, hassDomain.clusterId);
       if (state.attributes && isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
@@ -113,7 +113,7 @@ export function addControlEntity(
       .forEach((hassDomain) => {
         if (!hassDomain.deviceType || !hassDomain.clusterId) return;
         endpointName = entity.entity_id;
-        platform.log.debug(`+ attribute device ${CYAN}${hassDomain.deviceType.name}${db} cluster ${CYAN}${ClusterRegistry.get(hassDomain.clusterId)?.name}${db}`);
+        platform.log.debug(`+ attribute device ${CYAN}${hassDomain.deviceType.name}${db} cluster ${CYAN}${getClusterNameById(hassDomain.clusterId)}${db}`);
         mutableDevice.addDeviceTypes(endpointName, hassDomain.deviceType);
         mutableDevice.addClusterServerIds(endpointName, hassDomain.clusterId);
       });
@@ -204,7 +204,7 @@ export function addControlEntity(
 
   // Add subscribe handlers
   for (const hassSubscribe of hassSubscribeConverter.filter((s) => s.domain === domain)) {
-    platform.log.debug(`- subscribe: ${CYAN}${ClusterRegistry.get(hassSubscribe.clusterId)?.name}${db}:${CYAN}${hassSubscribe.attribute}${db}`);
+    platform.log.debug(`- subscribe: ${CYAN}${getClusterNameById(hassSubscribe.clusterId)}${db}:${CYAN}${hassSubscribe.attribute}${db}`);
     mutableDevice.addSubscribeHandler(
       entity.entity_id,
       hassSubscribe.clusterId,

@@ -731,6 +731,31 @@ describe('Matterbridge ' + NAME, () => {
     expect(endpoint?.getChildEndpoints().length).toBe(0);
   });
 
+  it('should call onStart and not register an individual entity, a device with two entities, one normal and one split with discardHiddenEntities enabled', async () => {
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperatureIndividualEntity = generateEntity(haPlatform.ha, 'Temperature', 'sensor');
+    const humidityDeviceEntity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressureSplitEntity = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperatureIndividualEntity, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+    temperatureIndividualEntity.hidden_by = 'user';
+    humidityDeviceEntity.hidden_by = 'user';
+    pressureSplitEntity.hidden_by = 'user';
+
+    haPlatform.config.splitEntities = [pressureSplitEntity.entity_id];
+    haPlatform.config.discardHiddenEntities = true;
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(aggregator.parts.size).toBe(0);
+  });
+
   it('should call onStart and register an individual entity, a device with two entities, one normal and one split with Matter strategy', async () => {
     const device = generateDevice(haPlatform.ha, 'Climate Device');
     const temperatureIndividualEntity = generateEntity(haPlatform.ha, 'Temperature', 'sensor');

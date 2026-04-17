@@ -13,6 +13,7 @@ import {
   getName,
   isDeviceEntity,
   isDisabled,
+  isHidden,
   isIndividualEntity,
   isSplitEntity,
   satisfiesAreaFilter,
@@ -413,6 +414,32 @@ describe('HassPlatform helpers', () => {
     // @ts-expect-error Testing edge case where disabled_by is undefined
     entity.disabled_by = undefined;
     expect(isDisabled(entity)).toBe(false);
+  });
+
+  it('should check if an entity is hidden', () => {
+    const entity: HassEntity = {
+      entity_id: 'light.kitchen',
+      hidden_by: null,
+    } as unknown as HassEntity;
+
+    expect(isHidden(entity)).toBe(false);
+
+    // @ts-expect-error Testing edge case where entity is null
+    expect(isHidden(null)).toBe(false);
+
+    // @ts-expect-error Testing edge case where entity is undefined
+    expect(isHidden(undefined)).toBe(false);
+
+    entity.hidden_by = 'user';
+    expect(isHidden(entity)).toBe(true);
+
+    // @ts-expect-error Testing edge case where hidden_by is a number
+    entity.hidden_by = 1;
+    expect(isHidden(entity)).toBe(false);
+
+    // @ts-expect-error Testing edge case where hidden_by is undefined
+    entity.hidden_by = undefined;
+    expect(isHidden(entity)).toBe(false);
   });
 
   it('should check if a device or entity satisfies the configured area filter', () => {

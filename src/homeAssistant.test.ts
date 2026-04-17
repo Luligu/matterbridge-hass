@@ -835,6 +835,35 @@ describe('HomeAssistant', () => {
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
+  it('should not emit unhandledRejection when reconnect attempt fails', async () => {
+    homeAssistant = new HomeAssistant(wsUrl, accessToken, 1, 2);
+
+    const unhandledRejections: unknown[] = [];
+    const unhandledRejectionHandler = (reason: unknown) => {
+      unhandledRejections.push(reason);
+    };
+    process.on('unhandledRejection', unhandledRejectionHandler);
+
+    try {
+      const connectSpy = jest.spyOn(homeAssistant, 'connect').mockRejectedValue(new Error('Connection failed'));
+
+      jest.useFakeTimers();
+      (homeAssistant as any).startReconnect();
+      jest.advanceTimersByTime(1000);
+      jest.useRealTimers();
+
+      await new Promise<void>((resolve) => setImmediate(resolve));
+
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+      expect(unhandledRejections).toHaveLength(0);
+    } finally {
+      jest.useRealTimers();
+      process.off('unhandledRejection', unhandledRejectionHandler);
+      await homeAssistant.close();
+      homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
+    }
+  });
+
   it('should send ping to Home Assistant', async () => {
     homeAssistant = new HomeAssistant(wsUrl, accessToken, 0, 0);
     expect((homeAssistant as any).reconnectTimeoutTime).toBe(0);

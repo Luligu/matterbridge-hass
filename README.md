@@ -180,59 +180,59 @@ I suggest to always use the filters by Area and Label or the whiteList adding ea
 
 If any device or entity creates issues put it in the blackList.
 
-### host
+### Host
 
 Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). Use the IP only if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selfsigned certificates you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificates you don't need ca certificate and rejectUnauthorized should be selected.
 
-### token
+### Token
 
 Home Assistant long term token used to connect to Home Assistant with WebSocket. Click on your user name in the bottom left corner of the Home Assistand frontend, then Security and create a Long-Lived Access Tokens.
 
-### certificatePath
+### CA Certificate Path
 
 Fully qualified path to the SSL ca certificate file. This is only needed if you use a self-signed certificate and rejectUnauthorized is enabled.
 
-### rejectUnauthorized
+### Reject Unauthorized
 
 Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates without providing the ca certificate.
 
-### reconnectTimeout
+### Reconnect Timeout
 
 Reconnect timeout in seconds.
 
-### reconnectRetries
+### Reconnect Retries
 
 Number of times to try to reconnect before giving up.
 
-### filterByArea
+### Filter By Area
 
 Filter devices and individual entities by area. If enabled, only devices, individual entities, and split entities in the selected area will be exposed. If disabled, all devices, individual entities, and split entities will be exposed. A device is also exposed if it has any entities that satisfy the filters.
 
-### filterByLabel
+### Filter By Label
 
 Filter devices and individual entities by label. If enabled, only devices, individual entities, and split entities with the selected label will be exposed. If disabled, all devices, individual entities, and split entities will be exposed. A device is also exposed if it has any entities that satisfy the filters.
 
-### whiteList
+### Whitelist
 
 If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name or the device/entity id.
 
-### blackList
+### Blacklist
 
 If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
 
-### deviceEntityBlackList
+### Device Entity Blacklist
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
 
-### domain whiteList
+### Domain Whitelist
 
 Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains. Enter the domain name (i.e. switch, light, sensor).
 
-### domain blackList
+### Domain Blacklist
 
 Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains. Enter the domain name (i.e. automation, scene, button).
 
-### splitEntities
+### Split Entities
 
 The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
 
@@ -261,7 +261,7 @@ If you want a more technical explanation for the naming issues (expecially upset
 
 > **If you enable the filters (area and label), the split entity must also satisfy the filter criteria.**
 
-### splitByLabel
+### Split By Label
 
 Any device entity with this label will be split. This is faster to setup then splitEntities on huge setups.
 
@@ -269,15 +269,15 @@ Any device entity with this label will be split. This is faster to setup then sp
 
 > **If you enable the filters (area and label), the split entity must also satisfy the filter criteria.**
 
-### splitNameStrategy
+### Split Name Strategy
 
 Strategy used for split entity names. "Entity name": use the entity name (i.e. Child Lock) if it exists; otherwise, use the friendly name. "Friendly name": use the friendly name (i.e. Computer Plug Child Lock) if it exists; otherwise, use the entity name. Changing this value will cause you to lose the device configuration in your controller, and you may need to pair the controller again.
 
-### controllerStrategy
+### Controller Strategy
 
 Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
 
-### airQualityRegex
+### Air Quality Regex
 
 Custom regex pattern to match air quality sensors that don't follow the standard Air Quality entity sensor.
 
@@ -290,12 +290,16 @@ Custom regex pattern to match air quality sensors that don't follow the standard
 
 If your setup has only one air quality sensor, you can simply put the exact entity ID here (e.g., `sensor.air_quality_sensor`) and it will match that specific entity.
 
-### enableServerRvc
+### Enable Server Rvc
 
 Enable the Robot Vacuum Cleaner in server mode. Apple Home will crash unless you use this mode! Don't try it with Apple Home cause the bridge will become unstable even if you remove it after.
 
 In addition to this well known bugs, the rvc must be a single device, it cannot have any other device types like switch or whatever. So if your integration adds any other device types, blacklist or split them.
 
-### debug
+### Discard Hidden Entities
+
+If enabled (default), the plugin discards entities that are hidden in Home Assistant (i.e. entities whose `hidden_by` field is not `null` in the entity registry). Hidden entities will not be exposed as device entities, individual entities, or split entities.
+
+### Enable Debug
 
 Should be enabled only if you want to debug some issue using the log.
