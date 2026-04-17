@@ -14,7 +14,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-## [1.1.1] - Dev branch
+## [1.1.1] - 2026-04-17
 
 ### Added
 
@@ -24,7 +24,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [readme]: Changed config headers in the [README](README.md#config) to reflect schema titles.
 - [select]: Add definitions for `select` and `input_select` domain.
 - [media_player]: Add definitions for `media_player` domain.
-- [binary_sensor]: The default implementation without device_class is a contant sensor.
+- [binary_sensor]: The default implementation without device_class is a contact sensor.
 
 ### Changed
 
