@@ -1,9 +1,9 @@
 // src\mutableDevice.test.ts
 
-const MATTER_PORT = 6200;
 const NAME = 'MutableDevice';
-const HOMEDIR = path.join('jest', NAME);
+const MATTER_PORT = 6200;
 const MATTER_CREATE_ONLY = true;
+const HOMEDIR = path.join('jest', NAME);
 
 import path from 'node:path';
 
@@ -33,7 +33,19 @@ import {
   temperatureSensor,
   thermostatDevice,
 } from 'matterbridge';
-import { addDevice, aggregator, createTestEnvironment, destroyTestEnvironment, logKeepAlives, server, setupTest, startServerNode, stopServerNode } from 'matterbridge/jestutils';
+import {
+  addDevice,
+  aggregator,
+  createServerNode,
+  createTestEnvironment,
+  destroyTestEnvironment,
+  flushServerNode,
+  setDebug,
+  setupTest,
+  startServerNode,
+  stopServerNode,
+  subscribeAttributeMatterbridgeEndpointSpy,
+} from 'matterbridge/jestutils';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
@@ -81,15 +93,16 @@ describe('MutableDevice', () => {
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),
+    addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {}),
   } as any;
-
-  const subscribeAttributeSpy = jest.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
   beforeAll(async () => {
     // Setup the Matter test environment
-    createTestEnvironment(NAME, MATTER_CREATE_ONLY);
-    // Start the server node and aggregator
-    await startServerNode(NAME, MATTER_PORT, undefined, MATTER_CREATE_ONLY);
+    await createTestEnvironment();
+    // Create the server node and aggregator
+    await createServerNode(MATTER_PORT);
+    // Start the server node if not in create-only mode
+    if (!MATTER_CREATE_ONLY) await startServerNode();
   });
 
   beforeEach(() => {
@@ -97,14 +110,15 @@ describe('MutableDevice', () => {
   });
 
   afterEach(async () => {
-    jest.clearAllMocks();
+    await setDebug(false);
   });
 
   afterAll(async () => {
-    // Stop the server node
-    await stopServerNode(server, MATTER_CREATE_ONLY);
+    // Stop or flush the server node depending on the create-only mode
+    if (MATTER_CREATE_ONLY) await flushServerNode();
+    else await stopServerNode();
     // Destroy the Matter test environment
-    await destroyTestEnvironment(MATTER_CREATE_ONLY);
+    await destroyTestEnvironment();
 
     // Restore all mocks
     jest.restoreAllMocks();
@@ -670,7 +684,7 @@ describe('MutableDevice', () => {
     device = mutableDevice.create();
     expect(device).toBeDefined();
     mutableDevice.logMutableDevice();
-    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(2);
+    expect(subscribeAttributeMatterbridgeEndpointSpy).toHaveBeenCalledTimes(2);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource', 'MA-fan']);
@@ -711,7 +725,7 @@ describe('MutableDevice', () => {
     device = mutableDevice.create();
     expect(device).toBeDefined();
     mutableDevice.logMutableDevice();
-    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(4);
+    expect(subscribeAttributeMatterbridgeEndpointSpy).toHaveBeenCalledTimes(4);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['MA-bridgedNode', 'MA-powerSource']);
@@ -760,7 +774,7 @@ describe('MutableDevice', () => {
     device = mutableDevice.create(true);
     expect(device).toBeDefined();
     mutableDevice.logMutableDevice();
-    expect(subscribeAttributeSpy).toHaveBeenCalledTimes(4);
+    expect(subscribeAttributeMatterbridgeEndpointSpy).toHaveBeenCalledTimes(4);
 
     // Verify the remap
     expect(mutableDevice.size()).toBe(1);

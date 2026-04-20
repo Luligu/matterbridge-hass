@@ -14,17 +14,38 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+## [1.1.2] - Dev branch
+
+### Added
+
+- [test]: Refactor tests to use the updated matterbridge test facility.
+
+### Changed
+
+- [package]: Preliminary compatibility update to `matterbridge 3.8.0`, matter 1.5.1 and matter.js 0.17.0.
+- [package]: Update dependencies.
+- [package]: Bump `typescript` to v.6.0.3.
+- [package]: Bump `eslint` to v.10.2.1.
+- [package]: Bump `typescript-eslint` to v.8.58.2.
+- [package]: Add `.vscode\settings.json`.
+- [devcontainer]: Add `Claude Code for VS Code extension` to Dev Container.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.1.1] - 2026-04-17
+
+### Breaking Changes
+
+- [binary_sensor]: The default implementation without device_class is a contact sensor. This will expose new entities.
+- [hidden]: All entities that are hidden are discarded unless `discardHiddenEntities` options is unchecked (reworked 1.0.4). Thanks kristian (https://github.com/Luligu/matterbridge-hass/issues/213).
 
 ### Added
 
 - [package]: Preliminary compatibility update to `matterbridge 3.8.0`, matter 1.5.1 and matter.js 0.17.0.
-- [hidden]: All entities that are hidden are discarded unless `discardHiddenEntities` options is unchecked. Thanks kristian (https://github.com/Luligu/matterbridge-hass/issues/213).
 - [report]: Update the `report` to show the hidden entities.
 - [readme]: Changed config headers in the [README](README.md#config) to reflect schema titles.
 - [select]: Add definitions for `select` and `input_select` domain.
 - [media_player]: Add definitions for `media_player` domain.
-- [binary_sensor]: The default implementation without device_class is a contact sensor.
 
 ### Changed
 

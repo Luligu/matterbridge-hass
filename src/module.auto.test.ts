@@ -2,11 +2,11 @@
 
 /* eslint-disable no-console */
 
-const MATTER_PORT = 6200;
 const NAME = 'PlatformAuto';
-const HOMEDIR = path.join('.cache', 'jest', NAME);
+const MATTER_PORT = 6200;
 const MATTER_CREATE_ONLY = true;
 const MATTER_PAUSE = 10;
+const HOMEDIR = path.join('.cache', 'jest', NAME);
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -16,10 +16,12 @@ import { MatterbridgeEndpoint, onOffMountedSwitch, onOffOutlet } from 'matterbri
 import {
   addDevice,
   aggregator,
+  createServerNode,
   createTestEnvironment,
   deleteDevice,
   destroyTestEnvironment,
   flushAsync,
+  flushServerNode,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -112,7 +114,7 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.7.3',
+    matterbridgeVersion: '3.7.5',
     log,
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await addDevice(aggregator, device, MATTER_PAUSE);
@@ -139,9 +141,11 @@ describe('Matterbridge ' + NAME, () => {
 
   beforeAll(async () => {
     // Setup the Matter test environment
-    createTestEnvironment(NAME, MATTER_CREATE_ONLY);
+    await createTestEnvironment();
+    // Create the server node and aggregator
+    await createServerNode(MATTER_PORT);
     // Start the server node and aggregator
-    await startServerNode(NAME, MATTER_PORT, undefined, MATTER_CREATE_ONLY);
+    if (!MATTER_CREATE_ONLY) await startServerNode();
   });
 
   beforeEach(async () => {
@@ -152,15 +156,15 @@ describe('Matterbridge ' + NAME, () => {
   afterEach(async () => {
     // Clean up after each test
     await cleanup();
-    await flushAsync(undefined, undefined, MATTER_PAUSE);
     await setDebug(false);
   });
 
   afterAll(async () => {
-    // Stop the server node
-    await stopServerNode(server, MATTER_CREATE_ONLY);
+    // Stop or flush the server node depending on the create-only mode
+    if (MATTER_CREATE_ONLY) await flushServerNode();
+    else await stopServerNode();
     // Destroy the Matter test environment
-    await destroyTestEnvironment(MATTER_CREATE_ONLY);
+    await destroyTestEnvironment();
 
     // Restore all mocks
     jest.restoreAllMocks();
@@ -221,7 +225,7 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.unregisterOnShutdown = false;
   }
 
-  it('should initialize the HomeAssistantPlatform', async () => {
+  it('should initialize the HomeAssistantPlatform (mandatory)', async () => {
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, log, mockConfig);
     expect(haPlatform).toBeDefined();
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
@@ -240,8 +244,8 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Initialized platform: ${CYAN}${haPlatform.config.name}${nf} version: ${CYAN}${haPlatform.config.version}${rs}`);
     haPlatform.haSubscriptionId = 1;
     haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
-    haPlatform.ha.hassConfig = {} as HassConfig; // Simulate a Home Assistant configuration
-    haPlatform.ha.hassServices = {} as HassServices; // Simulate a Home Assistant services
+    haPlatform.ha.hassConfig = {} as HassConfig; // Simulate Home Assistant configuration
+    haPlatform.ha.hassServices = {} as HassServices; // Simulate Home Assistant services
   });
 
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {
@@ -790,7 +794,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(endpoint?.getChildEndpoints().length).toBe(1);
   });
 
-  it('should call onShutdown and unregister', async () => {
+  it('should call onShutdown and unregister (mandatory)', async () => {
     mockConfig.unregisterOnShutdown = true;
     await haPlatform.onShutdown('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);

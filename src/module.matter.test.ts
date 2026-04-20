@@ -2,8 +2,9 @@
 
 /* eslint-disable no-console */
 
-const MATTER_PORT = 6100;
 const NAME = 'PlatformMatter';
+const MATTER_PORT = 6100;
+const MATTER_CREATE_ONLY = true;
 const HOMEDIR = path.join('.cache', 'jest', NAME);
 
 import { readFileSync } from 'node:fs';
@@ -13,9 +14,17 @@ import { jest } from '@jest/globals';
 import { invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
 import {
   aggregator,
+  createServerNode,
   createTestEnvironment,
   destroyTestEnvironment,
   flushAsync,
+  flushServerNode,
+  getMoveToColorRequest,
+  getMoveToColorTemperatureRequest,
+  getMoveToHueAndSaturationRequest,
+  getMoveToHueRequest,
+  getMoveToLevelRequest,
+  getMoveToSaturationRequest,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -129,70 +138,6 @@ const addClusterServerAutoModeThermostatSpy = jest.spyOn(MutableDevice.prototype
 const addClusterServerHeatingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
 const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
 
-// Remove these helpers and use matterbridge when you require a new minor version
-const getMoveToLevelRequest = (level: number, transitionTime: number, executeIfOff: boolean) => {
-  const request: LevelControl.MoveToLevelRequest = {
-    level,
-    transitionTime,
-    optionsMask: { executeIfOff, coupleColorTempToLevel: false },
-    optionsOverride: { executeIfOff, coupleColorTempToLevel: false },
-  };
-  return request;
-};
-
-const getMoveToColorTemperatureRequest = (colorTemperatureMireds: number, transitionTime: number, executeIfOff: boolean) => {
-  const request: ColorControl.MoveToColorTemperatureRequest = {
-    colorTemperatureMireds,
-    transitionTime,
-    optionsMask: { executeIfOff },
-    optionsOverride: { executeIfOff },
-  };
-  return request;
-};
-
-const getMoveToHueRequest = (hue: number, transitionTime: number, executeIfOff: boolean) => {
-  const request: ColorControl.MoveToHueRequest = {
-    hue,
-    transitionTime,
-    direction: ColorControl.Direction.Shortest,
-    optionsMask: { executeIfOff },
-    optionsOverride: { executeIfOff },
-  };
-  return request;
-};
-
-const getMoveToSaturationRequest = (saturation: number, transitionTime: number, executeIfOff: boolean) => {
-  const request: ColorControl.MoveToSaturationRequest = {
-    saturation,
-    transitionTime,
-    optionsMask: { executeIfOff },
-    optionsOverride: { executeIfOff },
-  };
-  return request;
-};
-
-const getMoveToHueAndSaturationRequest = (hue: number, saturation: number, transitionTime: number, executeIfOff: boolean) => {
-  const request: ColorControl.MoveToHueAndSaturationRequest = {
-    hue,
-    saturation,
-    transitionTime,
-    optionsMask: { executeIfOff },
-    optionsOverride: { executeIfOff },
-  };
-  return request;
-};
-
-const getMoveToColorRequest = (colorX: number, colorY: number, transitionTime: number, executeIfOff: boolean) => {
-  const request: ColorControl.MoveToColorRequest = {
-    colorX,
-    colorY,
-    transitionTime,
-    optionsMask: { executeIfOff },
-    optionsOverride: { executeIfOff },
-  };
-  return request;
-};
-
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
 // Setup the test environment
@@ -228,7 +173,9 @@ describe('Matterbridge ' + NAME, () => {
 
   beforeAll(async () => {
     // Create the test environment
-    createTestEnvironment(NAME);
+    await createTestEnvironment();
+    // Create the server node and aggregator
+    await createServerNode(MATTER_PORT);
   });
 
   beforeEach(async () => {
@@ -237,7 +184,7 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   afterEach(async () => {
-    await flushAsync(1, 1, 10);
+    await setDebug(false);
   });
 
   afterAll(async () => {
@@ -284,7 +231,8 @@ describe('Matterbridge ' + NAME, () => {
   }
 
   test('create and start the server node', async () => {
-    await startServerNode(NAME, MATTER_PORT);
+    // Start the server node if not in create-only mode
+    if (!MATTER_CREATE_ONLY) await startServerNode();
     expect(server).toBeDefined();
     expect(aggregator).toBeDefined();
   });
@@ -4103,7 +4051,9 @@ describe('Matterbridge ' + NAME, () => {
 
   test('close the server node', async () => {
     expect(server).toBeDefined();
-    await stopServerNode(server);
+    // Stop or flush the server node depending on the create-only mode
+    if (MATTER_CREATE_ONLY) await flushServerNode();
+    else await stopServerNode();
   });
 });
 

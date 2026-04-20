@@ -1,0 +1,38 @@
+{
+  "terminal.integrated.scrollback": 10000,
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.format.enable": true,
+  "eslint.useFlatConfig": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/build/**": true,
+    "**/.cache/**": true,
+    "**/coverage/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.cache": true,
+    "**/coverage": true
+  },
+  "git.autofetch": true,
+  "git.autoRepositoryDetection": false,
+  "git.ignoredRepositories": ["**/node_modules/**", "**/dist/**", "**/build/**", "**/.cache/**", "**/coverage/**", "**/docs/**"],
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": false,
+  "js/ts.tsserver.watchOptions": {
+    "watchFile": "dynamicPriorityPolling",
+    "watchDirectory": "dynamicPriorityPolling",
+    "fallbackPolling": "dynamicPriorityPolling",
+    "excludeDirectories": ["**/.cache/**", "**/node_modules/**", "**/coverage/**", "**/dist/**", "**/build/**", "**/docs/**"]
+  }
+}
