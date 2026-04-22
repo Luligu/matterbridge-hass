@@ -14,11 +14,13 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
+> The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa of Google you may want to either exclude those domains or to split their entities.
+
 ## [1.1.2] - Dev branch
 
 ### Breaking Changes
 
-- [domains]: New supported domains have been added. You may want to either add them with [filter](README.md#filter-by-label) and [select](README.md#device-entity-blacklist) or [exclude the domains](README.md#domain-blacklist) themself if your controller doesn't support them.
+- [domains]: Domains `select`, `input_select` and `media_player` are now supported. You may want to either add them with [filter](README.md#filter-by-label) and [select](README.md#device-entity-blacklist) or [exclude the domains](README.md#domain-blacklist) themself if your controller doesn't support them.
 
 ### Added
 
