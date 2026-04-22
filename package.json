@@ -131,7 +131,7 @@
     "@types/jest": "30.0.0",
     "@types/node": "25.6.0",
     "@types/ws": "8.18.1",
-    "@vitest/coverage-v8": "4.1.4",
+    "@vitest/coverage-v8": "4.1.5",
     "@vitest/eslint-plugin": "1.6.16",
     "cross-env": "10.1.0",
     "eslint": "10.2.1",
@@ -143,13 +143,13 @@
     "eslint-plugin-promise": "7.2.1",
     "eslint-plugin-simple-import-sort": "13.0.0",
     "jest": "30.3.0",
-    "npm-check-updates": "21.0.2",
+    "npm-check-updates": "21.0.3",
     "prettier": "3.8.3",
     "shx": "0.4.0",
     "ts-jest": "29.4.9",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.58.2",
-    "vitest": "4.1.4"
+    "typescript-eslint": "8.59.0",
+    "vitest": "4.1.5"
   },
   "overrides": {
     "eslint": "10.2.1",
