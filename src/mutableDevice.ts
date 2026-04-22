@@ -38,6 +38,7 @@ import {
   MatterbridgeEndpoint,
   MatterbridgeEndpointCommands,
   MatterbridgeFanControlServer,
+  MatterbridgeModeSelectServer,
   MatterbridgeSmokeCoAlarmServer,
   MatterbridgeThermostatServer,
   onOffLight,
@@ -56,6 +57,7 @@ import {
   FanControl,
   Groups,
   Identify,
+  ModeSelect,
   PowerSource,
   RvcCleanMode,
   RvcOperationalState,
@@ -776,6 +778,18 @@ export class MutableDevice {
         ],
         operationalState: RvcOperationalState.OperationalState.Docked,
         operationalError: { errorStateId: RvcOperationalState.ErrorState.NoError, errorStateDetails: 'Fully operational' },
+      }),
+    );
+    return this;
+  }
+
+  addSelect(endpoint: string, name: string, items: string[]): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(ModeSelect.Cluster.id, MatterbridgeModeSelectServer, {
+        description: name,
+        supportedModes: items.map((item, index) => ({ label: item, mode: index + 1, semanticTags: [] })),
+        currentMode: 1,
       }),
     );
     return this;

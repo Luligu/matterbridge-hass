@@ -45,6 +45,7 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerHeatingCoolingThermostat: jest.fn(),
     addClusterServerCompleteFanControl: jest.fn(),
     addVacuum: jest.fn(),
+    addSelect: jest.fn(),
     addCommandHandler: jest.fn(),
     addSubscribeHandler: jest.fn(),
   } as unknown as MutableDevice;
@@ -176,6 +177,29 @@ describe('addControlEntity', () => {
     const [md2, e2, s2] = make('fan', 'base', { preset_modes: ['low'] });
     addControlEntity(mockPlatform, md2, e2 as any, s2 as any, commandHandler, subscribeHandler as any);
     expect(md2.addDeviceTypes).toHaveBeenCalledWith(e2.entity_id, fanDevice);
+  });
+
+  it.each([
+    {
+      entity: { entity_id: 'select.mode' },
+      attributes: { options: ['Low', 'Medium', 'High', 'Auto'] },
+    },
+    {
+      entity: { entity_id: 'input_select.mode' },
+      attributes: { options: ['Eco', 'Comfort', 'Boost', 'Off'] },
+    },
+  ])('forwards every available option to addSelect for $entity.entity_id', ({ entity, attributes }) => {
+    const md = createMockMutableDevice();
+    const state = { attributes } as HassState;
+
+    addControlEntity(mockPlatform, md, entity as HassEntity, state, commandHandler, subscribeHandler as any);
+
+    expect(md.addSelect).toHaveBeenCalledTimes(1);
+    // @ts-expect-error mock calls on the test double
+    const args = md.addSelect.mock.calls[0];
+    expect(args[0]).toBe(entity.entity_id);
+    expect(args[1]).toEqual(expect.any(String));
+    expect(args[2]).toEqual(attributes.options);
   });
 
   it('registers all command handlers for light domain', () => {

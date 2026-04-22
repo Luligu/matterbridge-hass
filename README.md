@@ -54,6 +54,8 @@ Features:
 | valve      | open, closed, opening, closing            | current_position                                                                        |
 | vacuum (2) | idle, cleaning, paused, docked, returning |                                                                                         |
 | button     |                                           |                                                                                         |
+| remote     | on, off                                   |                                                                                         |
+| select     |                                           | options                                                                                 |
 
 (1) - Supported preset_modes: auto, low, medium, high.
 
@@ -70,6 +72,7 @@ These domains are supported also like individual and split entities.
 | script        | Scripts     |
 | input_boolean | Helpers     |
 | input_button  | Helpers     |
+| input_select  | Helpers     |
 
 These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helper of domain input_boolean maintains the on/off state.
 

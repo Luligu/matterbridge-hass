@@ -123,7 +123,10 @@
           "sensor",
           "binary_sensor",
           "event",
-          "button"
+          "button",
+          "remote",
+          "select",
+          "input_select"
         ]
       },
       "uniqueItems": true
@@ -151,7 +154,10 @@
           "sensor",
           "binary_sensor",
           "event",
-          "button"
+          "button",
+          "remote",
+          "select",
+          "input_select"
         ]
       },
       "uniqueItems": true

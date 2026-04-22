@@ -29,7 +29,7 @@ import path from 'node:path';
 import { bridgedNode, electricalSensor, MatterbridgeDynamicPlatform, MatterbridgeEndpoint, PlatformConfig, PlatformMatterbridge, powerSource, PrimitiveTypes } from 'matterbridge';
 import { AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
 import { ActionContext } from 'matterbridge/matter';
-import { BridgedDeviceBasicInformation, ColorControl, LevelControl, OnOff, PowerSource } from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource } from 'matterbridge/matter/clusters';
 import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { deepEqual, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
@@ -131,7 +131,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Supported helper domains */
   readonly supportedHelpersDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
   /** Supported core domains */
-  readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve', 'vacuum'];
+  readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve', 'vacuum', 'remote', 'input_select', 'select']; // 'input_select' is an helper but we support it like core
   /** Supported other domains */
   readonly supportedOtherDomains = ['sensor', 'binary_sensor', 'event', 'button'];
   /** All supported domains */
@@ -181,6 +181,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       setImmediate(async () => {
         await this.onShutdown('Invalid configuration');
       });
+      this.wssSendSnackbarMessage('Home Assistant Plugin: configure Host and Token', 0, 'error');
       throw new Error('Host and token must be defined in the configuration');
     }
 
@@ -1288,6 +1289,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       } else {
         endpoint.log.debug(`Update event ${CYAN}${domain}${db}:${CYAN}${new_state.attributes['event_type']}${db} not supported for entity ${entityId}`);
       }
+    } else if (domain === 'select' || domain === 'input_select') {
+      const currentMode = new_state.attributes['options']?.indexOf(new_state.state);
+      if (currentMode >= 0) await endpoint.setAttribute(ModeSelect.Cluster.id, 'currentMode', currentMode + 1, endpoint.log);
+      else endpoint.log.debug(`Update ${CYAN}${new_state.attributes['options']?.join(', ')}${db} >>> ${CYAN}${new_state.state}${db} not supported for entity ${entityId}`);
     } else {
       // Update state of the device
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);

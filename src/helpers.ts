@@ -435,7 +435,12 @@ export function generateEntity(
  * @param {Record<string, string | number | boolean | null>} attributes - The related state attributes.
  * @returns {HassState} - A Home Assistant state.
  */
-export function generateState(ha: HomeAssistant, entity: HassEntity, state: string = 'unknown', attributes: Record<string, string | number | boolean | null> = {}): HassState {
+export function generateState(
+  ha: HomeAssistant,
+  entity: HassEntity,
+  state: string = 'unknown',
+  attributes: Record<string, string | number | boolean | null | object> = {},
+): HassState {
   const timestamp = new Date().toISOString();
   const entityFriendlyName = entity.original_name ?? entity.name ?? undefined;
   const deviceName = entity.device_id ? (ha.hassDevices.get(entity.device_id)?.name_by_user ?? ha.hassDevices.get(entity.device_id)?.name ?? undefined) : undefined;

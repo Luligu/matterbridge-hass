@@ -16,9 +16,16 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## [1.1.2] - Dev branch
 
+### Breaking Changes
+
+- [domains]: New supported domains have been added. You may want to either add them with [filter](README.md#filter-by-label) and [select](README.md#device-entity-blacklist) or [exclude the domains](README.md#domain-blacklist) themself if your controller doesn't support them.
+
 ### Added
 
-- [test]: Refactor tests to use the updated matterbridge test facility.
+- [test]: Refactor tests to use the updated matterbridge test module.
+- [remote]: Add `remote` domain.
+- [select]: Add `select` domain.
+- [input_select]: Add `input_select` domain.
 
 ### Changed
 
@@ -26,7 +33,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Update dependencies.
 - [package]: Bump `typescript` to v.6.0.3.
 - [package]: Bump `eslint` to v.10.2.1.
-- [package]: Bump `typescript-eslint` to v.8.58.2.
+- [package]: Bump `typescript-eslint` to v.8.59.0.
 - [package]: Add `.vscode\settings.json`.
 - [devcontainer]: Add `Claude Code for VS Code extension` to Dev Container.
 

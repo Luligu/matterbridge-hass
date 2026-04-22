@@ -13,6 +13,7 @@ import path from 'node:path';
 import { jest } from '@jest/globals';
 import { invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
 import {
+  addDevice,
   aggregator,
   createServerNode,
   createTestEnvironment,
@@ -137,6 +138,8 @@ const addClusterServerColorControlSpy = jest.spyOn(MutableDevice.prototype, 'add
 const addClusterServerAutoModeThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
 const addClusterServerHeatingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
 const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
+const addVacuumSpy = jest.spyOn(MutableDevice.prototype, 'addVacuum');
+const addSelectSpy = jest.spyOn(MutableDevice.prototype, 'addSelect');
 
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
@@ -157,11 +160,10 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.7.0',
+    matterbridgeVersion: '3.7.5',
     log,
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await aggregator.add(device);
-      await flushAsync(undefined, undefined, 10);
+      await addDevice(aggregator, device, 1, 0);
     }),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {}),

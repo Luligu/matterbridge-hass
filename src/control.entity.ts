@@ -30,7 +30,7 @@ import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
 import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
-import { getDomain } from './helpers.js';
+import { getDomain, getEntityName } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -192,6 +192,12 @@ export function addControlEntity(
       `# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`,
     );
     mutableDevice.addVacuum(endpointName);
+  }
+
+  // Configure the select.
+  if (domain === 'select' || domain === 'input_select') {
+    platform.log.debug(`= select device ${CYAN}${entity.entity_id}${db} options: ${CYAN}${state.attributes['options']}${db}`);
+    mutableDevice.addSelect(endpointName, getEntityName(platform, entity) ?? 'Select an option', state.attributes['options']);
   }
 
   // Add command handlers

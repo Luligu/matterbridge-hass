@@ -36,6 +36,7 @@ import {
   humiditySensor,
   lightSensor,
   MatterbridgeEndpointCommands,
+  modeSelect,
   occupancySensor,
   onOffLight,
   onOffOutlet,
@@ -62,6 +63,7 @@ import {
   FormaldehydeConcentrationMeasurement,
   IlluminanceMeasurement,
   LevelControl,
+  ModeSelect,
   NitrogenDioxideConcentrationMeasurement,
   OccupancySensing,
   OnOff,
@@ -343,6 +345,9 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
 
     { domain: 'binary_sensor', state: 'on', clusterId: BooleanState.Cluster.id, attribute: 'stateValue', value: true },
     { domain: 'binary_sensor', state: 'off', clusterId: BooleanState.Cluster.id, attribute: 'stateValue', value: false },
+
+    { domain: 'remote', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
+    { domain: 'remote', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
   ];
 
 /** Update Home Assistant attributes to Matterbridge device attributes */
@@ -415,6 +420,9 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcRunMode.Cluster.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcCleanMode.Cluster.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
+    { domain: 'remote',                                 deviceType: onOffOutlet,            clusterId: OnOff.Cluster.id },
+    { domain: 'input_select',                           deviceType: modeSelect,             clusterId: ModeSelect.Cluster.id },
+    { domain: 'select',                                 deviceType: modeSelect,             clusterId: ModeSelect.Cluster.id },
     { domain: 'sensor',                                 deviceType: null,                   clusterId: null },
     { domain: 'binary_sensor',                          deviceType: null,                   clusterId: null },
   ];
@@ -517,6 +525,12 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'resume',                  domain: 'vacuum', service: 'start' },
     { command: 'goHome',                  domain: 'vacuum', service: 'return_to_base' },
     { command: 'changeToMode',            domain: 'vacuum', service: 'start' },
+
+    { command: 'on',                      domain: 'remote', service: 'turn_on' },
+    { command: 'off',                     domain: 'remote', service: 'turn_off' },
+
+    { command: 'changeToMode',            domain: 'input_select', service: 'select_option' },
+    { command: 'changeToMode',            domain: 'select', service: 'select_option' },
   ];
 
 /**
