@@ -46,6 +46,9 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerCompleteFanControl: jest.fn(),
     addVacuum: jest.fn(),
     addSelect: jest.fn(),
+    addOnOff: jest.fn(),
+    addBasicVideoPlayer: jest.fn(),
+    addKeypadInput: jest.fn(),
     addCommandHandler: jest.fn(),
     addSubscribeHandler: jest.fn(),
   } as unknown as MutableDevice;
@@ -65,7 +68,7 @@ describe('addControlEntity', () => {
   };
 
   it('returns undefined for unsupported domain', () => {
-    const [md, e, s] = make('media_player', 'x', {});
+    const [md, e, s] = make('scene', 'x', {});
     expect(addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any)).toBeUndefined();
   });
 
@@ -200,6 +203,26 @@ describe('addControlEntity', () => {
     expect(args[0]).toBe(entity.entity_id);
     expect(args[1]).toEqual(expect.any(String));
     expect(args[2]).toEqual(attributes.options);
+  });
+
+  it('configures remote entities with on/off support', () => {
+    const [md, e, s] = make('remote', 'tv', {});
+
+    const ep = addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+
+    expect(ep).toBe(e.entity_id);
+    expect(md.addOnOff).toHaveBeenCalledWith(e.entity_id, true);
+  });
+
+  it('configures media players with playback and keypad support', () => {
+    const [md, e, s] = make('media_player', 'tv', { supported_features: 0 });
+
+    const ep = addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+
+    expect(ep).toBe(e.entity_id);
+    expect(md.addOnOff).toHaveBeenCalledWith(e.entity_id, true);
+    expect(md.addBasicVideoPlayer).toHaveBeenCalledWith(e.entity_id);
+    expect(md.addKeypadInput).toHaveBeenCalledWith(e.entity_id);
   });
 
   it('registers all command handlers for light domain', () => {

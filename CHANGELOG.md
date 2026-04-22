@@ -26,6 +26,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [remote]: Add `remote` domain.
 - [select]: Add `select` domain.
 - [input_select]: Add `input_select` domain.
+- [media_player]: Add `media_player` domain.
 
 ### Changed
 

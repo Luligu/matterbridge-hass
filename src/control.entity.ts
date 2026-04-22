@@ -44,6 +44,7 @@ import {
   HomeAssistant,
   HVACMode,
   LightEntityFeature,
+  MediaPlayerEntityFeature,
   UnitOfTemperature,
   VacuumEntityFeature,
 } from './homeAssistant.js';
@@ -198,6 +199,23 @@ export function addControlEntity(
   if (domain === 'select' || domain === 'input_select') {
     platform.log.debug(`= select device ${CYAN}${entity.entity_id}${db} options: ${CYAN}${state.attributes['options']}${db}`);
     mutableDevice.addSelect(endpointName, getEntityName(platform, entity) ?? 'Select an option', state.attributes['options']);
+  }
+
+  // Configure the remote.
+  if (domain === 'remote') {
+    platform.log.debug(`= remote device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db}`);
+    mutableDevice.addOnOff(endpointName, true);
+  }
+
+  // Configure the media_player.
+  if (domain === 'media_player') {
+    platform.log.debug(`= media_player device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db} attrbutes: ${CYAN}${debugStringify(state.attributes)}${db}`);
+    platform.log.debug(
+      `# media_player device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(MediaPlayerEntityFeature, state.attributes.supported_features)}${db}`,
+    );
+    mutableDevice.addOnOff(endpointName, true);
+    mutableDevice.addBasicVideoPlayer(endpointName);
+    mutableDevice.addKeypadInput(endpointName);
   }
 
   // Add command handlers

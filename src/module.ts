@@ -131,7 +131,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Supported helper domains */
   readonly supportedHelpersDomains = ['automation', 'scene', 'script', 'input_boolean', 'input_button'];
   /** Supported core domains */
-  readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve', 'vacuum', 'remote', 'input_select', 'select']; // 'input_select' is an helper but we support it like core
+  readonly supportedCoreDomains = ['switch', 'light', 'lock', 'fan', 'cover', 'climate', 'valve', 'vacuum', 'remote', 'input_select', 'select', 'media_player']; // 'input_select' is an helper but we support it like core
   /** Supported other domains */
   readonly supportedOtherDomains = ['sensor', 'binary_sensor', 'event', 'button'];
   /** All supported domains */

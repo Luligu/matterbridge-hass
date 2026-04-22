@@ -126,7 +126,8 @@
           "button",
           "remote",
           "select",
-          "input_select"
+          "input_select",
+          "media_player"
         ]
       },
       "uniqueItems": true
@@ -157,7 +158,8 @@
           "button",
           "remote",
           "select",
-          "input_select"
+          "input_select",
+          "media_player"
         ]
       },
       "uniqueItems": true

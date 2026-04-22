@@ -24,6 +24,7 @@
 
 import {
   airQualitySensor,
+  basicVideoPlayer,
   colorTemperatureLight,
   contactSensor,
   coverDevice,
@@ -63,6 +64,7 @@ import {
   FormaldehydeConcentrationMeasurement,
   IlluminanceMeasurement,
   LevelControl,
+  MediaPlayback,
   ModeSelect,
   NitrogenDioxideConcentrationMeasurement,
   OccupancySensing,
@@ -348,6 +350,16 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
 
     { domain: 'remote', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
     { domain: 'remote', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
+
+    { domain: 'media_player', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
+    { domain: 'media_player', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
+    { domain: 'media_player', state: 'playing', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Playing },
+    { domain: 'media_player', state: 'paused', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Paused },
+    { domain: 'media_player', state: 'idle', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.NotPlaying },
+    { domain: 'media_player', state: 'standby', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.NotPlaying },
+    { domain: 'media_player', state: 'buffering', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Buffering },
+    { domain: 'media_player', state: 'on', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Playing },
+    { domain: 'media_player', state: 'off', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.NotPlaying },
   ];
 
 /** Update Home Assistant attributes to Matterbridge device attributes */
@@ -423,6 +435,7 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'remote',                                 deviceType: onOffOutlet,            clusterId: OnOff.Cluster.id },
     { domain: 'input_select',                           deviceType: modeSelect,             clusterId: ModeSelect.Cluster.id },
     { domain: 'select',                                 deviceType: modeSelect,             clusterId: ModeSelect.Cluster.id },
+    { domain: 'media_player',                           deviceType: basicVideoPlayer,       clusterId: MediaPlayback.Cluster.id },
     { domain: 'sensor',                                 deviceType: null,                   clusterId: null },
     { domain: 'binary_sensor',                          deviceType: null,                   clusterId: null },
   ];
@@ -531,6 +544,14 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
 
     { command: 'changeToMode',            domain: 'input_select', service: 'select_option' },
     { command: 'changeToMode',            domain: 'select', service: 'select_option' },
+
+    { command: 'on',                      domain: 'media_player', service: 'turn_on' },
+    { command: 'off',                     domain: 'media_player', service: 'turn_off' },
+    { command: 'play',                    domain: 'media_player', service: 'media_play' },
+    { command: 'pause',                   domain: 'media_player', service: 'media_pause' },
+    { command: 'stop',                    domain: 'media_player', service: 'media_stop' },
+    { command: 'previous',                domain: 'media_player', service: 'media_previous_track' },
+    { command: 'next',                    domain: 'media_player', service: 'media_next_track' },
   ];
 
 /**

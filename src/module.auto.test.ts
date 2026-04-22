@@ -742,13 +742,17 @@ describe('Matterbridge ' + NAME, () => {
     const device = generateDevice(haPlatform.ha, 'TV Device');
     const remoteIndividualEntity = generateEntity(haPlatform.ha, 'Individual remote', 'remote');
     const remoteDeviceEntity = generateEntity(haPlatform.ha, 'Device remote entity', 'remote', device);
+    const mediaplayerDeviceEntity = generateEntity(haPlatform.ha, 'Device media player entity', 'media_player', device);
     const remoteSplitEntity = generateEntity(haPlatform.ha, 'Split remote entity', 'remote', device);
     generateState(haPlatform.ha, remoteIndividualEntity, 'on');
     generateState(haPlatform.ha, remoteDeviceEntity, 'on');
+    generateState(haPlatform.ha, mediaplayerDeviceEntity, 'on', { supported_features: 448439 });
     generateState(haPlatform.ha, remoteSplitEntity, 'on');
 
     haPlatform.config.splitEntities = [remoteSplitEntity.entity_id];
     haPlatform.config.controllerStrategy = 'Merge';
+
+    // await setDebug(true);
 
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
@@ -761,15 +765,17 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.has(remoteIndividualEntity.entity_id)).toBe(true);
     expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
     expect(haPlatform.matterbridgeDevices.has(remoteDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(mediaplayerDeviceEntity.entity_id)).toBe(false);
     expect(haPlatform.matterbridgeDevices.has(remoteSplitEntity.entity_id)).toBe(true);
-    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.size).toBe(4);
     expect(haPlatform.endpointNames.get(remoteIndividualEntity.entity_id)).toBe('');
-    expect(haPlatform.endpointNames.get(remoteDeviceEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(remoteDeviceEntity.entity_id)).toBe('remote.device_remote_entity');
+    expect(haPlatform.endpointNames.get(mediaplayerDeviceEntity.entity_id)).toBe('media_player.device_media_player_entity');
     expect(haPlatform.endpointNames.get(remoteSplitEntity.entity_id)).toBe('');
     expect(aggregator.parts.size).toBe(3);
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
-    expect(endpoint?.getChildEndpoints().length).toBe(0);
+    expect(endpoint?.getChildEndpoints().length).toBe(2);
 
     jest.clearAllMocks();
     haPlatform.filterMessages.length = 0;
@@ -790,8 +796,6 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.splitEntities = [selectSplitEntity.entity_id];
     haPlatform.config.controllerStrategy = 'Merge';
-
-    await setDebug(true);
 
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
