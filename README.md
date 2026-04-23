@@ -238,6 +238,8 @@ Entities whose domain is listed here will be excluded. Leave this list empty to 
 
 ### Split Entities
 
+DEPRECATED: use `Split By Label`
+
 The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
 
 Let's make an example.
@@ -279,7 +281,7 @@ Strategy used for split entity names. "Entity name": use the entity name (i.e. C
 
 ### Controller Strategy
 
-Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
+Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not strictly compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
 
 ### Air Quality Regex
 

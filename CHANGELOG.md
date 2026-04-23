@@ -21,6 +21,7 @@ If you like this project and find it useful, please consider giving it a **star*
 ### Breaking Changes
 
 - [domains]: Domains `remote`, `select`, `input_select` and `media_player` are now supported. You may want to either use them with [filter](README.md#filter-by-label) and [select](README.md#device-entity-blacklist) or [exclude](README.md#domain-blacklist) all these domains if you don't need their entities or your controller doesn't support them.
+- [Split Entities]: The `Split Entities` config option is deprecated. Use `Split By Label`.
 
 ### Added
 
