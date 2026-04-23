@@ -304,6 +304,53 @@ In addition to this well known bugs, the rvc must be a single device, it cannot 
 
 If enabled (default), the plugin discards entities that are hidden in Home Assistant (i.e. entities whose `hidden_by` field is not `null` in the entity registry). Hidden entities will not be exposed as device entities, individual entities, or split entities.
 
+### Virtual Control Label
+
+Label used to enable virtual controls on entities. If set, the plugin creates one virtual control for each entity with the selected label. These virtual controls are intended for accessibility and let you send commands to entities that are not directly supported by the controller, such as `media_player.samsung_tv`. Virtual controls are exposed as switch entities: turning one on triggers the command, and the plugin automatically turns it off again afterward.
+
+Supported virtual control domains:
+
+| Domain       | Feature        | Service              | Virtual control |
+| ------------ | -------------- | -------------------- | --------------- |
+| media_player | TURN_ON        | TURN_ON              | Turn ON         |
+|              | TURN_OFF       | TURN_OFF             | Turn OFF        |
+|              | PLAY           | MEDIA_PLAY           | Play            |
+|              | PAUSE          | MEDIA_PAUSE          | Pause           |
+|              | STOP           | MEDIA_STOP           | Stop            |
+|              | VOLUME_MUTE    | VOLUME_MUTE          | Mute            |
+|              | VOLUME_STEP    | VOLUME_DOWN          | Volume Down     |
+|              | VOLUME_STEP    | VOLUME_UP            | Volume Up       |
+|              | PREVIOUS_TRACK | MEDIA_PREVIOUS_TRACK | Previous Track  |
+|              | NEXT_TRACK     | MEDIA_NEXT_TRACK     | Next Track      |
+
+Use this option to create simple voice-friendly switches like `Play TV`, `Pause TV`, or `Turn ON TV` for supported media players: with Siri you can simply say `Hey Siri Play TV`.
+
+Example:
+Let's say you have a device named `Samsung TV` with a media_player entity `media_player.samsung_tv`.
+
+If you set `Virtual Control Label` to `matterbridge-virtual` and assign that label to the media_player entity in Home Assistant, the plugin checks which media player features are supported and creates one virtual switch for each supported command.
+
+For example:
+
+- if the device supports `TURN_ON`, the plugin creates `Turn ON Samsung TV`
+- if the device supports `TURN_OFF`, the plugin creates `Turn OFF Samsung TV`
+- if the device supports `PLAY`, the plugin creates `Play Samsung TV`
+- if the device supports `PAUSE`, the plugin creates `Pause Samsung TV`
+- if the device supports `STOP`, the plugin creates `Stop Samsung TV`
+- if the device supports `VOLUME_MUTE`, the plugin creates `Mute Samsung TV`
+- if the device supports `VOLUME_STEP`, the plugin creates `Volume Down Samsung TV` and `Volume Up Samsung TV`
+- if the device supports `PREVIOUS_TRACK`, the plugin creates `Previous Track Samsung TV`
+- if the device supports `NEXT_TRACK`, the plugin creates `Next Track Samsung TV`
+
+When you turn on one of these virtual switches, the plugin sends the corresponding `media_player` service command to that entity and then automatically turns the switch off again.
+
+So, if your `Samsung TV` only supports `TURN_ON`, `TURN_OFF` and `VOLUME_STEP`, you will get these four virtual controls:
+
+- `Turn ON Samsung TV`
+- `Turn OFF Samsung TV`
+- `Volume Down Samsung TV`
+- `Volume Up Samsung TV`
+
 ### Enable Debug
 
 Should be enabled only if you want to debug some issue using the log.

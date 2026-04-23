@@ -81,6 +81,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   airQualityRegex: string;
   enableServerRvc: boolean;
   discardHiddenEntities: boolean;
+  virtualControlLabel: string;
 }
 
 /**
@@ -212,6 +213,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
       this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
       this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
+      this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
     }
 
     // Initialize air quality regex from config or use default

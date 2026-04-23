@@ -30,7 +30,7 @@ import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
 import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
-import { getDomain, getEntityName } from './helpers.js';
+import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -45,6 +45,7 @@ import {
   HVACMode,
   LightEntityFeature,
   MediaPlayerEntityFeature,
+  MediaPlayerService,
   UnitOfTemperature,
   VacuumEntityFeature,
 } from './homeAssistant.js';
@@ -216,6 +217,30 @@ export function addControlEntity(
     mutableDevice.addOnOff(endpointName, true);
     mutableDevice.addBasicVideoPlayer(endpointName);
     mutableDevice.addKeypadInput(endpointName);
+    if (entityHasLabel(platform, entity, platform.config.virtualControlLabel)) {
+      const featuresServices: { feature: MediaPlayerEntityFeature; service: MediaPlayerService; controlName: string }[] = [
+        { feature: MediaPlayerEntityFeature.TURN_ON, service: MediaPlayerService.TURN_ON, controlName: 'Turn ON' },
+        { feature: MediaPlayerEntityFeature.TURN_OFF, service: MediaPlayerService.TURN_OFF, controlName: 'Turn OFF' },
+        { feature: MediaPlayerEntityFeature.PLAY, service: MediaPlayerService.MEDIA_PLAY, controlName: 'Play' },
+        { feature: MediaPlayerEntityFeature.PAUSE, service: MediaPlayerService.MEDIA_PAUSE, controlName: 'Pause' },
+        { feature: MediaPlayerEntityFeature.STOP, service: MediaPlayerService.MEDIA_STOP, controlName: 'Stop' },
+        { feature: MediaPlayerEntityFeature.VOLUME_MUTE, service: MediaPlayerService.VOLUME_MUTE, controlName: 'Mute' },
+        { feature: MediaPlayerEntityFeature.VOLUME_STEP, service: MediaPlayerService.VOLUME_DOWN, controlName: 'Volume Down' },
+        { feature: MediaPlayerEntityFeature.VOLUME_STEP, service: MediaPlayerService.VOLUME_UP, controlName: 'Volume Up' },
+        { feature: MediaPlayerEntityFeature.PREVIOUS_TRACK, service: MediaPlayerService.MEDIA_PREVIOUS_TRACK, controlName: 'Previous Track' },
+        { feature: MediaPlayerEntityFeature.NEXT_TRACK, service: MediaPlayerService.MEDIA_NEXT_TRACK, controlName: 'Next Track' },
+      ];
+      featuresServices.forEach(({ feature, service, controlName }) => {
+        if (state.attributes['supported_features'] && state.attributes['supported_features'] & feature) {
+          platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
+          platform.registerVirtualDevice(`${controlName} ${getEntityName(platform, entity)}`, 'mounted_switch', async () => {
+            platform.ha.callService('media_player', service, entity.entity_id).catch((error) => {
+              platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
+            });
+          });
+        }
+      });
+    }
   }
 
   // Add command handlers

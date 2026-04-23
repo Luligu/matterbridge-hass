@@ -206,7 +206,9 @@ export interface HassStateMediaPlayerAttributes {
   is_volume_muted?: boolean | null;
   media_content_id?: string | null;
   media_content_type?: MediaType | string | null;
+  announce?: boolean | null;
   media_duration?: number | null; // Duration in seconds.
+  enqueue?: MediaPlayerEnqueue | boolean | null;
   media_position?: number | null; // Position in seconds.
   media_position_updated_at?: string | null; // ISO timestamp.
   media_image_url?: string | null;
@@ -226,6 +228,7 @@ export interface HassStateMediaPlayerAttributes {
   sound_mode?: string | null;
   sound_mode_list?: string[] | null;
   seek_position?: number | null;
+  search_query?: string | null;
   entity_picture_local?: string | null;
   media_filter_classes?: string[] | null;
   extra?: Record<string, HomeAssistantPrimitive> | null;
@@ -270,11 +273,13 @@ export enum MediaPlayerAttribute {
   INPUT_SOURCE_LIST = 'source_list',
   MEDIA_ALBUM_ARTIST = 'media_album_artist',
   MEDIA_ALBUM_NAME = 'media_album_name',
+  MEDIA_ANNOUNCE = 'announce',
   MEDIA_ARTIST = 'media_artist',
   MEDIA_CHANNEL = 'media_channel',
   MEDIA_CONTENT_ID = 'media_content_id',
   MEDIA_CONTENT_TYPE = 'media_content_type',
   MEDIA_DURATION = 'media_duration',
+  MEDIA_ENQUEUE = 'enqueue',
   MEDIA_EPISODE = 'media_episode',
   MEDIA_EXTRA = 'extra',
   MEDIA_FILTER_CLASSES = 'media_filter_classes',
@@ -284,6 +289,7 @@ export enum MediaPlayerAttribute {
   MEDIA_POSITION = 'media_position',
   MEDIA_POSITION_UPDATED_AT = 'media_position_updated_at',
   MEDIA_REPEAT = 'repeat',
+  MEDIA_SEARCH_QUERY = 'search_query',
   MEDIA_SEASON = 'media_season',
   MEDIA_SEEK_POSITION = 'seek_position',
   MEDIA_SERIES_TITLE = 'media_series_title',
