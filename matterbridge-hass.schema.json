@@ -165,7 +165,7 @@
       "uniqueItems": true
     },
     "splitEntities": {
-      "title": "Split Entities",
+      "title": "Split Entities (DEPRECATED: use Split By Label)",
       "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock). Split entities must satisfy the filters (if any) and the whiteList (if any).",
       "type": "array",
       "items": {

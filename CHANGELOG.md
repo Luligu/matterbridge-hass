@@ -6,13 +6,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
-### How to use filters and select
-
-> Read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/186).
-
-### Naming issues on the controller side explained
-
-> For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+## Possible issue upgrading the plugin
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either exclude those domains or to split their entities.
 

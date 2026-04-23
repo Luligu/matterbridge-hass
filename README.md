@@ -41,6 +41,32 @@ Features:
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
 - Jest test coverage = 100%.
 
+## How to use filters and select
+
+> Read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/186).
+
+## Naming issues on the controller side explained
+
+> For naming issues (especially upsetting with Alexa and Google), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## Quick install guide
+
+For new users I suggest to start following this list:
+
+- create an [Home Assistant Token](README.md#token)
+- create an Home Assistant Label that will be used to [filter](README.md#filter-by-label) the devices and entities in Home Assistant
+- create an Home Assistant Label that will be used to [split](README.md#split-by-label) the device entities in Home Assistant
+- find your [Host name or Address](README.md#host)
+- add them to the config and restart
+
+Now add the `label for filter` you created before to each device you want to expose to Matter (or to each device entity if you want only some of the device entities).
+
+Add also the `label for split` you created before to each device entity you want to expose like a single Matter device.
+
+Restart, verify that everything is like you intended.
+
+Pair Matterbridge to your controller.
+
 ## Supported device entities:
 
 | Domain       | Supported states                           | Supported attributes                                                                    |
@@ -238,7 +264,7 @@ Entities whose domain is listed here will be excluded. Leave this list empty to 
 
 ### Split Entities
 
-DEPRECATED: use `Split By Label`
+> DEPRECATED: use `Split By Label`
 
 The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
 
