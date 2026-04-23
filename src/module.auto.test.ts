@@ -15,6 +15,7 @@ import { jest } from '@jest/globals';
 import { MatterbridgeEndpoint, onOffMountedSwitch, onOffOutlet } from 'matterbridge';
 import {
   addDevice,
+  addVirtualEndpointMatterbridgeSpy,
   aggregator,
   createServerNode,
   createTestEnvironment,
@@ -736,13 +737,21 @@ describe('Matterbridge ' + NAME, () => {
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(0);
+
+    jest.clearAllMocks();
+    haPlatform.filterMessages.length = 0;
+    await haPlatform.onConfigure();
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
   });
 
-  it('should call onStart and register a remote individual entity, a device with two remote entities, one normal and one split with Merge strategy', async () => {
+  it('should call onStart and register a remote individual entity, a media_player device with two remote entities, one normal and one split with Merge strategy', async () => {
+    const virtualLabel = generateLabel(haPlatform.ha, 'Virtual Label');
     const device = generateDevice(haPlatform.ha, 'TV Device');
     const remoteIndividualEntity = generateEntity(haPlatform.ha, 'Individual remote', 'remote');
     const remoteDeviceEntity = generateEntity(haPlatform.ha, 'Device remote entity', 'remote', device);
-    const mediaplayerDeviceEntity = generateEntity(haPlatform.ha, 'Device media player entity', 'media_player', device);
+    const mediaplayerDeviceEntity = generateEntity(haPlatform.ha, 'Device media player entity', 'media_player', device, null, [virtualLabel.label_id]);
     const remoteSplitEntity = generateEntity(haPlatform.ha, 'Split remote entity', 'remote', device);
     generateState(haPlatform.ha, remoteIndividualEntity, 'on');
     generateState(haPlatform.ha, remoteDeviceEntity, 'on');
@@ -750,6 +759,7 @@ describe('Matterbridge ' + NAME, () => {
     generateState(haPlatform.ha, remoteSplitEntity, 'on');
 
     haPlatform.config.splitEntities = [remoteSplitEntity.entity_id];
+    haPlatform.config.virtualControlLabel = virtualLabel.name;
     haPlatform.config.controllerStrategy = 'Merge';
 
     // await setDebug(true);
@@ -760,6 +770,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${remoteSplitEntity.original_name}${db}...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addVirtualEndpoint).toHaveBeenCalledTimes(9);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
     expect(haPlatform.matterbridgeDevices.size).toBe(3);
     expect(haPlatform.matterbridgeDevices.has(remoteIndividualEntity.entity_id)).toBe(true);
@@ -772,7 +783,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.endpointNames.get(remoteDeviceEntity.entity_id)).toBe('remote.device_remote_entity');
     expect(haPlatform.endpointNames.get(mediaplayerDeviceEntity.entity_id)).toBe('media_player.device_media_player_entity');
     expect(haPlatform.endpointNames.get(remoteSplitEntity.entity_id)).toBe('');
-    expect(aggregator.parts.size).toBe(3);
+    expect(aggregator.parts.size).toBe(12);
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(2);
@@ -786,15 +797,17 @@ describe('Matterbridge ' + NAME, () => {
   });
 
   it('should call onStart and register a input_select individual entity, a device with two remote entities, one normal and one split with Merge strategy', async () => {
+    const virtualLabel = generateLabel(haPlatform.ha, 'Virtual Label');
     const device = generateDevice(haPlatform.ha, 'Select Device');
-    const inputSelectIndividualEntity = generateEntity(haPlatform.ha, 'Individual input_select', 'input_select');
-    const selectDeviceEntity = generateEntity(haPlatform.ha, 'Device select entity', 'select', device);
-    const selectSplitEntity = generateEntity(haPlatform.ha, 'Split select entity', 'select', device);
+    const inputSelectIndividualEntity = generateEntity(haPlatform.ha, 'Individual input_select', 'input_select', null, null, [virtualLabel.label_id]);
+    const selectDeviceEntity = generateEntity(haPlatform.ha, 'Device select entity', 'select', device, null, [virtualLabel.label_id]);
+    const selectSplitEntity = generateEntity(haPlatform.ha, 'Split select entity', 'select', device, null, [virtualLabel.label_id]);
     generateState(haPlatform.ha, inputSelectIndividualEntity, 'Led On', { options: ['Led On', 'Led Off'], friendly_name: 'Individual input_select Led' });
     generateState(haPlatform.ha, selectDeviceEntity, 'Led Off', { options: ['Led On', 'Led Off'], friendly_name: 'Device select entity Led' });
     generateState(haPlatform.ha, selectSplitEntity, 'invalid', { options: ['Led On', 'Led Off'], friendly_name: 'Split select entity Led' });
 
     haPlatform.config.splitEntities = [selectSplitEntity.entity_id];
+    haPlatform.config.virtualControlLabel = virtualLabel.name;
     haPlatform.config.controllerStrategy = 'Merge';
 
     await haPlatform.onStart('Test reason');
@@ -803,6 +816,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${selectSplitEntity.original_name}${db}...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addVirtualEndpoint).toHaveBeenCalledTimes(6);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
     expect(addSelectSpy).toHaveBeenCalledTimes(3);
     expect(haPlatform.matterbridgeDevices.size).toBe(3);
@@ -814,7 +828,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.endpointNames.get(inputSelectIndividualEntity.entity_id)).toBe('');
     expect(haPlatform.endpointNames.get(selectDeviceEntity.entity_id)).toBe('');
     expect(haPlatform.endpointNames.get(selectSplitEntity.entity_id)).toBe('');
-    expect(aggregator.parts.size).toBe(3);
+    expect(aggregator.parts.size).toBe(9);
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(0);

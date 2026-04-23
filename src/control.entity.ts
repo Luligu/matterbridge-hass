@@ -200,6 +200,16 @@ export function addControlEntity(
   if (domain === 'select' || domain === 'input_select') {
     platform.log.debug(`= select device ${CYAN}${entity.entity_id}${db} options: ${CYAN}${state.attributes['options']}${db}`);
     mutableDevice.addSelect(endpointName, getEntityName(platform, entity) ?? 'Select an option', state.attributes['options']);
+    if (entityHasLabel(platform, entity, platform.config.virtualControlLabel)) {
+      state.attributes['options']?.forEach((option: string) => {
+        platform.log.debug(`***Add select device ${CYAN}${entity.entity_id}${db} virtual control: ${CYAN}${option}${db}`);
+        platform.registerVirtualDevice(`${getEntityName(platform, entity)} ${option}`, 'mounted_switch', async () => {
+          platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error) => {
+            platform.log.error(`Failed to call select_option service for ${CYAN}${entity.entity_id}${db} with option ${CYAN}${option}${db}: ${error}`);
+          });
+        });
+      });
+    }
   }
 
   // Configure the remote.

@@ -14,7 +14,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > For naming issues (especially upsetting with Alexa), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-> The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either exclude those domains or to split their entities.
+> WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either exclude those domains or to split their entities.
 
 ## [1.1.2] - Dev branch
 
@@ -30,7 +30,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [select]: Add `select` domain.
 - [input_select]: Add `input_select` domain.
 - [media_player]: Add `media_player` domain.
-- [Virtual Control]: Add the [Virtual Control Label](README.md#virtual-control-label) for accessibility controls on supported entities such as `select` and `media_player`.
+- [Virtual Control]: Add the [Virtual Control Label](README.md#virtual-control-label) for accessibility controls (voice-friendly switches) on supported entities such as `select`, `input_select` and `media_player`.
 
 ### Changed
 

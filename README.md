@@ -312,18 +312,20 @@ Label used to enable virtual controls on entities. If set, the plugin creates on
 
 Supported virtual control domains:
 
-| Domain       | Feature        | Service              | Virtual control |
-| ------------ | -------------- | -------------------- | --------------- |
-| media_player | TURN_ON        | TURN_ON              | Turn ON         |
-|              | TURN_OFF       | TURN_OFF             | Turn OFF        |
-|              | PLAY           | MEDIA_PLAY           | Play            |
-|              | PAUSE          | MEDIA_PAUSE          | Pause           |
-|              | STOP           | MEDIA_STOP           | Stop            |
-|              | VOLUME_MUTE    | VOLUME_MUTE          | Mute            |
-|              | VOLUME_STEP    | VOLUME_DOWN          | Volume Down     |
-|              | VOLUME_STEP    | VOLUME_UP            | Volume Up       |
-|              | PREVIOUS_TRACK | MEDIA_PREVIOUS_TRACK | Previous Track  |
-|              | NEXT_TRACK     | MEDIA_NEXT_TRACK     | Next Track      |
+| Domain       | Feature        | Service              | Virtual control       |
+| ------------ | -------------- | -------------------- | --------------------- |
+| media_player | TURN_ON        | TURN_ON              | Turn ON + name        |
+|              | TURN_OFF       | TURN_OFF             | Turn OFF + name       |
+|              | PLAY           | MEDIA_PLAY           | Play + name           |
+|              | PAUSE          | MEDIA_PAUSE          | Pause + name          |
+|              | STOP           | MEDIA_STOP           | Stop + name           |
+|              | VOLUME_MUTE    | VOLUME_MUTE          | Mute + name           |
+|              | VOLUME_STEP    | VOLUME_DOWN          | Volume Down + name    |
+|              | VOLUME_STEP    | VOLUME_UP            | Volume Up + name      |
+|              | PREVIOUS_TRACK | MEDIA_PREVIOUS_TRACK | Previous Track + name |
+|              | NEXT_TRACK     | MEDIA_NEXT_TRACK     | Next Track + name     |
+| select       |                |                      | name + all options    |
+| input_select |                |                      | name + all options    |
 
 Use this option to create simple voice-friendly switches like `Play TV`, `Pause TV`, or `Turn ON TV` for supported media players: with Siri you can simply say `Hey Siri Play TV`.
 

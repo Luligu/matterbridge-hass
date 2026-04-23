@@ -297,6 +297,31 @@ export function convertHAXYToMatter(xyColor: [number, number]): { currentX: numb
   return { currentX, currentY };
 }
 
+/**
+ * Returns the selected Home Assistant option for a Matter mode change request.
+ *
+ * @param {Record<string, unknown>} request - Matter command payload containing the target mode index.
+ * @param {number} [request.newMode] - One-based mode index received from Matter.
+ * @param {HassState | undefined} state - Current Home Assistant state containing the available options.
+ * @returns {{ option: string } | undefined} The mapped option payload, or undefined when the request is invalid.
+ */
+function getSelectOptionFromMode(request: Record<string, unknown>, state: HassState | undefined): { option: string } | undefined {
+  const options = state?.attributes?.options;
+  const newMode = request['newMode'];
+
+  if (!isValidNumber(newMode, 1)) {
+    return undefined;
+  }
+
+  const optionIndex = newMode - 1;
+
+  if (!isValidArray(options, 1) || !isValidNumber(optionIndex, 0, options.length - 1) || !isValidString(options[optionIndex], 1)) {
+    return undefined;
+  }
+
+  return { option: options[optionIndex] };
+}
+
 /** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId | undefined; attribute: string; value: any }[] = [
@@ -542,8 +567,8 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'on',                      domain: 'remote', service: 'turn_on' },
     { command: 'off',                     domain: 'remote', service: 'turn_off' },
 
-    { command: 'changeToMode',            domain: 'input_select', service: 'select_option' },
-    { command: 'changeToMode',            domain: 'select', service: 'select_option' },
+    { command: 'changeToMode',            domain: 'input_select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) } },
+    { command: 'changeToMode',            domain: 'select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) }  },
 
     { command: 'on',                      domain: 'media_player', service: 'turn_on' },
     { command: 'off',                     domain: 'media_player', service: 'turn_off' },

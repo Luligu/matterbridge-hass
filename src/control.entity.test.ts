@@ -206,6 +206,69 @@ describe('addControlEntity', () => {
     expect(args[2]).toEqual(attributes.options);
   });
 
+  it('registers labeled input_select virtual controls for each option', async () => {
+    const [md, e, s] = make('input_select', 'mode', {
+      friendly_name: 'Heating Mode',
+      options: ['Eco', 'Comfort'],
+    });
+    const callService = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const registerVirtualDevice = jest.fn();
+    const platform = {
+      ...mockPlatform,
+      config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls' },
+      ha: {
+        callService,
+        hassLabels: new Map([['virtual-controls', { label_id: 'virtual-controls', name: 'Virtual Controls' }]]),
+        hassStates: new Map([[e.entity_id, s]]),
+      },
+      registerVirtualDevice,
+    } as any;
+    const entity = { ...e, labels: ['virtual-controls'] } as HassEntity;
+
+    addControlEntity(platform, md, entity, s, commandHandler, subscribeHandler as any);
+
+    expect(registerVirtualDevice).toHaveBeenCalledTimes(2);
+    expect(registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Heating Mode Eco', 'mounted_switch', expect.any(Function));
+    expect(registerVirtualDevice).toHaveBeenNthCalledWith(2, 'Heating Mode Comfort', 'mounted_switch', expect.any(Function));
+
+    const comfortCallback = registerVirtualDevice.mock.calls[1][2] as VirtualDeviceCallback;
+    await comfortCallback();
+    await Promise.resolve();
+
+    expect(callService).toHaveBeenCalledWith('input_select', 'select_option', e.entity_id, { option: 'Comfort' });
+  });
+
+  it('logs an error when a labeled input_select virtual control service call fails', async () => {
+    const [md, e, s] = make('input_select', 'mode', {
+      friendly_name: 'Heating Mode',
+      options: ['Eco'],
+    });
+    const callService = jest.fn<() => Promise<void>>().mockRejectedValue(new Error('boom'));
+    const registerVirtualDevice = jest.fn();
+    const log = { debug: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    const platform = {
+      config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls' },
+      ha: {
+        callService,
+        hassLabels: new Map([['virtual-controls', { label_id: 'virtual-controls', name: 'Virtual Controls' }]]),
+        hassStates: new Map([[e.entity_id, s]]),
+      },
+      log,
+      registerVirtualDevice,
+    } as any;
+    const entity = { ...e, labels: ['virtual-controls'] } as HassEntity;
+
+    addControlEntity(platform, md, entity, s, commandHandler, subscribeHandler as any);
+
+    const ecoCallback = registerVirtualDevice.mock.calls[0][2] as VirtualDeviceCallback;
+    await ecoCallback();
+    await Promise.resolve();
+
+    expect(callService).toHaveBeenCalledWith('input_select', 'select_option', e.entity_id, { option: 'Eco' });
+    expect(log.error).toHaveBeenCalledWith(expect.stringContaining('Failed to call select_option service for'));
+    expect(log.error).toHaveBeenCalledWith(expect.stringContaining('Error: boom'));
+  });
+
   it('configures remote entities with on/off support', () => {
     const [md, e, s] = make('remote', 'tv', {});
 
