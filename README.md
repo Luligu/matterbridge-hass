@@ -334,7 +334,7 @@ If enabled (default), the plugin discards entities that are hidden in Home Assis
 
 ### Virtual Control Label
 
-Label used to enable virtual controls on entities. If set, the plugin creates one virtual control for each entity with the selected label. These virtual controls are intended for accessibility and let you send commands to entities that are not directly supported by the controller, such as `media_player.samsung_tv`. Virtual controls are exposed as switch entities: turning one on triggers the command, and the plugin automatically turns it off again afterward.
+Label used to enable virtual controls on entities. If set, the plugin creates one virtual control for each entity with the selected label. These virtual controls are intended for accessibility and let you send commands to entities that are not directly supported by the controller, such as `media_player.samsung_tv`, with simple voice-friendly switches. Virtual controls are exposed as switch entities: turning one on triggers the command, and the plugin automatically turns it off again afterward.
 
 Supported virtual control domains:
 
@@ -353,9 +353,10 @@ Supported virtual control domains:
 | select       |                |                      | name + all options    |
 | input_select |                |                      | name + all options    |
 
-Use this option to create simple voice-friendly switches like `Play TV`, `Pause TV`, or `Turn ON TV` for supported media players: with Siri you can simply say `Hey Siri Play TV`.
+Use this option to create simple voice-friendly switches like `Play TV`, `Pause TV`, or `Turn ON TV` for media_player domain: with Siri you can simply say `Hey Siri Play TV`.
 
 Example:
+
 Let's say you have a device named `Samsung TV` with a media_player entity `media_player.samsung_tv`.
 
 If you set `Virtual Control Label` to `matterbridge-virtual` and assign that label to the media_player entity in Home Assistant, the plugin checks which media player features are supported and creates one virtual switch for each supported command.

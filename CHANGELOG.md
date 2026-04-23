@@ -8,13 +8,13 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## Possible issue upgrading the plugin
 
-> WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either exclude those domains or to split their entities.
+> WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
-## [1.1.2] - Dev branch
+## [1.2.0] - Dev branch
 
 ### Breaking Changes
 
-- [domains]: Domains `remote`, `select`, `input_select` and `media_player` are now supported. You may want to either use them with [filter](README.md#filter-by-label) and [select](README.md#device-entity-blacklist) or [exclude](README.md#domain-blacklist) all these domains if you don't need their entities or your controller doesn't support them.
+- [domains]: Domains `remote`, `select`, `input_select` and `media_player` are now supported. You may want to either use them with [filter](README.md#filter-by-label) and [select](README.md#device-entity-blacklist) or [exclude](README.md#domain-blacklist) all these domains if you don't need their entities or your controller doesn't support them. It is also possible to split them.
 - [Split Entities]: The `Split Entities` config option is deprecated. Use `Split By Label`.
 
 ### Added
