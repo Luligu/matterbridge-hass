@@ -24,6 +24,7 @@
 
 import {
   airQualitySensor,
+  basicVideoPlayer,
   colorTemperatureLight,
   contactSensor,
   coverDevice,
@@ -36,6 +37,7 @@ import {
   humiditySensor,
   lightSensor,
   MatterbridgeEndpointCommands,
+  modeSelect,
   occupancySensor,
   onOffLight,
   onOffOutlet,
@@ -62,6 +64,8 @@ import {
   FormaldehydeConcentrationMeasurement,
   IlluminanceMeasurement,
   LevelControl,
+  MediaPlayback,
+  ModeSelect,
   NitrogenDioxideConcentrationMeasurement,
   OccupancySensing,
   OnOff,
@@ -293,6 +297,31 @@ export function convertHAXYToMatter(xyColor: [number, number]): { currentX: numb
   return { currentX, currentY };
 }
 
+/**
+ * Returns the selected Home Assistant option for a Matter mode change request.
+ *
+ * @param {Record<string, unknown>} request - Matter command payload containing the target mode index.
+ * @param {number} [request.newMode] - One-based mode index received from Matter.
+ * @param {HassState | undefined} state - Current Home Assistant state containing the available options.
+ * @returns {{ option: string } | undefined} The mapped option payload, or undefined when the request is invalid.
+ */
+function getSelectOptionFromMode(request: Record<string, unknown>, state: HassState | undefined): { option: string } | undefined {
+  const options = state?.attributes?.options;
+  const newMode = request['newMode'];
+
+  if (!isValidNumber(newMode, 1)) {
+    return undefined;
+  }
+
+  const optionIndex = newMode - 1;
+
+  if (!isValidArray(options, 1) || !isValidNumber(optionIndex, 0, options.length - 1) || !isValidString(options[optionIndex], 1)) {
+    return undefined;
+  }
+
+  return { option: options[optionIndex] };
+}
+
 /** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId | undefined; attribute: string; value: any }[] = [
@@ -343,6 +372,19 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
 
     { domain: 'binary_sensor', state: 'on', clusterId: BooleanState.Cluster.id, attribute: 'stateValue', value: true },
     { domain: 'binary_sensor', state: 'off', clusterId: BooleanState.Cluster.id, attribute: 'stateValue', value: false },
+
+    { domain: 'remote', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
+    { domain: 'remote', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
+
+    { domain: 'media_player', state: 'on', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: true },
+    { domain: 'media_player', state: 'off', clusterId: OnOff.Cluster.id, attribute: 'onOff', value: false },
+    { domain: 'media_player', state: 'playing', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Playing },
+    { domain: 'media_player', state: 'paused', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Paused },
+    { domain: 'media_player', state: 'idle', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.NotPlaying },
+    { domain: 'media_player', state: 'standby', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.NotPlaying },
+    { domain: 'media_player', state: 'buffering', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Buffering },
+    { domain: 'media_player', state: 'on', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.Playing },
+    { domain: 'media_player', state: 'off', clusterId: MediaPlayback.Cluster.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.NotPlaying },
   ];
 
 /** Update Home Assistant attributes to Matterbridge device attributes */
@@ -415,6 +457,10 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcRunMode.Cluster.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcCleanMode.Cluster.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.Cluster.id },
+    { domain: 'remote',                                 deviceType: onOffOutlet,            clusterId: OnOff.Cluster.id },
+    { domain: 'input_select',                           deviceType: modeSelect,             clusterId: ModeSelect.Cluster.id },
+    { domain: 'select',                                 deviceType: modeSelect,             clusterId: ModeSelect.Cluster.id },
+    { domain: 'media_player',                           deviceType: basicVideoPlayer,       clusterId: MediaPlayback.Cluster.id },
     { domain: 'sensor',                                 deviceType: null,                   clusterId: null },
     { domain: 'binary_sensor',                          deviceType: null,                   clusterId: null },
   ];
@@ -517,6 +563,20 @@ export const hassCommandConverter: { command: keyof MatterbridgeEndpointCommands
     { command: 'resume',                  domain: 'vacuum', service: 'start' },
     { command: 'goHome',                  domain: 'vacuum', service: 'return_to_base' },
     { command: 'changeToMode',            domain: 'vacuum', service: 'start' },
+
+    { command: 'on',                      domain: 'remote', service: 'turn_on' },
+    { command: 'off',                     domain: 'remote', service: 'turn_off' },
+
+    { command: 'changeToMode',            domain: 'input_select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) } },
+    { command: 'changeToMode',            domain: 'select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) }  },
+
+    { command: 'on',                      domain: 'media_player', service: 'turn_on' },
+    { command: 'off',                     domain: 'media_player', service: 'turn_off' },
+    { command: 'play',                    domain: 'media_player', service: 'media_play' },
+    { command: 'pause',                   domain: 'media_player', service: 'media_pause' },
+    { command: 'stop',                    domain: 'media_player', service: 'media_stop' },
+    { command: 'previous',                domain: 'media_player', service: 'media_previous_track' },
+    { command: 'next',                    domain: 'media_player', service: 'media_next_track' },
   ];
 
 /**

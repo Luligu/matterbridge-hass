@@ -24,6 +24,7 @@
   "airQualityRegex": "",
   "enableServerRvc": true,
   "discardHiddenEntities": true,
+  "virtualControlLabel": "",
   "debug": false,
   "unregisterOnShutdown": false
 }

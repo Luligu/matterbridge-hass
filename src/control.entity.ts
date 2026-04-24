@@ -30,7 +30,7 @@ import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
 import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
-import { getDomain } from './helpers.js';
+import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -44,6 +44,8 @@ import {
   HomeAssistant,
   HVACMode,
   LightEntityFeature,
+  MediaPlayerEntityFeature,
+  MediaPlayerService,
   UnitOfTemperature,
   VacuumEntityFeature,
 } from './homeAssistant.js';
@@ -192,6 +194,63 @@ export function addControlEntity(
       `# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`,
     );
     mutableDevice.addVacuum(endpointName);
+  }
+
+  // Configure the select.
+  if (domain === 'select' || domain === 'input_select') {
+    platform.log.debug(`= select device ${CYAN}${entity.entity_id}${db} options: ${CYAN}${state.attributes['options']}${db}`);
+    mutableDevice.addSelect(endpointName, getEntityName(platform, entity) ?? 'Select an option', state.attributes['options']);
+    if (entityHasLabel(platform, entity, platform.config.virtualControlLabel)) {
+      state.attributes['options']?.forEach((option: string) => {
+        platform.log.debug(`***Add select device ${CYAN}${entity.entity_id}${db} virtual control: ${CYAN}${option}${db}`);
+        platform.registerVirtualDevice(`${getEntityName(platform, entity)} ${option}`, 'mounted_switch', async () => {
+          platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error) => {
+            platform.log.error(`Failed to call select_option service for ${CYAN}${entity.entity_id}${db} with option ${CYAN}${option}${db}: ${error}`);
+          });
+        });
+      });
+    }
+  }
+
+  // Configure the remote.
+  if (domain === 'remote') {
+    platform.log.debug(`= remote device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db}`);
+    mutableDevice.addOnOff(endpointName, true);
+  }
+
+  // Configure the media_player.
+  if (domain === 'media_player') {
+    platform.log.debug(`= media_player device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db} attrbutes: ${CYAN}${debugStringify(state.attributes)}${db}`);
+    platform.log.debug(
+      `# media_player device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(MediaPlayerEntityFeature, state.attributes.supported_features)}${db}`,
+    );
+    mutableDevice.addOnOff(endpointName, true);
+    mutableDevice.addBasicVideoPlayer(endpointName);
+    mutableDevice.addKeypadInput(endpointName);
+    if (entityHasLabel(platform, entity, platform.config.virtualControlLabel)) {
+      const featuresServices: { feature: MediaPlayerEntityFeature; service: MediaPlayerService; controlName: string }[] = [
+        { feature: MediaPlayerEntityFeature.TURN_ON, service: MediaPlayerService.TURN_ON, controlName: 'Turn ON' },
+        { feature: MediaPlayerEntityFeature.TURN_OFF, service: MediaPlayerService.TURN_OFF, controlName: 'Turn OFF' },
+        { feature: MediaPlayerEntityFeature.PLAY, service: MediaPlayerService.MEDIA_PLAY, controlName: 'Play' },
+        { feature: MediaPlayerEntityFeature.PAUSE, service: MediaPlayerService.MEDIA_PAUSE, controlName: 'Pause' },
+        { feature: MediaPlayerEntityFeature.STOP, service: MediaPlayerService.MEDIA_STOP, controlName: 'Stop' },
+        { feature: MediaPlayerEntityFeature.VOLUME_MUTE, service: MediaPlayerService.VOLUME_MUTE, controlName: 'Mute' },
+        { feature: MediaPlayerEntityFeature.VOLUME_STEP, service: MediaPlayerService.VOLUME_DOWN, controlName: 'Volume Down' },
+        { feature: MediaPlayerEntityFeature.VOLUME_STEP, service: MediaPlayerService.VOLUME_UP, controlName: 'Volume Up' },
+        { feature: MediaPlayerEntityFeature.PREVIOUS_TRACK, service: MediaPlayerService.MEDIA_PREVIOUS_TRACK, controlName: 'Previous Track' },
+        { feature: MediaPlayerEntityFeature.NEXT_TRACK, service: MediaPlayerService.MEDIA_NEXT_TRACK, controlName: 'Next Track' },
+      ];
+      featuresServices.forEach(({ feature, service, controlName }) => {
+        if (state.attributes['supported_features'] && state.attributes['supported_features'] & feature) {
+          platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
+          platform.registerVirtualDevice(`${controlName} ${getEntityName(platform, entity)}`, 'mounted_switch', async () => {
+            platform.ha.callService('media_player', service, entity.entity_id).catch((error) => {
+              platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
+            });
+          });
+        }
+      });
+    }
   }
 
   // Add command handlers

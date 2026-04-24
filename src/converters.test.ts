@@ -25,6 +25,18 @@ import {
 } from './converters.js';
 import { ClimateEntityFeature, ColorMode, FanEntityFeature, HassConfig, HassState, HassUnitSystem, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 
+function createSelectState(options: string[]): HassState {
+  return {
+    entity_id: 'select.test_mode',
+    state: options[0] ?? '',
+    last_changed: '',
+    last_reported: '',
+    last_updated: '',
+    attributes: { options } as HassState['attributes'],
+    context: { id: '', parent_id: null, user_id: null },
+  };
+}
+
 describe('HassPlatform converters', () => {
   it('should return the feature names for supported features', () => {
     expect(getFeatureNames(FanEntityFeature, 0)).toEqual([]);
@@ -356,6 +368,12 @@ describe('HassPlatform converters', () => {
             undefined as any,
           ),
         ).toEqual({ hs_color: [142, 20] });
+      }
+      if (converter.converter && converter.command === 'changeToMode' && converter.service === 'select_option') {
+        expect(converter.converter({ newMode: 2 }, undefined as any, createSelectState(['Eco', 'Comfort']))).toEqual({ option: 'Comfort' });
+        expect(converter.converter({}, undefined as any, createSelectState(['Eco', 'Comfort']))).toBeUndefined();
+        expect(converter.converter({ newMode: 3 }, undefined as any, createSelectState(['Eco', 'Comfort']))).toBeUndefined();
+        expect(converter.converter({ newMode: 1 }, undefined as any, createSelectState([]))).toBeUndefined();
       }
     });
   });

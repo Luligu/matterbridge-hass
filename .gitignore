@@ -5,6 +5,7 @@
 .cache/
 .vscode/*
 !.vscode/tasks.json
+!.vscode/settings.json
 coverage/
 dist/
 jest/

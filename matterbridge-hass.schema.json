@@ -123,7 +123,11 @@
           "sensor",
           "binary_sensor",
           "event",
-          "button"
+          "button",
+          "remote",
+          "select",
+          "input_select",
+          "media_player"
         ]
       },
       "uniqueItems": true
@@ -151,13 +155,17 @@
           "sensor",
           "binary_sensor",
           "event",
-          "button"
+          "button",
+          "remote",
+          "select",
+          "input_select",
+          "media_player"
         ]
       },
       "uniqueItems": true
     },
     "splitEntities": {
-      "title": "Split Entities",
+      "title": "Split Entities (DEPRECATED: use Split By Label)",
       "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock). Split entities must satisfy the filters (if any) and the whiteList (if any).",
       "type": "array",
       "items": {
@@ -214,6 +222,12 @@
       "description": "Discard entities with 'hidden' attribute set to true. This will prevent the plugin from exposing entities that are hidden in Home Assistant.",
       "type": "boolean",
       "default": true
+    },
+    "virtualControlLabel": {
+      "title": "Virtual Control Label",
+      "description": "Label to activates virtual control commands on entities (use label name). If enabled, a virtual control will be created for each entity with the selected label. Virtual controls are used to send commands to entities that are not directly supported by the controller (e.g., media_player.apple_tv). Virtual controls will be exposed as switch entities and will trigger a command when turned on. The plugin will turn off the virtual control after the command is triggered.",
+      "type": "string",
+      "default": ""
     },
     "debug": {
       "title": "Enable Debug",

@@ -2,11 +2,11 @@
 
 /* eslint-disable no-console */
 
-const MATTER_PORT = 6200;
 const NAME = 'PlatformAuto';
-const HOMEDIR = path.join('.cache', 'jest', NAME);
+const MATTER_PORT = 6200;
 const MATTER_CREATE_ONLY = true;
 const MATTER_PAUSE = 10;
+const HOMEDIR = path.join('.cache', 'jest', NAME);
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -15,16 +15,20 @@ import { jest } from '@jest/globals';
 import { MatterbridgeEndpoint, onOffMountedSwitch, onOffOutlet } from 'matterbridge';
 import {
   addDevice,
+  addVirtualEndpointMatterbridgeSpy,
   aggregator,
+  createServerNode,
   createTestEnvironment,
   deleteDevice,
   destroyTestEnvironment,
   flushAsync,
+  flushServerNode,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
   loggerFatalSpy,
   loggerInfoSpy,
+  loggerNoticeSpy,
   loggerWarnSpy,
   server,
   setDebug,
@@ -94,6 +98,8 @@ const addClusterServerColorControlSpy = jest.spyOn(MutableDevice.prototype, 'add
 const addClusterServerAutoModeThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
 const addClusterServerHeatingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
 const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
+const addVacuumSpy = jest.spyOn(MutableDevice.prototype, 'addVacuum');
+const addSelectSpy = jest.spyOn(MutableDevice.prototype, 'addSelect');
 
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
@@ -112,17 +118,17 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.7.3',
+    matterbridgeVersion: '3.7.5',
     log,
     addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await addDevice(aggregator, device, MATTER_PAUSE);
+      await addDevice(aggregator, device, 1, 0);
     }),
     removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await deleteDevice(aggregator, device, MATTER_PAUSE);
+      await deleteDevice(aggregator, device, 1, 0);
     }),
     removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
       for (const device of aggregator.parts) {
-        await deleteDevice(aggregator, device, MATTER_PAUSE);
+        await deleteDevice(aggregator, device, 1, 0);
       }
     }),
     addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
@@ -130,7 +136,7 @@ describe('Matterbridge ' + NAME, () => {
       const device = new MatterbridgeEndpoint([onOffMountedSwitch, onOffOutlet], { id: name.replaceAll(' ', '') + ':' + type })
         .createDefaultBridgedDeviceBasicInformationClusterServer(name, createUniqueId(), VendorId(0xfff1), 'Matterbridge', 'Matterbridge Virtual Device')
         .addRequiredClusterServers();
-      await addDevice(aggregator, device, MATTER_PAUSE);
+      await addDevice(aggregator, device, 1, 0);
     }),
   } as any;
 
@@ -139,9 +145,11 @@ describe('Matterbridge ' + NAME, () => {
 
   beforeAll(async () => {
     // Setup the Matter test environment
-    createTestEnvironment(NAME, MATTER_CREATE_ONLY);
+    await createTestEnvironment();
+    // Create the server node and aggregator
+    await createServerNode(MATTER_PORT);
     // Start the server node and aggregator
-    await startServerNode(NAME, MATTER_PORT, undefined, MATTER_CREATE_ONLY);
+    if (!MATTER_CREATE_ONLY) await startServerNode();
   });
 
   beforeEach(async () => {
@@ -152,15 +160,15 @@ describe('Matterbridge ' + NAME, () => {
   afterEach(async () => {
     // Clean up after each test
     await cleanup();
-    await flushAsync(undefined, undefined, MATTER_PAUSE);
     await setDebug(false);
   });
 
   afterAll(async () => {
-    // Stop the server node
-    await stopServerNode(server, MATTER_CREATE_ONLY);
+    // Stop or flush the server node depending on the create-only mode
+    if (MATTER_CREATE_ONLY) await flushServerNode();
+    else await stopServerNode();
     // Destroy the Matter test environment
-    await destroyTestEnvironment(MATTER_CREATE_ONLY);
+    await destroyTestEnvironment();
 
     // Restore all mocks
     jest.restoreAllMocks();
@@ -221,7 +229,7 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.unregisterOnShutdown = false;
   }
 
-  it('should initialize the HomeAssistantPlatform', async () => {
+  it('should initialize the HomeAssistantPlatform (mandatory)', async () => {
     haPlatform = new HomeAssistantPlatform(mockMatterbridge, log, mockConfig);
     expect(haPlatform).toBeDefined();
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
@@ -240,8 +248,8 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Initialized platform: ${CYAN}${haPlatform.config.name}${nf} version: ${CYAN}${haPlatform.config.version}${rs}`);
     haPlatform.haSubscriptionId = 1;
     haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
-    haPlatform.ha.hassConfig = {} as HassConfig; // Simulate a Home Assistant configuration
-    haPlatform.ha.hassServices = {} as HassServices; // Simulate a Home Assistant services
+    haPlatform.ha.hassConfig = {} as HassConfig; // Simulate Home Assistant configuration
+    haPlatform.ha.hassServices = {} as HassServices; // Simulate Home Assistant services
   });
 
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {
@@ -729,6 +737,108 @@ describe('Matterbridge ' + NAME, () => {
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(0);
+
+    jest.clearAllMocks();
+    haPlatform.filterMessages.length = 0;
+    await haPlatform.onConfigure();
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+  });
+
+  it('should call onStart and register a remote individual entity, a media_player device with two remote entities, one normal and one split with Merge strategy', async () => {
+    const virtualLabel = generateLabel(haPlatform.ha, 'Virtual Label');
+    const device = generateDevice(haPlatform.ha, 'TV Device');
+    const remoteIndividualEntity = generateEntity(haPlatform.ha, 'Individual remote', 'remote');
+    const remoteDeviceEntity = generateEntity(haPlatform.ha, 'Device remote entity', 'remote', device);
+    const mediaplayerDeviceEntity = generateEntity(haPlatform.ha, 'Device media player entity', 'media_player', device, null, [virtualLabel.label_id]);
+    const remoteSplitEntity = generateEntity(haPlatform.ha, 'Split remote entity', 'remote', device);
+    generateState(haPlatform.ha, remoteIndividualEntity, 'on');
+    generateState(haPlatform.ha, remoteDeviceEntity, 'on');
+    generateState(haPlatform.ha, mediaplayerDeviceEntity, 'on', { supported_features: 448439 });
+    generateState(haPlatform.ha, remoteSplitEntity, 'on');
+
+    haPlatform.config.splitEntities = [remoteSplitEntity.entity_id];
+    haPlatform.config.virtualControlLabel = virtualLabel.name;
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    // await setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${remoteIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${remoteSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addVirtualEndpoint).toHaveBeenCalledTimes(9);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(remoteIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(remoteDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(mediaplayerDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(remoteSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(4);
+    expect(haPlatform.endpointNames.get(remoteIndividualEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(remoteDeviceEntity.entity_id)).toBe('remote.device_remote_entity');
+    expect(haPlatform.endpointNames.get(mediaplayerDeviceEntity.entity_id)).toBe('media_player.device_media_player_entity');
+    expect(haPlatform.endpointNames.get(remoteSplitEntity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(12);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(2);
+
+    jest.clearAllMocks();
+    haPlatform.filterMessages.length = 0;
+    await haPlatform.onConfigure();
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+  });
+
+  it('should call onStart and register a input_select individual entity, a device with two remote entities, one normal and one split with Merge strategy', async () => {
+    const virtualLabel = generateLabel(haPlatform.ha, 'Virtual Label');
+    const device = generateDevice(haPlatform.ha, 'Select Device');
+    const inputSelectIndividualEntity = generateEntity(haPlatform.ha, 'Individual input_select', 'input_select', null, null, [virtualLabel.label_id]);
+    const selectDeviceEntity = generateEntity(haPlatform.ha, 'Device select entity', 'select', device, null, [virtualLabel.label_id]);
+    const selectSplitEntity = generateEntity(haPlatform.ha, 'Split select entity', 'select', device, null, [virtualLabel.label_id]);
+    generateState(haPlatform.ha, inputSelectIndividualEntity, 'Led On', { options: ['Led On', 'Led Off'], friendly_name: 'Individual input_select Led' });
+    generateState(haPlatform.ha, selectDeviceEntity, 'Led Off', { options: ['Led On', 'Led Off'], friendly_name: 'Device select entity Led' });
+    generateState(haPlatform.ha, selectSplitEntity, 'invalid', { options: ['Led On', 'Led Off'], friendly_name: 'Split select entity Led' });
+
+    haPlatform.config.splitEntities = [selectSplitEntity.entity_id];
+    haPlatform.config.virtualControlLabel = virtualLabel.name;
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${inputSelectIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${selectSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(mockMatterbridge.addVirtualEndpoint).toHaveBeenCalledTimes(6);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(addSelectSpy).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(inputSelectIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(selectDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(selectSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(inputSelectIndividualEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(selectDeviceEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(selectSplitEntity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(9);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(0);
+
+    jest.clearAllMocks();
+    haPlatform.filterMessages.length = 0;
+    await haPlatform.onConfigure();
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
   });
 
   it('should call onStart and not register an individual entity, a device with two entities, one normal and one split with discardHiddenEntities enabled', async () => {
@@ -790,7 +900,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(endpoint?.getChildEndpoints().length).toBe(1);
   });
 
-  it('should call onShutdown and unregister', async () => {
+  it('should call onShutdown and unregister (mandatory)', async () => {
     mockConfig.unregisterOnShutdown = true;
     await haPlatform.onShutdown('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);

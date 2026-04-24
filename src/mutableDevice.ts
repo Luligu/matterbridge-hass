@@ -38,6 +38,8 @@ import {
   MatterbridgeEndpoint,
   MatterbridgeEndpointCommands,
   MatterbridgeFanControlServer,
+  MatterbridgeModeSelectServer,
+  MatterbridgeOnOffServer,
   MatterbridgeSmokeCoAlarmServer,
   MatterbridgeThermostatServer,
   onOffLight,
@@ -45,7 +47,13 @@ import {
   onOffSwitch,
   PlatformMatterbridge,
 } from 'matterbridge';
-import { MatterbridgeRvcCleanModeServer, MatterbridgeRvcOperationalStateServer, MatterbridgeRvcRunModeServer } from 'matterbridge/devices';
+import {
+  MatterbridgeKeypadInputServer,
+  MatterbridgeMediaPlaybackServer,
+  MatterbridgeRvcCleanModeServer,
+  MatterbridgeRvcOperationalStateServer,
+  MatterbridgeRvcRunModeServer,
+} from 'matterbridge/devices';
 import { AnsiLogger, CYAN, db, debugStringify, idn, ign, LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
 import { ActionContext, AtLeastOne, Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
@@ -56,6 +64,10 @@ import {
   FanControl,
   Groups,
   Identify,
+  KeypadInput,
+  MediaPlayback,
+  ModeSelect,
+  OnOff,
   PowerSource,
   RvcCleanMode,
   RvcOperationalState,
@@ -776,6 +788,54 @@ export class MutableDevice {
         ],
         operationalState: RvcOperationalState.OperationalState.Docked,
         operationalError: { errorStateId: RvcOperationalState.ErrorState.NoError, errorStateDetails: 'Fully operational' },
+      }),
+    );
+    return this;
+  }
+
+  addSelect(endpoint: string, name: string, items: string[]): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(ModeSelect.Cluster.id, MatterbridgeModeSelectServer, {
+        description: name,
+        supportedModes: items.map((item, index) => ({ label: item, mode: index + 1, semanticTags: [] })),
+        currentMode: 1,
+      }),
+    );
+    return this;
+  }
+
+  addOnOff(endpoint: string, onOff: boolean): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(OnOff.Cluster.id, MatterbridgeOnOffServer.with(), {
+        onOff,
+      }),
+    );
+    return this;
+  }
+
+  addBasicVideoPlayer(endpoint: string): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        MediaPlayback.Cluster.id,
+        MatterbridgeMediaPlaybackServer.enable({
+          commands: { next: true, previous: true, skipForward: true, skipBackward: true },
+        }),
+        {
+          currentState: MediaPlayback.PlaybackState.NotPlaying,
+        },
+      ),
+    );
+    return this;
+  }
+
+  addKeypadInput(endpoint: string): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(KeypadInput.Cluster.id, MatterbridgeKeypadInputServer, {
+        // No attributes for this cluster server, it only handles the KeypadInput command.
       }),
     );
     return this;

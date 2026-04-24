@@ -41,19 +41,48 @@ Features:
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
 - Jest test coverage = 100%.
 
+## How to use filters and select
+
+> Read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/186).
+
+## Naming issues on the controller side explained
+
+> For naming issues (especially upsetting with Alexa and Google), read the explanation and the solution [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
+
+## Quick install guide
+
+For new users I suggest to start following this list:
+
+- create an [Home Assistant Token](README.md#token)
+- create an Home Assistant Label that will be used to [filter](README.md#filter-by-label) the devices and entities in Home Assistant
+- create an Home Assistant Label that will be used to [split](README.md#split-by-label) the device entities in Home Assistant
+- find your [Host name or Address](README.md#host)
+- add them to the config and restart
+
+Now add the `label for filter` you created before to each device you want to expose to Matter (or to each device entity if you want only some of the device entities).
+
+Add also the `label for split` you created before to each device entity you want to expose like a single Matter device.
+
+Restart, verify that everything is like you intended.
+
+Pair Matterbridge to your controller.
+
 ## Supported device entities:
 
-| Domain     | Supported states                          | Supported attributes                                                                    |
-| ---------- | ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| switch     | on, off                                   |                                                                                         |
-| light      | on, off                                   | brightness, color_mode, color_temp, hs_color, xy_color                                  |
-| lock       | locked, locking, unlocking, unlocked      |                                                                                         |
-| fan        | on, off                                   | percentage, preset_mode (1), direction, oscillating                                     |
-| cover      | open, closed, opening, closing            | current_position                                                                        |
-| climate    | off, heat, cool, heat_cool, auto          | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
-| valve      | open, closed, opening, closing            | current_position                                                                        |
-| vacuum (2) | idle, cleaning, paused, docked, returning |                                                                                         |
-| button     |                                           |                                                                                         |
+| Domain       | Supported states                           | Supported attributes                                                                    |
+| ------------ | ------------------------------------------ | --------------------------------------------------------------------------------------- |
+| switch       | on, off                                    |                                                                                         |
+| light        | on, off                                    | brightness, color_mode, color_temp, hs_color, xy_color                                  |
+| lock         | locked, locking, unlocking, unlocked       |                                                                                         |
+| fan          | on, off                                    | percentage, preset_mode (1), direction, oscillating                                     |
+| cover        | open, closed, opening, closing             | current_position                                                                        |
+| climate      | off, heat, cool, heat_cool, auto           | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
+| valve        | open, closed, opening, closing             | current_position                                                                        |
+| vacuum (2)   | idle, cleaning, paused, docked, returning  |                                                                                         |
+| button       |                                            |                                                                                         |
+| remote       | on, off                                    |                                                                                         |
+| select       |                                            | options                                                                                 |
+| media_player | on, off, play, pause, stop, previous, next |                                                                                         |
 
 (1) - Supported preset_modes: auto, low, medium, high.
 
@@ -70,6 +99,7 @@ These domains are supported also like individual and split entities.
 | script        | Scripts     |
 | input_boolean | Helpers     |
 | input_button  | Helpers     |
+| input_select  | Helpers     |
 
 These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helper of domain input_boolean maintains the on/off state.
 
@@ -234,6 +264,8 @@ Entities whose domain is listed here will be excluded. Leave this list empty to 
 
 ### Split Entities
 
+> DEPRECATED: use `Split By Label`
+
 The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
 
 Let's make an example.
@@ -275,7 +307,7 @@ Strategy used for split entity names. "Entity name": use the entity name (i.e. C
 
 ### Controller Strategy
 
-Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
+Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not strictly compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
 
 ### Air Quality Regex
 
@@ -299,6 +331,56 @@ In addition to this well known bugs, the rvc must be a single device, it cannot 
 ### Discard Hidden Entities
 
 If enabled (default), the plugin discards entities that are hidden in Home Assistant (i.e. entities whose `hidden_by` field is not `null` in the entity registry). Hidden entities will not be exposed as device entities, individual entities, or split entities.
+
+### Virtual Control Label
+
+Label used to enable virtual controls on entities. If set, the plugin creates one virtual control for each entity with the selected label. These virtual controls are intended for accessibility and let you send commands to entities that are not directly supported by the controller, such as `media_player.samsung_tv`, with simple voice-friendly switches. Virtual controls are exposed as switch entities: turning one on triggers the command, and the plugin automatically turns it off again afterward.
+
+Supported virtual control domains:
+
+| Domain       | Feature        | Service              | Virtual control       |
+| ------------ | -------------- | -------------------- | --------------------- |
+| media_player | TURN_ON        | TURN_ON              | Turn ON + name        |
+|              | TURN_OFF       | TURN_OFF             | Turn OFF + name       |
+|              | PLAY           | MEDIA_PLAY           | Play + name           |
+|              | PAUSE          | MEDIA_PAUSE          | Pause + name          |
+|              | STOP           | MEDIA_STOP           | Stop + name           |
+|              | VOLUME_MUTE    | VOLUME_MUTE          | Mute + name           |
+|              | VOLUME_STEP    | VOLUME_DOWN          | Volume Down + name    |
+|              | VOLUME_STEP    | VOLUME_UP            | Volume Up + name      |
+|              | PREVIOUS_TRACK | MEDIA_PREVIOUS_TRACK | Previous Track + name |
+|              | NEXT_TRACK     | MEDIA_NEXT_TRACK     | Next Track + name     |
+| select       |                |                      | name + all options    |
+| input_select |                |                      | name + all options    |
+
+Use this option to create simple voice-friendly switches like `Play TV`, `Pause TV`, or `Turn ON TV` for media_player domain: with Siri you can simply say `Hey Siri Play TV`.
+
+Example:
+
+Let's say you have a device named `Samsung TV` with a media_player entity `media_player.samsung_tv`.
+
+If you set `Virtual Control Label` to `matterbridge-virtual` and assign that label to the media_player entity in Home Assistant, the plugin checks which media player features are supported and creates one virtual switch for each supported command.
+
+For example:
+
+- if the device supports `TURN_ON`, the plugin creates `Turn ON Samsung TV`
+- if the device supports `TURN_OFF`, the plugin creates `Turn OFF Samsung TV`
+- if the device supports `PLAY`, the plugin creates `Play Samsung TV`
+- if the device supports `PAUSE`, the plugin creates `Pause Samsung TV`
+- if the device supports `STOP`, the plugin creates `Stop Samsung TV`
+- if the device supports `VOLUME_MUTE`, the plugin creates `Mute Samsung TV`
+- if the device supports `VOLUME_STEP`, the plugin creates `Volume Down Samsung TV` and `Volume Up Samsung TV`
+- if the device supports `PREVIOUS_TRACK`, the plugin creates `Previous Track Samsung TV`
+- if the device supports `NEXT_TRACK`, the plugin creates `Next Track Samsung TV`
+
+When you turn on one of these virtual switches, the plugin sends the corresponding `media_player` service command to that entity and then automatically turns the switch off again.
+
+So, if your `Samsung TV` only supports `TURN_ON`, `TURN_OFF` and `VOLUME_STEP`, you will get these four virtual controls:
+
+- `Turn ON Samsung TV`
+- `Turn OFF Samsung TV`
+- `Volume Down Samsung TV`
+- `Volume Up Samsung TV`
 
 ### Enable Debug
 

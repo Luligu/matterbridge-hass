@@ -1,7 +1,7 @@
 ---
 name: 'Testing Standards'
 description: 'Testing standards for unit tests in the project.'
-applyTo: 'packages/**/*.test.ts'
+applyTo: '**/*.test.ts'
 ---
 
 # Testing Standards for Unit Tests

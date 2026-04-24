@@ -2,8 +2,8 @@
 
 /* eslint-disable no-console */
 
-const MATTER_PORT = 6000;
 const NAME = 'Platform';
+const MATTER_PORT = 6000;
 const HOMEDIR = path.join('jest', NAME);
 
 import * as fs from 'node:fs';
@@ -143,7 +143,7 @@ describe('HassPlatform', () => {
 
   beforeAll(async () => {
     // Create the test environment
-    await createMatterbridgeEnvironment(NAME);
+    await createMatterbridgeEnvironment();
   });
 
   beforeEach(() => {
@@ -170,8 +170,7 @@ describe('HassPlatform', () => {
   });
 
   afterEach(async () => {
-    // DrainEventLoop
-    await flushAsync(1, 1, 10);
+    await setDebug(false);
   });
 
   afterAll(async () => {
