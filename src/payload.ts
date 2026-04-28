@@ -21,20 +21,19 @@
  */
 
 import fs from 'node:fs';
+import path from 'node:path';
 
-import { type AnsiLogger } from 'matterbridge/logger';
-
-import { type HomeAssistant } from './homeAssistant.js';
+import type { HomeAssistantPlatform } from './module.js';
 
 /**
  * Save the Home Assistant payload to a file.
  * The payload contains devices, entities, areas, labels, states, config and services.
  *
- * @param {HomeAssistant} ha The Home Assistant instance.
- * @param {string} filename The name of the file to save the payload to.
- * @param {AnsiLogger} log The logger instance.
+ * @param {HomeAssistantPlatform} platform The Home Assistant platform instance.
  */
-export async function savePayload(ha: HomeAssistant, filename: string, log: AnsiLogger) {
+export async function savePayload(platform: HomeAssistantPlatform) {
+  const ha = platform.ha;
+  const filename = path.join(platform.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json');
   const payload = {
     devices: Array.from(ha.hassDevices.values()),
     entities: Array.from(ha.hassEntities.values()),
@@ -46,9 +45,9 @@ export async function savePayload(ha: HomeAssistant, filename: string, log: Ansi
   };
   try {
     await fs.promises.writeFile(filename, JSON.stringify(payload, null, 2));
-    log.debug(`Payload successfully written to ${filename}`);
+    platform.log.debug(`Payload successfully written to ${filename}`);
     return;
   } catch (error) {
-    log.error(`Error writing payload to file ${filename}: ${error}`);
+    platform.log.error(`Error writing payload to file ${filename}: ${error}`);
   }
 }

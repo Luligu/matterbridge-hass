@@ -2,13 +2,14 @@
 
 const NAME = 'Payload';
 const HOMEDIR = path.join('jest', NAME);
+const PAYLOAD_DIRECTORY = path.join(HOMEDIR, 'matterbridge-hass');
+const FILE_PATH = path.join(PAYLOAD_DIRECTORY, 'homeassistant.json');
 
 import fs from 'node:fs';
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
 import { setupTest } from 'matterbridge/jestutils';
-import type { AnsiLogger } from 'matterbridge/logger';
 
 import type { HassArea, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import { savePayload } from './payload.js';
@@ -28,32 +29,49 @@ function createHomeAssistant(): HomeAssistant {
   } as HomeAssistant;
 }
 
-describe('Payload', () => {
-  const filePath = path.join(HOMEDIR, 'payload.json');
-  let logger: Pick<AnsiLogger, 'debug' | 'error'>;
+type PayloadPlatformStub = {
+  ha: HomeAssistant;
+  log: {
+    debug: ReturnType<typeof jest.fn>;
+    error: ReturnType<typeof jest.fn>;
+  };
+  matterbridge: {
+    matterbridgePluginDirectory: string;
+  };
+};
 
-  beforeEach(async () => {
-    jest.clearAllMocks();
-    logger = {
+function createPlatform(pluginDirectory = HOMEDIR): PayloadPlatformStub {
+  return {
+    ha: createHomeAssistant(),
+    log: {
       debug: jest.fn(),
       error: jest.fn(),
-    };
-    await fs.promises.mkdir(HOMEDIR, { recursive: true });
-    await fs.promises.rm(filePath, { force: true });
+    },
+    matterbridge: {
+      matterbridgePluginDirectory: pluginDirectory,
+    },
+  };
+}
+
+describe('Payload', () => {
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    await fs.promises.mkdir(PAYLOAD_DIRECTORY, { recursive: true });
+    await fs.promises.rm(FILE_PATH, { force: true });
   });
 
   afterEach(async () => {
-    await fs.promises.rm(filePath, { force: true });
+    await fs.promises.rm(FILE_PATH, { force: true });
   });
 
   it('should save the Home Assistant payload to a file', async () => {
-    const ha = createHomeAssistant();
+    const platform = createPlatform();
 
-    await savePayload(ha, filePath, logger as AnsiLogger);
+    await savePayload(platform as unknown as Parameters<typeof savePayload>[0]);
 
-    expect(logger.debug).toHaveBeenCalledWith(`Payload successfully written to ${filePath}`);
+    expect(platform.log.debug).toHaveBeenCalledWith(`Payload successfully written to ${FILE_PATH}`);
 
-    const savedPayload = JSON.parse(await fs.promises.readFile(filePath, 'utf8')) as {
+    const savedPayload = JSON.parse(await fs.promises.readFile(FILE_PATH, 'utf8')) as {
       devices: unknown[];
       entities: unknown[];
       areas: unknown[];
@@ -75,10 +93,11 @@ describe('Payload', () => {
   });
 
   it('should fail to save the Home Assistant payload to a file', async () => {
-    const ha = createHomeAssistant();
+    const platform = createPlatform(FILE_PATH);
+    const expectedFilePath = path.join(FILE_PATH, 'matterbridge-hass', 'homeassistant.json');
 
-    await savePayload(ha, HOMEDIR, logger as AnsiLogger);
+    await savePayload(platform as unknown as Parameters<typeof savePayload>[0]);
 
-    expect(logger.error).toHaveBeenCalledWith(expect.stringContaining(`Error writing payload to file ${HOMEDIR}:`));
+    expect(platform.log.error).toHaveBeenCalledWith(expect.stringContaining(`Error writing payload to file ${expectedFilePath}:`));
   });
 });

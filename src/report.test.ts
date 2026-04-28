@@ -4,13 +4,22 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
+import { jest } from '@jest/globals';
+
 import { createReport, writeReport } from './report.js';
 
 describe('report', () => {
   type ReportPlatform = Parameters<typeof createReport>[0];
 
-  const createPlatform = (): ReportPlatform => {
+  const createPlatform = (pluginDirectory = ''): ReportPlatform => {
     return {
+      log: {
+        debug: jest.fn(),
+        error: jest.fn(),
+      },
+      matterbridge: {
+        matterbridgePluginDirectory: pluginDirectory,
+      },
       config: {
         filterByArea: 'Living Room',
         filterByLabel: 'Important',
@@ -127,8 +136,15 @@ describe('report', () => {
     } as unknown as ReportPlatform;
   };
 
-  const createFallbackPlatform = (): ReportPlatform => {
+  const createFallbackPlatform = (pluginDirectory = ''): ReportPlatform => {
     return {
+      log: {
+        debug: jest.fn(),
+        error: jest.fn(),
+      },
+      matterbridge: {
+        matterbridgePluginDirectory: pluginDirectory,
+      },
       config: {
         filterByArea: '',
         filterByLabel: '',
@@ -221,12 +237,29 @@ describe('report', () => {
   it('should write the report to the plugin report path', async () => {
     const pluginDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'matterbridge-hass-report-'));
     fs.mkdirSync(path.join(pluginDirectory, 'matterbridge-hass'), { recursive: true });
+    const platform = createPlatform(pluginDirectory);
 
     try {
-      const reportPath = await writeReport(createPlatform(), pluginDirectory);
+      const reportPath = await writeReport(platform);
       expect(reportPath).toBe(path.join(pluginDirectory, 'matterbridge-hass', 'report.log'));
       expect(fs.readFileSync(reportPath, 'utf8')).toContain('Filter by area: Living Room >>> area-1');
       expect(fs.readFileSync(reportPath, 'utf8')).toContain('Individual Entity: scene.movie "Movie Mode" - "Movie Mode" AREA LABEL');
+      expect(platform.log.debug).toHaveBeenCalledWith(`Home Assistant report successfully written to ${reportPath}`);
+      expect(platform.log.error).not.toHaveBeenCalled();
+    } finally {
+      fs.rmSync(pluginDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('should log an error when writing the report fails', async () => {
+    const pluginDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'matterbridge-hass-report-'));
+    const platform = createPlatform(pluginDirectory);
+
+    try {
+      const reportPath = await writeReport(platform);
+      expect(reportPath).toBe(path.join(pluginDirectory, 'matterbridge-hass', 'report.log'));
+      expect(platform.log.debug).not.toHaveBeenCalled();
+      expect(platform.log.error).toHaveBeenCalledWith(expect.stringContaining(`Error writing Home Assistant report to ${reportPath}: Error: ENOENT`));
     } finally {
       fs.rmSync(pluginDirectory, { recursive: true, force: true });
     }

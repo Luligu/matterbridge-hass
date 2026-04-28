@@ -28,12 +28,15 @@ import { AnsiLogger, CYAN, db, debugStringify, er, LogLevel, rs, TimestampFormat
 import { hasParameter } from 'matterbridge/utils';
 import WebSocket, { ErrorEvent } from 'ws';
 
+export type DeviceId = string;
+export type EntityId = string;
+
 /**
  * Interface representing a Home Assistant device.
  */
 // prettier-ignore
 export interface HassDevice {
-  id: string;                                             // Unique ID of the device (e.g., "14231f5b82717f1d9e2f71d354120331")
+  id: DeviceId;                                           // Unique ID of the device (e.g., "14231f5b82717f1d9e2f71d354120331")
   area_id: string | null;                                 // Area ID this device belongs to
   configuration_url: string | null;                       // URL for device configuration
   config_entries: string[];                               // List of config entry IDs
@@ -54,7 +57,7 @@ export interface HassDevice {
   primary_config_entry: string;                           // Primary config entry ID
   serial_number: string | null;                           // Serial number of the device
   sw_version: string | null;                              // Software version
-  via_device_id: string | null;                           // Device ID of the parent device (if applicable)
+  via_device_id: DeviceId | null;                         // Device ID of the parent device (if applicable)
 }
 
 /**
@@ -63,13 +66,13 @@ export interface HassDevice {
 // prettier-ignore
 export interface HassEntity {
   id: string;                                                 // Unique ID of the entity (e.g., "368c6fd2f264aba2242e0658612c250e")
-  entity_id: string;                                          // Unique ID of the entity (e.g., "light.living_room")
+  entity_id: EntityId;                                        // Unique ID of the entity (e.g., "light.living_room")
   area_id: string | null;                                     // The area ID this entity belongs to
   categories: object;                                         // Categories of the entity
   config_entry_id: string | null;                             // The config entry this entity belongs to
   config_subentry_id: string | null;                          // The config subentry this entity belongs to
   created_at: number;                                         // Timestamp of when the entity was created or 0
-  device_id: string | null;                                   // The ID of the device this entity is associated with (e.g., "14231f5b82717f1d9e2f71d354120331" or null)
+  device_id: DeviceId | null;                                 // The ID of the device this entity is associated with (e.g., "14231f5b82717f1d9e2f71d354120331" or null)
   disabled_by: string | null;                                 // Whether the entity is disabled and by whom
   entity_category: string | null;                             // The category of the entity
   has_entity_name: boolean;                                   // Whether the entity has a name (name and original_name can be null even if true)
@@ -128,7 +131,7 @@ export interface HassContext {
  * Interface representing the state of a Home Assistant entity.
  */
 export interface HassState {
-  entity_id: string;
+  entity_id: EntityId; // Unique ID of the entity (e.g., "light.living_room")
   state: string;
   last_changed: string;
   last_reported: string;
@@ -1300,27 +1303,32 @@ export class HomeAssistant extends EventEmitter {
       } else if (response.event.event_type === 'core_config_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('get_config');
       } else if (response.event.event_type === 'device_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/device_registry/list');
       } else if (response.event.event_type === 'entity_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/entity_registry/list');
       } else if (response.event.event_type === 'area_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/area_registry/list');
       } else if (response.event.event_type === 'label_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        this.fetchTimeout = setTimeout(this.onFetchTimeout.bind(this), 5000).unref();
+        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/label_registry/list');
       } else {
         // istanbul ignore else
@@ -1388,6 +1396,7 @@ export class HomeAssistant extends EventEmitter {
    * @returns {Promise<string>} - A Promise that resolves to the HA version when the connection is established and authenticated, or rejects with an error if the connection fails.
    * @throws {Error} - Throws an error if already connected or if there is an error during connection or authentication.
    */
+  // eslint-disable-next-line @typescript-eslint/promise-function-async
   connect(): Promise<string> {
     return new Promise((resolve, reject) => {
       if (this.connected) {
@@ -1427,7 +1436,7 @@ export class HomeAssistant extends EventEmitter {
           return reject(new Error(`WebSocket error: ${event.message}`));
         };
 
-        this.ws.onmessage = async (event: WebSocket.MessageEvent) => {
+        this.ws.onmessage = (event: WebSocket.MessageEvent) => {
           let response;
           try {
             response = JSON.parse(event.data.toString()) as HassWebSocketResponse;
@@ -1485,7 +1494,7 @@ export class HomeAssistant extends EventEmitter {
     this.pingInterval = setInterval(() => {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
         this.log.error('WebSocket not open sending ping. Closing connection...');
-        this.close();
+        void this.close().catch(/* istanbul ignore next */ () => {});
         return;
       }
       this.log.debug(`Sending WebSocket ping...`);
@@ -1500,7 +1509,7 @@ export class HomeAssistant extends EventEmitter {
       this.log.debug('Starting ping timeout...');
       this.pingTimeout = setTimeout(() => {
         this.log.error('Ping timeout. Closing connection...');
-        this.close();
+        void this.close().catch(/* istanbul ignore next */ () => {});
         this.startReconnect();
       }, this.pingTimeoutTime).unref();
       this.log.debug('Started ping timeout');
@@ -1559,6 +1568,7 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} [reason] - The reason for closing the connection. Default is 'Normal closure'.
    * @returns {Promise<void>} - A Promise that resolves when the connection is closed or rejects with an error if the connection could not be closed.
    */
+  // eslint-disable-next-line @typescript-eslint/promise-function-async
   close(code: number = 1000, reason: string = 'Normal closure'): Promise<void> {
     return new Promise((resolve, reject) => {
       this.log.info('Closing Home Assistant connection...');
@@ -1697,7 +1707,7 @@ export class HomeAssistant extends EventEmitter {
    *     console.error('Error:', error);
    *   });
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/promise-function-async
   fetch(type: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -1755,6 +1765,7 @@ export class HomeAssistant extends EventEmitter {
    *     console.error('Error subscribing:', error);
    *   });
    */
+  // eslint-disable-next-line @typescript-eslint/promise-function-async
   subscribe(event?: string): Promise<number> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -1818,6 +1829,7 @@ export class HomeAssistant extends EventEmitter {
    *      console.error('Error unsubscribing:', error);
    *    });
    */
+  // eslint-disable-next-line @typescript-eslint/promise-function-async
   unsubscribe(subscriptionId: number): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -1882,6 +1894,7 @@ export class HomeAssistant extends EventEmitter {
    * await this.callService('switch', 'toggle', 'switch.living_room');
    * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });
    */
+  // eslint-disable-next-line @typescript-eslint/promise-function-async
   callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}): Promise<{ context: HassContext; response: unknown }> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {

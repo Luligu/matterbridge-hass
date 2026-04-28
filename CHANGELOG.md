@@ -14,7 +14,9 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Added
 
-- [light]: Add discovery of dimmer lights when they are unavailable in Home Assistant. Thanks DrFate09.
+- [light]: Add discovery of dimmer lights when they are `unavailable` in Home Assistant. Thanks DrFate09.
+- [cache]: Add `StateCache` class to store the device states when they turn to unavailable in Home Assistant. This allows to create correct lights even if they are unavailable on Home Assistant.
+- [eslint]: Enforce @typescript-eslint promise rules.
 
 ### Changed
 
@@ -23,6 +25,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [eslint]: Remove `eslint-plugin-promise` (not actively maintained) and add optional @typescript-eslint promise rules.
 - [package]: Remove `overrides` that was necessary for eslint-plugin-promise.
 - [package]: Bump `typescript-eslint` to v.8.59.1.
+- [package]: Remove unused Vitest setup.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

@@ -9,7 +9,6 @@ import url from 'node:url';
 import js from '@eslint/js';
 import json from '@eslint/json';
 import markdown from '@eslint/markdown';
-import vitest from '@vitest/eslint-plugin';
 import { defineConfig } from 'eslint/config';
 import jest from 'eslint-plugin-jest';
 import jsdoc from 'eslint-plugin-jsdoc';
@@ -19,12 +18,16 @@ import pluginSimpleImportSort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
 const sourceFiles = ['**/*.{js,mjs,cjs,ts,mts,cts}'];
+const javascriptFiles = ['**/*.{js,mjs,cjs}'];
+const typescriptFiles = ['**/src/**/*.{ts,mts,cts}'];
+const jestTestFiles = ['**/*.spec.ts', '**/*.test.ts', '**/__test__/**/*.ts'];
+const vitestTestFiles = ['**/vitest/**/*.spec.ts', '**/vitest/**/*.test.ts'];
 const configDirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 export default defineConfig([
   {
     name: 'Global Ignores',
-    ignores: ['**/.cache', '**/build', '**/coverage', '**/dist', '**/jest', '**/node_modules', '**/screenshots', '**/temp', '**/vendor', '**/vite.config.ts'],
+    ignores: [...vitestTestFiles, '**/.cache', '**/build', '**/coverage', '**/dist', '**/jest', '**/node_modules', '**/screenshots', '**/temp', '**/vendor'],
   },
   // Comment out this line if you want to enable strict type-checked rules, but be aware that it may cause many errors until you fix all type issues in your codebase
   ...tseslint.configs.strict.map((c) => ({ ...c, files: sourceFiles })),
@@ -70,12 +73,12 @@ export default defineConfig([
   },
   {
     name: 'JavaScript Source Files',
-    files: ['**/*.{js,mjs,cjs}'],
+    files: javascriptFiles,
     extends: [tseslint.configs.disableTypeChecked],
   },
   {
     name: 'TypeScript Source Files',
-    files: ['**/src/**/*.{ts,mts,cts}'],
+    files: typescriptFiles,
     ignores: ['**/src/**/*.test.{ts,mts,cts}', '**/src/**/*.spec.{ts,mts,cts}'], // Ignore test files
     languageOptions: {
       parser: tseslint.parser,
@@ -101,17 +104,18 @@ export default defineConfig([
         },
       ],
       // Eventually we want to enable these rules, but they may cause many errors
-      // '@typescript-eslint/no-floating-promises': 'error',
-      // '@typescript-eslint/no-misused-promises': 'error',
-      // '@typescript-eslint/await-thenable': 'error',
-      // '@typescript-eslint/return-await': ['error', 'in-try-catch'],
-      // '@typescript-eslint/promise-function-async': 'warn',
-      // '@typescript-eslint/require-await': 'warn',
+      '@typescript-eslint/no-floating-promises': 'error', // Require unhandled promises to be explicitly voided or awaited
+      '@typescript-eslint/no-misused-promises': 'error', // Disallow promises in non-async callbacks or boolean conditions
+      '@typescript-eslint/await-thenable': 'error', // Disallow awaiting non-Promise values
+      '@typescript-eslint/return-await': ['error', 'in-try-catch'], // Require return await inside try-catch so rejections are caught locally
+      '@typescript-eslint/only-throw-error': 'error', // Require only Error objects to be thrown or rejected
+      '@typescript-eslint/promise-function-async': 'warn', // Require Promise-returning functions to be async
+      '@typescript-eslint/require-await': 'warn', // Disallow async functions without any await expression
     },
   },
   {
     name: 'Jest Test Files',
-    files: ['**/*.spec.ts', '**/*.test.ts', '**/__test__/**/*.ts'],
+    files: jestTestFiles,
     ignores: ['**/vitest'], // Ignore Vitest test files
     // Comment this line if you want to enable strict type-checked rules in Jest test files, but be aware that it may cause many errors until you fix all type issues in your test codebase
     extends: [tseslint.configs.disableTypeChecked],
@@ -135,33 +139,6 @@ export default defineConfig([
 
       // Recommended Jest rules
       ...jest.configs.recommended.rules,
-    },
-  },
-  {
-    name: 'Vitest Test Files',
-    files: ['**/vitest/**/*.spec.ts', '**/vitest/**/*.test.ts'],
-    // Comment this line if you want to enable strict type-checked rules in Vitest test files, but be aware that it may cause many errors until you fix all type issues in your test codebase
-    extends: [tseslint.configs.disableTypeChecked],
-    languageOptions: {
-      parser: tseslint.parser,
-      parserOptions: {
-        tsconfigRootDir: configDirname,
-        project: './tsconfig.vitest.json', // Use a separate tsconfig for Vitest tests
-      },
-    },
-    plugins: { vitest },
-    rules: {
-      'no-undef': 'off', // Disable no-undef for TypeScript files since TypeScript already checks for undefined variables
-      'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
-      'require-await': 'off', // Disable the base rule for async functions that don't use await since we will use the TypeScript-specific rule instead
-      '@typescript-eslint/no-unused-vars': 'off', // Disable TypeScript rule for unused variables in test files
-      '@typescript-eslint/no-explicit-any': 'off', // Allow 'any' type in test files
-      '@typescript-eslint/no-empty-function': 'off', // Allow empty functions in test files
-      '@typescript-eslint/require-await': 'off', // Disable TypeScript rule for async functions that don't use await in test files
-      'jsdoc/require-jsdoc': 'off', // Disable JSDoc rule in test files
-
-      // Recommended Vitest rules
-      ...vitest.configs.recommended.rules,
     },
   },
   {

@@ -50,11 +50,24 @@ import {
 import { addEventEntity } from './event.entity.js';
 import { addHelperEntity } from './helper.entity.js';
 import { getDomain, getEntityName, isDeviceEntity, isDisabled, isHidden, isIndividualEntity, isSplitEntity, satisfiesAreaFilter, satisfiesLabelFilter } from './helpers.js';
-import { HassArea, HassConfig as HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant, HomeAssistantPrimitive } from './homeAssistant.js';
+import {
+  DeviceId,
+  type EntityId,
+  type HassArea,
+  type HassConfig,
+  type HassDevice,
+  type HassEntity,
+  type HassLabel,
+  type HassServices,
+  type HassState,
+  HomeAssistant,
+  type HomeAssistantPrimitive,
+} from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 import { savePayload } from './payload.js';
 import { writeReport } from './report.js';
 import { addSensorEntity } from './sensor.entity.js';
+import { StateCache } from './stateCache.js';
 
 export interface HomeAssistantPlatformConfig extends PlatformConfig {
   host: string;
@@ -111,20 +124,23 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Home Assistant subscription ID */
   haSubscriptionId: number | null = null;
 
+  /** State cache instance */
+  stateCache = new StateCache();
+
   /** Bridged devices map. Key is device.id for devices and entity.entity_id for individual entities and split entities (without the postfix). Value is the MatterbridgeEndpoint */
-  readonly matterbridgeDevices = new Map<string, MatterbridgeEndpoint>();
+  readonly matterbridgeDevices = new Map<DeviceId | EntityId, MatterbridgeEndpoint>();
 
   /** Entities that are currently being updated to avoid processing multiple updates at the same time. Keyed by entity.entity_id, value is the number of ongoing updates */
-  readonly updatingEntities = new Map<string, number>();
+  readonly updatingEntities = new Map<EntityId, number>();
 
   /** Light entities that currently received updates while off. Set by entity.entity_id */
-  readonly offUpdatedEntities = new Set<string>();
+  readonly offUpdatedEntities = new Set<EntityId>();
 
   /** Endpoint names remapping for entities. Key is entity.entity_id. Value is the endpoint name ('' for the main endpoint) */
-  readonly endpointNames = new Map<string, string>();
+  readonly endpointNames = new Map<EntityId, string>();
 
   /** Battery voltage entities */
-  readonly batteryVoltageEntities = new Set<string>();
+  readonly batteryVoltageEntities = new Set<EntityId>();
 
   /** Regex to match air quality sensors. It matches all domain sensor (sensor\.) with names ending in _air_quality */
   airQualityRegex: RegExp | undefined;
@@ -170,7 +186,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (this.verifyMatterbridgeVersion === undefined || typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.7.0')) {
+    if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.7.0')) {
       throw new Error(
         `This plugin requires Matterbridge version >= "3.7.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
       );
@@ -179,8 +195,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Initializing platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
 
     if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
-      setImmediate(async () => {
-        await this.onShutdown('Invalid configuration');
+      setImmediate(() => {
+        void this.onShutdown('Invalid configuration').catch(/* istanbul ignore next */ () => {});
       });
       this.wssSendSnackbarMessage('Home Assistant Plugin: configure Host and Token', 0, 'error');
       throw new Error('Host and token must be defined in the configuration');
@@ -219,33 +235,43 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Initialize air quality regex from config or use default
     this.airQualityRegex = this.createRegexFromConfig(config.airQualityRegex);
 
+    this.stateCache.log.logLevel = this.log.logLevel;
+
     this.ha = new HomeAssistant(config.host, config.token, config.reconnectTimeout, config.reconnectRetries, config.certificatePath, config.rejectUnauthorized);
     this.ha.log.logLevel = this.log.logLevel;
 
-    this.ha.on('connected', async (ha_version: HomeAssistantPrimitive) => {
+    this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
 
       this.log.info(`Fetching data from Home Assistant...`);
-      try {
-        await this.ha.fetchData();
-        this.log.info(`Fetched data from Home Assistant successfully`);
-      } catch (error) {
-        this.log.error(`Error fetching data from Home Assistant: ${error}`);
-      }
 
-      this.log.info(`Subscribing to Home Assistant events...`);
-      try {
-        this.haSubscriptionId = await this.ha.subscribe();
-        this.log.info(`Subscribed to Home Assistant events successfully with id ${this.haSubscriptionId}`);
-      } catch (error) {
-        this.log.error(`Error subscribing to Home Assistant events: ${error}`);
-      }
-      if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
-      if (this.isConfigured) this.wssSendRestartRequired();
+      void this.ha
+        .fetchData()
+        .then(() => {
+          this.log.info(`Fetched data from Home Assistant successfully`);
+          // Subscribe when the data is fetched to avoid missing events during the fetch.
+          this.log.info(`Subscribing to Home Assistant events...`);
+          void this.ha
+            .subscribe()
+            .then((id) => {
+              this.haSubscriptionId = id;
+              this.log.info(`Subscribed to Home Assistant events successfully with id ${this.haSubscriptionId}`);
+            })
+            .catch((error) => {
+              this.log.error(`Error subscribing to Home Assistant events: ${error}`);
+            });
+          if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
+          if (this.isConfigured) this.wssSendRestartRequired();
+          // Subscribed
+        })
+        .catch((error) => {
+          this.log.error(`Error fetching data from Home Assistant: ${error}`);
+        });
     });
 
     this.ha.on('disconnected', () => {
       this.log.warn('Disconnected from Home Assistant');
+      this.haSubscriptionId = null;
       // istanbul ignore else
       if (this.isReady) this.wssSendSnackbarMessage('Disconnected from Home Assistant', 5, 'warning');
     });
@@ -318,7 +344,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info('States received from Home Assistant');
     });
 
-    this.ha.on('event', this.updateHandler.bind(this));
+    this.ha.on('event', (deviceId, entityId, old_state, new_state) => {
+      void this.updateHandler(deviceId, entityId, old_state, new_state).catch(/* istanbul ignore next */ () => {});
+    });
 
     this.log.info(`Initialized platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
   }
@@ -346,14 +374,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await waiter('Home Assistant connected', check, true, 110000, 1000); // Wait for 110 seconds with 1 second interval and throw error if not connected
 
     // Save devices, entities, states, config and services to a local file without awaiting
-    savePayload(this.ha, path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass', 'homeassistant.json'), this.log);
+    // prettier-ignore
+    void savePayload(this).catch(/* istanbul ignore next */ () => {});
 
     // Write the Home Assistant report to the plugin directory without awaiting
-    writeReport(this, this.matterbridge.matterbridgePluginDirectory);
+    void writeReport(this).catch(/* istanbul ignore next */ () => {});
 
     // Clean the selectDevice and selectEntity maps
     await this.ready;
     await this.clearSelect();
+
+    // Load the cached states from storage to the in-memory cache before processing the entities. This is needed to have the latest available state of entities when they turn to unavailable.
+    // istanbul ignore else cause if the platform is ready then the context is defined
+    if (this.context) await this.stateCache.load(this.context);
 
     // Pre-check the config
     for (const entityId of this.config.splitEntities) {
@@ -483,13 +516,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         } catch (error) {
           this.failedEntities++;
           inspectError(this.log, `Failed to register device ${dn}${entityName}${er}`, error);
-          this.clearDeviceSelect(entity.id);
-          this.clearEntitySelect(entityName);
+          await this.clearDeviceSelect(entity.id);
+          await this.clearEntitySelect(entityName);
         }
       } else {
         this.log.debug(`Removing device ${dn}${entityName}${db}...`);
-        this.clearDeviceSelect(entity.id);
-        this.clearEntitySelect(entityName);
+        await this.clearDeviceSelect(entity.id);
+        await this.clearEntitySelect(entityName);
       }
       mutableDevice.destroy();
     } // End of individual entities loop
@@ -678,7 +711,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (mutableDevice.has(endpointName))
           this.log.debug(`Creating endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
         else {
-          this.clearEntitySelect(entityName);
+          await this.clearEntitySelect(entityName);
           this.log.debug(`Deleting endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
         }
       } // hassEntities
@@ -705,7 +738,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         } catch (error) {
           this.failedDevices++;
           inspectError(this.log, `Failed to register device ${dn}${device.name}${er}`, error);
-          this.clearDeviceSelect(device.id);
+          await this.clearDeviceSelect(device.id);
         }
         // Log all the remapped endpoints
         for (const remappedEndpoint of mutableDevice.getRemappedEndpoints()) {
@@ -727,7 +760,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       } else {
         this.log.debug(`Device ${CYAN}${device.name}${db} has no supported entities. Deleting device select...`);
-        this.clearDeviceSelect(device.id);
+        await this.clearDeviceSelect(device.id);
       }
       mutableDevice.destroy();
     } // End of devices loop
@@ -860,13 +893,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         } catch (error) {
           this.failedEntities++;
           inspectError(this.log, `Failed to register device ${dn}${entityName}${er}`, error);
-          this.clearDeviceSelect(entity.id);
-          this.clearEntitySelect(entityName);
+          await this.clearDeviceSelect(entity.id);
+          await this.clearEntitySelect(entityName);
         }
       } else {
         this.log.debug(`Removing device ${dn}${entityName}${db}...`);
-        this.clearDeviceSelect(entity.id);
-        this.clearEntitySelect(entityName);
+        await this.clearDeviceSelect(entity.id);
+        await this.clearEntitySelect(entityName);
       }
       mutableDevice.destroy();
     } // End of split entities loop
@@ -934,15 +967,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.failedEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.failedEntities} entities failed to be created`, 60, 'error');
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   override async onChangeLoggerLevel(logLevel: LogLevel) {
     this.log.info(`Logger level changed to ${logLevel}`);
     this.ha.log.logLevel = logLevel;
+    this.stateCache.log.logLevel = logLevel;
     for (const device of this.matterbridgeDevices.values()) {
       device.log.logLevel = logLevel;
     }
   }
 
   override async onShutdown(reason?: string) {
+    // Save the state cache to restore it at the next startup.
+    // istanbul ignore else cause if the platform is ready then the context is defined
+    if (this.context) await this.stateCache.save(this.context);
     await super.onShutdown(reason);
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason}`);
 
@@ -956,6 +994,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
 
+    this.stateCache.clear();
     this.matterbridgeDevices.clear();
     this.updatingEntities.clear();
     this.offUpdatedEntities.clear();
@@ -1140,7 +1179,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     newValue: any,
     oldValue: any,
     context: ActionContext,
-  ) {
+  ): void {
     const state = this.ha.hassStates.get(entity.entity_id);
     let endpoint: MatterbridgeEndpoint | undefined;
     if (isDeviceEntity(entity)) {
@@ -1185,18 +1224,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassSubscribe.converter)
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
+    // prettier-ignore
     if (value !== null) {
       if (hassSubscribe.attribute === 'occupiedHeatingSetpoint' && state && state.state === 'heat_cool') {
-        this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] });
+        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] }).catch(/* istanbul ignore next */ () => {});
       } else if (hassSubscribe.attribute === 'occupiedCoolingSetpoint' && state && state.state === 'heat_cool') {
-        this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value });
-      } else this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value });
+        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value }).catch(/* istanbul ignore next */ () => {});
+      } else void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value }).catch(/* istanbul ignore next */ () => {});
     }
     // The converter returns null for fan turn_on with percentage 0 => call turn_off
-    else this.ha.callService(domain, 'turn_off', entity.entity_id);
+    else void this.ha.callService(domain, 'turn_off', entity.entity_id).catch(/* istanbul ignore next */ () => {});
   }
 
-  async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState) {
+  async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState): Promise<void> {
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
       // istanbul ignore else
@@ -1220,14 +1260,16 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found`);
       return;
     }
-    // Set the device reachable attribute to false if the new state is unavailable
-    if ((new_state.state === 'unavailable' && old_state.state !== 'unavailable') || (new_state.state === 'unavailable' && old_state.state === 'unavailable')) {
-      matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, matterbridgeDevice.log);
-      return; // Skip the update if the device is unavailable
+    // Set the device reachable attribute to false if the new state is unavailable and skip the update since the device is unreachable. Cache the last state of the entity to be able to create it on restart.
+    if (old_state.state !== 'unavailable' && new_state.state === 'unavailable') {
+      this.stateCache.add(old_state);
+      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', false, matterbridgeDevice.log);
+      return;
     }
-    // Set the device reachable attribute to true if the new state is available
+    // Set the device reachable attribute to true if the new state is available and remove the cached state since the device is reachable again.
     if (old_state.state === 'unavailable' && new_state.state !== 'unavailable') {
-      matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster.id, 'reachable', true, matterbridgeDevice.log);
+      this.stateCache.remove(old_state.entity_id);
+      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', true, matterbridgeDevice.log);
     }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +

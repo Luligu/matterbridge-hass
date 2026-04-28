@@ -93,6 +93,16 @@ export function addControlEntity(
   let endpointName: string | undefined = undefined;
   const domain = getDomain(entity.entity_id);
 
+  // Use stateCache for state and attributes values to avoid issues with unavailable entities and to have the last valid state and attributes for the entity.
+  if (state.state === 'unavailable') {
+    const cachedState = platform.stateCache.get(entity.entity_id);
+    if (cachedState) {
+      platform.log.info(`Entity ${CYAN}${entity.entity_id}${db} is unavailable, using cached state and attributes`);
+      state = cachedState;
+    } else {
+      platform.log.warn(`Entity ${CYAN}${entity.entity_id}${db} is unavailable and no cached state found`);
+    }
+  }
   // Add device type and clusterIds for supported domain of the current entity.
   hassDomainConverter
     .filter((d) => d.domain === domain && d.withAttribute === undefined)
@@ -214,11 +224,14 @@ export function addControlEntity(
     if (entityHasLabel(platform, entity, platform.config.virtualControlLabel)) {
       state.attributes['options']?.forEach((option: string) => {
         platform.log.debug(`***Add select device ${CYAN}${entity.entity_id}${db} virtual control: ${CYAN}${option}${db}`);
-        platform.registerVirtualDevice(`${getEntityName(platform, entity)} ${option}`, 'mounted_switch', async () => {
-          platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error) => {
-            platform.log.error(`Failed to call select_option service for ${CYAN}${entity.entity_id}${db} with option ${CYAN}${option}${db}: ${error}`);
-          });
-        });
+        void platform
+          // eslint-disable-next-line @typescript-eslint/require-await
+          .registerVirtualDevice(`${getEntityName(platform, entity)} ${option}`, 'mounted_switch', async () => {
+            platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error) => {
+              platform.log.error(`Failed to call select_option service for ${CYAN}${entity.entity_id}${db} with option ${CYAN}${option}${db}: ${error}`);
+            });
+          })
+          .catch(/* istanbul ignore next */ () => {});
       });
     }
   }
@@ -254,11 +267,14 @@ export function addControlEntity(
       featuresServices.forEach(({ feature, service, controlName }) => {
         if (state.attributes['supported_features'] && state.attributes['supported_features'] & feature) {
           platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
-          platform.registerVirtualDevice(`${controlName} ${getEntityName(platform, entity)}`, 'mounted_switch', async () => {
-            platform.ha.callService('media_player', service, entity.entity_id).catch((error) => {
-              platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
-            });
-          });
+          void platform
+            // eslint-disable-next-line @typescript-eslint/require-await
+            .registerVirtualDevice(`${controlName} ${getEntityName(platform, entity)}`, 'mounted_switch', async () => {
+              platform.ha.callService('media_player', service, entity.entity_id).catch((error) => {
+                platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
+              });
+            })
+            .catch(/* istanbul ignore next */ () => {});
         }
       });
     }
@@ -267,8 +283,8 @@ export function addControlEntity(
   // Add command handlers
   for (const hassCommand of hassCommandConverter.filter((c) => c.domain === domain)) {
     platform.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
-    mutableDevice.addCommandHandler(entity.entity_id, hassCommand.command, async (data, endpointName, command) => {
-      commandHandler(data, endpointName, command);
+    mutableDevice.addCommandHandler(entity.entity_id, hassCommand.command, (data, endpointName, command) => {
+      void commandHandler(data, endpointName, command).catch(/* istanbul ignore next */ () => {});
     });
   }
 

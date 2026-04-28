@@ -1,9 +1,9 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node", "jest", "vitest/globals"],
+    "types": ["node", "jest"],
     "rootDir": ".",
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "vitest/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts"]
 }

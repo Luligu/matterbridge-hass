@@ -117,11 +117,18 @@ export function createReport(platform: HomeAssistantPlatform): string {
  * Writes the Home Assistant report into the plugin directory.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform data.
- * @param {string} pluginDirectory - The Matterbridge plugin directory.
  * @returns {string} The generated report path.
  */
-export async function writeReport(platform: HomeAssistantPlatform, pluginDirectory: string): Promise<string> {
+export async function writeReport(platform: HomeAssistantPlatform): Promise<string> {
+  const pluginDirectory = platform.matterbridge.matterbridgePluginDirectory;
   const reportPath = path.join(pluginDirectory, 'matterbridge-hass', 'report.log');
-  await fs.promises.writeFile(reportPath, createReport(platform));
+
+  try {
+    await fs.promises.writeFile(reportPath, createReport(platform));
+    platform.log.debug(`Home Assistant report successfully written to ${reportPath}`);
+  } catch (error) {
+    platform.log.error(`Error writing Home Assistant report to ${reportPath}: ${error}`);
+  }
+
   return reportPath;
 }
