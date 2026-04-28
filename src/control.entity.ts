@@ -23,9 +23,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable jsdoc/reject-function-type */
 
-import { colorTemperatureLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
+import { colorTemperatureLight, dimmableLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
+import { LevelControl } from 'matterbridge/matter/clusters';
 import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
@@ -122,6 +123,16 @@ export function addControlEntity(
   }
 
   // Real values will be updated by the configure with the Home Assistant states. Here we need the features and fixed attributes to be set.
+
+  // Configure the Light cluster default values and features for dimmable lights when they are unavailable and only supported_color_modes and supported_features attributes are present.
+  // prettier-ignore
+  if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) && state.attributes.supported_color_modes.includes(ColorMode.BRIGHTNESS)) {
+    platform.log.debug(`+ attribute device ${CYAN}${dimmableLight.name}${db} cluster ${CYAN}${LevelControl.Cluster.name}${db}`);
+    platform.log.debug(`= levelControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db}`);
+    platform.log.debug(`# levelControl device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(LightEntityFeature, state.attributes.supported_features)}${db}`);
+    mutableDevice.addDeviceTypes(endpointName, dimmableLight);
+    mutableDevice.addClusterServerIds(endpointName, LevelControl.Cluster.id);
+  }
 
   // Configure the ColorControl cluster default values and features.
   // prettier-ignore

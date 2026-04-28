@@ -12,6 +12,7 @@ import {
   thermostatDevice,
   waterValve,
 } from 'matterbridge';
+import { LevelControl } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from './control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
@@ -124,6 +125,19 @@ describe('addControlEntity', () => {
     const [md, e, s] = make('light', 'plain', { brightness: 90, supported_color_modes: ['color_temp'] });
     addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.setFriendlyName).not.toHaveBeenCalled();
+  });
+
+  it('should add level control for light when brightness mode is supported without brightness attribute', () => {
+    const [md, e, s] = make('light', 'brightnessfallback', {
+      supported_features: 44,
+      supported_color_modes: ['brightness'],
+    });
+
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.Cluster.id);
   });
 
   it('thermostat auto/heat/cool branches', () => {
