@@ -1,3 +1,5 @@
+<!-- eslint-disable markdown/no-missing-label-refs -->
+
 # <img src="https://matterbridge.io/assets/matterbridge.svg" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge hass plugin changelog
 
 All notable changes to this project will be documented in this file.
@@ -26,6 +28,7 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Remove `overrides` that was necessary for eslint-plugin-promise.
 - [package]: Bump `typescript-eslint` to v.8.59.1.
 - [package]: Remove unused Vitest setup.
+- [eslint]: Add `eslint` v.2.0.0 config.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

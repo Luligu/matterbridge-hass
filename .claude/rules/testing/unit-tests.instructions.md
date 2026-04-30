@@ -1,6 +1,10 @@
+<!-- eslint-disable markdown/no-missing-label-refs -->
+
 ---
+
 description: 'Testing standards for unit tests in the project.'
 paths: ['**/*.test.ts']
+
 ---
 
 # Testing Standards for Unit Tests

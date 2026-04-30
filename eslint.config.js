@@ -1,4 +1,4 @@
-// eslint.config.js
+// eslint.config.js 2.0.0
 
 // This ESLint configuration is designed for a TypeScript project.
 
@@ -13,15 +13,14 @@ import { defineConfig } from 'eslint/config';
 import jest from 'eslint-plugin-jest';
 import jsdoc from 'eslint-plugin-jsdoc';
 import n from 'eslint-plugin-n';
-import prettier from 'eslint-plugin-prettier/recommended';
-import pluginSimpleImportSort from 'eslint-plugin-simple-import-sort';
+import prettier from 'eslint-plugin-prettier';
+import importsort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
 const sourceFiles = ['**/*.{js,mjs,cjs,ts,mts,cts}'];
-const javascriptFiles = ['**/*.{js,mjs,cjs}'];
-const typescriptFiles = ['**/src/**/*.{ts,mts,cts}'];
-const jestTestFiles = ['**/*.spec.ts', '**/*.test.ts', '**/__test__/**/*.ts'];
-const vitestTestFiles = ['**/vitest/**/*.spec.ts', '**/vitest/**/*.test.ts'];
+const typescriptFiles = ['**/src/**/*.{ts,mts,cts}', '**/vitest/**/*.spec.{ts,mts,cts}', '**/vitest/**/*.test.{ts,mts,cts}'];
+const jestTestFiles = ['**/*.spec.{ts,mts,cts}', '**/*.test.{ts,mts,cts}', '**/__test__/**/*.{ts,mts,cts}'];
+const vitestTestFiles = ['**/vitest/**/*.spec.{ts,mts,cts}', '**/vitest/**/*.test.{ts,mts,cts}'];
 const configDirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 export default defineConfig([
@@ -29,16 +28,16 @@ export default defineConfig([
     name: 'Global Ignores',
     ignores: [...vitestTestFiles, '**/.cache', '**/build', '**/coverage', '**/dist', '**/jest', '**/node_modules', '**/screenshots', '**/temp', '**/vendor'],
   },
-  // Comment out this line if you want to enable strict type-checked rules, but be aware that it may cause many errors until you fix all type issues in your codebase
-  ...tseslint.configs.strict.map((c) => ({ ...c, files: sourceFiles })),
-  // Uncomment this line to enable strict type-checked rules, but be aware that it may cause many errors until you fix all type issues in your codebase
-  // ...tseslint.configs.strictTypeChecked.map((c) => ({ ...c, files: sourceFiles })),
-  { ...n.configs['flat/recommended-script'], files: sourceFiles },
-  { ...jsdoc.configs['flat/recommended'], files: sourceFiles },
-  prettier, // Prettier plugin must be the last plugin in the list and is intentionally not spread with a files property cause it can be used in all file types, not just source files
   {
     name: 'JavaScript & TypeScript Source Files',
     files: sourceFiles,
+    plugins: {
+      js,
+      n,
+      jsdoc,
+      'simple-import-sort': importsort,
+      prettier,
+    },
     languageOptions: {
       sourceType: 'module',
       ecmaVersion: 'latest',
@@ -47,20 +46,22 @@ export default defineConfig([
       reportUnusedDisableDirectives: 'error', // Report unused eslint-disable directives
       reportUnusedInlineConfigs: 'error', // Report unused eslint-disable-line directives
     },
-    plugins: {
-      js,
-      n,
-      jsdoc,
-      'simple-import-sort': pluginSimpleImportSort,
-    },
-    extends: ['js/recommended'],
+    extends: [js.configs.recommended, n.configs['flat/recommended-module'], jsdoc.configs['flat/recommended']],
     rules: {
       'no-console': 'warn', // Warn on console usage
       'spaced-comment': ['error', 'always'], // Require space after comment markers. Deprecated, but we still want to enforce it cause it's not handled by Prettier
-      'no-unused-vars': 'warn', // Use the base rule for unused variables
+      'no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          args: 'after-used',
+          ignoreRestSiblings: true,
+          varsIgnorePattern: '^_', // Ignore unused variables starting with _
+          argsIgnorePattern: '^_', // Ignore unused arguments starting with _
+          caughtErrorsIgnorePattern: '^_', // Ignore unused caught errors starting with _
+        },
+      ],
       'require-await': 'off', // Allow async functions that don't use await
-      'simple-import-sort/imports': ['warn'],
-      'simple-import-sort/exports': ['warn'],
       'n/prefer-node-protocol': 'error', // Prefer using 'node:' protocol for built-in modules
       'n/no-unsupported-features/node-builtins': ['error', { ignores: ['fetch'] }],
       'n/no-extraneous-import': 'off', // Allow imports from node_modules
@@ -68,18 +69,14 @@ export default defineConfig([
       'jsdoc/tag-lines': ['error', 'any', { startLines: 1, endLines: 0 }], // Require a blank line before JSDoc comments
       'jsdoc/check-tag-names': ['warn', { definedTags: ['created', 'contributor', 'remarks'] }], // Allow custom tags
       'jsdoc/no-undefined-types': 'off',
+      'simple-import-sort/imports': ['warn'],
+      'simple-import-sort/exports': ['warn'],
       'prettier/prettier': 'warn', // Use Prettier for formatting
     },
   },
   {
-    name: 'JavaScript Source Files',
-    files: javascriptFiles,
-    extends: [tseslint.configs.disableTypeChecked],
-  },
-  {
     name: 'TypeScript Source Files',
     files: typescriptFiles,
-    ignores: ['**/src/**/*.test.{ts,mts,cts}', '**/src/**/*.spec.{ts,mts,cts}'], // Ignore test files
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -87,11 +84,14 @@ export default defineConfig([
         project: existsSync(path.join(configDirname, 'tsconfig.eslint.json')) ? './tsconfig.eslint.json' : './tsconfig.json', // Use a separate tsconfig for ESLint if it exists, otherwise fall back to the main tsconfig
       },
     },
+    // Comment out this line if you want to enable strict type-checked rules, but be aware that it may cause many errors until you fix all type issues in your codebase
+    extends: [...tseslint.configs.strict],
+    // Uncomment this line to enable strict type-checked rules, but be aware that it may cause many errors until you fix all type issues in your codebase
+    // extends: [...tseslint.configs.strictTypeChecked],
     rules: {
       'no-redeclare': 'off', // Disable no-redeclare for TypeScript files since TypeScript already checks for redeclarations
       'no-undef': 'off', // Disable no-undef for TypeScript files since TypeScript already checks for undefined variables
       'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
-      'require-await': 'off', // Disable the base rule for async functions that don't use await since we will use the TypeScript-specific rule instead
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -116,9 +116,7 @@ export default defineConfig([
   {
     name: 'Jest Test Files',
     files: jestTestFiles,
-    ignores: ['**/vitest'], // Ignore Vitest test files
-    // Comment this line if you want to enable strict type-checked rules in Jest test files, but be aware that it may cause many errors until you fix all type issues in your test codebase
-    extends: [tseslint.configs.disableTypeChecked],
+    ignores: vitestTestFiles,
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -126,29 +124,32 @@ export default defineConfig([
         project: './tsconfig.jest.json', // Use a separate tsconfig for Jest tests with "isolatedModules": true
       },
     },
-    plugins: { jest },
+    extends: [jest.configs['flat/recommended']],
     rules: {
       'no-undef': 'off', // Disable no-undef for TypeScript files since TypeScript already checks for undefined variables
       'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
-      'require-await': 'off', // Disable the base rule for async functions that don't use await since we will use the TypeScript-specific rule instead
       '@typescript-eslint/no-unused-vars': 'off', // Disable TypeScript rule for unused variables in test files
       '@typescript-eslint/no-explicit-any': 'off', // Allow 'any' type in test files
       '@typescript-eslint/no-empty-function': 'off', // Allow empty functions in test files
-      '@typescript-eslint/require-await': 'off', // Disable TypeScript rule for async functions that don't use await in test files
+      '@typescript-eslint/no-floating-promises': 'off', // Require unhandled promises to be explicitly voided or awaited
+      '@typescript-eslint/no-misused-promises': 'off', // Disallow promises in non-async callbacks or boolean conditions
+      '@typescript-eslint/await-thenable': 'off', // Disallow awaiting non-Promise values
+      '@typescript-eslint/return-await': 'off', // Require return await inside try-catch so rejections are caught locally
+      '@typescript-eslint/only-throw-error': 'off', // Require only Error objects to be thrown or rejected
+      '@typescript-eslint/promise-function-async': 'off', // Require Promise-returning functions to be async
+      '@typescript-eslint/require-await': 'off', // Disallow async functions without any await expression
       'jsdoc/require-jsdoc': 'off', // Disable JSDoc rule in test files
-
-      // Recommended Jest rules
-      ...jest.configs.recommended.rules,
     },
   },
   {
     name: 'JSON Files',
     files: ['**/*.json'],
-    ignores: ['**/devcontainer.json'], // Ignore devcontainer.json files
+    ignores: ['**/devcontainer.json', '**/package-lock.json'], // Ignore devcontainer.json and package-lock.json files
     plugins: { json },
     language: 'json/json',
+    extends: ['json/recommended'],
     rules: {
-      'json/no-duplicate-keys': 'error',
+      'json/no-unsafe-values': 'off',
     },
   },
   {
@@ -156,17 +157,15 @@ export default defineConfig([
     files: ['**/devcontainer.json', '**/*.jsonc'],
     plugins: { json },
     language: 'json/jsonc',
+    extends: ['json/recommended'],
     rules: {
-      'json/no-duplicate-keys': 'error',
+      'json/no-unsafe-values': 'off',
     },
   },
   {
     name: 'Markdown Files',
     files: ['**/*.md'],
     plugins: { markdown },
-    language: 'markdown/commonmark',
-    rules: {
-      'markdown/no-html': 'off', // Allow HTML in Markdown files
-    },
+    extends: ['markdown/recommended'],
   },
 ]);

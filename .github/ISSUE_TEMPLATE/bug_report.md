@@ -32,14 +32,14 @@ Please always add the debug file to help explain your problem.
 
 **Plugin (please complete the following information):**
 
-- Version [e.g. 0.0.2]
+- Version (e.g. 0.0.2)
 
 **Matterbridge (please complete the following information):**
 
-- Host mode [e.g. as a service or docker container]
-- Bridge mode [e.g. as a bridge or childbridge]
-- Version [e.g. 1.6.6]
-- OS: [e.g. where you run Matterbridge]
+- Host mode (e.g. as a service or docker container)
+- Bridge mode (e.g. as a bridge or childbridge)
+- Version (e.g. 1.6.6)
+- OS: (e.g. where you run Matterbridge)
 
 **Additional context**
 Add any other context about the problem here.
