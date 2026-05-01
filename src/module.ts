@@ -1264,12 +1264,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (old_state.state !== 'unavailable' && new_state.state === 'unavailable') {
       this.stateCache.add(old_state);
       await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', false, matterbridgeDevice.log);
+      endpoint.log.debug(
+        `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,
+      );
       return;
     }
     // Set the device reachable attribute to true if the new state is available and remove the cached state since the device is reachable again.
     if (old_state.state === 'unavailable' && new_state.state !== 'unavailable') {
       this.stateCache.remove(old_state.entity_id);
       await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', true, matterbridgeDevice.log);
+    }
+    if (new_state.state === 'unavailable') {
+      endpoint.log.debug(
+        `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,
+      );
+      return;
     }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
