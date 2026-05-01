@@ -12,9 +12,11 @@ import {
   thermostatDevice,
   waterValve,
 } from 'matterbridge';
+import { LevelControl } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from './control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
+import { generateEntity, generateState } from './helpers.js';
 import { type HassConfig, type HassEntity, type HassState, HomeAssistant, MediaPlayerEntityFeature, MediaPlayerService, UnitOfTemperature } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 
@@ -54,7 +56,7 @@ function createMockMutableDevice(): MutableDevice {
   } as unknown as MutableDevice;
 }
 
-const mockLog = { debug: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
+const mockLog = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
 const mockPlatform = { config: { virtualControlLabel: '' }, log: mockLog } as any;
 const commandHandler = jest.fn(async () => {}); // async signature required
 const subscribeHandler = jest.fn();
@@ -124,6 +126,71 @@ describe('addControlEntity', () => {
     const [md, e, s] = make('light', 'plain', { brightness: 90, supported_color_modes: ['color_temp'] });
     addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.setFriendlyName).not.toHaveBeenCalled();
+  });
+
+  it('should add level control for light when brightness mode is supported without brightness attribute', () => {
+    const [md, e, s] = make('light', 'brightnessfallback', {
+      supported_features: 44,
+      supported_color_modes: ['brightness'],
+    });
+
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.Cluster.id);
+  });
+
+  it('uses cached state when an unavailable light is added', () => {
+    const md = createMockMutableDevice();
+    const ha = new HomeAssistant('ws://localhost:8123', 'token');
+    const e = generateEntity(ha, 'Cached', 'light');
+    const state = generateState(ha, e, 'unavailable', {});
+    const cachedState = generateState(ha, e, 'on', {
+      supported_features: 44,
+      supported_color_modes: ['brightness'],
+      friendly_name: 'Cached Light',
+    });
+    const platform = {
+      ...mockPlatform,
+      stateCache: {
+        get: jest.fn().mockReturnValue(cachedState),
+      },
+    } as any;
+
+    addControlEntity(platform, md, e as any, state, commandHandler, subscribeHandler as any);
+
+    expect(platform.stateCache.get).toHaveBeenCalledWith(e.entity_id);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.Cluster.id);
+    expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'Cached Light');
+  });
+
+  it('logs a warning when an unavailable light has no cached state', () => {
+    const md = createMockMutableDevice();
+    const ha = new HomeAssistant('ws://localhost:8123', 'token');
+    const e = generateEntity(ha, 'No Cache', 'light');
+    const state = generateState(ha, e, 'unavailable', {
+      supported_features: 44,
+      supported_color_modes: ['brightness'],
+      friendly_name: 'No Cache Light',
+    });
+    const platform = {
+      ...mockPlatform,
+      stateCache: {
+        get: jest.fn().mockReturnValue(undefined),
+      },
+    } as any;
+
+    addControlEntity(platform, md, e as any, state, commandHandler, subscribeHandler as any);
+
+    expect(platform.stateCache.get).toHaveBeenCalledWith(e.entity_id);
+    expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('is unavailable and no cached state found'));
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.Cluster.id);
+    expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'No Cache Light');
   });
 
   it('thermostat auto/heat/cool branches', () => {
@@ -212,7 +279,7 @@ describe('addControlEntity', () => {
       options: ['Eco', 'Comfort'],
     });
     const callService = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const registerVirtualDevice = jest.fn();
+    const registerVirtualDevice = jest.fn<(name: string, deviceType: string, callback: VirtualDeviceCallback) => Promise<void>>().mockResolvedValue(undefined);
     const platform = {
       ...mockPlatform,
       config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls' },
@@ -244,7 +311,7 @@ describe('addControlEntity', () => {
       options: ['Eco'],
     });
     const callService = jest.fn<() => Promise<void>>().mockRejectedValue(new Error('boom'));
-    const registerVirtualDevice = jest.fn();
+    const registerVirtualDevice = jest.fn<(name: string, deviceType: string, callback: VirtualDeviceCallback) => Promise<void>>().mockResolvedValue(undefined);
     const log = { debug: jest.fn(), warn: jest.fn(), error: jest.fn() };
     const platform = {
       config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls' },
@@ -295,7 +362,7 @@ describe('addControlEntity', () => {
       supported_features: MediaPlayerEntityFeature.TURN_ON | MediaPlayerEntityFeature.VOLUME_STEP,
     });
     const callService = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const registerVirtualDevice = jest.fn();
+    const registerVirtualDevice = jest.fn<(name: string, deviceType: string, callback: VirtualDeviceCallback) => Promise<void>>().mockResolvedValue(undefined);
     const platform = {
       ...mockPlatform,
       config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls' },
@@ -327,7 +394,7 @@ describe('addControlEntity', () => {
       supported_features: MediaPlayerEntityFeature.TURN_ON,
     });
     const callService = jest.fn<() => Promise<void>>().mockRejectedValue(new Error('boom'));
-    const registerVirtualDevice = jest.fn();
+    const registerVirtualDevice = jest.fn<(name: string, deviceType: string, callback: VirtualDeviceCallback) => Promise<void>>().mockResolvedValue(undefined);
     const log = { debug: jest.fn(), warn: jest.fn(), error: jest.fn() };
     const platform = {
       config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls' },

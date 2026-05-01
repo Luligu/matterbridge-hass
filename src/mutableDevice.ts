@@ -1104,7 +1104,7 @@ export class MutableDevice {
       // Add the required clusters to the main endpoint
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
-      if (this.composedType) mainDevice.endpoint.addFixedLabel('composed', this.composedType);
+      if (this.composedType) void mainDevice.endpoint.addFixedLabel('composed', this.composedType).catch(/* istanbul ignore next */ () => {});
       // Set the configUrl of the main endpoint
       if (this.configUrl) mainDevice.endpoint.configUrl = this.configUrl;
       // Add the command handlers
@@ -1116,14 +1116,16 @@ export class MutableDevice {
       // Add the subscribe handlers
       for (const subscribeHandler of mainDevice.subscribeHandlers) {
         if (mainDevice.endpoint.hasAttributeServer(subscribeHandler.clusterId, subscribeHandler.attribute))
-          mainDevice.endpoint.subscribeAttribute(
-            subscribeHandler.clusterId,
-            subscribeHandler.attribute,
-            (newValue: unknown, oldValue: unknown, context: ActionContext) => {
-              subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
-            },
-            mainDevice.endpoint.log,
-          );
+          void mainDevice.endpoint
+            .subscribeAttribute(
+              subscribeHandler.clusterId,
+              subscribeHandler.attribute,
+              (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+                subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+              },
+              mainDevice.endpoint.log,
+            )
+            .catch(/* istanbul ignore next */ () => {});
       }
       return this;
     }
@@ -1141,21 +1143,23 @@ export class MutableDevice {
     device.endpoint.addRequiredClusterServers();
     // Add the command handlers
     for (const commandHandler of device.commandHandlers) {
-      device.endpoint.addCommandHandler(commandHandler.command, async (data) => {
-        commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
+      device.endpoint.addCommandHandler(commandHandler.command, (data) => {
+        void commandHandler.handler(data, commandHandler.endpointName, commandHandler.command);
       });
     }
     // Add the subscribe handlers
     for (const subscribeHandler of device.subscribeHandlers) {
       if (device.endpoint.hasAttributeServer(subscribeHandler.clusterId, subscribeHandler.attribute))
-        device.endpoint.subscribeAttribute(
-          subscribeHandler.clusterId,
-          subscribeHandler.attribute,
-          (newValue: unknown, oldValue: unknown, context: ActionContext) => {
-            subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
-          },
-          device.endpoint.log,
-        );
+        void device.endpoint
+          .subscribeAttribute(
+            subscribeHandler.clusterId,
+            subscribeHandler.attribute,
+            (newValue: unknown, oldValue: unknown, context: ActionContext) => {
+              subscribeHandler.listener(newValue, oldValue, context, subscribeHandler.endpointName, subscribeHandler.clusterId, subscribeHandler.attribute);
+            },
+            device.endpoint.log,
+          )
+          .catch(/* istanbul ignore next */ () => {});
     }
 
     return this;

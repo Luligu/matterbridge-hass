@@ -24,7 +24,7 @@ import { randomBytes } from 'node:crypto';
 
 import { isValidArray, isValidObject, isValidString } from 'matterbridge/utils';
 
-import { HassArea, HassDevice, HassEntity, HassLabel, HassState, type HomeAssistant } from './homeAssistant.js';
+import type { HassArea, HassDevice, HassEntity, HassLabel, HassState, HomeAssistant } from './homeAssistant.js';
 import type { HomeAssistantPlatform } from './module.js';
 
 const generatedEntityIds = new Set<string>();
@@ -60,7 +60,6 @@ function createGeneratedId(baseId: string, generatedIds: Set<string>): string {
 function createEntityId(name: string, domain: string): string {
   const normalizedName = isValidString(name) ? name.toLowerCase().replace(/ /g, '_') : 'unnamed_entity';
   const baseEntityId = `${domain}.${normalizedName}`;
-
   return createGeneratedId(baseEntityId, generatedEntityIds);
 }
 

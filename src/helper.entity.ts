@@ -94,9 +94,9 @@ export function addHelperEntity(
     }
     // We revert the state after 500ms except for input_boolean that mantain the state
     if (domain !== 'input_boolean') {
-      setTimeout(async () => {
+      setTimeout(() => {
         // istanbul ignore next cause is too long
-        await data.endpoint.setAttribute(OnOff.Cluster, 'onOff', false, data.endpoint.log);
+        void data.endpoint.setAttribute(OnOff.Cluster, 'onOff', false, data.endpoint.log).catch(/* istanbul ignore next */ () => {});
       }, 500).unref();
     }
   });

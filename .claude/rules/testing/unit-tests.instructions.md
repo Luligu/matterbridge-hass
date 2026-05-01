@@ -1,6 +1,7 @@
 ---
 description: 'Testing standards for unit tests in the project.'
-paths: ['**/*.test.ts']
+paths:
+  - '**/*.test.ts'
 ---
 
 # Testing Standards for Unit Tests

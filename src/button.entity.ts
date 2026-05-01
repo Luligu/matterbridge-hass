@@ -51,9 +51,9 @@ export function addButtonEntity(platform: HomeAssistantPlatform, mutableDevice: 
   mutableDevice.addCommandHandler(endpointName, 'on', async (data) => {
     await platform.ha.callService(domain, 'press', entity.entity_id);
     // We revert the state after 500ms except for input_boolean that mantain the state
-    setTimeout(async () => {
+    setTimeout(() => {
       // istanbul ignore next cause is too long
-      await data.endpoint.setAttribute(OnOff.Cluster, 'onOff', false, data.endpoint.log);
+      void data.endpoint.setAttribute(OnOff.Cluster, 'onOff', false, data.endpoint.log).catch(/* istanbul ignore next */ () => {});
     }, 500).unref();
   });
 

@@ -574,13 +574,19 @@ describe('HassPlatform', () => {
     fetchDataSpy.mockImplementationOnce(() => {
       return Promise.reject(new Error('FetchData failed'));
     });
+    haPlatform.ha.emit('connected', '2024.09.1');
+    await wait(100);
+    expect(loggerNoticeSpy).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error fetching data from Home Assistant: Error: FetchData failed`);
+
+    jest.clearAllMocks();
     subscribeSpy.mockImplementationOnce(() => {
       return Promise.reject(new Error('Subscribe failed'));
     });
     haPlatform.ha.emit('connected', '2024.09.1');
     await wait(100);
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error fetching data from Home Assistant: Error: FetchData failed`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Fetched data from Home Assistant successfully`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(`Error subscribing to Home Assistant events: Error: Subscribe failed`);
 
     haPlatform.isConfigured = true;
@@ -2647,13 +2653,24 @@ describe('HassPlatform', () => {
     const oldState = { ...contactSensorEntityState };
     contactSensorEntityState.state = 'unavailable';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', false, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
+    expect(haPlatform.stateCache.get(contactSensorEntity.entity_id)).toBeDefined();
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(
+      contactSensorDevice.id,
+      contactSensorEntity.entity_id,
+      { ...contactSensorEntityState, state: 'unavailable' } as HassState,
+      { ...contactSensorEntityState, state: 'unavailable' } as HassState,
+    );
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
 
     jest.clearAllMocks();
     oldState.state = 'unavailable';
     contactSensorEntityState.state = 'off';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
-    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster.id, 'reachable', true, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', true, expect.anything());
+    expect(haPlatform.stateCache.get(contactSensorEntity.entity_id)).toBeUndefined();
 
     jest.clearAllMocks();
     contactSensorEntityState.attributes.device_class = 'cold';
@@ -2787,13 +2804,18 @@ describe('HassPlatform', () => {
 
   it('should call onChangeLoggerLevel and log a partial message', async () => {
     await haPlatform.onChangeLoggerLevel(LogLevel.DEBUG);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Logger level changed to ${LogLevel.DEBUG}`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Logger level changed to ${LogLevel.DEBUG}`);
+    expect(haPlatform.log.logLevel).toBe(LogLevel.DEBUG);
+    expect(haPlatform.ha.log.logLevel).toBe(LogLevel.DEBUG);
+    expect(haPlatform.stateCache.log.logLevel).toBe(LogLevel.DEBUG);
   });
 
   it('should call onShutdown with reason', async () => {
     await haPlatform.onShutdown('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Home Assistant connection closed`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Saving cached states to storage...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Cleared all cached states from memory`);
     expect(matterbridge.removeAllBridgedEndpoints).not.toHaveBeenCalled();
   });
 
