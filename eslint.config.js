@@ -1,6 +1,7 @@
+// @ts-check
 // eslint.config.js 2.0.0
 
-// This ESLint configuration is designed for a TypeScript project.
+// This ESLint configuration is designed for a TypeScript project using ESM modules.
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -18,15 +19,29 @@ import importsort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
 const sourceFiles = ['**/*.{js,mjs,cjs,ts,mts,cts}'];
-const typescriptFiles = ['**/src/**/*.{ts,mts,cts}', '**/vitest/**/*.spec.{ts,mts,cts}', '**/vitest/**/*.test.{ts,mts,cts}'];
-const jestTestFiles = ['**/*.spec.{ts,mts,cts}', '**/*.test.{ts,mts,cts}', '**/__test__/**/*.{ts,mts,cts}'];
+const typescriptFiles = [
+  '**/src/**/*.{ts,mts,cts}',
+  '**/test/**/*.spec.{ts,mts,cts}',
+  '**/test/**/*.test.{ts,mts,cts}',
+  '**/test/**/__test__/**/*.{ts,mts,cts}',
+  '**/vitest/**/*.spec.{ts,mts,cts}',
+  '**/vitest/**/*.test.{ts,mts,cts}',
+];
+const jestTestFiles = [
+  '**/src/**/*.spec.{ts,mts,cts}',
+  '**/src/**/*.test.{ts,mts,cts}',
+  '**/src/**/__test__/**/*.{ts,mts,cts}',
+  '**/test/**/*.spec.{ts,mts,cts}',
+  '**/test/**/*.test.{ts,mts,cts}',
+  '**/test/**/__test__/**/*.{ts,mts,cts}',
+];
 const vitestTestFiles = ['**/vitest/**/*.spec.{ts,mts,cts}', '**/vitest/**/*.test.{ts,mts,cts}'];
 const configDirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 export default defineConfig([
   {
     name: 'Global Ignores',
-    ignores: [...vitestTestFiles, '**/.cache', '**/build', '**/coverage', '**/dist', '**/jest', '**/node_modules', '**/screenshots', '**/temp', '**/vendor'],
+    ignores: [...vitestTestFiles, '**/.cache', '**/build', '**/coverage', '**/dist', '**/jest', '**/node_modules', '**/screenshots', '**/temp', '**/vendor', '**/apps', '**/chip'],
   },
   {
     name: 'JavaScript & TypeScript Source Files',
@@ -116,7 +131,6 @@ export default defineConfig([
   {
     name: 'Jest Test Files',
     files: jestTestFiles,
-    ignores: vitestTestFiles,
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
@@ -144,28 +158,33 @@ export default defineConfig([
   {
     name: 'JSON Files',
     files: ['**/*.json'],
-    ignores: ['**/devcontainer.json', '**/package-lock.json'], // Ignore devcontainer.json and package-lock.json files
-    plugins: { json },
+    ignores: ['**/devcontainer.json', '**/.vscode/*.json', '**/package-lock.json'],
+    plugins: { json, prettier },
     language: 'json/json',
     extends: ['json/recommended'],
     rules: {
       'json/no-unsafe-values': 'off',
+      'prettier/prettier': 'warn', // Use Prettier for formatting
     },
   },
   {
-    name: 'JSONC files',
-    files: ['**/devcontainer.json', '**/*.jsonc'],
-    plugins: { json },
+    name: 'JSON with Comments Files',
+    files: ['**/*.jsonc', '**/devcontainer.json', '**/.vscode/*.json'],
+    plugins: { json, prettier },
     language: 'json/jsonc',
     extends: ['json/recommended'],
     rules: {
       'json/no-unsafe-values': 'off',
+      'prettier/prettier': 'warn', // Use Prettier for formatting
     },
   },
   {
     name: 'Markdown Files',
     files: ['**/*.md'],
-    plugins: { markdown },
+    plugins: { markdown, prettier },
     extends: ['markdown/recommended'],
+    rules: {
+      'prettier/prettier': 'warn', // Use Prettier for formatting
+    },
   },
 ]);

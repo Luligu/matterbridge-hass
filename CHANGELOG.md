@@ -12,7 +12,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
-## [1.2.1] - Dev branch
+## [1.2.1] - 2025-05-01
 
 ### Added
 
@@ -24,11 +24,14 @@ If you like this project and find it useful, please consider giving it a **star*
 
 - [package]: Update dependencies.
 - [package]: Bump package to `automator` v.3.1.7.
+- [package]: Bump `eslint` to v.10.3.0.
+- [package]: Bump `typescript-eslint` to v.8.59.1.
 - [eslint]: Remove `eslint-plugin-promise` (not actively maintained) and add optional @typescript-eslint promise rules.
 - [package]: Remove `overrides` that was necessary for eslint-plugin-promise.
-- [package]: Bump `typescript-eslint` to v.8.59.1.
 - [package]: Remove unused Vitest setup.
 - [eslint]: Add `eslint` v.2.0.0 config.
+- [prettier]: Add `prettier` v.2.0.0 config.
+- [jest]: Add `jest` v.2.0.0 config.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
