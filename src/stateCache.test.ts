@@ -4,7 +4,7 @@ const NAME = 'StateCache';
 
 import { jest } from '@jest/globals';
 import { setupTest } from 'matterbridge/jestutils';
-import type { NodeStorage } from 'node-persist-manager';
+import type { NodeStorage } from 'matterbridge/storage';
 
 import { type HassState, UnitOfTemperature, VacuumActivity } from './homeAssistant.js';
 import { StateCache } from './stateCache.js';

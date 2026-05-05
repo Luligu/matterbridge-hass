@@ -1,9 +1,8 @@
 // @ts-check
-// eslint.config.js 2.0.0
+// eslint.config.js 2.0.1
 
 // This ESLint configuration is designed for a TypeScript project using ESM modules.
 
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import url from 'node:url';
 
@@ -79,8 +78,16 @@ export default defineConfig([
       'require-await': 'off', // Allow async functions that don't use await
       'n/prefer-node-protocol': 'error', // Prefer using 'node:' protocol for built-in modules
       'n/no-unsupported-features/node-builtins': ['error', { ignores: ['fetch'] }],
-      'n/no-extraneous-import': 'off', // Allow imports from node_modules
-      'n/no-unpublished-import': 'off', // Allow imports from unpublished packages
+      'n/no-extraneous-import': ['error', { allowModules: ['matterbridge'] }], // Allow imports from matterbridge package
+      // 'n/no-unpublished-import': 'off', // Allow imports from unpublished packages
+      'n/hashbang': [
+        'error',
+        {
+          convertPath: {
+            'src/bin/**/*.ts': ['^src/bin/(.+)\\.ts$', 'dist/bin/$1.js'],
+          },
+        },
+      ],
       'jsdoc/tag-lines': ['error', 'any', { startLines: 1, endLines: 0 }], // Require a blank line before JSDoc comments
       'jsdoc/check-tag-names': ['warn', { definedTags: ['created', 'contributor', 'remarks'] }], // Allow custom tags
       'jsdoc/no-undefined-types': 'off',
@@ -96,7 +103,7 @@ export default defineConfig([
       parser: tseslint.parser,
       parserOptions: {
         tsconfigRootDir: configDirname,
-        project: existsSync(path.join(configDirname, 'tsconfig.eslint.json')) ? './tsconfig.eslint.json' : './tsconfig.json', // Use a separate tsconfig for ESLint if it exists, otherwise fall back to the main tsconfig
+        project: 'tsconfig.json',
       },
     },
     // Comment out this line if you want to enable strict type-checked rules, but be aware that it may cause many errors until you fix all type issues in your codebase
@@ -113,6 +120,7 @@ export default defineConfig([
           vars: 'all',
           args: 'after-used',
           ignoreRestSiblings: true,
+          reportUsedIgnorePattern: true, // Error when a _ prefixed variable is actually used
           varsIgnorePattern: '^_', // Ignore unused variables starting with _
           argsIgnorePattern: '^_', // Ignore unused arguments starting with _
           caughtErrorsIgnorePattern: '^_', // Ignore unused caught errors starting with _
@@ -135,7 +143,7 @@ export default defineConfig([
       parser: tseslint.parser,
       parserOptions: {
         tsconfigRootDir: configDirname,
-        project: './tsconfig.jest.json', // Use a separate tsconfig for Jest tests with "isolatedModules": true
+        project: 'tsconfig.json',
       },
     },
     extends: [jest.configs['flat/recommended']],

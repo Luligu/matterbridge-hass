@@ -1,5 +1,5 @@
 // @ts-check
-// jest.config.js 2.0.0
+// jest.config.js 2.0.1
 
 // This Jest configuration is designed for a TypeScript project using ESM modules with ts-jest.
 
@@ -22,8 +22,8 @@ const jestConfig = {
   testEnvironment: 'node', // Use Node.js environment for testing
   cacheDirectory: '<rootDir>/.cache/jest',
   moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' }, // Handle ESM imports by removing the .js extension
-  testPathIgnorePatterns: ['/.cache/', '/dist/', '/node_modules/', '/scripts/', '/vitest/', '/apps/', '/src/mock/'],
-  coveragePathIgnorePatterns: ['/.cache/', '/dist/', '/node_modules/', '/scripts/', '/vitest/', '/apps/', '/src/mock/'],
+  testPathIgnorePatterns: ['/.cache/', '/dist/', '/build/', '/node_modules/', '/scripts/', '/vitest/', '/apps/', '/src/mock/', '/vendor/', '/temp/'],
+  coveragePathIgnorePatterns: ['/.cache/', '/dist/', '/build/', '/node_modules/', '/scripts/', '/vitest/', '/apps/', '/src/mock/', '/vendor/', '/temp/'],
   maxWorkers: '100%', // Use all available CPU cores for running tests
 };
 

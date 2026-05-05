@@ -1,3 +1,5 @@
+# Codecov (plugin) v. 2.0.1
+
 name: Codecov
 
 on:
@@ -55,7 +57,7 @@ jobs:
         run: npm link matterbridge --no-fund --no-audit
 
       - name: Run tests
-        run: npm run test:coverage -- --forceExit
+        run: npm run test:coverage -- --forceExit --timeout=30000
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5
