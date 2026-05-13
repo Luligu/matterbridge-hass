@@ -17,10 +17,17 @@ If you like this project and find it useful, please consider giving it a **star*
 ### Changed
 
 - [package]: Update dependencies.
-- [package]: Bump `typescript-eslint` to v.8.59.2.
+- [package]: Bump package to `automator` v.3.1.9.
+- [package]: Bump `typescript-eslint` to v.8.59.3.
 - [package]: Bump `eslint-plugin-n` to v.18.0.1.
-- [eslint]: Add `eslint` v.2.0.1 config.
+- [package]: Bump `jest` to v.30.4.2.
+- [eslint]: Add `eslint` v.2.0.4 config.
 - [jest]: Add `jest` v.2.0.1 config.
+- [package]: Add Node.js 26 to package `engines` field.
+- [workflows]: Add Node.js 26 to `build.yml` Node matrix and remove Node.js 20.
+- [package]: Refactor `scripts`.
+- [package]: Add package script `typecheck`.
+- [agent]: Update `agent instructions`.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

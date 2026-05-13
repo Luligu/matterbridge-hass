@@ -7,8 +7,8 @@
 - Keep changes minimal and scoped to the request. Avoid unrelated refactors or broad cleanup.
 - Do not modify production code only to make a test pass. If a failing test points to a likely source issue, explain the issue and change behavior only when required by the task.
 - Preserve cross-platform behavior. Changes must work on Windows, macOS, and Linux, especially for paths, shell commands, environment variables, and networking behavior.
-- Maintain compatibility with the supported Node.js versions in this repository: 20, 22, and 24.
-- This repository is a TypeScript ESM monorepo. Follow existing project patterns for imports, exports, build configuration, and test setup.
+- Maintain compatibility with the supported Node.js versions in this repository: 20, 22, 24, and 26.
+- This repository uses TypeScript and ESM. Follow existing project patterns for imports, exports, build configuration, and test setup.
 - Prefer the existing npm scripts in [package.json](../package.json) and the VS Code tasks in [tasks.json](../.vscode/tasks.json) for building, linting, and testing.
 - Keep tests deterministic and simple. Prefer small data sets and straightforward setup.
 - Some tests are intentionally multi-step flows. State may persist across successive steps within a single test flow, but each test unit must remain isolated from other tests.

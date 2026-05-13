@@ -57,7 +57,7 @@ jobs:
         run: npm link matterbridge --no-fund --no-audit
 
       - name: Run tests
-        run: npm run test:coverage -- --forceExit --timeout=30000
+        run: npm run test:coverage -- --forceExit --testTimeout=30000
 
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v5

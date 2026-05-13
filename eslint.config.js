@@ -1,5 +1,5 @@
 // @ts-check
-// eslint.config.js 2.0.1
+// eslint.config.js 2.0.4
 
 // This ESLint configuration is designed for a TypeScript project using ESM modules.
 
@@ -46,7 +46,6 @@ export default defineConfig([
     name: 'JavaScript & TypeScript Source Files',
     files: sourceFiles,
     plugins: {
-      js,
       n,
       jsdoc,
       'simple-import-sort': importsort,
@@ -70,6 +69,7 @@ export default defineConfig([
           vars: 'all',
           args: 'after-used',
           ignoreRestSiblings: true,
+          reportUsedIgnorePattern: true, // Error when a _ prefixed variable is actually used
           varsIgnorePattern: '^_', // Ignore unused variables starting with _
           argsIgnorePattern: '^_', // Ignore unused arguments starting with _
           caughtErrorsIgnorePattern: '^_', // Ignore unused caught errors starting with _
@@ -79,7 +79,7 @@ export default defineConfig([
       'n/prefer-node-protocol': 'error', // Prefer using 'node:' protocol for built-in modules
       'n/no-unsupported-features/node-builtins': ['error', { ignores: ['fetch'] }],
       'n/no-extraneous-import': ['error', { allowModules: ['matterbridge'] }], // Allow imports from matterbridge package
-      // 'n/no-unpublished-import': 'off', // Allow imports from unpublished packages
+      'n/no-unpublished-import': 'error',
       'n/hashbang': [
         'error',
         {
@@ -150,6 +150,8 @@ export default defineConfig([
     rules: {
       'no-undef': 'off', // Disable no-undef for TypeScript files since TypeScript already checks for undefined variables
       'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
+      'n/no-extraneous-import': 'off', // Allow imports from devDependencies in test files
+      'n/no-unpublished-import': 'off', // Allow imports from unpublished packages
       '@typescript-eslint/no-unused-vars': 'off', // Disable TypeScript rule for unused variables in test files
       '@typescript-eslint/no-explicit-any': 'off', // Allow 'any' type in test files
       '@typescript-eslint/no-empty-function': 'off', // Allow empty functions in test files
@@ -169,7 +171,7 @@ export default defineConfig([
     ignores: ['**/devcontainer.json', '**/.vscode/*.json', '**/package-lock.json'],
     plugins: { json, prettier },
     language: 'json/json',
-    extends: ['json/recommended'],
+    extends: [json.configs.recommended],
     rules: {
       'json/no-unsafe-values': 'off',
       'prettier/prettier': 'warn', // Use Prettier for formatting
@@ -180,7 +182,7 @@ export default defineConfig([
     files: ['**/*.jsonc', '**/devcontainer.json', '**/.vscode/*.json'],
     plugins: { json, prettier },
     language: 'json/jsonc',
-    extends: ['json/recommended'],
+    extends: [json.configs.recommended],
     rules: {
       'json/no-unsafe-values': 'off',
       'prettier/prettier': 'warn', // Use Prettier for formatting
@@ -190,7 +192,7 @@ export default defineConfig([
     name: 'Markdown Files',
     files: ['**/*.md'],
     plugins: { markdown, prettier },
-    extends: ['markdown/recommended'],
+    extends: [markdown.configs.recommended],
     rules: {
       'prettier/prettier': 'warn', // Use Prettier for formatting
     },

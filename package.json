@@ -49,10 +49,11 @@
     "smartthings",
     "ewelink",
     "childbridge",
-    "hassio"
+    "hassio",
+    "gladysassistant"
   ],
   "engines": {
-    "node": ">=20.19.0 <21.0.0 || >=22.13.0 <23.0.0 || >=24.0.0 <25.0.0"
+    "node": ">=20.19.0 <21.0.0 || >=22.13.0 <23.0.0 || >=24.0.0 <25.0.0 || >=26.0.0 <27.0.0"
   },
   "files": [
     "bin",
@@ -71,6 +72,7 @@
     "cleanBuildProduction": "npm run clean && npm run buildProduction",
     "deepClean": "npm run clean && npx shx rm -rf coverage jest temp package-lock.json npm-shrinkwrap.json .cache/* .cache/.[!.]* .cache/..?* node_modules/* node_modules/.[!.]* node_modules/..?*",
     "watch": "tsc --project tsconfig.build.json --watch",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100%",
     "test:watch": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --watch",
     "test:verbose": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest --maxWorkers=100% --verbose",
@@ -116,15 +118,15 @@
   "dependencies": {
     "node-ansi-logger": "3.2.1",
     "node-persist-manager": "2.0.2",
-    "ws": "8.20.0"
+    "ws": "8.20.1"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@eslint/json": "1.2.0",
     "@eslint/markdown": "8.0.1",
-    "@jest/globals": "30.3.0",
+    "@jest/globals": "30.4.1",
     "@types/jest": "30.0.0",
-    "@types/node": "25.6.0",
+    "@types/node": "25.7.0",
     "@types/ws": "8.18.1",
     "cross-env": "10.1.0",
     "eslint": "10.3.0",
@@ -134,17 +136,12 @@
     "eslint-plugin-n": "18.0.1",
     "eslint-plugin-prettier": "5.5.5",
     "eslint-plugin-simple-import-sort": "13.0.0",
-    "jest": "30.3.0",
-    "npm-check-updates": "22.1.0",
+    "jest": "30.4.2",
+    "npm-check-updates": "22.2.0",
     "prettier": "3.8.3",
     "shx": "0.4.0",
     "ts-jest": "29.4.9",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.59.2"
-  },
-  "overrides": {
-    "typescript": "6.0.3",
-    "eslint": "10.3.0",
-    "@eslint/js": "10.0.1"
+    "typescript-eslint": "8.59.3"
   }
 }
