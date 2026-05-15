@@ -21,7 +21,7 @@
  */
 
 import { AnsiLogger, TimestampFormat } from 'matterbridge/logger';
-import type { NodeStorage } from 'node-persist-manager';
+import type { NodeStorage } from 'matterbridge/storage';
 
 import type { EntityId, HassState } from './homeAssistant.js';
 

@@ -1,14 +1,22 @@
 ---
-description: 'Testing standards for unit tests in the project.'
+description: 'Testing standards for unit tests in the project v.1.0.2'
 paths:
   - '**/*.test.ts'
+  - '**/*.spec.ts'
+  - '**/test/**/*.ts'
+  - '**/vitest/**/*.ts'
 ---
 
 # Testing Standards for Unit Tests
 
 ## 1. Test Framework
 
-- Use Jest (with ts-jest) as the testing framework for all unit tests.
+- Use Jest (with ts-jest) or Vitest as the testing framework for all unit tests.
+- Jest is available in the repository when the file `jest.config.js` exists.
+- Vitest is available in the repository when the file `vite.config.ts` exists.
+- Avoid using both Jest and Vitest in the same project to prevent conflicts. When both are available, prefer Vitest for new tests and consider migrating existing Jest tests to Vitest over time.
+- Jest tests live adjacent to the code being tested with a `.test.ts` suffix or in `test` folders. Follow the existing convention in the repository for test file placement.
+- Vitest tests live adjacent to the code being tested with a `.test.ts` suffix or in `vitest` folders. Follow the existing convention in the repository for test file placement.
 - Ensure that tests are written in TypeScript and follow the ESM module format.
 
 ## 2. Test Structure
@@ -29,21 +37,22 @@ paths:
 
 - Aim for high test coverage, but prioritize meaningful tests over achieving 100% coverage.
 
-## 6. Mocking
+## 6. Mocking with Jest
 
-- Use `jest.unstable_mockModule` for mocking dependencies in ESM modules.
-- Avoid using `jest.mock` as it is not compatible with ESM modules.
+- If using Jest, use `jest.unstable_mockModule` for mocking dependencies in ESM modules.
+- If using Jest, avoid using `jest.mock` as it is not compatible with ESM modules.
 
 ## 7. Running Tests
 
 - Run the relevant full test unit from start to finish rather than assuming isolated single-test execution is reliable.
-- Use `npm run test -- yourTest.test.ts` or `npm run test:coverage -- yourTest.test.ts` when the touched area can be validated by running the full relevant test file.
+- If only one test framework is installed, use `npm run test -- yourTest.test.ts` or `npm run test:coverage -- yourTest.test.ts` when the touched area can be validated by running the full relevant test file.
+- When both Jest and Vitest are installed, use `npm run test -- yourTest.test.ts` for Jest or `npm run test:vitest -- yourTest.test.ts` for Vitest.
 - Use the existing `tasks.json` test tasks for areas that require grouped test files, custom coverage targets, or custom ignore-pattern handling.
-- Avoid running all tests unnecessarily to save time during development.
+- Avoid running all tests unnecessarily to save time and tokens.
 
 ## 8. Test Assertions
 
-- Use appropriate Jest matchers for assertions (e.g., `toBe`, `toEqual`, `toThrow`).
+- Use appropriate Jest or Vitest matchers for assertions (e.g., `toBe`, `toEqual`, `toThrow`).
 - Ensure that assertions are clear and directly related to the behavior being tested.
 
 ## 9. Performance

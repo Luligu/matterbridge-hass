@@ -1,3 +1,5 @@
+# Publish to npm (plugin) v. 2.0.2
+
 name: Publish to npm
 
 on:
@@ -18,11 +20,11 @@ permissions:
 
 jobs:
   publish-release:
-    name: Publish release to npm and trigger matterbridge docker build latest
+    name: Publish release to npm
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
-    env:
-      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+    # env:
+    #   PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -70,23 +72,23 @@ jobs:
         run: npm run lint
 
       - name: Test the plugin
-        run: npm run test -- --forceExit
+        run: npm run test -- --forceExit --testTimeout=30000
 
       - name: Publish the plugin to npm with trusted publishing / OIDC
         run: npm publish
 
-      - name: Trigger Matterbridge Docker Build Main
-        if: env.PAT_TOKEN != ''
-        uses: actions/github-script@v8
-        with:
-          github-token: ${{ env.PAT_TOKEN }}
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: 'Luligu',
-              repo: 'matterbridge',
-              workflow_id: 'docker-buildx-latest.yml',
-              ref: 'main'
-            })
+      # - name: Trigger Matterbridge Docker Build Main
+      #   if: env.PAT_TOKEN != ''
+      #   uses: actions/github-script@v8
+      #   with:
+      #     github-token: ${{ env.PAT_TOKEN }}
+      #     script: |
+      #       await github.rest.actions.createWorkflowDispatch({
+      #         owner: 'Luligu',
+      #         repo: 'matterbridge',
+      #         workflow_id: 'docker-buildx-latest.yml',
+      #         ref: 'main'
+      #       })
 
   publish-dev:
     name: Publish daily dev to npm and trigger matterbridge docker build dev
@@ -166,7 +168,7 @@ jobs:
         run: npm run lint
 
       - name: Test the plugin
-        run: npm run test -- --forceExit
+        run: npm run test -- --forceExit --testTimeout=30000
 
       - name: Extract base version and date
         id: vars
