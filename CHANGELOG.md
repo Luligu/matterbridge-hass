@@ -12,7 +12,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
-## [1.2.2] - Dev branch
+## [1.2.2] - 2026-05-15
 
 ### Changed
 
