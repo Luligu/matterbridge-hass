@@ -3094,7 +3094,7 @@ describe('Matterbridge ' + NAME, () => {
     /* 1) The light is off we send moveToLevel 200 with executeIfOff true */
     jest.clearAllMocks();
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(false);
-    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', getMoveToLevelRequest(200, 0, true));
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', getMoveToLevelRequest(200, 0, true) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should change because the light is off and executeIfOff is true
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should remain unchanged because the command was moveToLevel which should not affect the color mode
@@ -3109,7 +3109,7 @@ describe('Matterbridge ' + NAME, () => {
 
     /* 2) The light is off we send moveToColorTemperature 200 with executeIfOff true */
     jest.clearAllMocks();
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(200, 0, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(200, 0, true) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature
@@ -3127,7 +3127,7 @@ describe('Matterbridge ' + NAME, () => {
     lightState.attributes.min_color_temp_kelvin = null;
     lightState.attributes.max_color_temp_kelvin = null;
     haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(200, 0, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(200, 0, true) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature
@@ -3145,7 +3145,7 @@ describe('Matterbridge ' + NAME, () => {
 
     /* 3) The light is off we send moveToHue moveToSaturation moveToHueAndSaturation with executeIfOff true */
     jest.clearAllMocks();
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToHue', getMoveToHueRequest(120, 0, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToHue', getMoveToHueRequest(120, 0, true) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
@@ -3159,7 +3159,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.offUpdatedEntities.clear();
 
     jest.clearAllMocks();
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToSaturation', getMoveToSaturationRequest(100, 0, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToSaturation', getMoveToSaturationRequest(100, 0, true) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
@@ -3173,7 +3173,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.offUpdatedEntities.clear();
 
     jest.clearAllMocks();
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToHueAndSaturation', getMoveToHueAndSaturationRequest(140, 120, 0, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToHueAndSaturation', getMoveToHueAndSaturationRequest(140, 120, 0, true) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
@@ -3188,7 +3188,7 @@ describe('Matterbridge ' + NAME, () => {
 
     /* 4) The light is off we send moveToColor 13697 / 41877 with executeIfOff true */
     jest.clearAllMocks();
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToColor', getMoveToColorRequest(13697, 41877, 0, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColor', getMoveToColorRequest(13697, 41877, 0, true) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentXAndCurrentY); // The color mode should change to CurrentXAndCurrentY
@@ -3203,7 +3203,7 @@ describe('Matterbridge ' + NAME, () => {
 
     /* 5) The light is off we send moveToLevelWithOnOff 50 (executeIfOff is not used here can be any) to turn on the light: offUpdatedEntities has been cleared */
     jest.clearAllMocks();
-    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', getMoveToLevelRequest(50, 0, false));
+    await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', getMoveToLevelRequest(50, 0, false) as any);
     expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true); // The state should be on because moveToLevelWithOnOff with level > 1 should turn on the light
     expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50); // The level should change to 50
     expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentXAndCurrentY); // The color mode should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color mode
@@ -3220,7 +3220,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(false); // The entity should not be added to the offUpdatedEntities
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(300, 0, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(300, 0, true) as any);
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because the light was off
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
@@ -3233,7 +3233,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(false); // The entity should not be added to the offUpdatedEntities
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToHueAndSaturation', getMoveToHueAndSaturationRequest(50, 100, 10, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToHueAndSaturation', getMoveToHueAndSaturationRequest(50, 100, 10, true) as any);
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because the light was off
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
@@ -3246,7 +3246,7 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(false); // The entity should not be added to the offUpdatedEntities
-    await invokeBehaviorCommand(device, 'colorControl', 'moveToColor', getMoveToColorRequest(20000, 30000, 10, true));
+    await invokeBehaviorCommand(device, 'colorControl', 'moveToColor', getMoveToColorRequest(20000, 30000, 10, true) as any);
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because the light was off
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {

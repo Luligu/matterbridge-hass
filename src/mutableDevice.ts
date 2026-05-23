@@ -501,7 +501,6 @@ export class MutableDevice {
         MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.SmokeAlarm).enable({
           events: {
             smokeAlarm: true,
-            interconnectSmokeAlarm: false,
             lowBattery: true,
             hardwareFault: true,
             endOfService: true,
@@ -533,7 +532,6 @@ export class MutableDevice {
         MatterbridgeSmokeCoAlarmServer.with(SmokeCoAlarm.Feature.CoAlarm).enable({
           events: {
             coAlarm: true,
-            interconnectCoAlarm: false,
             lowBattery: true,
             hardwareFault: true,
             endOfService: true,
