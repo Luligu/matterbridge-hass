@@ -1276,6 +1276,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.stateCache.remove(old_state.entity_id);
       await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', true, matterbridgeDevice.log);
     }
+    // Set the device reachable attribute to false if the new state is unavailable and skip the update since the device is unreachable. From onConfigure().
+    if (old_state.state === 'unavailable' && new_state.state === 'unavailable') {
+      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', false, matterbridgeDevice.log);
+      endpoint.log.debug(
+        `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,
+      );
+    }
     if (new_state.state === 'unavailable') {
       endpoint.log.debug(
         `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,

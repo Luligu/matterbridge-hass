@@ -2663,7 +2663,7 @@ describe('HassPlatform', () => {
       { ...contactSensorEntityState, state: 'unavailable' } as HassState,
       { ...contactSensorEntityState, state: 'unavailable' } as HassState,
     );
-    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
 
     jest.clearAllMocks();
     oldState.state = 'unavailable';

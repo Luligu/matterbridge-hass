@@ -35,6 +35,10 @@ If you like this project and find it useful, please consider giving it a **star*
 - [package]: Update `.vscode/settings.json`.
 - [package]: Add `.vscode/extensions.json`.
 
+### Fixed
+
+- [platform]: The unavailable entities on startup are set unreachable. Thanks thecurrymuncher.
+
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.2.2] - 2026-05-15
