@@ -425,13 +425,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
-      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (entityName.length > 32) {
-        this.longNameEntities++;
-        this.log.warn(
-          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
-        );
-      }
       // If the entity has an already registered name, we skip it.
       if (this.hasDeviceName(entityName)) {
         this.duplicatedEntities++;
@@ -464,6 +457,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.unselectedEntities++;
         continue;
       }
+      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
+      if (entityName.length > 32) {
+        this.longNameEntities++;
+        this.log.warn(
+          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+        );
+      }
+
       // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
       const mutableDevice = new MutableDevice(
@@ -554,13 +555,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
         continue;
       }
-      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (deviceName.length > 32) {
-        this.longNameDevices++;
-        this.log.warn(
-          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-character limit (${deviceName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
-        );
-      }
       // If the device has an already registered name, we skip it.
       if (this.hasDeviceName(deviceName)) {
         this.duplicatedDevices++;
@@ -585,6 +579,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.unselectedDevices++;
         continue;
       }
+      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
+      if (deviceName.length > 32) {
+        this.longNameDevices++;
+        this.log.warn(
+          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-character limit (${deviceName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+        );
+      }
+
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
@@ -794,13 +796,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
-      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (entityName.length > 32) {
-        this.longNameEntities++;
-        this.log.warn(
-          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
-        );
-      }
       // If the entity has an already registered name, we skip it.
       if (this.hasDeviceName(entityName)) {
         this.duplicatedEntities++;
@@ -840,6 +835,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) {
         this.unselectedEntities++;
         continue;
+      }
+      // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
+      if (entityName.length > 32) {
+        this.longNameEntities++;
+        this.log.warn(
+          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+        );
       }
 
       // Create a Mutable device with bridgedNode

@@ -14,6 +14,10 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## [1.2.3] - Dev branch
 
+### Added
+
+- [platform]: The too long names chack and warning is now only for registered devices/entities. Thanks thecurrymuncher.
+
 ### Changed
 
 - [package]: Update dependencies.
