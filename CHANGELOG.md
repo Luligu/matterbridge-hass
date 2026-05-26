@@ -16,7 +16,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Added
 
-- [platform]: The too long names chack and warning is now only for registered devices/entities. Thanks thecurrymuncher.
+- [platform]: The too long names check and warning is now only for registered devices/entities. Thanks thecurrymuncher.
 
 ### Changed
 
