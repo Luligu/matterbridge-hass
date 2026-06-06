@@ -18,18 +18,13 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ## [1.3.0] - 2026-06-06
 
-### Added
-
-- [platform]: The too long names check and warning is now only for registered devices/entities. Thanks thecurrymuncher.
-
-### Changed
-
 ### Breaking changes
 
 - [matterbridge]: Require matterbridge v.3.8.0 with matter v.1.5.1 and matter.js v.0.17.1.
 
 ### Added
 
+- [platform]: The too long names check and warning is now only for registered devices/entities. Thanks thecurrymuncher.
 - [codecov]: Add merge of Jest and Vitest coverage reports. This allows to run both Jest and Vitest tests in the same package and have a unified coverage report in Codecov.
 
 ### Changed
