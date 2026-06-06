@@ -188,7 +188,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Verify that Matterbridge is the correct version
     if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.8.0')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.8.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend."`,
+        `This plugin requires Matterbridge version >= "3.8.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend.`,
       );
     }
 
@@ -1282,6 +1282,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       endpoint.log.debug(
         `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,
       );
+      return;
     }
     if (new_state.state === 'unavailable') {
       endpoint.log.debug(
