@@ -1,4 +1,5 @@
-# Node.js CI (plugin) v. 2.0.2
+# Node.js CI (plugin) v. 2.0.4
+# Path: .github/workflows/build.yml
 
 name: Node.js CI
 
@@ -18,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22.x, 24.x, 26.x]
+        node-version: [22.x, 24.x, 26.2.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
@@ -71,5 +72,25 @@ jobs:
       - name: Lint the plugin
         run: npm run lint
 
-      - name: Test the plugin
-        run: npm run test -- --forceExit --testTimeout=30000
+      - name: Check config files
+        id: check_configs
+        shell: bash
+        run: |
+          echo "has_jest=$(test -f jest.config.js && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_vitest=$(test -f vite.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Run Jest tests
+        if: steps.check_configs.outputs.has_jest == 'true'
+        shell: bash
+        run: |
+          npm run test -- --testTimeout=30000
+
+      - name: Run Vitest tests
+        if: steps.check_configs.outputs.has_vitest == 'true'
+        shell: bash
+        run: |
+          if [ "${{ steps.check_configs.outputs.has_jest }}" == "true" ]; then
+            npm run test:vitest -- --testTimeout=30000
+          else
+            npm run test -- --testTimeout=30000
+          fi

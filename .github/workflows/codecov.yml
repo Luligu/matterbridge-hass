@@ -1,16 +1,13 @@
-# Codecov (plugin) v. 2.0.1
+# Codecov (plugin) v. 2.0.4
+# Path: .github/workflows/codecov.yml
 
 name: Codecov
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**/*.md' # any .md anywhere
   pull_request:
     branches: [main]
-    paths-ignore:
-      - '**/*.md' # any .md anywhere
   workflow_dispatch:
 
 jobs:
@@ -56,10 +53,33 @@ jobs:
       - name: Link matterbridge in the project
         run: npm link matterbridge --no-fund --no-audit
 
-      - name: Run tests
-        run: npm run test:coverage -- --forceExit --testTimeout=30000
+      - name: Check config files
+        id: check_configs
+        shell: bash
+        run: |
+          echo "has_jest=$(test -f jest.config.js && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_vitest=$(test -f vite.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
 
-      - name: Upload results to Codecov
+      - name: Run Jest tests
+        if: steps.check_configs.outputs.has_jest == 'true'
+        shell: bash
+        run: |
+          npm run test:coverage -- --testTimeout=30000
+          test -f ./coverage/jest/lcov.info || { echo "::error::Jest ran but lcov.info missing"; exit 1; }
+
+      - name: Run Vitest tests
+        if: steps.check_configs.outputs.has_vitest == 'true'
+        shell: bash
+        run: |
+          if [ "${{ steps.check_configs.outputs.has_jest }}" == "true" ]; then
+            npm run test:vitest:coverage -- --testTimeout=30000
+          else
+            npm run test:coverage -- --testTimeout=30000
+          fi
+          test -f ./coverage/vitest/lcov.info || { echo "::error::Vitest ran but lcov.info missing"; exit 1; }
+
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true

@@ -226,9 +226,7 @@ describe('HassPlatform', () => {
   });
 
   it('should not initialize platform with wrong version', () => {
-    matterbridge.matterbridgeVersion = '1.5.5';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow();
-    matterbridge.matterbridgeVersion = '3.7.0';
+    expect(() => new HomeAssistantPlatform({ ...matterbridge, matterbridgeVersion: '1.5.5' }, log, mockConfig)).toThrow();
   });
 
   it('should validate with white and black list', () => {
