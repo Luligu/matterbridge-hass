@@ -1,8 +1,8 @@
 ---
-description: 'Testing standards for unit tests in the project v.1.0.2'
+description: 'Testing standards for unit tests in the project v.1.0.3'
 paths:
-  - '**/*.test.ts'
-  - '**/*.spec.ts'
+  - '**/src/**/*.test.ts'
+  - '**/src/**/*.spec.ts'
   - '**/test/**/*.ts'
   - '**/vitest/**/*.ts'
 ---

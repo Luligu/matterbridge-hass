@@ -226,9 +226,7 @@ describe('HassPlatform', () => {
   });
 
   it('should not initialize platform with wrong version', () => {
-    matterbridge.matterbridgeVersion = '1.5.5';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow();
-    matterbridge.matterbridgeVersion = '3.7.0';
+    expect(() => new HomeAssistantPlatform({ ...matterbridge, matterbridgeVersion: '1.5.5' }, log, mockConfig)).toThrow();
   });
 
   it('should validate with white and black list', () => {
@@ -2663,7 +2661,16 @@ describe('HassPlatform', () => {
       { ...contactSensorEntityState, state: 'unavailable' } as HassState,
       { ...contactSensorEntityState, state: 'unavailable' } as HassState,
     );
-    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
+
+    jest.clearAllMocks();
+    await haPlatform.updateHandler(
+      contactSensorDevice.id,
+      contactSensorEntity.entity_id,
+      { ...contactSensorEntityState, state: 'off' } as HassState,
+      { ...contactSensorEntityState, state: 'unavailable' } as HassState,
+    );
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
 
     jest.clearAllMocks();
     oldState.state = 'unavailable';

@@ -284,7 +284,7 @@ export function addControlEntity(
   for (const hassCommand of hassCommandConverter.filter((c) => c.domain === domain)) {
     platform.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
     mutableDevice.addCommandHandler(entity.entity_id, hassCommand.command, (data, endpointName, command) => {
-      void commandHandler(data, endpointName, command).catch(/* istanbul ignore next */ () => {});
+      void commandHandler(data as any, endpointName, command).catch(/* istanbul ignore next */ () => {});
     });
   }
 
