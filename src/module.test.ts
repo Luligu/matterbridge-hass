@@ -2664,6 +2664,15 @@ describe('HassPlatform', () => {
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
 
     jest.clearAllMocks();
+    await haPlatform.updateHandler(
+      contactSensorDevice.id,
+      contactSensorEntity.entity_id,
+      { ...contactSensorEntityState, state: 'off' } as HassState,
+      { ...contactSensorEntityState, state: 'unavailable' } as HassState,
+    );
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation.Cluster, 'reachable', false, expect.anything());
+
+    jest.clearAllMocks();
     oldState.state = 'unavailable';
     contactSensorEntityState.state = 'off';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);

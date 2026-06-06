@@ -1284,12 +1284,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       return;
     }
-    if (new_state.state === 'unavailable') {
-      endpoint.log.debug(
-        `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,
-      );
-      return;
-    }
     matterbridgeDevice.log.info(
       `${db}Received update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db} ` +
         `from ${YELLOW}${old_state.state}${db} with ${debugStringify(old_state.attributes)}${db} to ${YELLOW}${new_state.state}${db} with ${debugStringify(new_state.attributes)}`,
