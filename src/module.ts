@@ -1081,6 +1081,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
 
           // In Matter level is 1-254 for feature Lightning while in Home Assistant brightness is 1-255
+          // TODO: fix getAttribute without .id
           const brightness = data.endpoint.hasAttributeServer(LevelControl, 'currentLevel')
             ? Math.round((data.endpoint.getAttribute(LevelControl.id, 'currentLevel') / 254) * 255)
             : undefined;
@@ -1122,6 +1123,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             // In Matter the saturation (on a scale from 0.0 to 1.0) shall be related to the CurrentSaturation attribute by the relationship:
             // Saturation = "CurrentSaturation" / 254
             // where CurrentSaturation is in the range from 0 to 254 inclusive.
+            // TODO: fix getAttribute without .id
             // istanbul ignore next cause codecov is not able to detect it as covered but it is
             const hs_color = [
               Math.round((data.endpoint.getAttribute(ColorControl.id, 'currentHue') / 254) * 360),
