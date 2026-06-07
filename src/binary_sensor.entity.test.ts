@@ -95,7 +95,7 @@ describe('addBinarySensorEntity', () => {
     expect(ep).toBe(entity.entity_id);
 
     expect(md.deviceTypes[entity.entity_id][0]).toBe(contactSensor.code);
-    expect(md.clusters[entity.entity_id]).toContain(BooleanState.Cluster.id);
+    expect(md.clusters[entity.entity_id]).toContain(BooleanState.id);
     expect(md.friendlyNames[entity.entity_id]).toBe('No DC');
 
     // contactSensor uses inverse boolean logic (on => false)
@@ -111,7 +111,7 @@ describe('addBinarySensorEntity', () => {
     expect(ep).toBe(entity.entity_id);
 
     expect(md.deviceTypes[entity.entity_id][0]).toBe(contactSensor.code);
-    expect(md.clusters[entity.entity_id]).toContain(BooleanState.Cluster.id);
+    expect(md.clusters[entity.entity_id]).toContain(BooleanState.id);
     expect(md.friendlyNames[entity.entity_id]).toBeUndefined();
 
     // contactSensor uses inverse boolean logic (off => true)
@@ -127,7 +127,7 @@ describe('addBinarySensorEntity', () => {
     const endpoint = ep as string;
     expect(md.booleanDefaults[endpoint]).toBe(false);
     expect(md.deviceTypes[endpoint][0]).toBe(contactSensor.code);
-    expect(md.clusters[endpoint]).toContain(BooleanState.Cluster.id);
+    expect(md.clusters[endpoint]).toContain(BooleanState.id);
     expect(md.friendlyNames[endpoint]).toBe('Door Friendly');
   });
 
@@ -188,7 +188,7 @@ describe('addBinarySensorEntity', () => {
     const state = baseState('motion', 'on');
     const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state) as string;
     expect(md.deviceTypes[ep][0]).toBe(occupancySensor.code);
-    expect(md.clusters[ep]).toContain(OccupancySensing.Cluster.id);
+    expect(md.clusters[ep]).toContain(OccupancySensing.id);
   });
 
   it('adds smokeCoAlarm with smoke feature (smoke)', () => {
@@ -232,7 +232,7 @@ describe('addBinarySensorEntity', () => {
     const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
     expect(ep).toBe('');
     expect(md.deviceTypes[''][0]).toBe(powerSource.code);
-    expect(md.clusters['']).toContain(PowerSource.Cluster.id);
+    expect(md.clusters['']).toContain(PowerSource.id);
   });
 
   it('returns undefined when no matching converter', () => {

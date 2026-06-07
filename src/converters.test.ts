@@ -386,7 +386,9 @@ describe('HassPlatform converters', () => {
         expect(converter.converter(FanControl.FanMode.Medium)).toBe('medium');
         expect(converter.converter(FanControl.FanMode.High)).toBe('high');
         expect(converter.converter(FanControl.FanMode.Auto)).toBe('auto');
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         expect(converter.converter(FanControl.FanMode.Smart)).toBe('auto');
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         expect(converter.converter(FanControl.FanMode.On)).toBe('auto');
         expect(converter.converter(10)).toBe(null);
       }
@@ -440,7 +442,9 @@ describe('HassPlatform converters', () => {
     const c = hassSubscribeConverter.find((x) => x.domain === 'fan' && x.service === 'turn_on' && x.with === 'preset_mode');
     expect(c).toBeDefined();
     if (!c || !c.converter) return;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     expect(c.converter(FanControl.FanMode.Smart)).toBe('auto');
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     expect(c.converter(FanControl.FanMode.On)).toBe('auto');
   });
 

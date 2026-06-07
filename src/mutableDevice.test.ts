@@ -51,20 +51,15 @@ import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { BridgedDeviceBasicInformationServer, LevelControlServer, OnOffServer } from 'matterbridge/matter/behaviors';
 import {
   BridgedDeviceBasicInformation,
-  BridgedDeviceBasicInformationCluster,
-  ColorControlCluster,
+  ColorControl,
   Descriptor,
-  DescriptorCluster,
   FanControl,
   FixedLabel,
-  GroupsCluster,
-  IdentifyCluster,
+  Groups,
+  Identify,
   LevelControl,
-  LevelControlCluster,
   OnOff,
-  OnOffCluster,
   PowerSource,
-  PowerSourceCluster,
   PressureMeasurement,
   RelativeHumidityMeasurement,
   SmokeCoAlarm,
@@ -190,8 +185,8 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
-  it('should add a BridgedDeviceBasicInformationCluster', async () => {
-    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device BridgedDeviceBasicInformationCluster');
+  it('should add a BridgedDeviceBasicInformation', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device BridgedDeviceBasicInformation');
     mutableDevice.addDeviceTypes('', bridgedNode);
     device = (mutableDevice as any).createMainEndpoint();
     mutableDevice.addBridgedDeviceBasicInformationClusterServer();
@@ -199,7 +194,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.has('')).toBeTruthy();
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().tagList).toHaveLength(0);
-    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.Cluster.id);
+    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.id);
     expect(mutableDevice.get().clusterServersObjs[0].type).toBe(BridgedDeviceBasicInformationServer);
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
     mutableDevice.logMutableDevice();
@@ -208,10 +203,10 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
-  it('should add a BridgedDeviceBasicInformationCluster with software and hardware', async () => {
+  it('should add a BridgedDeviceBasicInformation with software and hardware', async () => {
     const mutableDevice = new MutableDevice(
       mockMatterbridge,
-      'Test Device BridgedDeviceBasicInformationClusterWithSoftwareAndHardware',
+      'Test Device BridgedDeviceBasicInformationWithSoftwareAndHardware',
       undefined,
       undefined,
       undefined,
@@ -229,7 +224,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.has('')).toBeTruthy();
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().tagList).toHaveLength(0);
-    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.Cluster.id);
+    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.id);
     expect(mutableDevice.get().clusterServersObjs[0].type).toBe(BridgedDeviceBasicInformationServer);
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
     mutableDevice.logMutableDevice();
@@ -238,10 +233,10 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
-  it('should add a BridgedDeviceBasicInformationCluster with invalid software and hardware', async () => {
+  it('should add a BridgedDeviceBasicInformation with invalid software and hardware', async () => {
     const mutableDevice = new MutableDevice(
       mockMatterbridge,
-      'Test Device BridgedDeviceBasicInformationClusterWithInvalidSoftwareAndHardware',
+      'Test Device BridgedDeviceBasicInformationWithInvalidSoftwareAndHardware',
       undefined,
       undefined,
       undefined,
@@ -259,7 +254,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.has('')).toBeTruthy();
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().tagList).toHaveLength(0);
-    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.Cluster.id);
+    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(BridgedDeviceBasicInformation.id);
     expect(mutableDevice.get().clusterServersObjs[0].type).toBe(BridgedDeviceBasicInformationServer);
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
     mutableDevice.logMutableDevice();
@@ -314,11 +309,11 @@ describe('MutableDevice', () => {
   it('should add a cluster ids', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device cluster ids');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id);
 
     expect(mutableDevice.get()).toBeDefined();
-    expect(mutableDevice.get().clusterServersIds).toContain(PowerSource.Cluster.id);
-    expect(mutableDevice.get().clusterServersIds).not.toContain(BridgedDeviceBasicInformation.Cluster.id);
+    expect(mutableDevice.get().clusterServersIds).toContain(PowerSource.id);
+    expect(mutableDevice.get().clusterServersIds).not.toContain(BridgedDeviceBasicInformation.id);
     mutableDevice.logMutableDevice();
 
     mutableDevice.destroy();
@@ -327,9 +322,9 @@ describe('MutableDevice', () => {
   it('should add a cluster objects', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device cluster objs');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id);
     mutableDevice.addClusterServerObjs('', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, {}),
     });
@@ -367,11 +362,11 @@ describe('MutableDevice', () => {
 
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device subscribe handler');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);
-    mutableDevice.addSubscribeHandler('', PowerSource.Cluster.id, 'batChargeLevel', mockSubscribeHandler);
+    mutableDevice.addSubscribeHandler('', PowerSource.id, 'batChargeLevel', mockSubscribeHandler);
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().subscribeHandlers).toHaveLength(1);
-    expect(mutableDevice.get().subscribeHandlers[0].clusterId).toBe(PowerSource.Cluster.id);
+    expect(mutableDevice.get().subscribeHandlers[0].clusterId).toBe(PowerSource.id);
     expect(mutableDevice.get().subscribeHandlers[0].attribute).toBe('batChargeLevel');
     expect(mutableDevice.get().subscribeHandlers[0].listener).toBe(mockSubscribeHandler);
     mutableDevice.logMutableDevice();
@@ -579,10 +574,10 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
     mutableDevice.addDeviceTypes('', onOffOutlet, dimmableOutlet);
     mutableDevice.addDeviceTypes('', onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
@@ -626,7 +621,7 @@ describe('MutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device Without Server');
 
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffSwitch);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(2);
@@ -648,7 +643,7 @@ describe('MutableDevice', () => {
     mutableDevice.setMode('server');
 
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffSwitch);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(2);
@@ -672,10 +667,10 @@ describe('MutableDevice', () => {
 
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Simple Fan Device');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource, fanDevice);
-    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'fanMode', subscribeHandler);
-    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'percentSetting', subscribeHandler);
-    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'rockSetting', subscribeHandler);
-    mutableDevice.addSubscribeHandler('', FanControl.Cluster.id, 'airflowDirection', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', FanControl.id, 'fanMode', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', FanControl.id, 'percentSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', FanControl.id, 'rockSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', FanControl.id, 'airflowDirection', subscribeHandler);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
@@ -694,8 +689,8 @@ describe('MutableDevice', () => {
     expect(await addDevice(aggregator, device)).toBe(true);
 
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
-    await device.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
-    await device.setAttribute(FanControl.Cluster.id, 'percentSetting', 50);
+    await device.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
+    await device.setAttribute(FanControl.id, 'percentSetting', 50);
     expect(subscribeHandler).toHaveBeenCalledTimes(2);
 
     mutableDevice.destroy();
@@ -711,11 +706,11 @@ describe('MutableDevice', () => {
 
     mutableDevice.addDeviceTypes('fan', fanDevice);
     mutableDevice.addClusterServerCompleteFanControl('fan');
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'fanMode', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'percentSetting', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'rockSetting', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'airflowDirection', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'windSetting', subscribeHandler); // WindSetting is not only available in complete mode
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'fanMode', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'percentSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'rockSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'airflowDirection', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'windSetting', subscribeHandler); // WindSetting is not only available in complete mode
 
     expect(mutableDevice.get('').deviceTypes).toHaveLength(2);
     expect(mutableDevice.get('fan').deviceTypes).toHaveLength(1);
@@ -741,8 +736,8 @@ describe('MutableDevice', () => {
     expect(await aggregator.add(device)).toBe(device);
 
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
-    await childEndpoint.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
-    await childEndpoint.setAttribute(FanControl.Cluster.id, 'percentSetting', 50);
+    await childEndpoint.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
+    await childEndpoint.setAttribute(FanControl.id, 'percentSetting', 50);
     expect(subscribeHandler).toHaveBeenCalledTimes(2);
 
     // setDebug(false);
@@ -760,11 +755,11 @@ describe('MutableDevice', () => {
 
     mutableDevice.addDeviceTypes('fan', fanDevice);
     mutableDevice.addClusterServerCompleteFanControl('fan');
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'fanMode', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'percentSetting', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'rockSetting', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'airflowDirection', subscribeHandler);
-    mutableDevice.addSubscribeHandler('fan', FanControl.Cluster.id, 'windSetting', subscribeHandler); // WindSetting is not only available in complete mode
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'fanMode', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'percentSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'rockSetting', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'airflowDirection', subscribeHandler);
+    mutableDevice.addSubscribeHandler('fan', FanControl.id, 'windSetting', subscribeHandler); // WindSetting is not only available in complete mode
 
     expect(mutableDevice.get('').deviceTypes).toHaveLength(2);
     expect(mutableDevice.get('fan').deviceTypes).toHaveLength(1);
@@ -789,8 +784,8 @@ describe('MutableDevice', () => {
     expect(await aggregator.add(device)).toBe(device);
 
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
-    await device.setAttribute(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto);
-    await device.setAttribute(FanControl.Cluster.id, 'percentSetting', 50);
+    await device.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
+    await device.setAttribute(FanControl.id, 'percentSetting', 50);
     expect(subscribeHandler).toHaveBeenCalledTimes(2);
 
     // setDebug(false);
@@ -806,10 +801,10 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffSwitch, colorTemperatureSwitch);
     mutableDevice.addDeviceTypes('', onOffOutlet, dimmableOutlet);
     mutableDevice.addDeviceTypes('', onOffLight, colorTemperatureLight, extendedColorLight);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
@@ -827,14 +822,14 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
     expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "scenesManagement", "levelControl", "colorControl"]
-    expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(IdentifyCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(GroupsCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(OnOffCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(BridgedDeviceBasicInformation.id)).toBeTruthy();
+    expect(device.hasClusterServer(Descriptor.id)).toBeTruthy();
+    expect(device.hasClusterServer(PowerSource.id)).toBeTruthy();
+    expect(device.hasClusterServer(Identify.id)).toBeTruthy();
+    expect(device.hasClusterServer(Groups.id)).toBeTruthy();
+    expect(device.hasClusterServer(OnOff.id)).toBeTruthy();
+    expect(device.hasClusterServer(LevelControl.id)).toBeTruthy();
+    expect(device.hasClusterServer(ColorControl.id)).toBeTruthy();
 
     await addDevice(aggregator, device);
     mutableDevice.destroy();
@@ -847,10 +842,10 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffSwitch, colorTemperatureSwitch);
     mutableDevice.addDeviceTypes('', onOffOutlet, dimmableOutlet);
     mutableDevice.addDeviceTypes('', onOffLight, extendedColorLight);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
@@ -868,14 +863,14 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
     expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "scenesManagement", "levelControl", "colorControl"]
-    expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(IdentifyCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(GroupsCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(OnOffCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(BridgedDeviceBasicInformation.id)).toBeTruthy();
+    expect(device.hasClusterServer(Descriptor.id)).toBeTruthy();
+    expect(device.hasClusterServer(PowerSource.id)).toBeTruthy();
+    expect(device.hasClusterServer(Identify.id)).toBeTruthy();
+    expect(device.hasClusterServer(Groups.id)).toBeTruthy();
+    expect(device.hasClusterServer(OnOff.id)).toBeTruthy();
+    expect(device.hasClusterServer(LevelControl.id)).toBeTruthy();
+    expect(device.hasClusterServer(ColorControl.id)).toBeTruthy();
 
     await addDevice(aggregator, device);
     mutableDevice.destroy();
@@ -888,10 +883,10 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', onOffSwitch, colorTemperatureSwitch);
     mutableDevice.addDeviceTypes('', onOffOutlet, dimmableOutlet);
     mutableDevice.addDeviceTypes('', dimmableLight, extendedColorLight);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id);
-    mutableDevice.addClusterServerIds('', PowerSource.Cluster.id, OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id);
+    mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
@@ -907,14 +902,14 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(2); // OnOff and BridgedDeviceBasicInformation
 
     expect(Object.keys(device.behaviors.supported)).toHaveLength(10); // ["descriptor", "matterbridge", "onOff", "bridgedDeviceBasicInformation", "powerSource", "identify", "groups", "scenesManagement", "levelControl", "colorControl"]
-    expect(device.hasClusterServer(BridgedDeviceBasicInformationCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(DescriptorCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(PowerSourceCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(IdentifyCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(GroupsCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(OnOffCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(LevelControlCluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(ColorControlCluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(BridgedDeviceBasicInformation.id)).toBeTruthy();
+    expect(device.hasClusterServer(Descriptor.id)).toBeTruthy();
+    expect(device.hasClusterServer(PowerSource.id)).toBeTruthy();
+    expect(device.hasClusterServer(Identify.id)).toBeTruthy();
+    expect(device.hasClusterServer(Groups.id)).toBeTruthy();
+    expect(device.hasClusterServer(OnOff.id)).toBeTruthy();
+    expect(device.hasClusterServer(LevelControl.id)).toBeTruthy();
+    expect(device.hasClusterServer(ColorControl.id)).toBeTruthy();
 
     await addDevice(aggregator, device);
     mutableDevice.destroy();
@@ -931,7 +926,7 @@ describe('MutableDevice', () => {
     mutableDevice.setConfigUrl('http://example.com/config');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource, onOffLight, dimmableLight, colorTemperatureLight, extendedColorLight);
     mutableDevice.addCommandHandler('', 'identify', commandHandler);
-    mutableDevice.addSubscribeHandler('', OnOff.Cluster.id, 'onOff', subscribeHandler);
+    mutableDevice.addSubscribeHandler('', OnOff.id, 'onOff', subscribeHandler);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(6);
     expect(mutableDevice.get().tagList).toHaveLength(0);
@@ -942,22 +937,22 @@ describe('MutableDevice', () => {
 
     mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', onOffSwitch, dimmableSwitch, colorTemperatureSwitch);
-    mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('child1', OnOff.id);
     mutableDevice.addClusterServerObjs(
       'child1',
       {
-        id: OnOff.Cluster.id,
+        id: OnOff.id,
         type: OnOffServer,
         options: optionsFor(OnOffServer, { onOff: false }),
       },
       {
-        id: LevelControl.Cluster.id,
+        id: LevelControl.id,
         type: LevelControlServer,
         options: optionsFor(LevelControlServer, { currentLevel: 100 }),
       },
     );
     mutableDevice.addCommandHandler('child1', 'identify', commandHandler);
-    mutableDevice.addSubscribeHandler('child1', OnOff.Cluster.id, 'onOff', subscribeHandler);
+    mutableDevice.addSubscribeHandler('child1', OnOff.id, 'onOff', subscribeHandler);
 
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(3);
     expect(mutableDevice.get('child1').tagList).toHaveLength(0);
@@ -969,7 +964,7 @@ describe('MutableDevice', () => {
     mutableDevice.setFriendlyName('child2', 'Child 2');
     mutableDevice.addDeviceTypes('child2', onOffOutlet);
     mutableDevice.addClusterServerObjs('child2', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
@@ -980,7 +975,7 @@ describe('MutableDevice', () => {
       label: 'Test',
     });
     mutableDevice.addCommandHandler('child2', 'identify', commandHandler);
-    mutableDevice.addSubscribeHandler('child2', OnOff.Cluster.id, 'onOff', subscribeHandler);
+    mutableDevice.addSubscribeHandler('child2', OnOff.id, 'onOff', subscribeHandler);
 
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').tagList).toHaveLength(1);
@@ -1016,10 +1011,10 @@ describe('MutableDevice', () => {
       'colorControl',
       'fixedLabel',
     ]);
-    expect(device.hasClusterServer(Descriptor.Cluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(BridgedDeviceBasicInformation.Cluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(PowerSource.Cluster.id)).toBeTruthy();
-    expect(device.hasClusterServer(FixedLabel.Cluster.id)).toBeTruthy();
+    expect(device.hasClusterServer(Descriptor.id)).toBeTruthy();
+    expect(device.hasClusterServer(BridgedDeviceBasicInformation.id)).toBeTruthy();
+    expect(device.hasClusterServer(PowerSource.id)).toBeTruthy();
+    expect(device.hasClusterServer(FixedLabel.id)).toBeTruthy();
     expect(device.getChildEndpoints()).toHaveLength(2);
 
     expect(mutableDevice.get('child1').deviceTypes).toHaveLength(1);
@@ -1055,16 +1050,19 @@ describe('MutableDevice', () => {
     expect(commandHandler).toHaveBeenCalledWith({ endpoint: {}, cluster: 'identify', command: 'identify', attributes: {}, request: { identifyTime: 10 } }, 'child2', 'identify');
 
     jest.clearAllMocks();
-    await invokeSubscribeHandler(mutableDevice.getEndpoint(), OnOff.Cluster.id, 'onOff', false, true);
-    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), '', OnOff.Cluster.id, 'onOff');
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(mutableDevice.getEndpoint(), OnOff.id, 'onOff', false, true);
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), '', OnOff.id, 'onOff');
 
     jest.clearAllMocks();
-    await invokeSubscribeHandler(mutableDevice.getEndpoint('child1'), OnOff.Cluster.id, 'onOff', false, true);
-    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child1', OnOff.Cluster.id, 'onOff');
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(mutableDevice.getEndpoint('child1'), OnOff.id, 'onOff', false, true);
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child1', OnOff.id, 'onOff');
 
     jest.clearAllMocks();
-    await invokeSubscribeHandler(mutableDevice.getEndpoint('child2'), OnOff.Cluster.id, 'onOff', false, true);
-    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child2', OnOff.Cluster.id, 'onOff');
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(mutableDevice.getEndpoint('child2'), OnOff.id, 'onOff', false, true);
+    expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child2', OnOff.id, 'onOff');
 
     mutableDevice.destroy();
 
@@ -1079,14 +1077,14 @@ describe('MutableDevice', () => {
     mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', onOffLight);
     mutableDevice.addClusterServerObjs('child1', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
 
     mutableDevice.setFriendlyName('child2', 'Child 2');
     mutableDevice.addDeviceTypes('child2', powerSource);
-    mutableDevice.addClusterServerIds('child2', PowerSource.Cluster.id);
+    mutableDevice.addClusterServerIds('child2', PowerSource.id);
 
     expect(mutableDevice.size()).toBe(3); // main + 2 children before remap
 
@@ -1124,15 +1122,15 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
 
     mutableDevice.addDeviceTypes('temperature', temperatureSensor);
-    mutableDevice.addClusterServerIds('temperature', TemperatureMeasurement.Cluster.id);
+    mutableDevice.addClusterServerIds('temperature', TemperatureMeasurement.id);
     mutableDevice.setFriendlyName('temperature', 'Temperature Sensor');
 
     mutableDevice.addDeviceTypes('humidity', humiditySensor);
-    mutableDevice.addClusterServerIds('humidity', RelativeHumidityMeasurement.Cluster.id);
+    mutableDevice.addClusterServerIds('humidity', RelativeHumidityMeasurement.id);
     mutableDevice.setFriendlyName('humidity', 'Humidity Sensor');
 
     mutableDevice.addDeviceTypes('pressure', pressureSensor);
-    mutableDevice.addClusterServerIds('pressure', PressureMeasurement.Cluster.id);
+    mutableDevice.addClusterServerIds('pressure', PressureMeasurement.id);
     mutableDevice.setFriendlyName('pressure', 'Pressure Sensor');
 
     expect(mutableDevice.size()).toBe(4);
@@ -1171,19 +1169,19 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
 
     mutableDevice.addDeviceTypes('temperature', temperatureSensor);
-    mutableDevice.addClusterServerIds('temperature', TemperatureMeasurement.Cluster.id);
+    mutableDevice.addClusterServerIds('temperature', TemperatureMeasurement.id);
     mutableDevice.setFriendlyName('temperature', 'Temperature Sensor');
 
     mutableDevice.addDeviceTypes('humidity', humiditySensor);
-    mutableDevice.addClusterServerIds('humidity', RelativeHumidityMeasurement.Cluster.id);
+    mutableDevice.addClusterServerIds('humidity', RelativeHumidityMeasurement.id);
     mutableDevice.setFriendlyName('humidity', 'Humidity Sensor');
 
     mutableDevice.addDeviceTypes('pressure', pressureSensor);
-    mutableDevice.addClusterServerIds('pressure', PressureMeasurement.Cluster.id);
+    mutableDevice.addClusterServerIds('pressure', PressureMeasurement.id);
     mutableDevice.setFriendlyName('pressure', 'Pressure Sensor');
 
     mutableDevice.addDeviceTypes('temperature out', temperatureSensor);
-    mutableDevice.addClusterServerIds('temperature out', TemperatureMeasurement.Cluster.id);
+    mutableDevice.addClusterServerIds('temperature out', TemperatureMeasurement.id);
     mutableDevice.setFriendlyName('temperature out', 'Temperature Out Sensor');
 
     expect(mutableDevice.size()).toBe(5);
@@ -1234,7 +1232,7 @@ describe('MutableDevice', () => {
 
     mutableDevice.addDeviceTypes('child1', onOffLight);
     mutableDevice.addClusterServerObjs('child1', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: true }),
     });
@@ -1268,11 +1266,11 @@ describe('MutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'No Remap Duplicate ClusterId');
     // Main endpoint: only bridgedNode + OnOff cluster id
     mutableDevice.addDeviceTypes('', bridgedNode);
-    mutableDevice.addClusterServerIds('', OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('', OnOff.id);
     // Child endpoint: unique device type (powerSource) but duplicate OnOff cluster id
     mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', powerSource);
-    mutableDevice.addClusterServerIds('child1', OnOff.Cluster.id);
+    mutableDevice.addClusterServerIds('child1', OnOff.id);
 
     expect(mutableDevice.size()).toBe(2);
     device = mutableDevice.create(true);
@@ -1303,7 +1301,7 @@ describe('MutableDevice', () => {
 
     mutableDevice.addDeviceTypes('', bridgedNode);
     mutableDevice.addClusterServerObjs('', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: false }),
     });
@@ -1311,7 +1309,7 @@ describe('MutableDevice', () => {
     mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', powerSource);
     mutableDevice.addClusterServerObjs('child1', {
-      id: OnOff.Cluster.id,
+      id: OnOff.id,
       type: OnOffServer,
       options: optionsFor(OnOffServer, { onOff: true }),
     });

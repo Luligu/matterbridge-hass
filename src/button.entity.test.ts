@@ -96,7 +96,7 @@ describe('addButtonEntity', () => {
 
       expect(platform.ha.callService).toHaveBeenCalledWith('button', 'press', entity.entity_id);
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 500);
-      expect(endpoint.setAttribute).toHaveBeenCalledWith(OnOff.Cluster, 'onOff', false, endpoint.log);
+      expect(endpoint.setAttribute).toHaveBeenCalledWith(OnOff, 'onOff', false, endpoint.log);
       expect(platform.log.debug).toHaveBeenCalledTimes(2);
     } finally {
       setTimeoutSpy.mockRestore();
