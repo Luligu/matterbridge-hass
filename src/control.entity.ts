@@ -3,7 +3,7 @@
  * @file src\control.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.0.2
+ * @version 1.1.0
  * @license Apache-2.0
  * @copyright 2025, 2026, 2027 Luca Liguori.
  *
@@ -137,11 +137,11 @@ export function addControlEntity(
   // Configure the Light cluster default values and features for dimmable lights when they are unavailable and only supported_color_modes and supported_features attributes are present.
   // prettier-ignore
   if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) && state.attributes.supported_color_modes.includes(ColorMode.BRIGHTNESS)) {
-    platform.log.debug(`+ attribute device ${CYAN}${dimmableLight.name}${db} cluster ${CYAN}${LevelControl.Cluster.name}${db}`);
+    platform.log.debug(`+ attribute device ${CYAN}${dimmableLight.name}${db} cluster ${CYAN}${LevelControl.name}${db}`);
     platform.log.debug(`= levelControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db}`);
     platform.log.debug(`# levelControl device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(LightEntityFeature, state.attributes.supported_features)}${db}`);
     mutableDevice.addDeviceTypes(endpointName, dimmableLight);
-    mutableDevice.addClusterServerIds(endpointName, LevelControl.Cluster.id);
+    mutableDevice.addClusterServerIds(endpointName, LevelControl.id);
   }
 
   // Configure the ColorControl cluster default values and features.
@@ -164,7 +164,7 @@ export function addControlEntity(
   // Configure the Thermostat cluster default values and features.
   // prettier-ignore
   if (domain === 'climate') {
-    // Determine temperature unit and convert temperatures: 
+    // Determine temperature unit and convert temperatures:
     // - temperature_unit is required as implementation but not on WS REST Api (never present actually)
     // - if not present, assume Home Assistant unit_system.temperature
     // - fallback to Home Assistant unit_system.temperature
@@ -180,7 +180,7 @@ export function addControlEntity(
     if(!isValidArray(state.attributes['hvac_modes'], 1)) {
       state.attributes['hvac_modes'] = [HVACMode.HEAT];
       platform.log.debug(`Thermostat device ${CYAN}${entity.entity_id}${db} has no hvac_modes attribute, assuming ${CYAN}${HVACMode.HEAT}${db}.`);
-    } 
+    }
     if (isValidArray(state.attributes['hvac_modes']) && state.attributes['hvac_modes'].includes(HVACMode.HEAT_COOL)) {
       platform.log.debug(`= thermostat device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.attributes['hvac_modes']}${db} auto target_temp_low: ${CYAN}${target_temp_low}${db} target_temp_high: ${CYAN}${target_temp_high}${db}`);
       mutableDevice.addClusterServerAutoModeThermostat(endpointName, current_temperature, target_temp_low, target_temp_high, min_temp, max_temp);

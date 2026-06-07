@@ -6,6 +6,11 @@ const HOMEDIR = path.join('jest', NAME);
 
 // Home Assistant Real WebSocket Client Tests on a local host
 
+/**
+ * WARNING!!!
+ * The tests in this unit are supposed to run sequentially because they depend on the previous state.
+ */
+
 import fs from 'node:fs';
 import path from 'node:path';
 

@@ -167,7 +167,7 @@ describe('addHelperEntity', () => {
 
       expect(platform.ha.callService).toHaveBeenCalledWith('automation', 'trigger', entity.entity_id);
       expect(setTimeoutSpy).toHaveBeenCalled();
-      expect(endpoint.setAttribute).toHaveBeenCalledWith(OnOff.Cluster, 'onOff', false, endpoint.log);
+      expect(endpoint.setAttribute).toHaveBeenCalledWith(OnOff, 'onOff', false, endpoint.log);
     } finally {
       setTimeoutSpy.mockRestore();
     }
@@ -200,7 +200,7 @@ describe('addHelperEntity', () => {
 
       expect(platform.ha.callService).toHaveBeenCalledWith('input_button', 'press', entity.entity_id);
       expect(setTimeoutSpy).toHaveBeenCalled();
-      expect(endpoint.setAttribute).toHaveBeenCalledWith(OnOff.Cluster, 'onOff', false, endpoint.log);
+      expect(endpoint.setAttribute).toHaveBeenCalledWith(OnOff, 'onOff', false, endpoint.log);
     } finally {
       setTimeoutSpy.mockRestore();
     }

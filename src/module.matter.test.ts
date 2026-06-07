@@ -1,5 +1,11 @@
 // src\module.matter.test.ts
 
+/**
+ * WARNING!!!
+ * The tests in this unit are supposed to run sequentially because they depend on the Matterbridge/Matter state.
+ * Is not possible for timing reasons to create and destroy a Matter node each test to keep isolation.
+ */
+
 /* eslint-disable no-console */
 
 const NAME = 'PlatformMatter';
@@ -318,7 +324,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+    expect(device.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
 
     // Clean the test environment
     await cleanup();
@@ -376,7 +382,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+    expect(device.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
 
     // Test different enum values
     jest.clearAllMocks();
@@ -384,21 +390,21 @@ describe('Matterbridge ' + NAME, () => {
       ...airQualitySensorEnumEntityState,
       state: 'good',
     });
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Good, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.Good, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'unhealthy',
     });
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'hazardous',
     });
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
 
     // Clean the test environment
     await cleanup();
@@ -462,7 +468,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
+    expect(device.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Moderate);
 
     // Test different enum values
     jest.clearAllMocks();
@@ -470,28 +476,28 @@ describe('Matterbridge ' + NAME, () => {
       ...airQualitySensorEnumEntityState,
       state: 'fair',
     });
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'poor',
     });
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'very_poor',
     });
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.VeryPoor, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(airQualitySensorEnumDevice.id, airQualitySensorEnumEntityState.entity_id, airQualitySensorEnumEntityState, {
       ...airQualitySensorEnumEntityState,
       state: 'extremely_poor',
     });
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.ExtremelyPoor, expect.anything());
 
     haPlatform.config.airQualityRegex = ''; // Reset the regex configuration
     haPlatform.airQualityRegex = undefined; // Reset the regex
@@ -632,10 +638,10 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(device.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'voltage')).toBe(230000);
-    expect(device.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activeCurrent')).toBe(10000);
-    expect(device.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activePower')).toBe(23000);
-    expect(device.getAttribute(ElectricalEnergyMeasurement.Cluster.id, 'cumulativeEnergyImported').energy).toBe(100000000);
+    expect(device.getAttribute(ElectricalPowerMeasurement.id, 'voltage')).toBe(230000);
+    expect(device.getAttribute(ElectricalPowerMeasurement.id, 'activeCurrent')).toBe(10000);
+    expect(device.getAttribute(ElectricalPowerMeasurement.id, 'activePower')).toBe(23000);
+    expect(device.getAttribute(ElectricalEnergyMeasurement.id, 'cumulativeEnergyImported').energy).toBe(100000000);
 
     // Clean the test environment
     await cleanup();
@@ -767,33 +773,33 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
-    expect(device.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(200);
+    expect(device.getAttribute(PowerSource.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
+    expect(device.getAttribute(PowerSource.id, 'batPercentRemaining')).toBe(200);
     expect(addClusterServerBatteryPowerSourceSpy).toHaveBeenCalledWith('', PowerSource.BatChargeLevel.Ok, 200);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${batteryAlertEntityState.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 100, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 3050, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batPercentRemaining', 100, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batVoltage', 3050, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'on' }); // On means low, Off means normal
     await haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '100' });
     await haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2000' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Critical, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 200, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batChargeLevel', PowerSource.BatChargeLevel.Critical, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batPercentRemaining', 200, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batVoltage', 2000, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(batteryDevice.id, batteryAlertEntityState.entity_id, batteryAlertEntityState, { ...batteryAlertEntityState, state: 'off' }); // On means low, Off means normal
     await haPlatform.updateHandler(batteryDevice.id, batteryLevelEntityState.entity_id, batteryLevelEntityState, { ...batteryLevelEntityState, state: '25' });
     await haPlatform.updateHandler(batteryDevice.id, batteryVoltageEntityState.entity_id, batteryVoltageEntityState, { ...batteryVoltageEntityState, state: '2900' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batPercentRemaining', 50, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.Cluster.id, 'batVoltage', 2900, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batChargeLevel', PowerSource.BatChargeLevel.Ok, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batPercentRemaining', 50, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batVoltage', 2900, expect.anything());
 
     // Clean the test environment
     await cleanup();
@@ -923,13 +929,13 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.batteryVoltageEntities.size).toBe(0);
     expect(haPlatform.endpointNames.size).toBe(4);
 
-    const child1 = device?.getChildEndpointByName(switch1Entity.entity_id.replace('.', ''));
+    const child1 = device?.getChildEndpointById(switch1Entity.entity_id.replace('.', ''));
     expect(child1).toBeDefined();
     if (!child1) return;
     await child1.construction.ready;
     expect(child1.construction.status).toBe(Lifecycle.Status.Active);
 
-    const child2 = device?.getChildEndpointByName(switch2Entity.entity_id.replace('.', ''));
+    const child2 = device?.getChildEndpointById(switch2Entity.entity_id.replace('.', ''));
     expect(child2).toBeDefined();
     if (!child2) return;
     await child2.construction.ready;
@@ -939,46 +945,46 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(6);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(child1.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
-    expect(child2.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(child1.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    expect(child2.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switch1State.entity_id}${db}...`);
     expect(setAttributeSpy).toHaveBeenCalledTimes(2);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(switchDevice.id, switch1Entity.entity_id, switch1State, { ...switch1State, state: 'on' }); // On means low, Off means normal
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(switchDevice.id, switch2Entity.entity_id, switch2State, { ...switch2State, state: 'on' }); // On means low, Off means normal
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
 
     await invokeBehaviorCommand(child1, 'onOff', 'on');
-    expect(child1.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(child1.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switch1Entity.entity_id.split('.')[0], 'turn_on', switch1Entity.entity_id, undefined);
 
     await invokeBehaviorCommand(child1, 'onOff', 'off');
-    expect(child1.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(child1.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(switch1Entity.entity_id.split('.')[0], 'turn_off', switch1Entity.entity_id, undefined);
 
     await invokeBehaviorCommand(child1, 'onOff', 'toggle');
-    expect(child1.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(child1.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switch1Entity.entity_id.split('.')[0], 'toggle', switch1Entity.entity_id, undefined);
 
     await invokeBehaviorCommand(child2, 'onOff', 'on');
-    expect(child2.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(child2.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switch2Entity.entity_id.split('.')[0], 'turn_on', switch2Entity.entity_id, undefined);
 
     await invokeBehaviorCommand(child2, 'onOff', 'off');
-    expect(child2.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(child2.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(switch2Entity.entity_id.split('.')[0], 'turn_off', switch2Entity.entity_id, undefined);
 
     await invokeBehaviorCommand(child2, 'onOff', 'toggle');
-    expect(child2.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(child2.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switch2Entity.entity_id.split('.')[0], 'toggle', switch2Entity.entity_id, undefined);
 
     // Clean the test environment
@@ -1037,26 +1043,26 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switchEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(switchDevice.id, switchEntity.entity_id, switchState, { ...switchState, state: 'off' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff', device.log)).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff', device.log)).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_on', switchEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff', device.log)).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff', device.log)).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_off', switchEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff', device.log)).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff', device.log)).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'toggle', switchEntity.entity_id, undefined);
 
     // Clean the test environment
@@ -1114,30 +1120,30 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${valveEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Open, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 50, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.id, 'currentState', ValveConfigurationAndControl.ValveState.Open, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.id, 'currentLevel', 50, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(valveDevice.id, valveEntity.entity_id, valveState, { ...valveState, state: 'closing' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Transitioning, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 50, expect.anything());
-    expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Transitioning);
-    expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.id, 'currentState', ValveConfigurationAndControl.ValveState.Transitioning, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.id, 'currentLevel', 50, expect.anything());
+    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Transitioning);
+    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentLevel')).toBe(50);
 
     jest.clearAllMocks();
     // @ts-expect-error type mismatch
     await haPlatform.updateHandler(valveDevice.id, valveEntity.entity_id, valveState, { ...valveState, state: 'closed', attributes: { current_position: 0 } });
-    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentState', ValveConfigurationAndControl.ValveState.Closed, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.Cluster.id, 'currentLevel', 0, expect.anything());
-    expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
-    expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(0);
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.id, 'currentState', ValveConfigurationAndControl.ValveState.Closed, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ValveConfigurationAndControl.id, 'currentLevel', 0, expect.anything());
+    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
+    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentLevel')).toBe(0);
 
     await invokeBehaviorCommand(device, 'ValveConfigurationAndControl', 'open', { targetLevel: 100 });
-    expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Open);
+    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Open);
     expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'set_valve_position', valveEntity.entity_id, { position: 100 });
 
     await invokeBehaviorCommand(device, 'ValveConfigurationAndControl', 'close');
-    expect(device.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
+    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
     expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'close_valve', valveEntity.entity_id, undefined);
 
     // Clean the test environment
@@ -1228,66 +1234,66 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${vacuumEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Docked, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.id, 'operationalState', RvcOperationalState.OperationalState.Docked, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'idle' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Stopped, expect.anything());
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Stopped);
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.id, 'operationalState', RvcOperationalState.OperationalState.Stopped, expect.anything());
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Stopped);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'cleaning' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 2, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Running, expect.anything());
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(2);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.id, 'currentMode', 2, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.id, 'operationalState', RvcOperationalState.OperationalState.Running, expect.anything());
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'paused' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Paused, expect.anything());
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.id, 'operationalState', RvcOperationalState.OperationalState.Paused, expect.anything());
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'returning' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.SeekingCharger, expect.anything());
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger);
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.id, 'operationalState', RvcOperationalState.OperationalState.SeekingCharger, expect.anything());
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(vacuumDevice.id, vacuumEntity.entity_id, vacuumState, { ...vacuumState, state: 'docked' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.Cluster.id, 'currentMode', 1, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.Cluster.id, 'operationalState', RvcOperationalState.OperationalState.Docked, expect.anything());
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcRunMode.id, 'currentMode', 1, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcOperationalState.id, 'operationalState', RvcOperationalState.OperationalState.Docked, expect.anything());
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 2 });
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(2);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcOperationalState', 'pause');
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'pause', vacuumEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcOperationalState', 'resume');
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(2);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Running);
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcOperationalState', 'goHome');
-    expect(device.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1);
-    expect(device.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
 
     // setDebug(false);
@@ -1362,19 +1368,19 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.Cluster.id, 'currentLevel', 100, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.ColorTemperatureMireds, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorTemperatureMireds', 200, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.id, 'currentLevel', 100, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.id, 'colorMode', ColorControl.ColorMode.ColorTemperatureMireds, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.id, 'colorTemperatureMireds', 200, expect.anything());
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_on', lightDeviceEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_off', lightDeviceEntity.entity_id, undefined);
 
     jest.clearAllMocks();
@@ -1384,7 +1390,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: true, coupleColorTempToLevel: false },
     });
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id.split('.')[0], 'turn_on', lightDeviceEntity.entity_id, {
       brightness: 50,
       // color_temp_kelvin: 5000,
@@ -1456,11 +1462,11 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.Cluster.id, 'currentLevel', 100, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'colorMode', ColorControl.ColorMode.CurrentHueAndCurrentSaturation, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentHue', 127, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.Cluster.id, 'currentSaturation', 127, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(LevelControl.id, 'currentLevel', 100, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.id, 'colorMode', ColorControl.ColorMode.CurrentHueAndCurrentSaturation, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.id, 'currentHue', 127, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(ColorControl.id, 'currentSaturation', 127, expect.anything());
 
     // Clean the test environment
     await cleanup();
@@ -1524,33 +1530,36 @@ describe('Matterbridge ' + NAME, () => {
     );
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(2);
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentSetting', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentSetting', expect.anything(), expect.anything());
+    /* TODO remove comemnt when require Matterbridge 3.8.1 or higher
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
     );
+    */
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentCurrent', 50, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentCurrent', 50, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(fanDevice.id, fanEntity.entity_id, fanState, { ...fanState, state: 'off' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Off, expect.anything());
-    expect(device.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Off);
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Off, expect.anything());
+    expect(device.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Off);
 
     // Simulate a not changed in fan mode and call the event handler
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Auto);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, FanControl.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Auto);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} ` + `on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} changed`),
@@ -1558,7 +1567,8 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a change in percentCurrent and call the event handler
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, FanControl.Cluster.id, 'percentSetting', 30, 80);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, FanControl.id, 'percentSetting', 30, 80);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(
@@ -1633,50 +1643,53 @@ describe('Matterbridge ' + NAME, () => {
     );
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(0);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(4);
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', expect.anything(), expect.anything());
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentSetting', expect.anything(), expect.anything());
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'airflowDirection', expect.anything(), expect.anything());
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'rockSetting', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentSetting', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'airflowDirection', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'rockSetting', expect.anything(), expect.anything());
+    /* TODO remove comemnt when require Matterbridge 3.8.1 or higher
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}airflowDirection$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}airflowDirection$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}rockSetting$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}rockSetting$Changed${db}`),
     );
+    */
 
     jest.clearAllMocks();
     console.warn(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentCurrent', 50, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'airflowDirection', FanControl.AirflowDirection.Forward, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'rockSetting', { rockLeftRight: false, rockUpDown: false, rockRound: true }, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentCurrent', 50, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'airflowDirection', FanControl.AirflowDirection.Forward, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'rockSetting', { rockLeftRight: false, rockUpDown: false, rockRound: true }, expect.anything());
 
     jest.clearAllMocks();
     console.warn(`Updating state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
     await haPlatform.updateHandler(fanDevice.id, fanEntity.entity_id, fanState, { ...fanState, state: 'off' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Off, expect.anything());
-    expect(device.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Off);
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Off, expect.anything());
+    expect(device.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Off);
 
     jest.clearAllMocks();
     console.warn(`Subscribe state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
 
     // Simulate a not changed in fan mode and call the event handler
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Medium);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, FanControl.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Medium);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.DEBUG,
       `Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} ` + `on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} not changed`,
@@ -1684,7 +1697,8 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a change in fan mode and call the event handler
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Auto);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, FanControl.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Auto);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} ` + `on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} changed`),
@@ -1692,7 +1706,8 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a change in fan mode and call the event handler with wrong parameter
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, FanControl.Cluster.id, 'fanMode', FanControl.FanMode.Smart + 1, FanControl.FanMode.Auto);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, FanControl.id, 'fanMode', FanControl.FanMode.Smart + 1, FanControl.FanMode.Auto);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(`Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} ` + `on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} changed`),
@@ -1701,7 +1716,8 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a change in airflowDirection and call the event handler
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, FanControl.Cluster.id, 'airflowDirection', FanControl.AirflowDirection.Reverse, FanControl.AirflowDirection.Forward);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, FanControl.id, 'airflowDirection', FanControl.AirflowDirection.Reverse, FanControl.AirflowDirection.Forward);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(
@@ -1711,9 +1727,10 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a change in rockSetting and call the event handler
     jest.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     await invokeSubscribeHandler(
       device,
-      FanControl.Cluster.id,
+      FanControl.id,
       'rockSetting',
       { rockLeftRight: false, rockUpDown: false, rockRound: false },
       { rockLeftRight: false, rockUpDown: false, rockRound: true },
@@ -1782,32 +1799,30 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'systemMode', expect.anything(), expect.anything());
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedHeatingSetpoint', expect.anything(), expect.anything());
-    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedCoolingSetpoint', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.id, 'systemMode', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.id, 'occupiedHeatingSetpoint', expect.anything(), expect.anything());
+    expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.id, 'occupiedCoolingSetpoint', expect.anything(), expect.anything());
+    /* TODO remove comemnt when require Matterbridge 3.8.1 or higher
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}Thermostat${db}.${hk}systemMode$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}Thermostat${db}.${hk}systemMode$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(
-        `${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}Thermostat${db}.${hk}occupiedHeatingSetpoint$Changed${db}`,
-      ),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}Thermostat${db}.${hk}occupiedHeatingSetpoint$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(
-        `${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}Thermostat${db}.${hk}occupiedCoolingSetpoint$Changed${db}`,
-      ),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}Thermostat${db}.${hk}occupiedCoolingSetpoint$Changed${db}`),
     );
+    */
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${climateDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'systemMode', Thermostat.SystemMode.Auto, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedHeatingSetpoint', 1000, expect.anything());
-    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedCoolingSetpoint', 3000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.id, 'systemMode', Thermostat.SystemMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.id, 'occupiedHeatingSetpoint', 1000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(Thermostat.id, 'occupiedCoolingSetpoint', 3000, expect.anything());
 
     // Simulate a not changed in fan mode and call the event handler
     await device.act((agent) =>
@@ -1832,7 +1847,8 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a change in occupiedHeatingSetpoint and call the event handler
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, Thermostat.Cluster.id, 'occupiedHeatingSetpoint', 1200, 1000);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, Thermostat.id, 'occupiedHeatingSetpoint', 1200, 1000);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(
@@ -1846,7 +1862,8 @@ describe('Matterbridge ' + NAME, () => {
 
     // Simulate a change in occupiedCoolingSetpoint and call the event handler
     jest.clearAllMocks();
-    await invokeSubscribeHandler(device, Thermostat.Cluster.id, 'occupiedCoolingSetpoint', 2800, 3000);
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    await invokeSubscribeHandler(device, Thermostat.id, 'occupiedCoolingSetpoint', 2800, 3000);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
       expect.stringContaining(
@@ -1907,22 +1924,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(device.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactDeviceEntity.entity_id, false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'off' }); // 'on' for open, 'off' for closed
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'on' }); // 'on' for open, 'off' for closed
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     // Clean the test environment
     await cleanup();
@@ -1973,22 +1990,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(device.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactDeviceEntity.entity_id, false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'off' }); // 'on' for open, 'off' for closed
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(contactDevice.id, contactDeviceEntityState.entity_id, contactDeviceEntityState, { ...contactDeviceEntityState, state: 'on' }); // 'on' for open, 'off' for closed
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     // Clean the test environment
     await cleanup();
@@ -2039,22 +2056,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Water Leak Detector: true = leak, false = no leak
+    expect(device.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Water Leak Detector: true = leak, false = no leak
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(leakDeviceEntity.entity_id, false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${leakDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(leakDevice.id, leakDeviceEntityState.entity_id, leakDeviceEntityState, { ...leakDeviceEntityState, state: 'on' }); // 'on' for leak, 'off' for no leak
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Water Leak Detector: true = leak, false = no leak
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', true, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(leakDevice.id, leakDeviceEntityState.entity_id, leakDeviceEntityState, { ...leakDeviceEntityState, state: 'off' }); // 'on' for leak, 'off' for no leak
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything()); // Water Leak Detector: true = leak, false = no leak
 
     // Clean the test environment
     await cleanup();
@@ -2109,21 +2126,21 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(device.deviceTypes.has(occupancySensor.code)).toBeTruthy();
-    expect(device.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false }); // Presence Sensor: true = detected, false = not detected
+    expect(device.getAttribute(OccupancySensing.id, 'occupancy')).toEqual({ occupied: false }); // Presence Sensor: true = detected, false = not detected
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${presenceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.id, 'occupancy', { occupied: false }, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'on' }); // 'on' for detected, 'off' for not detected
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: true }, expect.anything()); // Presence Sensor: { occupied: boolean }
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.id, 'occupancy', { occupied: true }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(presenceDevice.id, presenceState.entity_id, presenceState, { ...presenceState, state: 'off' }); // 'on' for detected, 'off' for not detected
-    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.Cluster.id, 'occupancy', { occupied: false }, expect.anything()); // Presence Sensor: { occupied: boolean }
+    expect(setAttributeSpy).toHaveBeenCalledWith(OccupancySensing.id, 'occupancy', { occupied: false }, expect.anything()); // Presence Sensor: { occupied: boolean }
 
     // Clean the test environment
     await cleanup();
@@ -2174,23 +2191,23 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(SmokeCoAlarm.ExpressedState.Normal);
-    expect(device.getAttribute(SmokeCoAlarm.Cluster.id, 'coState')).toBe(undefined);
+    expect(device.getAttribute(SmokeCoAlarm.id, 'smokeState')).toBe(SmokeCoAlarm.ExpressedState.Normal);
+    expect(device.getAttribute(SmokeCoAlarm.id, 'coState')).toBe(undefined);
     expect(addClusterServerSmokeAlarmSmokeCoAlarmSpy).toHaveBeenCalledWith(smokeDeviceEntity.entity_id, SmokeCoAlarm.ExpressedState.Normal);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${smokeDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'on' }); // 'on' for smoke, 'off' for no smoke
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.id, 'smokeState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(smokeDevice.id, smokeDeviceEntityState.entity_id, smokeDeviceEntityState, { ...smokeDeviceEntityState, state: 'off' }); // 'on' for smoke, 'off' for no smoke
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.id, 'smokeState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     // Clean the test environment
     await cleanup();
@@ -2244,23 +2261,23 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(undefined);
-    expect(device.getAttribute(SmokeCoAlarm.Cluster.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(device.getAttribute(SmokeCoAlarm.id, 'smokeState')).toBe(undefined);
+    expect(device.getAttribute(SmokeCoAlarm.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
     expect(addClusterServerCoAlarmSmokeCoAlarmSpy).toHaveBeenCalledWith(coDeviceEntity.entity_id, SmokeCoAlarm.AlarmState.Normal);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coDeviceEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'on' }); // 'on' for co, 'off' for no co
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.id, 'coState', SmokeCoAlarm.AlarmState.Critical, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(coDevice.id, coDeviceEntityState.entity_id, coDeviceEntityState, { ...coDeviceEntityState, state: 'off' }); // 'on' for co, 'off' for no co
-    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.Cluster.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(SmokeCoAlarm.id, 'coState', SmokeCoAlarm.AlarmState.Normal, expect.anything());
 
     // Clean the test environment
     await cleanup();
@@ -2302,22 +2319,22 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(device.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${contactEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything());
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'off' }); // 'on' for open, 'off' for closed
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', true, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(contactEntity.entity_id, contactState.entity_id, contactState, { ...contactState, state: 'on' }); // 'on' for open, 'off' for closed
-    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.Cluster.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(setAttributeSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything()); // Contact Sensor: true = closed or contact, false = open or no contact
 
     // Clean the test environment
     await cleanup();
@@ -2361,20 +2378,20 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(null);
+    expect(device.getAttribute(TemperatureMeasurement.id, 'measuredValue')).toBe(null);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${temperatureEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.Cluster.id, 'measuredValue', 2260, expect.anything());
-    expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2260);
+    expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.id, 'measuredValue', 2260, expect.anything());
+    expect(device.getAttribute(TemperatureMeasurement.id, 'measuredValue')).toBe(2260);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(temperatureEntity.entity_id, temperatureState.entity_id, temperatureState, { ...temperatureState, state: '21.2' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.Cluster.id, 'measuredValue', 2120, expect.anything());
-    expect(device.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2120);
+    expect(setAttributeSpy).toHaveBeenCalledWith(TemperatureMeasurement.id, 'measuredValue', 2120, expect.anything());
+    expect(device.getAttribute(TemperatureMeasurement.id, 'measuredValue')).toBe(2120);
 
     // Clean the test environment
     await cleanup();
@@ -2418,20 +2435,20 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
-    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Unknown);
+    expect(device.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Unknown);
 
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${aqiEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
-    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.Fair, expect.anything());
+    expect(device.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(aqiEntity.entity_id, aqiEntity.entity_id, aqiState, { ...aqiState, state: 'poor' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.Cluster.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
-    expect(device.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Poor);
+    expect(setAttributeSpy).toHaveBeenCalledWith(AirQuality.id, 'airQuality', AirQuality.AirQualityEnum.Poor, expect.anything());
+    expect(device.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Poor);
 
     // Clean the test environment
     await cleanup();
@@ -2476,7 +2493,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getChildEndpoints()).toHaveLength(0);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ switch device ${CYAN}MA-onoffpluginunit${db} cluster ${CYAN}OnOff${db}`);
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(3);
@@ -2486,25 +2503,25 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${switchEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(switchEntity.entity_id, switchState.entity_id, switchState, { ...switchState, state: 'off' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_on', switchEntity.entity_id, undefined);
 
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'turn_off', switchEntity.entity_id, undefined);
 
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(switchEntity.entity_id.split('.')[0], 'toggle', switchEntity.entity_id, undefined);
 
     // setDebug(false);
@@ -2550,7 +2567,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getChildEndpoints()).toHaveLength(0);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(10);
@@ -2560,28 +2577,28 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {});
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {});
 
     // setDebug(false);
@@ -2626,7 +2643,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getChildEndpoints()).toHaveLength(0);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
@@ -2637,31 +2654,31 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(254);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(254);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
       /* brightness: 255*/
     });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
       /* brightness: 255 */
     });
@@ -2673,7 +2690,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
 
     jest.clearAllMocks();
@@ -2683,12 +2700,12 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(50);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50, transition: 10 });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
 
     jest.clearAllMocks();
@@ -2698,7 +2715,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true, coupleColorTempToLevel: true },
       optionsOverride: { executeIfOff: true, coupleColorTempToLevel: true },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => skipping it'));
     expect(callServiceSpy).not.toHaveBeenCalled();
 
@@ -2709,7 +2726,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true, coupleColorTempToLevel: true },
       optionsOverride: { executeIfOff: true, coupleColorTempToLevel: true },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(1);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(1);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received with level = minLevel => turn off the light'));
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id);
 
@@ -2720,13 +2737,13 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true, coupleColorTempToLevel: true },
       optionsOverride: { executeIfOff: true, coupleColorTempToLevel: true },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => skipping it'));
     expect(callServiceSpy).not.toHaveBeenCalled();
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => turn on the light with attributes'));
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
 
@@ -2779,7 +2796,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getChildEndpoints()).toHaveLength(0);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
@@ -2791,33 +2808,33 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(254);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(254);
 
     // This will test Adaptive Lighting
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
       /* brightness: 255, color_temp_kelvin: 4000*/
     });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
 
     // This will test Adaptive Lighting
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
       /* brightness: 255, color_temp_kelvin: 4000*/
     });
@@ -2829,7 +2846,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
 
     jest.clearAllMocks();
@@ -2839,7 +2856,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(50);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
 
     jest.clearAllMocks();
@@ -2849,7 +2866,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true },
       optionsOverride: { executeIfOff: true },
     });
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200);
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp_kelvin: 5000 });
 
     // setDebug(false);
@@ -2903,7 +2920,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getChildEndpoints()).toHaveLength(0);
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
@@ -2916,30 +2933,30 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
     // await new Promise((resolve) => setTimeout(resolve, 50)); // Wait for async updateHandler operations to complete
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
       /* brightness: 255, hs_color: [0, 0]*/
     });
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_off', lightEntity.entity_id, undefined);
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
       /* brightness: 255, hs_color: [0, 0]*/
     });
@@ -2951,7 +2968,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
 
     jest.clearAllMocks();
@@ -2961,7 +2978,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
       optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
     });
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(50);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
 
     jest.clearAllMocks();
@@ -2971,7 +2988,7 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true },
       optionsOverride: { executeIfOff: true },
     });
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200);
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { color_temp_kelvin: 5000 });
 
     jest.clearAllMocks();
@@ -2982,8 +2999,8 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true },
       optionsOverride: { executeIfOff: true },
     });
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(120);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(100);
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(120);
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(100);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { hs_color: [170, 39] });
 
     jest.clearAllMocks();
@@ -2994,8 +3011,8 @@ describe('Matterbridge ' + NAME, () => {
       optionsMask: { executeIfOff: true },
       optionsOverride: { executeIfOff: true },
     });
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(13697);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(41877);
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(13697);
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(41877);
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { xy_color: [0.209, 0.639] });
 
     // setDebug(false);
@@ -3047,14 +3064,14 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     // Check default values on the device after first registration
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(254);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(250);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(254);
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation);
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(250);
     // Check parser
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ light device ${CYAN}MA-onofflight${db} cluster ${CYAN}OnOff${db}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`+ attribute device ${CYAN}MA-dimmablelight${db} cluster ${CYAN}LevelControl${db}`);
@@ -3066,27 +3083,27 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${lightEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', true, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true); // The state was 'on' at the time of configuration, so it should have been set to true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100); // The brightness was 100 at the time of configuration, so it should have been set to 100
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should be CurrentHueAndCurrentSaturation because the color_mode was hs at the time of configuration
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(250);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(127); // The hue should be 127 because 180° in HS color mode corresponds to 127 in the ColorControl cluster
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127); // The saturation should be 127 because 50% in HS color mode corresponds to 127 in the ColorControl cluster
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', true, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true); // The state was 'on' at the time of configuration, so it should have been set to true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(100); // The brightness was 100 at the time of configuration, so it should have been set to 100
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should be CurrentHueAndCurrentSaturation because the color_mode was hs at the time of configuration
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(250);
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(127); // The hue should be 127 because 180° in HS color mode corresponds to 127 in the ColorControl cluster
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(127); // The saturation should be 127 because 50% in HS color mode corresponds to 127 in the ColorControl cluster
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0);
 
     jest.clearAllMocks();
     await haPlatform.updateHandler(lightEntity.entity_id, lightState.entity_id, lightState, { ...lightState, state: 'off' });
-    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.Cluster.id, 'onOff', false, expect.anything());
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false);
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(250);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
+    expect(setAttributeSpy).toHaveBeenCalledWith(OnOff.id, 'onOff', false, expect.anything());
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(100);
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation);
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(250);
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0);
 
     /* ****************** This will test Adaptive Lighting ********************** */
     // In Matter level is 1-254 while in Home Assistant brightness is 1-255
@@ -3095,14 +3112,14 @@ describe('Matterbridge ' + NAME, () => {
     jest.clearAllMocks();
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(false);
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', getMoveToLevelRequest(200, 0, true) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should change because the light is off and executeIfOff is true
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should remain unchanged because the command was moveToLevel which should not affect the color mode
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(250);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(200); // The level should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should remain unchanged because the command was moveToLevel which should not affect the color mode
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(250);
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0);
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
@@ -3110,14 +3127,14 @@ describe('Matterbridge ' + NAME, () => {
     /* 2) The light is off we send moveToColorTemperature 200 with executeIfOff true */
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(200, 0, true) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should change because the light is off and executeIfOff is true
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(200); // The level should not change
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0);
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
@@ -3128,14 +3145,14 @@ describe('Matterbridge ' + NAME, () => {
     lightState.attributes.max_color_temp_kelvin = null;
     haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
     await invokeBehaviorCommand(device, 'colorControl', 'moveToColorTemperature', getMoveToColorTemperatureRequest(200, 0, true) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should change because the light is off and executeIfOff is true
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(127);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0);
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0);
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(200); // The level should not change
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.ColorTemperatureMireds); // The color mode should change to ColorTemperatureMireds because the command was moveToColorTemperature
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(127);
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0);
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0);
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
@@ -3146,42 +3163,42 @@ describe('Matterbridge ' + NAME, () => {
     /* 3) The light is off we send moveToHue moveToSaturation moveToHueAndSaturation with executeIfOff true */
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToHue', getMoveToHueRequest(120, 0, true) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(120); // The hue should change because the light is off and executeIfOff is true
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(29); // The saturation changed because the colorMode was ColorTemperatureMireds and we sent a moveToHue command that first change colorMode to CurrentHueAndCurrentSaturation converting from color temperature to hue and saturation
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0); // The color X should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0); // The color Y should not change
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(200); // The level should not change
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(120); // The hue should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(29); // The saturation changed because the colorMode was ColorTemperatureMireds and we sent a moveToHue command that first change colorMode to CurrentHueAndCurrentSaturation converting from color temperature to hue and saturation
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0); // The color X should not change
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0); // The color Y should not change
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToSaturation', getMoveToSaturationRequest(100, 0, true) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(120); // The hue should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(100); // The saturation should change because the light is off and executeIfOff is true
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0); // The color X should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0); // The color Y should not change
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(200); // The level should not change
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(120); // The hue should not change
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(100); // The saturation should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0); // The color X should not change
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0); // The color Y should not change
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
 
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToHueAndSaturation', getMoveToHueAndSaturationRequest(140, 120, 0, true) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(140); // The hue should change because the light is off and executeIfOff is true
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(120); // The saturation should change because the light is off and executeIfOff is true
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(0); // The color X should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(0); // The color Y should not change
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(200); // The level should not change
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentHueAndCurrentSaturation); // The color mode should change to CurrentHueAndCurrentSaturation
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(140); // The hue should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(120); // The saturation should change because the light is off and executeIfOff is true
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(0); // The color X should not change
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(0); // The color Y should not change
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
@@ -3189,14 +3206,14 @@ describe('Matterbridge ' + NAME, () => {
     /* 4) The light is off we send moveToColor 13697 / 41877 with executeIfOff true */
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'colorControl', 'moveToColor', getMoveToColorRequest(13697, 41877, 0, true) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(200); // The level should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentXAndCurrentY); // The color mode should change to CurrentXAndCurrentY
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(140); // The hue should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(120); // The saturation should not change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(13697); // The color X should change
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(41877); // The color Y should change
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false); // The state should remain off because executeIfOff is true
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(200); // The level should not change
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentXAndCurrentY); // The color mode should change to CurrentXAndCurrentY
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should not change
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(140); // The hue should not change
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(120); // The saturation should not change
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(13697); // The color X should change
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(41877); // The color Y should change
     expect(callServiceSpy).not.toHaveBeenCalled(); // No service call should be made because the light is off
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(true); // The entity should be added to the offUpdatedEntities set because we received a command with executeIfOff true while the light was off
     haPlatform.offUpdatedEntities.clear();
@@ -3204,14 +3221,14 @@ describe('Matterbridge ' + NAME, () => {
     /* 5) The light is off we send moveToLevelWithOnOff 50 (executeIfOff is not used here can be any) to turn on the light: offUpdatedEntities has been cleared */
     jest.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevelWithOnOff', getMoveToLevelRequest(50, 0, false) as any);
-    expect(device.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true); // The state should be on because moveToLevelWithOnOff with level > 1 should turn on the light
-    expect(device.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(50); // The level should change to 50
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentXAndCurrentY); // The color mode should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color mode
-    expect(device.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color mode
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentHue')).toBe(140); // The hue should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentSaturation')).toBe(120); // The saturation should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentX')).toBe(13697); // The color X should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
-    expect(device.getAttribute(ColorControl.Cluster.id, 'currentY')).toBe(41877); // The color Y should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true); // The state should be on because moveToLevelWithOnOff with level > 1 should turn on the light
+    expect(device.getAttribute(LevelControl.id, 'currentLevel')).toBe(50); // The level should change to 50
+    expect(device.getAttribute(ColorControl.id, 'colorMode')).toBe(ColorControl.ColorMode.CurrentXAndCurrentY); // The color mode should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color mode
+    expect(device.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(200); // The color temperature should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color mode
+    expect(device.getAttribute(ColorControl.id, 'currentHue')).toBe(140); // The hue should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
+    expect(device.getAttribute(ColorControl.id, 'currentSaturation')).toBe(120); // The saturation should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
+    expect(device.getAttribute(ColorControl.id, 'currentX')).toBe(13697); // The color X should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
+    expect(device.getAttribute(ColorControl.id, 'currentY')).toBe(41877); // The color Y should remain unchanged because the command was moveToLevelWithOnOff which should not affect the color
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 50 });
     expect(haPlatform.offUpdatedEntities.has(lightEntity.entity_id)).toBe(false); // The entity should be removed from the offUpdatedEntities set because the light was turned on
     haPlatform.offUpdatedEntities.clear();
@@ -3734,7 +3751,7 @@ describe('Matterbridge ' + NAME, () => {
     for (const device of haPlatform.matterbridgeDevices.values()) {
       expect(device.getChildEndpoints().length).toBe(0); // No child endpoints for individual entities. All remapped to main.
     }
-    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
 
     // No warnings or errors
@@ -3763,85 +3780,83 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.FATAL, expect.anything());
 
     // binary_sensor entities
-    expect(haPlatform.matterbridgeDevices.get(batteryLowEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Critical); // Battery Low: true = low, false = normal
-    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
-    expect(haPlatform.matterbridgeDevices.get(windowEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // window open -> false
-    expect(haPlatform.matterbridgeDevices.get(garageDoorEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(true); // garage door closed -> true
-    expect(haPlatform.matterbridgeDevices.get(vibrationEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(true); // vibration off -> true (no vibration)
-    expect(haPlatform.matterbridgeDevices.get(coldEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // cold off -> false
-    expect(haPlatform.matterbridgeDevices.get(moistureEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // moisture off -> false
-    expect(haPlatform.matterbridgeDevices.get(occupancyEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
-    expect(haPlatform.matterbridgeDevices.get(motionEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
-    expect(haPlatform.matterbridgeDevices.get(presenceEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
-    expect(haPlatform.matterbridgeDevices.get(smokeEntity.entity_id)?.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(SmokeCoAlarm.AlarmState.Normal);
-    expect(haPlatform.matterbridgeDevices.get(coEntity.entity_id)?.getAttribute(SmokeCoAlarm.Cluster.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(haPlatform.matterbridgeDevices.get(batteryLowEntity.entity_id)?.getAttribute(PowerSource.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Critical); // Battery Low: true = low, false = normal
+    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(haPlatform.matterbridgeDevices.get(windowEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // window open -> false
+    expect(haPlatform.matterbridgeDevices.get(garageDoorEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(true); // garage door closed -> true
+    expect(haPlatform.matterbridgeDevices.get(vibrationEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(true); // vibration off -> true (no vibration)
+    expect(haPlatform.matterbridgeDevices.get(coldEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // cold off -> false
+    expect(haPlatform.matterbridgeDevices.get(moistureEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // moisture off -> false
+    expect(haPlatform.matterbridgeDevices.get(occupancyEntity.entity_id)?.getAttribute(OccupancySensing.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(motionEntity.entity_id)?.getAttribute(OccupancySensing.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(presenceEntity.entity_id)?.getAttribute(OccupancySensing.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(smokeEntity.entity_id)?.getAttribute(SmokeCoAlarm.id, 'smokeState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(haPlatform.matterbridgeDevices.get(coEntity.entity_id)?.getAttribute(SmokeCoAlarm.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
 
     // sensor entities
-    expect(haPlatform.matterbridgeDevices.get(batteryLevelEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(170); // 85% *2
-    expect(haPlatform.matterbridgeDevices.get(batteryVoltageEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batVoltage')).toBe(3700); // 3.7V -> 3700mV
-    expect(haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id)?.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2260); // 22.6C *100
-    expect(haPlatform.matterbridgeDevices.get(humidityEntity.entity_id)?.getAttribute(RelativeHumidityMeasurement.Cluster.id, 'measuredValue')).toBe(5630); // 56.3% *100
-    expect(haPlatform.matterbridgeDevices.get(pressureEntity.entity_id)?.getAttribute(PressureMeasurement.Cluster.id, 'measuredValue')).toBe(1013);
-    expect(haPlatform.matterbridgeDevices.get(atmosphericPressureEntity.entity_id)?.getAttribute(PressureMeasurement.Cluster.id, 'measuredValue')).toBe(1013);
-    expect(haPlatform.matterbridgeDevices.get(illuminanceEntity.entity_id)?.getAttribute(IlluminanceMeasurement.Cluster.id, 'measuredValue')).toBe(26990);
+    expect(haPlatform.matterbridgeDevices.get(batteryLevelEntity.entity_id)?.getAttribute(PowerSource.id, 'batPercentRemaining')).toBe(170); // 85% *2
+    expect(haPlatform.matterbridgeDevices.get(batteryVoltageEntity.entity_id)?.getAttribute(PowerSource.id, 'batVoltage')).toBe(3700); // 3.7V -> 3700mV
+    expect(haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id)?.getAttribute(TemperatureMeasurement.id, 'measuredValue')).toBe(2260); // 22.6C *100
+    expect(haPlatform.matterbridgeDevices.get(humidityEntity.entity_id)?.getAttribute(RelativeHumidityMeasurement.id, 'measuredValue')).toBe(5630); // 56.3% *100
+    expect(haPlatform.matterbridgeDevices.get(pressureEntity.entity_id)?.getAttribute(PressureMeasurement.id, 'measuredValue')).toBe(1013);
+    expect(haPlatform.matterbridgeDevices.get(atmosphericPressureEntity.entity_id)?.getAttribute(PressureMeasurement.id, 'measuredValue')).toBe(1013);
+    expect(haPlatform.matterbridgeDevices.get(illuminanceEntity.entity_id)?.getAttribute(IlluminanceMeasurement.id, 'measuredValue')).toBe(26990);
     // PowerEnergy block
-    expect(haPlatform.matterbridgeDevices.get(energyEntity.entity_id)?.getAttribute(ElectricalEnergyMeasurement.Cluster.id, 'cumulativeEnergyImported')).toEqual({
+    expect(haPlatform.matterbridgeDevices.get(energyEntity.entity_id)?.getAttribute(ElectricalEnergyMeasurement.id, 'cumulativeEnergyImported')).toEqual({
       energy: 12340000,
     });
-    expect(haPlatform.matterbridgeDevices.get(powerEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activePower')).toBe(100000);
-    expect(haPlatform.matterbridgeDevices.get(currentEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activeCurrent')).toBe(500);
-    expect(haPlatform.matterbridgeDevices.get(voltageEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'voltage')).toBe(230000);
+    expect(haPlatform.matterbridgeDevices.get(powerEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.id, 'activePower')).toBe(100000);
+    expect(haPlatform.matterbridgeDevices.get(currentEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.id, 'activeCurrent')).toBe(500);
+    expect(haPlatform.matterbridgeDevices.get(voltageEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.id, 'voltage')).toBe(230000);
     // Air quality block
-    expect(haPlatform.matterbridgeDevices.get(aqiEntity.entity_id)?.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
-    expect(haPlatform.matterbridgeDevices.get(vocEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(100);
-    expect(haPlatform.matterbridgeDevices.get(vocPartsEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(150);
-    expect(haPlatform.matterbridgeDevices.get(co2Entity.entity_id)?.getAttribute(CarbonDioxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(600);
-    expect(haPlatform.matterbridgeDevices.get(coSensorEntity.entity_id)?.getAttribute(CarbonMonoxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(30);
-    expect(haPlatform.matterbridgeDevices.get(no2Entity.entity_id)?.getAttribute(NitrogenDioxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(15);
-    expect(haPlatform.matterbridgeDevices.get(ozoneEntity.entity_id)?.getAttribute(OzoneConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(5);
-    expect(haPlatform.matterbridgeDevices.get(formaldehydeEntity.entity_id)?.getAttribute(FormaldehydeConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(2);
-    expect(haPlatform.matterbridgeDevices.get(radonEntity.entity_id)?.getAttribute(RadonConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(pm1Entity.entity_id)?.getAttribute(Pm1ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(5);
-    expect(haPlatform.matterbridgeDevices.get(pm25Entity.entity_id)?.getAttribute(Pm25ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(12);
-    expect(haPlatform.matterbridgeDevices.get(pm10Entity.entity_id)?.getAttribute(Pm10ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(20);
+    expect(haPlatform.matterbridgeDevices.get(aqiEntity.entity_id)?.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
+    expect(haPlatform.matterbridgeDevices.get(vocEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.id, 'measuredValue')).toBe(100);
+    expect(haPlatform.matterbridgeDevices.get(vocPartsEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.id, 'measuredValue')).toBe(150);
+    expect(haPlatform.matterbridgeDevices.get(co2Entity.entity_id)?.getAttribute(CarbonDioxideConcentrationMeasurement.id, 'measuredValue')).toBe(600);
+    expect(haPlatform.matterbridgeDevices.get(coSensorEntity.entity_id)?.getAttribute(CarbonMonoxideConcentrationMeasurement.id, 'measuredValue')).toBe(30);
+    expect(haPlatform.matterbridgeDevices.get(no2Entity.entity_id)?.getAttribute(NitrogenDioxideConcentrationMeasurement.id, 'measuredValue')).toBe(15);
+    expect(haPlatform.matterbridgeDevices.get(ozoneEntity.entity_id)?.getAttribute(OzoneConcentrationMeasurement.id, 'measuredValue')).toBe(5);
+    expect(haPlatform.matterbridgeDevices.get(formaldehydeEntity.entity_id)?.getAttribute(FormaldehydeConcentrationMeasurement.id, 'measuredValue')).toBe(2);
+    expect(haPlatform.matterbridgeDevices.get(radonEntity.entity_id)?.getAttribute(RadonConcentrationMeasurement.id, 'measuredValue')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(pm1Entity.entity_id)?.getAttribute(Pm1ConcentrationMeasurement.id, 'measuredValue')).toBe(5);
+    expect(haPlatform.matterbridgeDevices.get(pm25Entity.entity_id)?.getAttribute(Pm25ConcentrationMeasurement.id, 'measuredValue')).toBe(12);
+    expect(haPlatform.matterbridgeDevices.get(pm10Entity.entity_id)?.getAttribute(Pm10ConcentrationMeasurement.id, 'measuredValue')).toBe(20);
 
     // control entities
-    expect(haPlatform.matterbridgeDevices.get(switchEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightOnOffEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(149); // brightness 150 -> ~149
-    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100); // brightness 150 -> ~149
-    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(500);
-    expect(haPlatform.matterbridgeDevices.get(lockEntity.entity_id)?.getAttribute(DoorLock.Cluster.id, 'lockState')).toBe(DoorLock.LockState.Locked);
-    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(
+    expect(haPlatform.matterbridgeDevices.get(switchEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightOnOffEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(LevelControl.id, 'currentLevel')).toBe(149); // brightness 150 -> ~149
+    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(LevelControl.id, 'currentLevel')).toBe(100); // brightness 150 -> ~149
+    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(500);
+    expect(haPlatform.matterbridgeDevices.get(lockEntity.entity_id)?.getAttribute(DoorLock.id, 'lockState')).toBe(DoorLock.LockState.Locked);
+    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(
       ValveConfigurationAndControl.ValveState.Open,
     );
-    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1); // idle/docked
-    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(
-      RvcOperationalState.OperationalState.Docked,
-    );
-    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
-    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'percentCurrent')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'percentCurrent')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'airflowDirection')).toBe(FanControl.AirflowDirection.Forward);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'rockSetting')).toEqual({
+    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.id, 'currentLevel')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1); // idle/docked
+    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
+    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
+    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.id, 'percentCurrent')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'percentCurrent')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'airflowDirection')).toBe(FanControl.AirflowDirection.Forward);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'rockSetting')).toEqual({
       rockLeftRight: false,
       rockRound: true,
       rockUpDown: false,
     });
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'systemMode')).toBe(Thermostat.SystemMode.Auto);
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedHeatingSetpoint')).toBe(2000);
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedCoolingSetpoint')).toBe(2400);
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'localTemperature')).toBe(2200);
-    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
-    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedHeatingSetpoint')).toBe(2000);
-    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'localTemperature')).toBe(2200);
-    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
-    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedCoolingSetpoint')).toBe(2000);
-    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'localTemperature')).toBe(1800);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Auto);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedHeatingSetpoint')).toBe(2000);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedCoolingSetpoint')).toBe(2400);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'localTemperature')).toBe(2200);
+    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
+    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedHeatingSetpoint')).toBe(2000);
+    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.id, 'localTemperature')).toBe(2200);
+    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedCoolingSetpoint')).toBe(2000);
+    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.id, 'localTemperature')).toBe(1800);
 
     // Clean the test environment
     await cleanup();
@@ -3928,7 +3943,7 @@ describe('Matterbridge ' + NAME, () => {
     for (const device of haPlatform.matterbridgeDevices.values()) {
       expect(device.getChildEndpoints().length).toBe(0); // No child endpoints for individual entities. All remapped to main.
     }
-    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
     expect(addClusterServerBooleanStateSpy).toHaveBeenCalledWith(contactEntity.entity_id, false);
 
     // No warnings or errors
@@ -3953,85 +3968,83 @@ describe('Matterbridge ' + NAME, () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.FATAL, expect.anything());
 
     // binary_sensor entities
-    expect(haPlatform.matterbridgeDevices.get(batteryLowEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Critical); // Battery Low: true = low, false = normal
-    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
-    expect(haPlatform.matterbridgeDevices.get(windowEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // window open -> false
-    expect(haPlatform.matterbridgeDevices.get(garageDoorEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(true); // garage door closed -> true
-    expect(haPlatform.matterbridgeDevices.get(vibrationEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(true); // vibration off -> true (no vibration)
-    expect(haPlatform.matterbridgeDevices.get(coldEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // cold off -> false
-    expect(haPlatform.matterbridgeDevices.get(moistureEntity.entity_id)?.getAttribute(BooleanState.Cluster.id, 'stateValue')).toBe(false); // moisture off -> false
-    expect(haPlatform.matterbridgeDevices.get(occupancyEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
-    expect(haPlatform.matterbridgeDevices.get(motionEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
-    expect(haPlatform.matterbridgeDevices.get(presenceEntity.entity_id)?.getAttribute(OccupancySensing.Cluster.id, 'occupancy')).toEqual({ occupied: false });
-    expect(haPlatform.matterbridgeDevices.get(smokeEntity.entity_id)?.getAttribute(SmokeCoAlarm.Cluster.id, 'smokeState')).toBe(SmokeCoAlarm.AlarmState.Normal);
-    expect(haPlatform.matterbridgeDevices.get(coEntity.entity_id)?.getAttribute(SmokeCoAlarm.Cluster.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(haPlatform.matterbridgeDevices.get(batteryLowEntity.entity_id)?.getAttribute(PowerSource.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Critical); // Battery Low: true = low, false = normal
+    expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // Contact Sensor: true = closed or contact, false = open or no contact
+    expect(haPlatform.matterbridgeDevices.get(windowEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // window open -> false
+    expect(haPlatform.matterbridgeDevices.get(garageDoorEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(true); // garage door closed -> true
+    expect(haPlatform.matterbridgeDevices.get(vibrationEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(true); // vibration off -> true (no vibration)
+    expect(haPlatform.matterbridgeDevices.get(coldEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // cold off -> false
+    expect(haPlatform.matterbridgeDevices.get(moistureEntity.entity_id)?.getAttribute(BooleanState.id, 'stateValue')).toBe(false); // moisture off -> false
+    expect(haPlatform.matterbridgeDevices.get(occupancyEntity.entity_id)?.getAttribute(OccupancySensing.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(motionEntity.entity_id)?.getAttribute(OccupancySensing.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(presenceEntity.entity_id)?.getAttribute(OccupancySensing.id, 'occupancy')).toEqual({ occupied: false });
+    expect(haPlatform.matterbridgeDevices.get(smokeEntity.entity_id)?.getAttribute(SmokeCoAlarm.id, 'smokeState')).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(haPlatform.matterbridgeDevices.get(coEntity.entity_id)?.getAttribute(SmokeCoAlarm.id, 'coState')).toBe(SmokeCoAlarm.AlarmState.Normal);
 
     // sensor entities
-    expect(haPlatform.matterbridgeDevices.get(batteryLevelEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batPercentRemaining')).toBe(170); // 85% *2
-    expect(haPlatform.matterbridgeDevices.get(batteryVoltageEntity.entity_id)?.getAttribute(PowerSource.Cluster.id, 'batVoltage')).toBe(3700); // 3.7V -> 3700mV
-    expect(haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id)?.getAttribute(TemperatureMeasurement.Cluster.id, 'measuredValue')).toBe(2260); // 22.6C *100
-    expect(haPlatform.matterbridgeDevices.get(humidityEntity.entity_id)?.getAttribute(RelativeHumidityMeasurement.Cluster.id, 'measuredValue')).toBe(5630); // 56.3% *100
-    expect(haPlatform.matterbridgeDevices.get(pressureEntity.entity_id)?.getAttribute(PressureMeasurement.Cluster.id, 'measuredValue')).toBe(1013);
-    expect(haPlatform.matterbridgeDevices.get(atmosphericPressureEntity.entity_id)?.getAttribute(PressureMeasurement.Cluster.id, 'measuredValue')).toBe(1013);
-    expect(haPlatform.matterbridgeDevices.get(illuminanceEntity.entity_id)?.getAttribute(IlluminanceMeasurement.Cluster.id, 'measuredValue')).toBe(26990);
+    expect(haPlatform.matterbridgeDevices.get(batteryLevelEntity.entity_id)?.getAttribute(PowerSource.id, 'batPercentRemaining')).toBe(170); // 85% *2
+    expect(haPlatform.matterbridgeDevices.get(batteryVoltageEntity.entity_id)?.getAttribute(PowerSource.id, 'batVoltage')).toBe(3700); // 3.7V -> 3700mV
+    expect(haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id)?.getAttribute(TemperatureMeasurement.id, 'measuredValue')).toBe(2260); // 22.6C *100
+    expect(haPlatform.matterbridgeDevices.get(humidityEntity.entity_id)?.getAttribute(RelativeHumidityMeasurement.id, 'measuredValue')).toBe(5630); // 56.3% *100
+    expect(haPlatform.matterbridgeDevices.get(pressureEntity.entity_id)?.getAttribute(PressureMeasurement.id, 'measuredValue')).toBe(1013);
+    expect(haPlatform.matterbridgeDevices.get(atmosphericPressureEntity.entity_id)?.getAttribute(PressureMeasurement.id, 'measuredValue')).toBe(1013);
+    expect(haPlatform.matterbridgeDevices.get(illuminanceEntity.entity_id)?.getAttribute(IlluminanceMeasurement.id, 'measuredValue')).toBe(26990);
     // PowerEnergy block
-    expect(haPlatform.matterbridgeDevices.get(energyEntity.entity_id)?.getAttribute(ElectricalEnergyMeasurement.Cluster.id, 'cumulativeEnergyImported')).toEqual({
+    expect(haPlatform.matterbridgeDevices.get(energyEntity.entity_id)?.getAttribute(ElectricalEnergyMeasurement.id, 'cumulativeEnergyImported')).toEqual({
       energy: 12340000,
     });
-    expect(haPlatform.matterbridgeDevices.get(powerEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activePower')).toBe(100000);
-    expect(haPlatform.matterbridgeDevices.get(currentEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'activeCurrent')).toBe(500);
-    expect(haPlatform.matterbridgeDevices.get(voltageEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.Cluster.id, 'voltage')).toBe(230000);
+    expect(haPlatform.matterbridgeDevices.get(powerEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.id, 'activePower')).toBe(100000);
+    expect(haPlatform.matterbridgeDevices.get(currentEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.id, 'activeCurrent')).toBe(500);
+    expect(haPlatform.matterbridgeDevices.get(voltageEntity.entity_id)?.getAttribute(ElectricalPowerMeasurement.id, 'voltage')).toBe(230000);
     // Air quality block
-    expect(haPlatform.matterbridgeDevices.get(aqiEntity.entity_id)?.getAttribute(AirQuality.Cluster.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
-    expect(haPlatform.matterbridgeDevices.get(vocEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(100);
-    expect(haPlatform.matterbridgeDevices.get(vocPartsEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(150);
-    expect(haPlatform.matterbridgeDevices.get(co2Entity.entity_id)?.getAttribute(CarbonDioxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(600);
-    expect(haPlatform.matterbridgeDevices.get(coSensorEntity.entity_id)?.getAttribute(CarbonMonoxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(30);
-    expect(haPlatform.matterbridgeDevices.get(no2Entity.entity_id)?.getAttribute(NitrogenDioxideConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(15);
-    expect(haPlatform.matterbridgeDevices.get(ozoneEntity.entity_id)?.getAttribute(OzoneConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(5);
-    expect(haPlatform.matterbridgeDevices.get(formaldehydeEntity.entity_id)?.getAttribute(FormaldehydeConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(2);
-    expect(haPlatform.matterbridgeDevices.get(radonEntity.entity_id)?.getAttribute(RadonConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(pm1Entity.entity_id)?.getAttribute(Pm1ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(5);
-    expect(haPlatform.matterbridgeDevices.get(pm25Entity.entity_id)?.getAttribute(Pm25ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(12);
-    expect(haPlatform.matterbridgeDevices.get(pm10Entity.entity_id)?.getAttribute(Pm10ConcentrationMeasurement.Cluster.id, 'measuredValue')).toBe(20);
+    expect(haPlatform.matterbridgeDevices.get(aqiEntity.entity_id)?.getAttribute(AirQuality.id, 'airQuality')).toBe(AirQuality.AirQualityEnum.Fair);
+    expect(haPlatform.matterbridgeDevices.get(vocEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.id, 'measuredValue')).toBe(100);
+    expect(haPlatform.matterbridgeDevices.get(vocPartsEntity.entity_id)?.getAttribute(TotalVolatileOrganicCompoundsConcentrationMeasurement.id, 'measuredValue')).toBe(150);
+    expect(haPlatform.matterbridgeDevices.get(co2Entity.entity_id)?.getAttribute(CarbonDioxideConcentrationMeasurement.id, 'measuredValue')).toBe(600);
+    expect(haPlatform.matterbridgeDevices.get(coSensorEntity.entity_id)?.getAttribute(CarbonMonoxideConcentrationMeasurement.id, 'measuredValue')).toBe(30);
+    expect(haPlatform.matterbridgeDevices.get(no2Entity.entity_id)?.getAttribute(NitrogenDioxideConcentrationMeasurement.id, 'measuredValue')).toBe(15);
+    expect(haPlatform.matterbridgeDevices.get(ozoneEntity.entity_id)?.getAttribute(OzoneConcentrationMeasurement.id, 'measuredValue')).toBe(5);
+    expect(haPlatform.matterbridgeDevices.get(formaldehydeEntity.entity_id)?.getAttribute(FormaldehydeConcentrationMeasurement.id, 'measuredValue')).toBe(2);
+    expect(haPlatform.matterbridgeDevices.get(radonEntity.entity_id)?.getAttribute(RadonConcentrationMeasurement.id, 'measuredValue')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(pm1Entity.entity_id)?.getAttribute(Pm1ConcentrationMeasurement.id, 'measuredValue')).toBe(5);
+    expect(haPlatform.matterbridgeDevices.get(pm25Entity.entity_id)?.getAttribute(Pm25ConcentrationMeasurement.id, 'measuredValue')).toBe(12);
+    expect(haPlatform.matterbridgeDevices.get(pm10Entity.entity_id)?.getAttribute(Pm10ConcentrationMeasurement.id, 'measuredValue')).toBe(20);
 
     // control entities
-    expect(haPlatform.matterbridgeDevices.get(switchEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightOnOffEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(149); // brightness 150 -> ~149
-    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(OnOff.Cluster.id, 'onOff')).toBe(true);
-    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(LevelControl.Cluster.id, 'currentLevel')).toBe(100); // brightness 150 -> ~149
-    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds')).toBe(500);
-    expect(haPlatform.matterbridgeDevices.get(lockEntity.entity_id)?.getAttribute(DoorLock.Cluster.id, 'lockState')).toBe(DoorLock.LockState.Locked);
-    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentState')).toBe(
+    expect(haPlatform.matterbridgeDevices.get(switchEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightOnOffEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightDimmerEntity.entity_id)?.getAttribute(LevelControl.id, 'currentLevel')).toBe(149); // brightness 150 -> ~149
+    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(LevelControl.id, 'currentLevel')).toBe(100); // brightness 150 -> ~149
+    expect(haPlatform.matterbridgeDevices.get(lightCtEntity.entity_id)?.getAttribute(ColorControl.id, 'colorTemperatureMireds')).toBe(500);
+    expect(haPlatform.matterbridgeDevices.get(lockEntity.entity_id)?.getAttribute(DoorLock.id, 'lockState')).toBe(DoorLock.LockState.Locked);
+    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(
       ValveConfigurationAndControl.ValveState.Open,
     );
-    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.Cluster.id, 'currentLevel')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcRunMode.Cluster.id, 'currentMode')).toBe(1); // idle/docked
-    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcOperationalState.Cluster.id, 'operationalState')).toBe(
-      RvcOperationalState.OperationalState.Docked,
-    );
-    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
-    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'percentCurrent')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'percentCurrent')).toBe(50);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'airflowDirection')).toBe(FanControl.AirflowDirection.Forward);
-    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.Cluster.id, 'rockSetting')).toEqual({
+    expect(haPlatform.matterbridgeDevices.get(valveEntity.entity_id)?.getAttribute(ValveConfigurationAndControl.id, 'currentLevel')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1); // idle/docked
+    expect(haPlatform.matterbridgeDevices.get(vacuumEntity.entity_id)?.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
+    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
+    expect(haPlatform.matterbridgeDevices.get(fanEntity.entity_id)?.getAttribute(FanControl.id, 'percentCurrent')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'percentCurrent')).toBe(50);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'airflowDirection')).toBe(FanControl.AirflowDirection.Forward);
+    expect(haPlatform.matterbridgeDevices.get(fanCompleteEntity.entity_id)?.getAttribute(FanControl.id, 'rockSetting')).toEqual({
       rockLeftRight: false,
       rockRound: true,
       rockUpDown: false,
     });
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'systemMode')).toBe(Thermostat.SystemMode.Auto);
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedHeatingSetpoint')).toBe(2000);
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedCoolingSetpoint')).toBe(2400);
-    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'localTemperature')).toBe(2200);
-    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
-    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedHeatingSetpoint')).toBe(2000);
-    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'localTemperature')).toBe(2200);
-    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
-    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'occupiedCoolingSetpoint')).toBe(2000);
-    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.Cluster.id, 'localTemperature')).toBe(1800);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Auto);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedHeatingSetpoint')).toBe(2000);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedCoolingSetpoint')).toBe(2400);
+    expect(haPlatform.matterbridgeDevices.get(climateEntity.entity_id)?.getAttribute(Thermostat.id, 'localTemperature')).toBe(2200);
+    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
+    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedHeatingSetpoint')).toBe(2000);
+    expect(haPlatform.matterbridgeDevices.get(climateHeatEntity.entity_id)?.getAttribute(Thermostat.id, 'localTemperature')).toBe(2200);
+    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.id, 'occupiedCoolingSetpoint')).toBe(2000);
+    expect(haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id)?.getAttribute(Thermostat.id, 'localTemperature')).toBe(1800);
 
     // Clean the test environment
     await cleanup();

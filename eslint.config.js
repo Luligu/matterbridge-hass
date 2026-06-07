@@ -1,5 +1,5 @@
 // @ts-check
-// eslint.config.js 2.0.6
+// eslint.config.js 2.0.7
 
 // This ESLint configuration is designed for a TypeScript project using ESM modules.
 
@@ -35,7 +35,7 @@ export default defineConfig([
       '**/coverage',
       '**/dist',
       '**/jest',
-      'mock',
+      '**/mock',
       '**/node_modules',
       '**/screenshots',
       '**/temp',
@@ -114,6 +114,7 @@ export default defineConfig([
       'no-redeclare': 'off', // Disable no-redeclare for TypeScript files since TypeScript already checks for redeclarations
       'no-undef': 'off', // Disable no-undef for TypeScript files since TypeScript already checks for undefined variables
       'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
+      '@typescript-eslint/no-deprecated': 'warn', // Warn on usage of deprecated APIs
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

@@ -138,7 +138,7 @@ describe('addControlEntity', () => {
 
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
-    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.Cluster.id);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.id);
   });
 
   it('uses cached state when an unavailable light is added', () => {
@@ -163,7 +163,7 @@ describe('addControlEntity', () => {
     expect(platform.stateCache.get).toHaveBeenCalledWith(e.entity_id);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
-    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.Cluster.id);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.id);
     expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'Cached Light');
   });
 
@@ -189,7 +189,7 @@ describe('addControlEntity', () => {
     expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('is unavailable and no cached state found'));
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
-    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.Cluster.id);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.id);
     expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'No Cache Light');
   });
 

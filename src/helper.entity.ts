@@ -3,7 +3,7 @@
  * @file src\helper.entity.ts
  * @author Luca Liguori
  * @created 2026-03-19
- * @version 1.0.1
+ * @version 1.1.0
  * @license Apache-2.0
  * @copyright 2026, 2027, 2028 Luca Liguori.
  *
@@ -96,7 +96,7 @@ export function addHelperEntity(
     if (domain !== 'input_boolean') {
       setTimeout(() => {
         // istanbul ignore next cause is too long
-        void data.endpoint.setAttribute(OnOff.Cluster, 'onOff', false, data.endpoint.log).catch(/* istanbul ignore next */ () => {});
+        void data.endpoint.setAttribute(OnOff, 'onOff', false, data.endpoint.log).catch(/* istanbul ignore next */ () => {});
       }, 500).unref();
     }
   });

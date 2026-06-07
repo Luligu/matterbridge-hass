@@ -6,6 +6,11 @@ const HOMEDIR = path.join('jest', NAME);
 
 // Home Assistant WebSocket Client Tests
 
+/**
+ * WARNING!!!
+ * The tests in this unit are supposed to run sequentially because they depend on the previous state.
+ */
+
 /* eslint-disable jest/no-conditional-expect */
 /* eslint-disable no-console */
 
@@ -14,7 +19,7 @@ import https from 'node:https';
 import path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { loggerLogSpy, originalProcessArgv, setDebug, setupTest } from 'matterbridge/jestutils';
+import { loggerLogSpy, setDebug, setupTest } from 'matterbridge/jestutils';
 import { CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
 import { WebSocket, WebSocketServer } from 'ws';

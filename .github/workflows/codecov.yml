@@ -1,4 +1,4 @@
-# Codecov (plugin) v. 2.0.4
+# Codecov (plugin) v. 2.0.5
 # Path: .github/workflows/codecov.yml
 
 name: Codecov
@@ -79,7 +79,7 @@ jobs:
           test -f ./coverage/vitest/lcov.info || { echo "::error::Vitest ran but lcov.info missing"; exit 1; }
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true

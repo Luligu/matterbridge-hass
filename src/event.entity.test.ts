@@ -94,14 +94,12 @@ describe('addEventEntity', () => {
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
-    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
+    expect(md.clusters[endpoint]).toEqual([Switch.id]);
     expect(md.friendlyNames[endpoint]).toBe('Button Friendly');
     expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.BUTTON} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(platform.log.debug).toHaveBeenCalledWith(
-      `+ domain event supported [single, double, long] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`,
-    );
+    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single, double, long] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.name}${db}`);
   });
 
   it('adds doorbell without friendly name', () => {
@@ -113,12 +111,12 @@ describe('addEventEntity', () => {
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
-    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
+    expect(md.clusters[endpoint]).toEqual([Switch.id]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
     expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.DOORBELL} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.name}${db}`);
   });
 
   it('adds motion without friendly name', () => {
@@ -130,12 +128,12 @@ describe('addEventEntity', () => {
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
-    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
+    expect(md.clusters[endpoint]).toEqual([Switch.id]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
     expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.name}${db}`);
   });
 
   it('adds unsupported', () => {
@@ -156,11 +154,11 @@ describe('addEventEntity', () => {
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.deviceTypes[endpoint]).toEqual([genericSwitch.code]);
-    expect(md.clusters[endpoint]).toEqual([Switch.Cluster.id]);
+    expect(md.clusters[endpoint]).toEqual([Switch.id]);
     expect(md.friendlyNames[endpoint]).toBeUndefined();
     expect(platform.log.debug).toHaveBeenCalledWith(
       `- domain event deviceClass ${EventDeviceClass.MOTION} endpoint '${CYAN}${entity.entity_id}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
     );
-    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+    expect(platform.log.debug).toHaveBeenCalledWith(`+ domain event supported [single] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.name}${db}`);
   });
 });

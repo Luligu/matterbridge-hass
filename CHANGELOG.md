@@ -12,13 +12,15 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
+## [1.3.1] - 2026-06-07
+
+### Fixed
+
+- [matterbridge]: Fix compatibility with matterbridge v.3.8.0 and v.3.8.1. Thanks Tamer for spotting the issue.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.3.0] - 2026-06-06
-
-### Added
-
-- [platform]: The too long names check and warning is now only for registered devices/entities. Thanks thecurrymuncher.
-
-### Changed
 
 ### Breaking changes
 
@@ -26,6 +28,7 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Added
 
+- [platform]: The too long names check and warning is now only for registered devices/entities. Thanks thecurrymuncher.
 - [codecov]: Add merge of Jest and Vitest coverage reports. This allows to run both Jest and Vitest tests in the same package and have a unified coverage report in Codecov.
 
 ### Changed

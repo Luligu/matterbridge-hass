@@ -19,6 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Node.js 20.19 is still supported in package.json, but it is not tested in CI as it has reached EOL.
         node-version: [22.x, 24.x, 26.2.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 

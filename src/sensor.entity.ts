@@ -3,7 +3,7 @@
  * @file src\sensor.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.0.1
+ * @version 1.1.0
  * @license Apache-2.0
  * @copyright 2025, 2026, 2027 Luca Liguori.
  *
@@ -61,7 +61,7 @@ export function addSensorEntity(
     platform.log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found for device ${CYAN}${mutableDevice.name()}${db}`);
     endpointName = 'AirQuality'; // Remap the endpoint name for the entity
     mutableDevice.addDeviceTypes('AirQuality', airQualitySensor); // Add the air quality sensor device type
-    mutableDevice.addClusterServerIds('AirQuality', AirQuality.Cluster.id); // Add the AirQuality cluster
+    mutableDevice.addClusterServerIds('AirQuality', AirQuality.id); // Add the AirQuality cluster
     if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName('AirQuality', state.attributes['friendly_name']); // Set the friendly name for the air quality sensor
     return endpointName;
   }
