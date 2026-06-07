@@ -1,6 +1,10 @@
 // src\module.test.ts
 
-// Warning: the tests in this unit are supposed to run sequentially cause they depend on the Matterbridge/Matter state.
+/**
+ * WARNING!!!
+ * The tests in this unit are supposed to run sequentially cause they depend on the Matterbridge/Matter state.
+ * Is not possible for timing resonons to create and destroy a Matter node each test to keep isolation.
+ */
 
 /* eslint-disable no-console */
 
