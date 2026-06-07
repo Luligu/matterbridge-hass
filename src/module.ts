@@ -3,7 +3,7 @@
  * @file src\module.ts
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.7.1
+ * @version 1.8.0
  * @license Apache-2.0
  * @copyright 2024, 2025, 2026 Luca Liguori.
  *
@@ -1054,7 +1054,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
       if (domain === 'light') {
         // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
-        const onOff = data.endpoint.getAttribute(OnOff.Cluster.id, 'onOff', data.endpoint.log) as boolean | undefined;
+        const onOff = data.endpoint.getAttribute(OnOff, 'onOff', data.endpoint.log);
         if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
           data.endpoint.log.debug(
             `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it`,
@@ -1065,7 +1065,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
 
         // Turn off the light if level <= minLevel. Not managed by the hassCommandConverter since it's a special case for lights that we can manage better here to avoid calling the turn_on service.
-        if (command === 'moveToLevelWithOnOff' && data.request['level'] <= (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)) {
+        if (command === 'moveToLevelWithOnOff' && data.request['level'] <= (data.endpoint.getAttribute(LevelControl, 'minLevel') ?? 1)) {
           data.endpoint.log.debug(
             `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received with level = minLevel => turn off the light`,
           );
@@ -1075,16 +1075,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
         if (
           onOff === false &&
-          (command === 'on' ||
-            command === 'toggle' ||
-            (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl.Cluster.id, 'minLevel') ?? 1)))
+          (command === 'on' || command === 'toggle' || (command === 'moveToLevelWithOnOff' && data.request['level'] > (data.endpoint.getAttribute(LevelControl, 'minLevel') ?? 1)))
         ) {
           // We need to add the current Matter cluster attributes since we are turning on the light and it was off
           const serviceAttributes: Record<string, HomeAssistantPrimitive> = {};
 
           // In Matter level is 1-254 for feature Lightning while in Home Assistant brightness is 1-255
-          const brightness = data.endpoint.hasAttributeServer(LevelControl.Cluster.id, 'currentLevel')
-            ? Math.round((data.endpoint.getAttribute(LevelControl.Cluster.id, 'currentLevel') / 254) * 255)
+          const brightness = data.endpoint.hasAttributeServer(LevelControl, 'currentLevel')
+            ? Math.round((data.endpoint.getAttribute(LevelControl.id, 'currentLevel') / 254) * 255)
             : undefined;
           if (isValidNumber(brightness, 1, 255) && this.offUpdatedEntities.has(entityId)) serviceAttributes['brightness'] = brightness;
           // The moveToLevelWithOnOff command has a request with level so we use it instead of the stored currentLevel attribute we use for the other commands on and toggle.
@@ -1092,17 +1090,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
           // The actual color mode is determined by the colorMode attribute of the ColorControl cluster. In Home Assistant we need to pass only a single color attribute without the 'color_mode' attribute.
           const colorMode: ColorControl.ColorMode | undefined =
-            data.endpoint.hasClusterServer(ColorControl.Cluster.id) && data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorMode')
-              ? data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorMode')
+            data.endpoint.hasClusterServer(ColorControl) && data.endpoint.hasAttributeServer(ColorControl, 'colorMode')
+              ? data.endpoint.getAttribute(ColorControl, 'colorMode')
               : undefined;
 
           if (
             colorMode === ColorControl.ColorMode.ColorTemperatureMireds &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'colorTemperatureMireds') &&
+            data.endpoint.hasAttributeServer(ColorControl, 'colorTemperatureMireds') &&
             this.offUpdatedEntities.has(entityId)
           ) {
             // In Matter color temperature is represented in mireds while in Home Assistant it's represented in kelvin. We need to convert it before calling the service and also clamp it to the supported range if the attributes are available.
-            const color_temp = data.endpoint.getAttribute(ColorControl.Cluster.id, 'colorTemperatureMireds');
+            const color_temp = data.endpoint.getAttribute(ColorControl, 'colorTemperatureMireds');
             // istanbul ignore else
             if (isValidNumber(color_temp))
               serviceAttributes['color_temp_kelvin'] =
@@ -1114,8 +1112,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
           if (
             colorMode === ColorControl.ColorMode.CurrentHueAndCurrentSaturation &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentHue') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentSaturation') &&
+            data.endpoint.hasAttributeServer(ColorControl, 'currentHue') &&
+            data.endpoint.hasAttributeServer(ColorControl, 'currentSaturation') &&
             this.offUpdatedEntities.has(entityId)
           ) {
             // In Matter the hue in degrees shall be related to the CurrentHue attribute by the relationship:
@@ -1126,8 +1124,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             // where CurrentSaturation is in the range from 0 to 254 inclusive.
             // istanbul ignore next cause codecov is not able to detect it as covered but it is
             const hs_color = [
-              Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentHue') / 254) * 360),
-              Math.round((data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentSaturation') / 254) * 100),
+              Math.round((data.endpoint.getAttribute(ColorControl.id, 'currentHue') / 254) * 360),
+              Math.round((data.endpoint.getAttribute(ColorControl.id, 'currentSaturation') / 254) * 100),
             ];
             // istanbul ignore else
             if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
@@ -1135,13 +1133,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
           if (
             colorMode === ColorControl.ColorMode.CurrentXAndCurrentY &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentX') &&
-            data.endpoint.hasAttributeServer(ColorControl.Cluster.id, 'currentY') &&
+            data.endpoint.hasAttributeServer(ColorControl.id, 'currentX') &&
+            data.endpoint.hasAttributeServer(ColorControl.id, 'currentY') &&
             this.offUpdatedEntities.has(entityId)
           ) {
             // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
             // istanbul ignore next cause codecov is not able to detect it as covered but it is
-            const xy_color = convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentX'), data.endpoint.getAttribute(ColorControl.Cluster.id, 'currentY'));
+            const xy_color = convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.id, 'currentX'), data.endpoint.getAttribute(ColorControl.id, 'currentY'));
             // istanbul ignore else
             if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
           }
@@ -1245,7 +1243,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found`);
       return;
     }
-    let endpoint = matterbridgeDevice.getChildEndpointByName(entityId) || matterbridgeDevice.getChildEndpointByName(entityId.replaceAll('.', ''));
+    let endpoint = matterbridgeDevice.getChildEndpointById(entityId) || matterbridgeDevice.getChildEndpointById(entityId.replaceAll('.', ''));
     if (!endpoint) {
       const mappedEndpoint = this.endpointNames.get(entityId);
       if (mappedEndpoint === '') {
@@ -1255,7 +1253,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
-        endpoint = matterbridgeDevice.getChildEndpointByName(mappedEndpoint);
+        endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint);
       }
     }
     if (!endpoint) {
@@ -1265,7 +1263,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Set the device reachable attribute to false if the new state is unavailable and skip the update since the device is unreachable. Cache the last state of the entity to be able to create it on restart.
     if (old_state.state !== 'unavailable' && new_state.state === 'unavailable') {
       this.stateCache.add(old_state);
-      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', false, matterbridgeDevice.log);
+      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation, 'reachable', false, matterbridgeDevice.log);
       endpoint.log.debug(
         `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,
       );
@@ -1274,11 +1272,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // Set the device reachable attribute to true if the new state is available and remove the cached state since the device is reachable again.
     if (old_state.state === 'unavailable' && new_state.state !== 'unavailable') {
       this.stateCache.remove(old_state.entity_id);
-      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', true, matterbridgeDevice.log);
+      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation, 'reachable', true, matterbridgeDevice.log);
     }
     // Set the device reachable attribute to false if the new state is unavailable and skip the update since the device is unreachable. From onConfigure().
     if (old_state.state === 'unavailable' && new_state.state === 'unavailable') {
-      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation.Cluster, 'reachable', false, matterbridgeDevice.log);
+      await matterbridgeDevice.setAttribute(BridgedDeviceBasicInformation, 'reachable', false, matterbridgeDevice.log);
       endpoint.log.debug(
         `Received update for entity ${CYAN}${entityId}${db} but the new state is unavailable, skipping the update and waiting for the device to become reachable again...`,
       );
@@ -1348,7 +1346,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
     } else if (domain === 'select' || domain === 'input_select') {
       const currentMode = new_state.attributes['options']?.indexOf(new_state.state);
-      if (currentMode >= 0) await endpoint.setAttribute(ModeSelect.Cluster.id, 'currentMode', currentMode + 1, endpoint.log);
+      if (currentMode >= 0) await endpoint.setAttribute(ModeSelect, 'currentMode', currentMode + 1, endpoint.log);
       else endpoint.log.debug(`Update ${CYAN}${new_state.attributes['options']?.join(', ')}${db} >>> ${CYAN}${new_state.state}${db} not supported for entity ${entityId}`);
     } else {
       // Update state of the device

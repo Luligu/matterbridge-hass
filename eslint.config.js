@@ -35,7 +35,7 @@ export default defineConfig([
       '**/coverage',
       '**/dist',
       '**/jest',
-      'mock',
+      '**/mock',
       '**/node_modules',
       '**/screenshots',
       '**/temp',
@@ -114,6 +114,7 @@ export default defineConfig([
       'no-redeclare': 'off', // Disable no-redeclare for TypeScript files since TypeScript already checks for redeclarations
       'no-undef': 'off', // Disable no-undef for TypeScript files since TypeScript already checks for undefined variables
       'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
+      '@typescript-eslint/no-deprecated': 'warn', // Warn on usage of deprecated APIs
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -152,6 +153,7 @@ export default defineConfig([
       'no-unused-vars': 'off', // Disable base rule for unused variables and use the TypeScript-specific rule instead
       'n/no-extraneous-import': 'off', // Allow imports from devDependencies in test files
       'n/no-unpublished-import': 'off', // Allow imports from unpublished packages
+      '@typescript-eslint/no-deprecated': 'off', // Disable deprecation warnings in test files
       '@typescript-eslint/no-unused-vars': 'off', // Disable TypeScript rule for unused variables in test files
       '@typescript-eslint/no-explicit-any': 'off', // Allow 'any' type in test files
       '@typescript-eslint/no-empty-function': 'off', // Allow empty functions in test files

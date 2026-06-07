@@ -3,7 +3,7 @@
  * @file src/event.entity.ts
  * @author Luca Liguori
  * @created 2025-12-03
- * @version 1.0.1
+ * @version 1.1.0
  * @license Apache-2.0
  * @copyright 2025, 2026, 2027 Luca Liguori.
  *
@@ -56,9 +56,9 @@ export function addEventEntity(platform: HomeAssistantPlatform, mutableDevice: M
   }
   if (supportedEventTypes.length === 0) return undefined;
 
-  platform.log.debug(`+ domain event supported [${supportedEventTypes.join(', ')}] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.Cluster.name}${db}`);
+  platform.log.debug(`+ domain event supported [${supportedEventTypes.join(', ')}] device ${CYAN}${genericSwitch.name}${db} cluster ${CYAN}${Switch.name}${db}`);
   mutableDevice.addDeviceTypes(endpointName, genericSwitch);
-  mutableDevice.addClusterServerIds(endpointName, Switch.Cluster.id);
+  mutableDevice.addClusterServerIds(endpointName, Switch.id);
   if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
   platform.log.debug(`- state ${debugStringify(state)}`);
   return endpointName;

@@ -1,5 +1,7 @@
 // src\module.matter.test.ts
 
+// Warning: the tests in this unit are supposed to run sequentially cause they depend on the Matterbridge/Matter state.
+
 /* eslint-disable no-console */
 
 const NAME = 'PlatformMatter';
@@ -1528,11 +1530,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'percentSetting', expect.anything(), expect.anything());
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
     );
 
     jest.clearAllMocks();
@@ -1639,19 +1641,19 @@ describe('Matterbridge ' + NAME, () => {
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(FanControl.Cluster.id, 'rockSetting', expect.anything(), expect.anything());
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}fanMode$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}percentSetting$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}airflowDirection$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}airflowDirection$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}FanControl${db}.${hk}rockSetting$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}FanControl${db}.${hk}rockSetting$Changed${db}`),
     );
 
     jest.clearAllMocks();
@@ -1787,19 +1789,15 @@ describe('Matterbridge ' + NAME, () => {
     expect(subscribeAttributeSpy).toHaveBeenCalledWith(Thermostat.Cluster.id, 'occupiedCoolingSetpoint', expect.anything(), expect.anything());
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}Thermostat${db}.${hk}systemMode$Changed${db}`),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}Thermostat${db}.${hk}systemMode$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(
-        `${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}Thermostat${db}.${hk}occupiedHeatingSetpoint$Changed${db}`,
-      ),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}Thermostat${db}.${hk}occupiedHeatingSetpoint$Changed${db}`),
     );
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
-      expect.stringContaining(
-        `${db}Subscribed endpoint ${or}${device.id}${db}:${or}${device.number}${db} attribute ${hk}Thermostat${db}.${hk}occupiedCoolingSetpoint$Changed${db}`,
-      ),
+      expect.stringContaining(`${db}Subscribed endpoint ${or}${device.id}${db}:${or}undefined${db} attribute ${hk}Thermostat${db}.${hk}occupiedCoolingSetpoint$Changed${db}`),
     );
 
     jest.clearAllMocks();

@@ -1,5 +1,7 @@
 // src\module.matter.test.ts
 
+// Warning: the tests in this unit are supposed to run sequentially cause they depend on the Matterbridge/Matter state.
+
 /* eslint-disable no-console */
 
 const NAME = 'PlatformAuto';

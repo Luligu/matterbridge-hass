@@ -3,7 +3,7 @@
  * @file src\binary_sensor.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.0.1
+ * @version 1.1.0
  * @license Apache-2.0
  * @copyright 2025, 2026, 2027 Luca Liguori.
  *
@@ -50,9 +50,9 @@ export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDe
   // No device_class attribute, try to match with the contactSensor device type as default for binary_sensor domain.
   if (state.attributes['device_class'] === null || state.attributes['device_class'] === undefined) {
     endpointName = entity.entity_id; // Use the entity ID as the endpoint name
-    platform.log.debug(`+ binary_sensor device ${CYAN}${contactSensor.name}${db} cluster ${CYAN}${getClusterNameById(BooleanState.Cluster.id)}${db}`);
+    platform.log.debug(`+ binary_sensor device ${CYAN}${contactSensor.name}${db} cluster ${CYAN}${getClusterNameById(BooleanState.id)}${db}`);
     mutableDevice.addDeviceTypes(endpointName, contactSensor);
-    mutableDevice.addClusterServerIds(endpointName, BooleanState.Cluster.id);
+    mutableDevice.addClusterServerIds(endpointName, BooleanState.id);
     if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
     platform.log.debug(`- state ${debugStringify(state)}`);
     platform.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.state}${db}`);
