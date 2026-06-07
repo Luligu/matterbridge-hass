@@ -8,7 +8,7 @@ const HOMEDIR = path.join('jest', NAME);
 
 /**
  * WARNING!!!
- * The tests in this unit are supposed to run sequentially cause they depend on the previous state.
+ * The tests in this unit are supposed to run sequentially because they depend on the previous state.
  */
 
 /* eslint-disable jest/no-conditional-expect */
