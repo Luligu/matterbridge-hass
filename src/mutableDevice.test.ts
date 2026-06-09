@@ -1,5 +1,8 @@
 // src\mutableDevice.test.ts
 
+// TODO: Remove when require Matterbridge 3.8.1 or later
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 const NAME = 'MutableDevice';
 const MATTER_PORT = 6200;
 const MATTER_CREATE_ONLY = true;
@@ -1050,17 +1053,17 @@ describe('MutableDevice', () => {
     expect(commandHandler).toHaveBeenCalledWith({ endpoint: {}, cluster: 'identify', command: 'identify', attributes: {}, request: { identifyTime: 10 } }, 'child2', 'identify');
 
     jest.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
+
     await invokeSubscribeHandler(mutableDevice.getEndpoint(), OnOff.id, 'onOff', false, true);
     expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), '', OnOff.id, 'onOff');
 
     jest.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
+
     await invokeSubscribeHandler(mutableDevice.getEndpoint('child1'), OnOff.id, 'onOff', false, true);
     expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child1', OnOff.id, 'onOff');
 
     jest.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
+
     await invokeSubscribeHandler(mutableDevice.getEndpoint('child2'), OnOff.id, 'onOff', false, true);
     expect(subscribeHandler).toHaveBeenCalledWith(false, true, expect.anything(), 'child2', OnOff.id, 'onOff');
 

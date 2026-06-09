@@ -20,6 +20,9 @@
  * limitations under the License.
  */
 
+// TODO: Remove when require Matterbridge 3.8.1 or later
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 import { onOffMountedSwitch, onOffOutlet } from 'matterbridge';
 import { OnOff } from 'matterbridge/matter/clusters';
 import { CYAN, db } from 'node-ansi-logger';

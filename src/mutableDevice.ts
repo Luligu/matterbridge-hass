@@ -20,6 +20,9 @@
  * limitations under the License.
  */
 
+// TODO: Remove when require Matterbridge 3.8.1 or later
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 // Node.js imports
 import { createHash, randomBytes } from 'node:crypto';
 

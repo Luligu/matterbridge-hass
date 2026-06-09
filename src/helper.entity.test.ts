@@ -4,6 +4,9 @@ import { OnOff } from 'matterbridge/matter/clusters';
 
 import { addHelperEntity } from './helper.entity.js';
 
+// TODO: Remove when require Matterbridge 3.8.1 or later
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 type CommandHandler = (data?: { endpoint: { setAttribute: (...args: unknown[]) => unknown; log: unknown } }) => void | Promise<void>;
 
 type MutableDeviceLike = {

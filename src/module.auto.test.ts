@@ -7,6 +7,8 @@
  */
 
 /* eslint-disable no-console */
+// TODO: Remove when require Matterbridge 3.8.1 or later
+/* eslint-disable @typescript-eslint/no-deprecated */
 
 const NAME = 'PlatformAuto';
 const MATTER_PORT = 6200;

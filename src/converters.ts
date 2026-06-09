@@ -20,6 +20,8 @@
  * limitations under the License.
  */
 
+// TODO: Remove when require Matterbridge 3.8.1 or later
+/* eslint-disable @typescript-eslint/no-deprecated */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
@@ -586,7 +588,7 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
 // prettier-ignore
 export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: number) => any }[] = [
     { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
+       
       if( isValidNumber(value, FanControl.FanMode.Low, FanControl.FanMode.Smart) ) {
         if (value === FanControl.FanMode.Low) return 'low';
         else if (value === FanControl.FanMode.Medium) return 'medium';

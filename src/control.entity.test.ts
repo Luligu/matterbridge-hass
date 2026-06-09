@@ -20,6 +20,9 @@ import { generateEntity, generateState } from './helpers.js';
 import { type HassConfig, type HassEntity, type HassState, HomeAssistant, MediaPlayerEntityFeature, MediaPlayerService, UnitOfTemperature } from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 
+// TODO: Remove when require Matterbridge 3.8.1 or later
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 function createMockMutableDevice(): MutableDevice {
   const endpoints: Record<string, { deviceTypes: any[]; clusters: number[] }> = {};
   const ensure = (ep: string) => (endpoints[ep] ||= { deviceTypes: [], clusters: [] });
