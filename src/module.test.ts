@@ -483,6 +483,30 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
   });
 
+  it('should invert cover open/close when invertCoverOpenClose is enabled', async () => {
+    expect(haPlatform).toBeDefined();
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'invertedCover' }, true);
+    expect(device).toBeDefined();
+    if (!device) return;
+
+    const child = device.addChildDeviceTypeWithClusterServer('cover.cover_inverted', [coverDevice], [], { number: EndpointNumber(4) });
+    expect(child).toBeDefined();
+    child.number = EndpointNumber(4);
+
+    haPlatform.config.invertCoverOpenClose = true;
+    try {
+      jest.clearAllMocks();
+      await haPlatform.commandHandler({ endpoint: child, request: { liftPercent100thsValue: 0 }, cluster: 'windowCovering', attributes: {} }, 'cover.cover_inverted', 'goToLiftPercentage');
+      expect(callServiceSpy).toHaveBeenCalledWith('cover', 'close_cover', 'cover.cover_inverted');
+
+      jest.clearAllMocks();
+      await haPlatform.commandHandler({ endpoint: child, request: { liftPercent100thsValue: 10000 }, cluster: 'windowCovering', attributes: {} }, 'cover.cover_inverted', 'goToLiftPercentage');
+      expect(callServiceSpy).toHaveBeenCalledWith('cover', 'open_cover', 'cover.cover_inverted');
+    } finally {
+      haPlatform.config.invertCoverOpenClose = false;
+    }
+  });
+
   it('should call subscribeHandler', async () => {
     expect(haPlatform).toBeDefined();
     const device = new MatterbridgeEndpoint(bridgedNode, { id: 'test' }, true);

@@ -95,6 +95,8 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   enableServerRvc: boolean;
   discardHiddenEntities: boolean;
   virtualControlLabel: string;
+  /** Invert the open/close services used for covers when handling goToLiftPercentage at 0%/100% */
+  invertCoverOpenClose: boolean;
 }
 
 /**
@@ -230,6 +232,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
       this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
       this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
+      this.config.invertCoverOpenClose = isValidBoolean(this.config.invertCoverOpenClose) ? this.config.invertCoverOpenClose : false;
     }
 
     // Initialize air quality regex from config or use default
@@ -1043,12 +1046,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'cover') {
         // Special handling for cover goToLiftPercentage command. When goToLiftPercentage is called with 0, we may call the open service and when called with 10000 we may call the close service.
         // This allows to support also covers not supporting the set_cover_position service.
+        // When invertCoverOpenClose is enabled, the open and close services are swapped (0 calls close and 10000 calls open) for matter controller not following the specifications.
         // istanbul ignore else cause we modify only the goToLiftPercentage command for covers
         if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 10000) {
-          await this.ha.callService(hassCommand.domain, 'close_cover', entityId);
+          await this.ha.callService(hassCommand.domain, this.config.invertCoverOpenClose ? 'open_cover' : 'close_cover', entityId);
           return;
         } else if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 0) {
-          await this.ha.callService(hassCommand.domain, 'open_cover', entityId);
+          await this.ha.callService(hassCommand.domain, this.config.invertCoverOpenClose ? 'close_cover' : 'open_cover', entityId);
           return;
         }
       }

@@ -229,6 +229,12 @@
       "type": "string",
       "default": ""
     },
+    "invertCoverOpenClose": {
+      "title": "Invert Cover Open/Close",
+      "description": "Invert the open and close services used for covers that operate inverted. When disabled, a position of 0% calls open_cover and 100% calls close_cover. When enabled, a position of 0% calls close_cover and 100% calls open_cover.",
+      "type": "boolean",
+      "default": false
+    },
     "debug": {
       "title": "Enable Debug",
       "description": "Enable the debug for the plugin (development only)",
