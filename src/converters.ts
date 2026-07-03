@@ -563,6 +563,7 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'resume',                  domain: 'vacuum', service: 'start' },
     { command: 'goHome',                  domain: 'vacuum', service: 'return_to_base' },
     { command: 'changeToMode',            domain: 'vacuum', service: 'start' },
+    { command: 'selectAreas',             domain: 'vacuum', service: 'clean_area' },
 
     { command: 'on',                      domain: 'remote', service: 'turn_on' },
     { command: 'off',                     domain: 'remote', service: 'turn_off' },

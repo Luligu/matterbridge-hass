@@ -49,7 +49,18 @@ import {
 } from './converters.js';
 import { addEventEntity } from './event.entity.js';
 import { addHelperEntity } from './helper.entity.js';
-import { getDomain, getEntityName, isDeviceEntity, isDisabled, isHidden, isIndividualEntity, isSplitEntity, satisfiesAreaFilter, satisfiesLabelFilter } from './helpers.js';
+import {
+  getDomain,
+  getEntityName,
+  getSortedHassAreas,
+  isDeviceEntity,
+  isDisabled,
+  isHidden,
+  isIndividualEntity,
+  isSplitEntity,
+  satisfiesAreaFilter,
+  satisfiesLabelFilter,
+} from './helpers.js';
 import {
   DeviceId,
   type EntityId,
@@ -1158,6 +1169,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.offUpdatedEntities.delete(entityId);
           return;
         }
+      }
+      if (domain === 'vacuum' && command === 'selectAreas') {
+        // Special handling for the vacuum selectAreas command. The Matter AreaId is the index (1-based) of the Home Assistant area sorted by area_id, so we translate it back to the Home Assistant area_id before calling the clean_area service.
+        const areas = getSortedHassAreas(this.ha);
+        const cleaning_area_id = (data.request.newAreas as number[]).map((areaId) => areas[areaId - 1]?.area_id).filter((id): id is string => id !== undefined);
+        await this.ha.callService('vacuum', 'clean_area', entityId, { cleaning_area_id });
+        return;
       }
       // Normal execution for all the other commands and domains, we use the converter if present to get the service attributes and then call the service.
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes, state) : undefined;

@@ -217,6 +217,16 @@ export function satisfiesAreaFilter(platform: HomeAssistantPlatform, deviceOrEnt
 }
 
 /**
+ * Returns the Home Assistant areas sorted by area_id for deterministic Matter AreaId assignment (index + 1).
+ *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
+ * @returns {HassArea[]} - The Home Assistant areas sorted by area_id.
+ */
+export function getSortedHassAreas(ha: HomeAssistant): HassArea[] {
+  return Array.from(ha.hassAreas.values()).sort((a, b) => a.area_id.localeCompare(b.area_id));
+}
+
+/**
  * Checks if a given entity or device satisfies the configured label filter.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.

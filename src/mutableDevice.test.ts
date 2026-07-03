@@ -567,6 +567,20 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
+  it('should addClusterServerServiceArea', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device vacuum service area');
+    mutableDevice.addDeviceTypes('', bridgedNode, roboticVacuumCleaner);
+    mutableDevice.addClusterServerServiceArea('', [
+      { areaId: 1, mapId: null, areaInfo: { locationInfo: { locationName: 'Kitchen', floorNumber: null, areaType: null }, landmarkInfo: null } },
+    ]);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
   it('should create a MatterbridgeDevice', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device composed');
     mutableDevice.addDeviceTypes('', bridgedNode, powerSource);

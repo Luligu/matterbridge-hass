@@ -40,6 +40,7 @@ import {
   MatterbridgeFanControlServer,
   MatterbridgeModeSelectServer,
   MatterbridgeOnOffServer,
+  MatterbridgeServiceAreaServer,
   MatterbridgeSmokeCoAlarmServer,
   MatterbridgeThermostatServer,
   onOffLight,
@@ -72,6 +73,7 @@ import {
   RvcCleanMode,
   RvcOperationalState,
   RvcRunMode,
+  ServiceArea,
   SmokeCoAlarm,
   Thermostat,
 } from 'matterbridge/matter/clusters';
@@ -782,6 +784,27 @@ export class MutableDevice {
         ],
         operationalState: RvcOperationalState.OperationalState.Docked,
         operationalError: { errorStateId: RvcOperationalState.ErrorState.NoError, errorStateDetails: 'Fully operational' },
+      }),
+    );
+    return this;
+  }
+
+  /**
+   * Adds a ServiceArea Cluster Server to the given endpoint.
+   *
+   * @param {string} endpoint - The endpoint to which the cluster server will be added.
+   * @param {ServiceArea.Area[]} supportedAreas - The supported areas for the ServiceArea cluster.
+   *
+   * @returns {this} The current MutableDevice instance for chaining.
+   */
+  addClusterServerServiceArea(endpoint: string, supportedAreas: ServiceArea.Area[]): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(ServiceArea.id, MatterbridgeServiceAreaServer, {
+        supportedAreas,
+        selectedAreas: [],
+        currentArea: null,
+        estimatedEndTime: null,
       }),
     );
     return this;

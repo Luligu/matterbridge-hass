@@ -16,7 +16,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { jest } from '@jest/globals';
-import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, MatterbridgeEndpoint, onOffOutlet } from 'matterbridge';
+import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, MatterbridgeEndpoint, onOffOutlet, roboticVacuumCleaner } from 'matterbridge';
 import {
   addBridgedEndpointMatterbridgeSpy,
   addMatterbridgePlatform,
@@ -387,6 +387,10 @@ describe('HassPlatform', () => {
     expect(child4).toBeDefined();
     child4.number = EndpointNumber(4);
 
+    const child5 = device.addChildDeviceTypeWithClusterServer('vacuum.vacuum_5', [roboticVacuumCleaner], [], { number: EndpointNumber(5) });
+    expect(child5).toBeDefined();
+    child5.number = EndpointNumber(5);
+
     jest.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child1, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_1', 'on');
     expect(loggerLogSpy).toHaveBeenCalledWith(
@@ -481,6 +485,14 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
+
+    // The Matter AreaId is the index (1-based) of the Home Assistant area sorted by area_id: area_a => 1, area_b => 2.
+    haPlatform.ha.hassAreas.set('area_b', { area_id: 'area_b', name: 'Bedroom' } as HassArea);
+    haPlatform.ha.hassAreas.set('area_a', { area_id: 'area_a', name: 'Kitchen' } as HassArea);
+    jest.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: child5, request: { newAreas: [2] }, cluster: 'serviceArea', attributes: {} }, 'vacuum.vacuum_5', 'selectAreas');
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'clean_area', 'vacuum.vacuum_5', { cleaning_area_id: ['area_b'] });
+    haPlatform.ha.hassAreas.clear();
   });
 
   it('should call subscribeHandler', async () => {
