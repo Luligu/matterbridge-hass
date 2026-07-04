@@ -52,7 +52,7 @@ import { addHelperEntity } from './helper.entity.js';
 import {
   getDomain,
   getEntityName,
-  getSortedHassAreas,
+  hassAreaIdToMatterAreaId,
   isDeviceEntity,
   isDisabled,
   isHidden,
@@ -1171,9 +1171,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       }
       if (domain === 'vacuum' && command === 'selectAreas') {
-        // Special handling for the vacuum selectAreas command. The Matter AreaId is the index (1-based) of the Home Assistant area sorted by area_id, so we translate it back to the Home Assistant area_id before calling the clean_area service.
-        const areas = getSortedHassAreas(this.ha);
-        const cleaning_area_id = (data.request.newAreas as number[]).map((areaId) => areas[areaId - 1]?.area_id).filter((id): id is string => id !== undefined);
+        // Special handling for the vacuum selectAreas command. The Matter AreaId is a stable hash of the Home Assistant area_id (see hassAreaIdToMatterAreaId), so we translate it back to the Home Assistant area_id before calling the clean_area service.
+        const hassAreas = Array.from(this.ha.hassAreas.values());
+        const cleaning_area_id = (data.request.newAreas as number[])
+          .map((areaId) => hassAreas.find((area) => hassAreaIdToMatterAreaId(area.area_id) === areaId)?.area_id)
+          .filter((id): id is string => id !== undefined);
+        if (!isValidArray(cleaning_area_id, 1)) {
+          data.endpoint.log.warn(
+            `Command ${ign}${command}${rs}${wr} for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr} did not resolve to any known Home Assistant area, ignoring`,
+          );
+          return;
+        }
         await this.ha.callService('vacuum', 'clean_area', entityId, { cleaning_area_id });
         return;
       }

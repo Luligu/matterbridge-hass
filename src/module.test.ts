@@ -44,6 +44,7 @@ import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMea
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { wait } from 'matterbridge/utils';
 
+import { hassAreaIdToMatterAreaId } from './helpers.js';
 import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from './module.js';
 import { MutableDevice } from './mutableDevice.js';
@@ -486,12 +487,22 @@ describe('HassPlatform', () => {
     expect(callServiceSpy).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
 
-    // The Matter AreaId is the index (1-based) of the Home Assistant area sorted by area_id: area_a => 1, area_b => 2.
+    // The Matter AreaId is a stable hash of the Home Assistant area_id (see hassAreaIdToMatterAreaId).
     haPlatform.ha.hassAreas.set('area_b', { area_id: 'area_b', name: 'Bedroom' } as HassArea);
     haPlatform.ha.hassAreas.set('area_a', { area_id: 'area_a', name: 'Kitchen' } as HassArea);
     jest.clearAllMocks();
-    await haPlatform.commandHandler({ endpoint: child5, request: { newAreas: [2] }, cluster: 'serviceArea', attributes: {} }, 'vacuum.vacuum_5', 'selectAreas');
+    await haPlatform.commandHandler(
+      { endpoint: child5, request: { newAreas: [hassAreaIdToMatterAreaId('area_b')] }, cluster: 'serviceArea', attributes: {} },
+      'vacuum.vacuum_5',
+      'selectAreas',
+    );
     expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'clean_area', 'vacuum.vacuum_5', { cleaning_area_id: ['area_b'] });
+
+    // An AreaId that does not match any known Home Assistant area must not call the clean_area service.
+    jest.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: child5, request: { newAreas: [999999999] }, cluster: 'serviceArea', attributes: {} }, 'vacuum.vacuum_5', 'selectAreas');
+    expect(callServiceSpy).not.toHaveBeenCalled();
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining('did not resolve to any known Home Assistant area'));
     haPlatform.ha.hassAreas.clear();
   });
 

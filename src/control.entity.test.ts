@@ -16,7 +16,7 @@ import { LevelControl } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from './control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
-import { generateEntity, generateState } from './helpers.js';
+import { generateEntity, generateState, hassAreaIdToMatterAreaId } from './helpers.js';
 import {
   type HassConfig,
   type HassEntity,
@@ -258,8 +258,8 @@ describe('addControlEntity', () => {
     const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.CLEAN_AREA });
     addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
     expect(md.addClusterServerServiceArea).toHaveBeenCalledWith(e.entity_id, [
-      { areaId: 1, mapId: null, areaInfo: { locationInfo: { locationName: 'Bedroom', floorNumber: null, areaType: null }, landmarkInfo: null } },
-      { areaId: 2, mapId: null, areaInfo: { locationInfo: { locationName: 'Kitchen', floorNumber: null, areaType: null }, landmarkInfo: null } },
+      { areaId: hassAreaIdToMatterAreaId('bedroom'), mapId: null, areaInfo: { locationInfo: { locationName: 'Bedroom', floorNumber: null, areaType: null }, landmarkInfo: null } },
+      { areaId: hassAreaIdToMatterAreaId('kitchen'), mapId: null, areaInfo: { locationInfo: { locationName: 'Kitchen', floorNumber: null, areaType: null }, landmarkInfo: null } },
     ]);
   });
 

@@ -217,13 +217,31 @@ export function satisfiesAreaFilter(platform: HomeAssistantPlatform, deviceOrEnt
 }
 
 /**
- * Returns the Home Assistant areas sorted by area_id for deterministic Matter AreaId assignment (index + 1).
+ * Returns the Home Assistant areas sorted by area_id for a deterministic Matter SupportedAreas ordering.
  *
  * @param {HomeAssistant} ha - The Home Assistant instance.
  * @returns {HassArea[]} - The Home Assistant areas sorted by area_id.
  */
 export function getSortedHassAreas(ha: HomeAssistant): HassArea[] {
-  return Array.from(ha.hassAreas.values()).sort((a, b) => a.area_id.localeCompare(b.area_id));
+  // Compare code points directly instead of localeCompare(), whose result depends on the runtime's default locale/ICU settings and would undermine the deterministic ordering across hosts.
+  return Array.from(ha.hassAreas.values()).sort((a, b) => (a.area_id < b.area_id ? -1 : a.area_id > b.area_id ? 1 : 0));
+}
+
+/**
+ * Derives a stable Matter ServiceArea AreaId from a Home Assistant area_id using the FNV-1a 32-bit hash.
+ *
+ * The AreaId must stay stable across restarts regardless of how the Home Assistant area registry grows, shrinks, or is reordered, so it cannot be a positional index into the current area list.
+ *
+ * @param {string} areaId - The Home Assistant area_id.
+ * @returns {number} - An unsigned 32-bit integer derived from the area_id, stable for as long as the area_id itself does not change.
+ */
+export function hassAreaIdToMatterAreaId(areaId: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < areaId.length; i++) {
+    hash ^= areaId.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
 }
 
 /**

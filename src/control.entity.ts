@@ -31,7 +31,7 @@ import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
 import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
-import { entityHasLabel, getDomain, getEntityName, getSortedHassAreas } from './helpers.js';
+import { entityHasLabel, getDomain, getEntityName, getSortedHassAreas, hassAreaIdToMatterAreaId } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -216,8 +216,8 @@ export function addControlEntity(
     );
     mutableDevice.addVacuum(endpointName);
     if (isValidNumber(state.attributes.supported_features) && (state.attributes.supported_features & VacuumEntityFeature.CLEAN_AREA) !== 0 && platform.ha.hassAreas.size > 0) {
-      const supportedAreas: ServiceArea.Area[] = getSortedHassAreas(platform.ha).map((area, index) => ({
-        areaId: index + 1,
+      const supportedAreas: ServiceArea.Area[] = getSortedHassAreas(platform.ha).map((area) => ({
+        areaId: hassAreaIdToMatterAreaId(area.area_id),
         mapId: null,
         areaInfo: { locationInfo: { locationName: area.name.slice(0, 32), floorNumber: null, areaType: null }, landmarkInfo: null },
       }));
