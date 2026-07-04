@@ -800,11 +800,15 @@ export class MutableDevice {
   addClusterServerServiceArea(endpoint: string, supportedAreas: ServiceArea.Area[]): this {
     const device = this.initializeEndpoint(endpoint);
     device.clusterServersObjs.push(
-      getClusterServerObj(ServiceArea.id, MatterbridgeServiceAreaServer, {
+      // The Maps feature must be enabled so supportedMaps is a valid attribute: ServiceAreaBaseServer.initialize() unconditionally
+      // reads state.supportedMaps.length, which crashes when the attribute is absent from the state (matches the pattern used by
+      // MatterbridgeEndpoint.createDefaultServiceAreaClusterServer() in matterbridge core).
+      getClusterServerObj(ServiceArea.id, MatterbridgeServiceAreaServer.with(ServiceArea.Feature.Maps), {
         supportedAreas,
         selectedAreas: [],
         currentArea: null,
         estimatedEndTime: null,
+        supportedMaps: [],
       }),
     );
     return this;
