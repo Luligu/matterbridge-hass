@@ -16,8 +16,17 @@ import { LevelControl } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from './control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
-import { generateEntity, generateState } from './helpers.js';
-import { type HassConfig, type HassEntity, type HassState, HomeAssistant, MediaPlayerEntityFeature, MediaPlayerService, UnitOfTemperature } from './homeAssistant.js';
+import { generateEntity, generateState, hassAreaIdToMatterAreaId } from './helpers.js';
+import {
+  type HassConfig,
+  type HassEntity,
+  type HassState,
+  HomeAssistant,
+  MediaPlayerEntityFeature,
+  MediaPlayerService,
+  UnitOfTemperature,
+  VacuumEntityFeature,
+} from './homeAssistant.js';
 import { MutableDevice } from './mutableDevice.js';
 
 function createMockMutableDevice(): MutableDevice {
@@ -47,6 +56,7 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerHeatingCoolingThermostat: jest.fn(),
     addClusterServerCompleteFanControl: jest.fn(),
     addVacuum: jest.fn(),
+    addClusterServerServiceArea: jest.fn(),
     addSelect: jest.fn(),
     addOnOff: jest.fn(),
     addBasicVideoPlayer: jest.fn(),
@@ -57,13 +67,16 @@ function createMockMutableDevice(): MutableDevice {
 }
 
 const mockLog = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any;
-const mockPlatform = { config: { virtualControlLabel: '' }, log: mockLog } as any;
+const mockPlatform = { config: { virtualControlLabel: '' }, log: mockLog, ha: { hassAreas: new Map() } } as any;
 const commandHandler = jest.fn(async () => {}); // async signature required
 const subscribeHandler = jest.fn();
 type VirtualDeviceCallback = () => Promise<void>;
 
 describe('addControlEntity', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPlatform.ha.hassAreas.clear();
+  });
 
   const make = (domain: string, name: string, attrs: Record<string, any>) => {
     const md = createMockMutableDevice();
@@ -224,6 +237,30 @@ describe('addControlEntity', () => {
     // @ts-expect-error chainable return
     const vacuumCalls = md.addDeviceTypes.mock.calls.filter((c: any[]) => c[1] === roboticVacuumCleaner);
     expect(vacuumCalls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('vacuum does not add ServiceArea without CLEAN_AREA feature even with areas available', () => {
+    mockPlatform.ha.hassAreas.set('kitchen', { area_id: 'kitchen', name: 'Kitchen' });
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.START });
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerServiceArea).not.toHaveBeenCalled();
+  });
+
+  it('vacuum does not add ServiceArea when CLEAN_AREA is supported but no areas are available', () => {
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.CLEAN_AREA });
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerServiceArea).not.toHaveBeenCalled();
+  });
+
+  it('vacuum adds ServiceArea with the Home Assistant areas when CLEAN_AREA is supported', () => {
+    mockPlatform.ha.hassAreas.set('kitchen', { area_id: 'kitchen', name: 'Kitchen' });
+    mockPlatform.ha.hassAreas.set('bedroom', { area_id: 'bedroom', name: 'Bedroom' });
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.CLEAN_AREA });
+    addControlEntity(mockPlatform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerServiceArea).toHaveBeenCalledWith(e.entity_id, [
+      { areaId: hassAreaIdToMatterAreaId('bedroom'), mapId: null, areaInfo: { locationInfo: { locationName: 'Bedroom', floorNumber: null, areaType: null }, landmarkInfo: null } },
+      { areaId: hassAreaIdToMatterAreaId('kitchen'), mapId: null, areaInfo: { locationInfo: { locationName: 'Kitchen', floorNumber: null, areaType: null }, landmarkInfo: null } },
+    ]);
   });
 
   it('valve mapping', () => {

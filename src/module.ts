@@ -49,7 +49,18 @@ import {
 } from './converters.js';
 import { addEventEntity } from './event.entity.js';
 import { addHelperEntity } from './helper.entity.js';
-import { getDomain, getEntityName, isDeviceEntity, isDisabled, isHidden, isIndividualEntity, isSplitEntity, satisfiesAreaFilter, satisfiesLabelFilter } from './helpers.js';
+import {
+  getDomain,
+  getEntityName,
+  hassAreaIdToMatterAreaId,
+  isDeviceEntity,
+  isDisabled,
+  isHidden,
+  isIndividualEntity,
+  isSplitEntity,
+  satisfiesAreaFilter,
+  satisfiesLabelFilter,
+} from './helpers.js';
 import {
   DeviceId,
   type EntityId,
@@ -1158,6 +1169,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           this.offUpdatedEntities.delete(entityId);
           return;
         }
+      }
+      if (domain === 'vacuum' && command === 'selectAreas') {
+        // Special handling for the vacuum selectAreas command. The Matter AreaId is a stable hash of the Home Assistant area_id (see hassAreaIdToMatterAreaId), so we translate it back to the Home Assistant area_id before calling the clean_area service.
+        const hassAreas = Array.from(this.ha.hassAreas.values());
+        const cleaning_area_id = (data.request.newAreas as number[])
+          .map((areaId) => hassAreas.find((area) => hassAreaIdToMatterAreaId(area.area_id) === areaId)?.area_id)
+          .filter((id): id is string => id !== undefined);
+        if (!isValidArray(cleaning_area_id, 1)) {
+          data.endpoint.log.warn(
+            `Command ${ign}${command}${rs}${wr} for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr} did not resolve to any known Home Assistant area, ignoring`,
+          );
+          return;
+        }
+        await this.ha.callService('vacuum', 'clean_area', entityId, { cleaning_area_id });
+        return;
       }
       // Normal execution for all the other commands and domains, we use the converter if present to get the service attributes and then call the service.
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes, state) : undefined;

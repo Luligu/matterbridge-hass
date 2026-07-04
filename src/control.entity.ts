@@ -26,12 +26,12 @@
 import { colorTemperatureLight, dimmableLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { LevelControl } from 'matterbridge/matter/clusters';
+import { LevelControl, ServiceArea } from 'matterbridge/matter/clusters';
 import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
 import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
-import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
+import { entityHasLabel, getDomain, getEntityName, getSortedHassAreas, hassAreaIdToMatterAreaId } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -215,6 +215,14 @@ export function addControlEntity(
       `# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`,
     );
     mutableDevice.addVacuum(endpointName);
+    if (isValidNumber(state.attributes.supported_features) && (state.attributes.supported_features & VacuumEntityFeature.CLEAN_AREA) !== 0 && platform.ha.hassAreas.size > 0) {
+      const supportedAreas: ServiceArea.Area[] = getSortedHassAreas(platform.ha).map((area) => ({
+        areaId: hassAreaIdToMatterAreaId(area.area_id),
+        mapId: null,
+        areaInfo: { locationInfo: { locationName: area.name.slice(0, 32), floorNumber: null, areaType: null }, landmarkInfo: null },
+      }));
+      mutableDevice.addClusterServerServiceArea(endpointName, supportedAreas);
+    }
   }
 
   // Configure the select.
