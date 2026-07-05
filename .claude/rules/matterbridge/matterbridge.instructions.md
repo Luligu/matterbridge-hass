@@ -1,5 +1,5 @@
 ---
-description: 'How to create MatterbridgeEndpoint instances, register them in Matterbridge plugins, and use the single-class devices exported by the package v. 1.0.0'
+description: 'How to create MatterbridgeEndpoint instances, register them in Matterbridge plugins, and use the single-class devices exported by the package v. 1.0.1'
 ---
 
 # Matterbridge Endpoint Guide
@@ -49,16 +49,10 @@ Recommended pattern:
 ```ts
 const device = new MatterbridgeEndpoint([contactSensor, powerSource], { id: 'EntryDoor' })
   .createDefaultIdentifyClusterServer()
-  .createDefaultBridgedDeviceBasicInformationClusterServer(
-    'Entry Door',
-    'ENTRY-DOOR-001',
-    0xfff1,
-    'Matterbridge',
-    'Entry Door Sensor',
-  )
+  .createDefaultBridgedDeviceBasicInformationClusterServer('Entry Door', 'ENTRY-DOOR-001', 0xfff1, 'Matterbridge', 'Entry Door Sensor')
   .createDefaultBooleanStateClusterServer(false)
   .createDefaultPowerSourceReplaceableBatteryClusterServer(75)
-  .addRequiredClusterServers();
+  .addRequiredClusters();
 ```
 
 Rules that matter:
@@ -66,7 +60,7 @@ Rules that matter:
 - `definition` can be a single device type or an array of device types.
 - Use multiple device types when the endpoint needs more than one role, for example `[contactSensor, powerSource]`.
 - Call one of the Basic Information helpers before `registerDevice()`. Without `deviceName`, `serialNumber`, and `uniqueId`, registration fails.
-- Call `addRequiredClusterServers()` at the end of the chain so any required clusters that you did not explicitly create are added automatically.
+- Call `addRequiredClusters()` at the end of the chain so any required clusters (server or client) that you did not explicitly create are added automatically.
 - Use `addOptionalClusterServers()` only when you really want the optional clusters defined by the selected device type(s).
 
 ## MatterbridgeEndpointOptions
@@ -116,7 +110,7 @@ Important behavior:
 
 In plugin code, prefer `this.registerDevice(device)` instead of calling Matterbridge internals directly.
 
-DynamicPlatform bridged endpoint:
+DynamicPlatform bridged device:
 
 ```ts
 import { MatterbridgeDynamicPlatform, MatterbridgeEndpoint, onOffLight } from 'matterbridge';
@@ -130,13 +124,7 @@ class ExamplePlatform extends MatterbridgeDynamicPlatform {
     await this.ready;
 
     const device = new MatterbridgeEndpoint(onOffLight, { id: 'OnOffLightPlugin' })
-      .createDefaultBridgedDeviceBasicInformationClusterServer(
-        'Kitchen Light',
-        'LIGHT-001',
-        0xfff1,
-        'Matterbridge',
-        'Matterbridge OnOffLight',
-      )
+      .createDefaultBridgedDeviceBasicInformationClusterServer('Kitchen Light', 'LIGHT-001', 0xfff1, 'Matterbridge', 'Matterbridge OnOffLight')
       .addRequiredClusterServers();
 
     await this.registerDevice(device);
@@ -158,14 +146,7 @@ class ExamplePlatform extends MatterbridgeAccessoryPlatform {
     await this.ready;
 
     const device = new MatterbridgeEndpoint(temperatureSensor, { id: 'TemperatureSensorPlugin' })
-      .createDefaultBasicInformationClusterServer(
-        'Temperature Sensor',
-        'TEMP-001',
-        0xfff1,
-        'Matterbridge',
-        0x8000,
-        'Matterbridge Temperature Sensor',
-      )
+      .createDefaultBasicInformationClusterServer('Temperature Sensor', 'TEMP-001', 0xfff1, 'Matterbridge', 0x8000, 'Matterbridge Temperature Sensor')
       .addRequiredClusterServers();
 
     await this.registerDevice(device);
@@ -177,14 +158,7 @@ Standalone Matter device from a plugin:
 
 ```ts
 const device = new MatterbridgeEndpoint(pressureSensor, { id: 'ServerNodeDevice', mode: 'server' })
-  .createDefaultBasicInformationClusterServer(
-    'Server Node Device',
-    'SERVER-001',
-    0xfff1,
-    'Matterbridge',
-    0x8000,
-    'Matterbridge Server Node Device',
-  )
+  .createDefaultBasicInformationClusterServer('Server Node Device', 'SERVER-001', 0xfff1, 'Matterbridge', 0x8000, 'Matterbridge Server Node Device')
   .addRequiredClusterServers();
 
 await this.registerDevice(device);
@@ -194,14 +168,7 @@ Native Matter endpoint on the server node:
 
 ```ts
 const device = new MatterbridgeEndpoint(pressureSensor, { id: 'MatterNodeDevice', mode: 'matter' })
-  .createDefaultBasicInformationClusterServer(
-    'Matter Node Device',
-    'MATTER-001',
-    0xfff1,
-    'Matterbridge',
-    0x8000,
-    'Matterbridge Matter Node Device',
-  )
+  .createDefaultBasicInformationClusterServer('Matter Node Device', 'MATTER-001', 0xfff1, 'Matterbridge', 0x8000, 'Matterbridge Matter Node Device')
   .addRequiredClusterServers();
 
 await this.registerDevice(device);
@@ -227,6 +194,7 @@ Common helpers on the endpoint instance:
 - `subscribeAttribute(cluster, attribute, listener)`
 - `addRequiredClusterServers()`
 - `addOptionalClusterServers()`
+- `addRequiredClusters()`
 
 Example:
 
@@ -240,6 +208,8 @@ Cluster references can be passed in several ways:
 - cluster type
 - cluster id
 - cluster name string such as `'OnOff'`
+
+Behavior type and cluster type are preferred because they are type-safe and avoid typos.
 
 Using the cluster name string is useful in plugins because it avoids importing every cluster type.
 

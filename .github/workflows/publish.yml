@@ -1,4 +1,4 @@
-# Publish to npm (plugin) v. 2.0.4
+# Publish to npm (plugin) v. 2.0.5
 # Path: .github/workflows/publish.yml
 
 name: Publish to npm
@@ -63,13 +63,41 @@ jobs:
       - name: Install plugin dependencies
         run: npm ci --no-fund --no-audit
 
-      - name: Link matterbridge in the project
+      - name: Link matterbridge in the plugin
         run: npm link matterbridge --no-fund --no-audit
 
-      - name: Build the plugin (typescript)
-        run: npx tsc --build tsconfig.build.json
+      - name: Build the plugin
+        run: npm run build
+
+      - name: Typecheck the plugin
+        run: npm run typecheck
 
       - name: Lint the plugin
+        run: npm run lint
+
+      - name: Check the plugin frontend
+        id: check_frontend
+        shell: bash
+        run: echo "has_frontend=$(test -f apps/frontend/package.json && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Install the frontend dependencies
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm ci --no-fund --no-audit
+
+      - name: Build the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Typecheck the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run typecheck
+
+      - name: Lint the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
         run: npm run lint
 
       - name: Check config files
@@ -182,10 +210,38 @@ jobs:
       - name: Link matterbridge in the plugin
         run: npm link matterbridge --no-fund --no-audit
 
-      - name: Build the plugin (typescript)
-        run: npx tsc --build tsconfig.build.json
+      - name: Build the plugin
+        run: npm run build
+
+      - name: Typecheck the plugin
+        run: npm run typecheck
 
       - name: Lint the plugin
+        run: npm run lint
+
+      - name: Check the plugin frontend
+        id: check_frontend
+        shell: bash
+        run: echo "has_frontend=$(test -f apps/frontend/package.json && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Install the frontend dependencies
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm ci --no-fund --no-audit
+
+      - name: Build the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Typecheck the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run typecheck
+
+      - name: Lint the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
         run: npm run lint
 
       - name: Check config files

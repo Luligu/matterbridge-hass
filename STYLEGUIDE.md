@@ -72,11 +72,10 @@ The logger is always AnsiLogger.
 
 ## 7. Formatting & Lint
 
-- ESLint + Prettier govern style; do not fight formatters. VSCode is configured to format on save.
+- The installed linter and formatter govern style; do not fight formatters. VSCode is configured to format on save.
 - The default tabWidth is 2 not 4.
 - No trailing spaces; keep imports sorted by groups: std libs, external deps, internal modules, types.
 - Use trailing commas where multi‑line.
-- The repo uses `eslint-plugin-simple-import-sort`, `eslint-plugin-n`, `eslint-plugin-jsdoc`, `eslint-plugin-prettier`, `eslint-plugin-jest`, `@eslint/json`, `@eslint/markdown` and `@vitest/eslint-plugin`.
 
 ## 8. Tests
 
@@ -128,19 +127,5 @@ function luxToMatterExample(lux: number): number {
   return Math.round(Math.min(10000 * Math.log10(lux), 0xfffe));
 }
 ```
-
-## 15. Creating Jest test
-
-Always remember we are in ESM module with ts-jest.
-
-So use jest.unstable_mockModule and not jest.mock.
-
-## 16. Running Jest test
-
-Always use
-
-npm run test:coverage -- yourTest.test.ts
-
----
 
 Short, opinionated. If a rule isn’t helping, propose a PR to adjust.

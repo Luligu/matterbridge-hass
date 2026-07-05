@@ -1,8 +1,9 @@
-# .gitignore
+# .gitignore 1.0.1
 # This file specifies intentionally untracked directories and files that Git should ignore.
 
 # Specific directories that should be ignored
 .cache/
+build/
 coverage/
 dist/
 jest/

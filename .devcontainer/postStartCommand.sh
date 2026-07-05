@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# postStartCommand.sh
+# postStartCommand.sh v. 1.0.1
 
 # This script runs after the Dev Container is started to set up the dev container environment.
 
@@ -20,9 +20,13 @@ echo "Node.js version: $(node -v)"
 echo "Npm version: $(npm -v)"
 echo ""
 
-echo "1 - Building the package..."
+echo "1 - Installing the plugin dependencies..."
 npm install --no-fund --no-audit
+
+echo "2 - Linking Matterbridge..."
 npm link matterbridge --no-fund --no-audit
+
+echo "3 - Building the plugin..."
 npm run build
 
-echo "2 - Post start setup completed!"
+echo "4 - Post start setup completed!"

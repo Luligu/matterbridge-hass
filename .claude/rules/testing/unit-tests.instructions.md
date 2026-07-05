@@ -5,23 +5,24 @@ paths:
   - '**/src/**/*.spec.ts'
   - '**/test/**/*.ts'
   - '**/vitest/**/*.ts'
+  - '**/buntest/**/*.ts'
 ---
 
 # Testing Standards for Unit Tests
 
 ## 1. Test Framework
 
-- Use Jest (with ts-jest) or Vitest as the testing framework for all unit tests.
 - Jest is available in the repository when the file `jest.config.js` exists.
 - Vitest is available in the repository when the file `vite.config.ts` exists.
-- Avoid using both Jest and Vitest in the same project to prevent conflicts. When both are available, prefer Vitest for new tests and consider migrating existing Jest tests to Vitest over time.
-- Jest tests live adjacent to the code being tested with a `.test.ts` suffix or in `test` folders. Follow the existing convention in the repository for test file placement.
-- Vitest tests live adjacent to the code being tested with a `.test.ts` suffix or in `vitest` folders. Follow the existing convention in the repository for test file placement.
+- Bun test is available in the repository when the file `bunfig.toml` exists.
+- Jest tests live in `test` folders. Follow the existing convention in the repository for test file placement.
+- Vitest tests live in `vitest` folders. Follow the existing convention in the repository for test file placement.
+- Bun test tests live in `buntest` folders. Follow the existing convention in the repository for test file placement.
 - Ensure that tests are written in TypeScript and follow the ESM module format.
 
 ## 2. Test Structure
 
-- Organize tests in file name `*.test.ts` adjacent to the code being tested.
+- Organize tests in file name `*.test.ts` in the `test`, `vitest`, or `buntest` folders.
 - Use `describe` blocks to group related tests and `test` blocks for individual test cases.
 
 ## 3. Test Naming
@@ -47,12 +48,13 @@ paths:
 - Run the relevant full test unit from start to finish rather than assuming isolated single-test execution is reliable.
 - If only one test framework is installed, use `npm run test -- yourTest.test.ts` or `npm run test:coverage -- yourTest.test.ts` when the touched area can be validated by running the full relevant test file.
 - When both Jest and Vitest are installed, use `npm run test -- yourTest.test.ts` for Jest or `npm run test:vitest -- yourTest.test.ts` for Vitest.
+- When Bun test is installed, use `bun test yourTest.test.ts`.
 - Use the existing `tasks.json` test tasks for areas that require grouped test files, custom coverage targets, or custom ignore-pattern handling.
 - Avoid running all tests unnecessarily to save time and tokens.
 
 ## 8. Test Assertions
 
-- Use appropriate Jest or Vitest matchers for assertions (e.g., `toBe`, `toEqual`, `toThrow`).
+- Use appropriate Jest, Vitest, or Bun test matchers for assertions (e.g., `toBe`, `toEqual`, `toThrow`).
 - Ensure that assertions are clear and directly related to the behavior being tested.
 
 ## 9. Performance
