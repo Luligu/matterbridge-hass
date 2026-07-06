@@ -1,4 +1,11 @@
-// src\module.test.ts
+/**
+ * @file vitest/module.test.ts
+ * @description This file contains the tests for the class HomeAssistantPlatform.
+ * @author Luca Liguori
+ */
+
+/* oxlint-disable eslint/no-console */
+/* oxlint-disable eslint/no-use-before-define */
 
 /**
  * WARNING!!!
@@ -6,26 +13,20 @@
  * Is not possible for timing reasons to create and destroy a Matter node each test to keep isolation.
  */
 
-/* eslint-disable no-console */
-// TODO: Remove when require Matterbridge 3.8.1 or later
-/* eslint-disable @typescript-eslint/no-deprecated */
-
 const NAME = 'Platform';
 const MATTER_PORT = 6000;
-const HOMEDIR = path.join('jest', NAME);
 
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import fs from 'node:fs';
+import path from 'node:path';
 
-import { jest } from '@jest/globals';
-import { bridgedNode, colorTemperatureLight, coverDevice, dimmableOutlet, MatterbridgeEndpoint, onOffOutlet } from 'matterbridge';
+import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEndpoint, onOffPlugInUnit, windowCovering } from 'matterbridge';
+import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
+import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
+import { EndpointNumber } from 'matterbridge/matter/types';
+import { wait } from 'matterbridge/utils';
 import {
-  addBridgedEndpointMatterbridgeSpy,
-  addMatterbridgePlatform,
-  addVirtualEndpointMatterbridgeSpy,
-  createMatterbridgeEnvironment,
-  destroyMatterbridgeEnvironment,
   flushAsync,
+  HOMEDIR,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -33,24 +34,27 @@ import {
   loggerLogSpy,
   loggerNoticeSpy,
   loggerWarnSpy,
-  matterbridge,
-  removeAllBridgedEndpointsMatterbridgeSpy,
-  removeBridgedEndpointMatterbridgeSpy,
-  setAttributeMatterbridgeEndpointSpy,
   setDebug,
   setupTest,
-  triggerSwitchEventMatterbridgeEndpointSpy,
-} from 'matterbridge/jestutils';
-import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
-import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
-import { EndpointNumber } from 'matterbridge/matter/types';
-import { wait } from 'matterbridge/utils';
+} from 'matterbridge/vitest-utils';
+import { createServerNode, createTestEnvironment, destroyTestEnvironment, flushServerNode } from 'matterbridge/vitest-utils/matter';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from './module.js';
-import { MutableDevice } from './mutableDevice.js';
+import { type HassArea, type HassConfig, type HassDevice, type HassEntity, type HassLabel, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
+import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
+import { MutableDevice } from '../src/mutableDevice.js';
 
-const readMockHomeAssistantFile = () => {
+const setAttributeMatterbridgeEndpointSpy = vi.spyOn(MatterbridgeEndpoint.prototype, 'setAttribute');
+const triggerSwitchEventMatterbridgeEndpointSpy = vi.spyOn(MatterbridgeEndpoint.prototype, 'triggerSwitchEvent');
+
+const readMockHomeAssistantFile = (): {
+  devices: HassDevice[];
+  entities: HassEntity[];
+  areas: HassArea[];
+  labels: HassLabel[];
+  states: HassState[];
+  config: HassConfig;
+  services: HassServices;
+} | null => {
   const filePath = path.join('mock', 'homeassistant.json');
   try {
     const data = fs.readFileSync(filePath, 'utf8');
@@ -69,18 +73,20 @@ const readMockHomeAssistantFile = () => {
   }
 };
 
-const savePayloadMock = jest.fn(async () => undefined);
-const writeReportMock = jest.fn(async () => '');
+const { savePayloadMock, writeReportMock } = vi.hoisted(() => ({
+  savePayloadMock: vi.fn(async () => {}),
+  writeReportMock: vi.fn(async () => ''),
+}));
 
-jest.unstable_mockModule('./payload.js', () => ({
+vi.mock('../src/payload.js', () => ({
   savePayload: savePayloadMock,
 }));
 
-jest.unstable_mockModule('./report.js', () => ({
+vi.mock('../src/report.js', () => ({
   writeReport: writeReportMock,
 }));
 
-const { default: initializePlugin, HomeAssistantPlatform } = await import('./module.js');
+const { default: initializePlugin, HomeAssistantPlatform } = await import('../src/module.js');
 
 // Setup the test environment
 await setupTest(NAME, false);
@@ -96,42 +102,52 @@ describe('HassPlatform', () => {
     throw new Error('Failed to read or parse mock homeassistant.json file');
   }
 
-  addBridgedEndpointMatterbridgeSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
-    console.log(`Mocked Matterbridge.addBridgedEndpoint: ${pluginName} ${device.name}`);
-    return Promise.resolve();
-  });
-  removeBridgedEndpointMatterbridgeSpy.mockImplementation((pluginName: string, device: MatterbridgeEndpoint) => {
-    console.log(`Mocked Matterbridge.removeBridgedEndpoint: ${pluginName} ${device.name}`);
-    return Promise.resolve();
-  });
-  removeAllBridgedEndpointsMatterbridgeSpy.mockImplementation((pluginName: string) => {
-    console.log(`Mocked Matterbridge.removeAllBridgedEndpoints: ${pluginName}`);
-    return Promise.resolve();
-  });
-  addVirtualEndpointMatterbridgeSpy.mockImplementation(
-    async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
+  const matterbridge = {
+    matterbridgeDirectory: HOMEDIR + '/.matterbridge',
+    matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
+    systemInformation: {
+      ipv4Address: undefined,
+      ipv6Address: undefined,
+      osRelease: 'xx.xx.xx.xx.xx.xx',
+      nodeVersion: '22.1.10',
+    },
+    matterbridgeVersion: '3.9.0',
+    log,
+    addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      console.log(`Mocked Matterbridge.addBridgedEndpoint: ${pluginName} ${device.name}`);
+      return Promise.resolve();
+    }),
+    removeBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      console.log(`Mocked Matterbridge.removeBridgedEndpoint: ${pluginName} ${device.name}`);
+      return Promise.resolve();
+    }),
+    removeAllBridgedEndpoints: vi.fn(async (pluginName: string) => {
+      console.log(`Mocked Matterbridge.removeAllBridgedEndpoints: ${pluginName}`);
+      return Promise.resolve();
+    }),
+    addVirtualEndpoint: vi.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
       console.log(`Mocked Matterbridge.addVirtualEndpoint`);
       return true;
-    },
-  );
+    }),
+  } as any;
 
-  const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
+  const connectSpy = vi.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(async () => {
     console.log(`Mocked HomeAssistant.connect`);
     return Promise.resolve('2024.09.1');
   });
-  const closeSpy = jest.spyOn(HomeAssistant.prototype, 'close').mockImplementation(() => {
+  const closeSpy = vi.spyOn(HomeAssistant.prototype, 'close').mockImplementation(async () => {
     console.log(`Mocked HomeAssistant.close`);
     return Promise.resolve();
   });
-  const subscribeSpy = jest.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation((event?: string) => {
+  const subscribeSpy = vi.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation(async (event?: string) => {
     console.log(`Mocked HomeAssistant.subscribe: ${event}`);
     return Promise.resolve(15);
   });
-  const fetchDataSpy = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
+  const fetchDataSpy = vi.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(async () => {
     console.log(`Mocked HomeAssistant.fetchData`);
     return Promise.resolve();
   });
-  const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((type: string, timeout = 5000) => {
+  const fetchSpy = vi.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation(async (type: string, timeout = 5000) => {
     console.log(`Mocked HomeAssistant.fetch: ${type}`);
     if (type === 'config/device_registry/list') {
       return Promise.resolve(mockData.devices);
@@ -142,28 +158,30 @@ describe('HassPlatform', () => {
     }
     return Promise.resolve(mockData.config);
   });
-  const callServiceSpy = jest
+  const callServiceSpy = vi
     .spyOn(HomeAssistant.prototype, 'callService')
-    .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}, id?: number) => {
+    .mockImplementation(async (domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}, id?: number) => {
       console.log(`Mocked HomeAssistant.callService: domain ${domain} service ${service} entityId ${entityId}`);
       return Promise.resolve({} as any);
     });
 
   beforeAll(async () => {
     // Create the test environment
-    await createMatterbridgeEnvironment();
+    await createTestEnvironment();
+    // Create the server node and aggregator
+    await createServerNode(MATTER_PORT);
   });
 
   beforeEach(() => {
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Reset HomeAssistantPlatform instance
     if (haPlatform) {
       haPlatform.haSubscriptionId = 1;
       haPlatform.ha.connected = true;
       haPlatform.ha.hassConfig = {} as HassConfig;
-      haPlatform.ha.hassServices = {} as HassServices;
+      haPlatform.ha.hassServices = {};
       haPlatform.ha.hassDevices.clear();
       haPlatform.ha.hassEntities.clear();
       haPlatform.ha.hassStates.clear();
@@ -182,11 +200,13 @@ describe('HassPlatform', () => {
   });
 
   afterAll(async () => {
+    // Flush the server node (create-only mode)
+    await flushServerNode();
     // Destroy the test environment
-    await destroyMatterbridgeEnvironment();
+    await destroyTestEnvironment();
 
     // Restore all mocks
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 
     // logKeepAlives(log);
   });
@@ -222,7 +242,8 @@ describe('HassPlatform', () => {
     mockConfig.token = 'long-lived token';
     haPlatform = new HomeAssistantPlatform(matterbridge, log, mockConfig);
     haPlatform.dryRun = true; // Set dryRun to true to skip validation
-    addMatterbridgePlatform(haPlatform);
+    // @ts-expect-error - setMatterNode is intentionally private
+    haPlatform.setMatterNode?.(matterbridge.addBridgedEndpoint, matterbridge.removeBridgedEndpoint, matterbridge.removeAllBridgedEndpoints, matterbridge.addVirtualEndpoint);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`MatterbridgeDynamicPlatform loaded`);
 
     await new Promise<void>((resolve) => {
@@ -234,7 +255,7 @@ describe('HassPlatform', () => {
   });
 
   it('should not initialize platform with wrong version', () => {
-    expect(() => new HomeAssistantPlatform({ ...matterbridge, matterbridgeVersion: '1.5.5' }, log, mockConfig)).toThrow();
+    expect(() => new HomeAssistantPlatform({ ...matterbridge, matterbridgeVersion: '3.8.0' }, log, mockConfig)).toThrow('This plugin requires Matterbridge version >= "3.9.0".');
   });
 
   it('should validate with white and black list', () => {
@@ -373,11 +394,11 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
 
-    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmableOutlet], [], { number: EndpointNumber(1) });
+    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmablePlugInUnit], [], { number: EndpointNumber(1) });
     expect(child1).toBeDefined();
     child1.number = EndpointNumber(1);
 
-    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmableOutlet], [], { number: EndpointNumber(2) });
+    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmablePlugInUnit], [], { number: EndpointNumber(2) });
     expect(child2).toBeDefined();
     child2.number = EndpointNumber(2);
 
@@ -385,11 +406,11 @@ describe('HassPlatform', () => {
     expect(child3).toBeDefined();
     child3.number = EndpointNumber(3);
 
-    const child4 = device.addChildDeviceTypeWithClusterServer('cover.cover_cover_4', [coverDevice], [], { number: EndpointNumber(4) });
+    const child4 = device.addChildDeviceTypeWithClusterServer('cover.cover_cover_4', [windowCovering], [], { number: EndpointNumber(4) });
     expect(child4).toBeDefined();
     child4.number = EndpointNumber(4);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child1, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_1', 'on');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
@@ -397,7 +418,7 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_on', 'switch.switch_switch_1', undefined);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child2, request: {}, cluster: 'onOff', attributes: {} }, 'switch.switch_switch_2', 'off');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
@@ -405,7 +426,7 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).toHaveBeenCalledWith('switch', 'turn_off', 'switch.switch_switch_2', undefined);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'light.light_light_3', 'moveToLevel');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
@@ -414,7 +435,7 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevel${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'light.light_light_3', 'moveToLevelWithOnOff');
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
@@ -423,7 +444,7 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler(
       { endpoint: child3, request: { colorTemperatureMireds: 300 }, cluster: 'colorControl', attributes: {} },
       'light.light_light_3',
@@ -431,11 +452,11 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ color_temp_kelvin: 3333 }));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler({ endpoint: child3, request: { colorX: 32000, colorY: 32000 }, cluster: 'colorControl', attributes: {} }, 'light.light_light_3', 'moveToColor');
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ xy_color: [0.4883, 0.4883] }));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler(
       { endpoint: child3, request: { hue: 50 }, cluster: 'colorControl', attributes: { currentSaturation: { value: 50 } } },
       'light.light_light_3',
@@ -443,7 +464,7 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler(
       { endpoint: child3, request: { saturation: 50 }, cluster: 'colorControl', attributes: { currentHue: { value: 50 } } },
       'light.light_light_3',
@@ -451,7 +472,7 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler(
       { endpoint: child3, request: { hue: 50, saturation: 50 }, cluster: 'colorControl', attributes: {} },
       'light.light_light_3',
@@ -459,7 +480,7 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ hs_color: [71, 20] }));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler(
       { endpoint: child4, request: { liftPercent100thsValue: 0 }, cluster: 'windowCovering', attributes: {} },
       'cover.cover_cover_4',
@@ -467,7 +488,7 @@ describe('HassPlatform', () => {
     );
     expect(callServiceSpy).toHaveBeenCalledWith('cover', 'open_cover', 'cover.cover_cover_4');
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.commandHandler(
       { endpoint: child4, request: { liftPercent100thsValue: 10000 }, cluster: 'windowCovering', attributes: {} },
       'cover.cover_cover_4',
@@ -511,11 +532,11 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
 
-    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmableOutlet], [], { number: EndpointNumber(1) });
+    const child1 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_1', [dimmablePlugInUnit], [], { number: EndpointNumber(1) });
     expect(child1).toBeDefined();
     child1.number = EndpointNumber(1);
 
-    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmableOutlet], [], { number: EndpointNumber(2) });
+    const child2 = device.addChildDeviceTypeWithClusterServer('switch.switch_switch_2', [dimmablePlugInUnit], [], { number: EndpointNumber(2) });
     expect(child2).toBeDefined();
     child2.number = EndpointNumber(2);
 
@@ -526,17 +547,17 @@ describe('HassPlatform', () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
     haPlatform.matterbridgeDevices.set('dimmableDoubleOutlet', device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     haPlatform.endpointNames.set('notanentity', 'notanentity');
     await haPlatform.updateHandler('notadevice', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Update handler: Matterbridge device notadevice for notanentity not found`);
     haPlatform.endpointNames.delete('notanentity');
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Update handler: Endpoint notanentity for dimmableDoubleOutlet not found`);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'switch.switch_switch_1', { state: 'off' } as HassState, { state: 'on' } as HassState);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.INFO,
@@ -548,14 +569,14 @@ describe('HassPlatform', () => {
   });
 
   it('should fail calling onStart with reason', async () => {
-    connectSpy.mockImplementationOnce(() => {
+    connectSpy.mockImplementationOnce(async () => {
       console.log(`Mocked connect failure`);
       return Promise.reject(new Error('Connection failed'));
     });
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error connecting to Home Assistant at ${CYAN}http://homeassistant.local:8123${nf}: Error: Connection failed`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error connecting to Home Assistant at ${CYAN}http://homeassistant.local:8123${nf}: Connection failed`);
   });
 
   it('should call onStart with reason', async () => {
@@ -576,24 +597,24 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Subscribed to Home Assistant events successfully with id 15`);
     haPlatform.isConfigured = false;
 
-    jest.clearAllMocks();
-    fetchDataSpy.mockImplementationOnce(() => {
+    vi.clearAllMocks();
+    fetchDataSpy.mockImplementationOnce(async () => {
       return Promise.reject(new Error('FetchData failed'));
     });
     haPlatform.ha.emit('connected', '2024.09.1');
     await wait(100);
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error fetching data from Home Assistant: Error: FetchData failed`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error fetching data from Home Assistant: FetchData failed`);
 
-    jest.clearAllMocks();
-    subscribeSpy.mockImplementationOnce(() => {
+    vi.clearAllMocks();
+    subscribeSpy.mockImplementationOnce(async () => {
       return Promise.reject(new Error('Subscribe failed'));
     });
     haPlatform.ha.emit('connected', '2024.09.1');
     await wait(100);
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Fetched data from Home Assistant successfully`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error subscribing to Home Assistant events: Error: Subscribe failed`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error subscribing to Home Assistant events: Subscribe failed`);
 
     haPlatform.isConfigured = true;
     haPlatform.ha.emit('disconnected', 'Jest test');
@@ -607,7 +628,7 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Subscribed to Home Assistant events`);
     haPlatform.ha.emit('config', { unit_system: { temperature: '°C', pressure: 'Pa' } } as unknown as HassConfig);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuration received from Home Assistant`));
-    haPlatform.ha.emit('services', {} as unknown as HassServices);
+    haPlatform.ha.emit('services', {});
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Services received from Home Assistant`);
     haPlatform.ha.emit('states', []);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`States received from Home Assistant`);
@@ -624,11 +645,11 @@ describe('HassPlatform', () => {
   it('should not register any devices and individual entities with label filter name', async () => {
     expect(haPlatform).toBeDefined();
 
-    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
-    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
-    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
-    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
-    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
+    mockData.devices.forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    mockData.entities.forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    mockData.states.forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    mockData.areas.forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    mockData.labels.forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
 
     mockConfig.filterByArea = 'not existing';
     mockConfig.filterByLabel = 'not existing';
@@ -642,7 +663,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
     expect(loggerWarnSpy).toHaveBeenCalledWith(`Label "not existing" not found in Home Assistant. Filter by label will discard all devices and entities.`);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockConfig.filterByArea = 'Living Room';
     mockConfig.filterByLabel = 'Label 1';
@@ -652,14 +673,14 @@ describe('HassPlatform', () => {
     haPlatform.ha.emit('areas', Array.from(haPlatform.ha.hassAreas.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by area: ${CYAN}Living Room${nf}`);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by label: ${CYAN}Label 1${nf}`);
 
     // Reset configuration and filters to test filter on device
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = 'Label 1';
     haPlatform.config.filterByArea = '';
@@ -668,7 +689,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by label: ${CYAN}Label 1${nf}`);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     await haPlatform.onStart('Test reason');
 
@@ -677,8 +698,8 @@ describe('HassPlatform', () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
     // Reset configuration and filters to test filter on device entities
-    jest.clearAllMocks();
-    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, { ...d, labels: ['label_id_1'] }));
+    vi.clearAllMocks();
+    mockData.devices.forEach((d) => haPlatform.ha.hassDevices.set(d.id, { ...d, labels: ['label_id_1'] }));
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = 'Label 1';
     haPlatform.config.filterByArea = '';
@@ -687,7 +708,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.emit('labels', Array.from(haPlatform.ha.hassLabels.values()));
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Filtering by label: ${CYAN}Label 1${nf}`);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     await haPlatform.onStart();
 
@@ -705,13 +726,13 @@ describe('HassPlatform', () => {
   it('should register a device with label filter', async () => {
     expect(haPlatform).toBeDefined();
 
-    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
-    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
-    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
-    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
-    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
+    mockData.devices.forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    mockData.entities.forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    mockData.states.forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    mockData.areas.forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    mockData.labels.forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
 
-    (mockData.devices as HassDevice[]).filter((d) => d.name === '1PM Plus II').forEach((d) => haPlatform.ha.hassDevices.set(d.id, { ...d, labels: ['label_id_1'] }));
+    mockData.devices.filter((d) => d.name === '1PM Plus II').forEach((d) => haPlatform.ha.hassDevices.set(d.id, { ...d, labels: ['label_id_1'] }));
     mockConfig.filterByArea = '';
     mockConfig.filterByLabel = 'Label 1';
     haPlatform.config.filterByArea = '';
@@ -733,13 +754,13 @@ describe('HassPlatform', () => {
   it('should register a device with 1 entity label filter', async () => {
     expect(haPlatform).toBeDefined();
 
-    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
-    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
-    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
-    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
-    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
+    mockData.devices.forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    mockData.entities.forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    mockData.states.forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    mockData.areas.forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    mockData.labels.forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
 
-    (mockData.entities as HassEntity[])
+    mockData.entities
       .filter((e) => e.entity_id === 'sensor.my_shelly_1pm_plus_ii_switch_0_current')
       .forEach((e) => haPlatform.ha.hassEntities.set(e.id, { ...e, labels: ['label_id_1'] }));
     mockConfig.filterByArea = '';
@@ -763,11 +784,11 @@ describe('HassPlatform', () => {
   it('should not register any devices and individual entities without white lists', async () => {
     expect(haPlatform).toBeDefined();
 
-    (mockData.devices as HassDevice[]).forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
-    (mockData.entities as HassEntity[]).forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
-    (mockData.states as HassState[]).forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
-    (mockData.areas as HassArea[]).forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
-    (mockData.labels as HassLabel[]).forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
+    mockData.devices.forEach((d) => haPlatform.ha.hassDevices.set(d.id, d));
+    mockData.entities.forEach((e) => haPlatform.ha.hassEntities.set(e.id, e));
+    mockData.states.forEach((s) => haPlatform.ha.hassStates.set(s.entity_id, s));
+    mockData.areas.forEach((a) => haPlatform.ha.hassAreas.set(a.area_id, a));
+    mockData.labels.forEach((l) => haPlatform.ha.hassLabels.set(l.label_id, l));
 
     mockConfig.whiteList = ['1PM Plus II'];
     mockConfig.blackList = [];
@@ -876,7 +897,7 @@ describe('HassPlatform', () => {
 
     expect(entity.name).toBeDefined();
     if (!entity.name) return;
-    const device = new MatterbridgeEndpoint([onOffOutlet, bridgedNode], { id: 'test' }, true)
+    const device = new MatterbridgeEndpoint([onOffPlugInUnit, bridgedNode], { id: 'test' }, true)
       .createDefaultBridgedDeviceBasicInformationClusterServer(entity.name, entity.entity_id)
       .addRequiredClusterServers();
     await haPlatform.registerDevice(device);
@@ -906,7 +927,7 @@ describe('HassPlatform', () => {
 
     expect(entity.name).toBeDefined();
     if (!entity.name) return;
-    const device = new MatterbridgeEndpoint([onOffOutlet, bridgedNode], { id: 'test' }, true)
+    const device = new MatterbridgeEndpoint([onOffPlugInUnit, bridgedNode], { id: 'test' }, true)
       .createDefaultBridgedDeviceBasicInformationClusterServer(entity.name, entity.entity_id)
       .addRequiredClusterServers();
     await haPlatform.registerDevice(device);
@@ -921,7 +942,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let entity: HassEntity | undefined;
-    (mockData.entities as HassEntity[]).forEach((e) => {
+    mockData.entities.forEach((e) => {
       if (e.original_name === 'Turn off all lights') entity = e;
     });
     expect(entity).toBeDefined();
@@ -945,7 +966,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
@@ -959,7 +980,7 @@ describe('HassPlatform', () => {
     await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
@@ -974,7 +995,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let entity: HassEntity | undefined;
-    (mockData.entities as HassEntity[]).forEach((e) => {
+    mockData.entities.forEach((e) => {
       if (e.original_name === 'Increase brightness') entity = e;
     });
     expect(entity).toBeDefined();
@@ -994,7 +1015,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
@@ -1008,7 +1029,7 @@ describe('HassPlatform', () => {
     await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
@@ -1019,7 +1040,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let entity: HassEntity | undefined;
-    (mockData.entities as HassEntity[]).forEach((e) => {
+    mockData.entities.forEach((e) => {
       if (e.original_name === 'Turn off all switches') entity = e;
     });
     expect(entity).toBeDefined();
@@ -1039,7 +1060,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
@@ -1053,7 +1074,7 @@ describe('HassPlatform', () => {
     await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
@@ -1064,7 +1085,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let entity: HassEntity | undefined;
-    (mockData.entities as HassEntity[]).forEach((e) => {
+    mockData.entities.forEach((e) => {
       if (e.original_name === 'Boolean helper') entity = e;
     });
     expect(entity).toBeDefined();
@@ -1084,7 +1105,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
@@ -1098,7 +1119,7 @@ describe('HassPlatform', () => {
     await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
@@ -1109,7 +1130,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let entity: HassEntity | undefined;
-    (mockData.entities as HassEntity[]).forEach((e) => {
+    mockData.entities.forEach((e) => {
       if (e.original_name === 'Button helper') entity = e;
     });
     expect(entity).toBeDefined();
@@ -1129,7 +1150,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
@@ -1143,7 +1164,7 @@ describe('HassPlatform', () => {
     await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
@@ -1174,7 +1195,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
@@ -1187,7 +1208,7 @@ describe('HassPlatform', () => {
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
     await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).not.toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
@@ -1198,7 +1219,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let entity: HassEntity | undefined;
-    (mockData.entities as HassEntity[]).forEach((e) => {
+    mockData.entities.forEach((e) => {
       if (e.original_name === 'My Template Switch') entity = e;
     });
     expect(entity).toBeDefined();
@@ -1219,7 +1240,7 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
     expect(haPlatform.matterbridgeDevices.get(entity.entity_id)?.getChildEndpoints()).toHaveLength(0);
@@ -1233,7 +1254,7 @@ describe('HassPlatform', () => {
     await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
@@ -1244,7 +1265,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let entity: HassEntity | undefined;
-    (mockData.entities as HassEntity[]).forEach((e) => {
+    mockData.entities.forEach((e) => {
       if (e.original_name === 'My Template Switch') entity = e;
     });
     expect(entity).toBeDefined();
@@ -1257,7 +1278,7 @@ describe('HassPlatform', () => {
       entity_id: entity.entity_id,
     } as HassState);
 
-    jest.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
+    vi.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
       throw new Error('Jest test');
     });
 
@@ -1276,7 +1297,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Switch') device = d;
     });
     expect(device).toBeDefined();
@@ -1296,7 +1317,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Switch') device = d;
     });
     expect(device).toBeDefined();
@@ -1317,7 +1338,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Switch') device = d;
     });
     expect(device).toBeDefined();
@@ -1333,7 +1354,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Switch') device = d;
     });
     expect(device).toBeDefined();
@@ -1344,7 +1365,7 @@ describe('HassPlatform', () => {
 
     expect(device.name).toBeDefined();
     if (!device.name) return;
-    const mbdevice = new MatterbridgeEndpoint([onOffOutlet, bridgedNode], { id: 'test' }, true)
+    const mbdevice = new MatterbridgeEndpoint([onOffPlugInUnit, bridgedNode], { id: 'test' }, true)
       .createDefaultBridgedDeviceBasicInformationClusterServer(device.name, device.id)
       .addRequiredClusterServers();
     await haPlatform.registerDevice(mbdevice);
@@ -1361,7 +1382,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Switch') device = d;
     });
     expect(device).toBeDefined();
@@ -1380,7 +1401,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Switch') device = d;
     });
     expect(device).toBeDefined();
@@ -1389,7 +1410,7 @@ describe('HassPlatform', () => {
     for (const entity of mockData.entities) if (entity.device_id === device.id) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
     for (const state of mockData.states) if (haPlatform.ha.hassEntities.has(state.entity_id)) haPlatform.ha.hassStates.set(state.entity_id, state);
 
-    jest.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
+    vi.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
       throw new Error('Jest test');
     });
 
@@ -2019,7 +2040,7 @@ describe('HassPlatform', () => {
 
     haPlatform.config.splitEntities = [switchEntity.entity_id];
 
-    jest.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
+    vi.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
       throw new Error('Jest test');
     });
 
@@ -2091,7 +2112,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Switch') device = d;
     });
     expect(device).toBeDefined();
@@ -2132,7 +2153,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Light (on/off)') device = d;
     });
     expect(device).toBeDefined();
@@ -2162,7 +2183,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Dimmer') device = d;
     });
     expect(device).toBeDefined();
@@ -2192,7 +2213,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Light (HS)') device = d;
     });
     expect(device).toBeDefined();
@@ -2222,7 +2243,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Light (XY)') device = d;
     });
     expect(device).toBeDefined();
@@ -2252,7 +2273,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Light (CT)') device = d;
     });
     expect(device).toBeDefined();
@@ -2282,7 +2303,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Light (XY, HS and CT)') device = d;
     });
     expect(device).toBeDefined();
@@ -2312,7 +2333,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Outlet') device = d;
     });
     expect(device).toBeDefined();
@@ -2342,7 +2363,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Lock') device = d;
     });
     expect(device).toBeDefined();
@@ -2372,7 +2393,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Fan') device = d;
     });
     expect(device).toBeDefined();
@@ -2394,7 +2415,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring state of entity`));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     for (const state of mockData.states) {
       if (haPlatform.ha.hassEntities.has(state.entity_id)) {
         await haPlatform.updateHandler(device.id, state.entity_id, state, state);
@@ -2423,7 +2444,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Thermostat') device = d;
     });
     expect(device).toBeDefined();
@@ -2459,7 +2480,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Thermostat (Heat)') device = d;
     });
     expect(device).toBeDefined();
@@ -2490,7 +2511,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Cover') device = d;
     });
     expect(device).toBeDefined();
@@ -2511,7 +2532,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring state of entity`));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     for (const state of mockData.states) {
       if (haPlatform.ha.hassEntities.has(state.entity_id)) {
         await haPlatform.updateHandler(device.id, state.entity_id, state, state);
@@ -2526,7 +2547,7 @@ describe('HassPlatform', () => {
     expect(haPlatform).toBeDefined();
 
     let device: HassDevice | undefined;
-    (mockData.devices as HassDevice[]).forEach((d) => {
+    mockData.devices.forEach((d) => {
       if (d.name === 'Eve door') device = d;
     });
     expect(device).toBeDefined();
@@ -2548,7 +2569,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring state of entity`));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     for (const state of mockData.states) {
       if (haPlatform.ha.hassEntities.has(state.entity_id)) {
         await haPlatform.updateHandler(device.id, state.entity_id, state, state);
@@ -2650,19 +2671,19 @@ describe('HassPlatform', () => {
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', true, expect.anything());
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     contactSensorEntityState.state = 'on';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything());
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     const oldState = { ...contactSensorEntityState };
     contactSensorEntityState.state = 'unavailable';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation, 'reachable', false, expect.anything());
     expect(haPlatform.stateCache.get(contactSensorEntity.entity_id)).toBeDefined();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.updateHandler(
       contactSensorDevice.id,
       contactSensorEntity.entity_id,
@@ -2671,7 +2692,7 @@ describe('HassPlatform', () => {
     );
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation, 'reachable', false, expect.anything());
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await haPlatform.updateHandler(
       contactSensorDevice.id,
       contactSensorEntity.entity_id,
@@ -2680,19 +2701,19 @@ describe('HassPlatform', () => {
     );
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation, 'reachable', false, expect.anything());
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     oldState.state = 'unavailable';
     contactSensorEntityState.state = 'off';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, oldState as HassState, contactSensorEntityState as HassState);
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation, 'reachable', true, expect.anything());
     expect(haPlatform.stateCache.get(contactSensorEntity.entity_id)).toBeUndefined();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     contactSensorEntityState.attributes.device_class = 'cold';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything());
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     contactSensorEntityState.attributes.device_class = 'moisture';
     await haPlatform.updateHandler(contactSensorDevice.id, contactSensorEntity.entity_id, contactSensorEntityState as HassState, contactSensorEntityState as HassState);
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BooleanState.id, 'stateValue', false, expect.anything());
@@ -2776,7 +2797,7 @@ describe('HassPlatform', () => {
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
     expect(triggerSwitchEventMatterbridgeEndpointSpy).toHaveBeenCalledWith('Long', expect.anything());
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     buttonEntityState.attributes.event_type = 'unsupported';
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
     expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`not supported for entity`));
@@ -2799,7 +2820,7 @@ describe('HassPlatform', () => {
   });
 
   it('should call onConfigure and throw an error', async () => {
-    jest.spyOn(HomeAssistantPlatform.prototype, 'updateHandler').mockImplementationOnce(() => {
+    vi.spyOn(HomeAssistantPlatform.prototype, 'updateHandler').mockImplementationOnce(() => {
       throw new Error('Test error');
     });
     haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
@@ -2814,7 +2835,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error configuring platform ${idn}${mockConfig.name}${rs}${er}: Error: Test error`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error configuring platform ${idn}${mockConfig.name}${rs}${er}: Test error`);
   });
 
   it('should call onChangeLoggerLevel and log a partial message', async () => {
@@ -2841,7 +2862,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onShutdown('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error closing Home Assistant connection: Error: Test reason`);
+    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error closing Home Assistant connection: Test reason`);
     expect(matterbridge.removeAllBridgedEndpoints).not.toHaveBeenCalled();
   });
 

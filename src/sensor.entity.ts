@@ -1,11 +1,12 @@
 /**
+ * @file src/sensor.entity.ts
  * @description This file contains the addSensorEntity function.
- * @file src\sensor.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
  * @version 1.1.0
  * @license Apache-2.0
- * @copyright 2025, 2026, 2027 Luca Liguori.
+ *
+ * Copyright 2025, 2026, 2027 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +58,7 @@ export function addSensorEntity(
   if (domain !== 'sensor') return undefined;
 
   // Look for air_quality sensor entity using airqualityRegex
-  if (airQualityRegex && airQualityRegex.test(entity.entity_id)) {
+  if (airQualityRegex?.test(entity.entity_id)) {
     platform.log.debug(`+ air_quality entity ${CYAN}${entity.entity_id}${db} found for device ${CYAN}${mutableDevice.name()}${db}`);
     endpointName = 'AirQuality'; // Remap the endpoint name for the entity
     mutableDevice.addDeviceTypes('AirQuality', airQualitySensor); // Add the air quality sensor device type
@@ -70,17 +71,17 @@ export function addSensorEntity(
   hassDomainSensorsConverter
     .filter((d) => d.domain === domain && d.withStateClass === state.attributes['state_class'] && d.withDeviceClass === state.attributes['device_class'])
     .forEach((hassDomainSensor) => {
-      // prettier-ignore
+      // oxfmt-ignore
       if (hassDomainSensor.deviceType === powerSource && state.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage' && !battery) return; // Skip powerSource voltage sensor if the device is not battery powered
-      // prettier-ignore
+      // oxfmt-ignore
       if (hassDomainSensor.deviceType === electricalSensor && state.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage' && battery) return; // Skip electricalSensor voltage sensor if the device is battery powered
-      if (hassDomainSensor.endpoint !== undefined) {
+      if (hassDomainSensor.endpoint === undefined) {
+        endpointName = entity.entity_id; // Use the entity ID as the endpoint name
+      } else {
         endpointName = hassDomainSensor.endpoint; // Remap the endpoint name for the entity
         platform.log.debug(
           `- sensor domain ${hassDomainSensor.domain} stateClass ${hassDomainSensor.withStateClass} deviceClass ${hassDomainSensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
         );
-      } else {
-        endpointName = entity.entity_id; // Use the entity ID as the endpoint name
       }
       platform.log.debug(`+ sensor device ${CYAN}${hassDomainSensor.deviceType.name}${db} cluster ${CYAN}${getClusterNameById(hassDomainSensor.clusterId)}${db}`);
       mutableDevice.addDeviceTypes(endpointName, hassDomainSensor.deviceType);

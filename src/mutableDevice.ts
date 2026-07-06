@@ -1,11 +1,12 @@
 /**
+ * @file src/mutableDevice.ts
  * @description This file contains the class MutableDevice.
- * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @created 2024-12-08
  * @version 1.4.0
  * @license Apache-2.0
- * @copyright 2024, 2025, 2026 Luca Liguori.
+ *
+ * Copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,23 +21,20 @@
  * limitations under the License.
  */
 
-// TODO: Remove when require Matterbridge 3.8.1 or later
-/* eslint-disable @typescript-eslint/no-deprecated */
-
 // Node.js imports
 import { createHash, randomBytes } from 'node:crypto';
 
 // Matterbridge imports
 import {
   bridgedNode,
+  colorDimmerSwitch,
   colorTemperatureLight,
-  colorTemperatureSwitch,
-  CommandHandlerData,
-  CommandHandlers,
-  DeviceTypeDefinition,
+  type CommandHandlerData,
+  type CommandHandlers,
+  type DeviceTypeDefinition,
   dimmableLight,
-  dimmableOutlet,
-  dimmableSwitch,
+  dimmablePlugInUnit,
+  dimmerSwitch,
   extendedColorLight,
   MatterbridgeColorControlServer,
   MatterbridgeEndpoint,
@@ -46,9 +44,9 @@ import {
   MatterbridgeSmokeCoAlarmServer,
   MatterbridgeThermostatServer,
   onOffLight,
-  onOffOutlet,
-  onOffSwitch,
-  PlatformMatterbridge,
+  onOffLightSwitch,
+  onOffPlugInUnit,
+  type PlatformMatterbridge,
 } from 'matterbridge';
 import {
   MatterbridgeKeypadInputServer,
@@ -57,8 +55,8 @@ import {
   MatterbridgeRvcOperationalStateServer,
   MatterbridgeRvcRunModeServer,
 } from 'matterbridge/devices';
-import { AnsiLogger, CYAN, db, debugStringify, idn, ign, LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
-import { ActionContext, AtLeastOne, Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
+import { AnsiLogger, CYAN, db, debugStringify, idn, ign, type LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
+import { type ActionContext, type AtLeastOne, type Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
 import {
   BooleanState,
@@ -78,7 +76,7 @@ import {
   SmokeCoAlarm,
   Thermostat,
 } from 'matterbridge/matter/clusters';
-import { ClusterId, getClusterNameById, Semtag, VendorId } from 'matterbridge/matter/types';
+import { type ClusterId, getClusterNameById, type Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
 
 interface ClusterServerObj {
@@ -172,9 +170,9 @@ export class MutableDevice {
     this.vendorName = vendorName;
     this.productId = productId;
     this.productName = productName;
-    this.softwareVersion = softwareVersion ?? parseInt(matterbridge.matterbridgeVersion.split('-')[0].replace(/\D/g, ''));
+    this.softwareVersion = softwareVersion ?? Number.parseInt(matterbridge.matterbridgeVersion.split('-')[0].replace(/\D/g, ''));
     this.softwareVersionString = softwareVersionString ?? matterbridge.matterbridgeVersion;
-    this.hardwareVersion = hardwareVersion ?? parseInt(this.matterbridge.systemInformation.nodeVersion.replace(/\D/g, ''));
+    this.hardwareVersion = hardwareVersion ?? Number.parseInt(this.matterbridge.systemInformation.nodeVersion.replace(/\D/g, ''));
     this.hardwareVersionString = hardwareVersionString ?? this.matterbridge.systemInformation.nodeVersion;
     this.initializeEndpoint('');
   }
@@ -184,14 +182,14 @@ export class MutableDevice {
    *
    * @param {LogLevel} level - The log level to set for the mutable device.
    */
-  setLogLevel(level: LogLevel) {
+  setLogLevel(level: LogLevel): void {
     this.log.logLevel = level;
   }
 
   /**
    * Cleans up the mutable device by clearing all internal maps and sets.
    */
-  destroy() {
+  destroy(): void {
     this.mutableDevices.clear();
     this.endpoints.clear();
     this.remappedEndpoints.clear();
@@ -265,6 +263,7 @@ export class MutableDevice {
    */
   get(endpoint: string = ''): MutableDeviceInterface {
     if (this.mutableDevices.get(endpoint) === undefined) throw new Error(`Device ${endpoint} is not defined`);
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     return this.mutableDevices.get(endpoint) as MutableDeviceInterface;
   }
 
@@ -279,10 +278,11 @@ export class MutableDevice {
    */
   getEndpoint(endpoint: string = ''): MatterbridgeEndpoint {
     if (this.mutableDevices.get(endpoint)?.endpoint === undefined) throw new Error(`Device ${endpoint} endpoint is not defined`);
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     return this.mutableDevices.get(endpoint)?.endpoint as MatterbridgeEndpoint;
   }
 
-  private initializeEndpoint(endpoint: string) {
+  private initializeEndpoint(endpoint: string): MutableDeviceInterface {
     if (!this.mutableDevices.has(endpoint)) {
       this.mutableDevices.set(endpoint, {
         friendlyName: endpoint,
@@ -296,6 +296,7 @@ export class MutableDevice {
         subscribeHandlers: [],
       });
     }
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     return this.mutableDevices.get(endpoint) as MutableDeviceInterface;
   }
 
@@ -890,7 +891,7 @@ export class MutableDevice {
     return this;
   }
 
-  private createUniqueId(param1: string, param2: string, param3: string, param4: string) {
+  private createUniqueId(param1: string, param2: string, param3: string, param4: string): string {
     const hash = createHash('md5');
     hash.update(param1 + param2 + param3 + param4);
     return hash.digest('hex');
@@ -981,18 +982,18 @@ export class MutableDevice {
     return this.getEndpoint();
   }
 
-  private removeDuplicatedAndSupersetDeviceTypes() {
+  private removeDuplicatedAndSupersetDeviceTypes(): this {
     // Remove duplicates and superset device types on all endpoints
     for (const device of this.mutableDevices.values()) {
       const deviceTypesMap = new Map<number, DeviceTypeDefinition>();
       device.deviceTypes.forEach((deviceType) => {
         deviceTypesMap.set(deviceType.code, deviceType);
       });
-      if (deviceTypesMap.has(onOffSwitch.code) && deviceTypesMap.has(dimmableSwitch.code)) deviceTypesMap.delete(onOffSwitch.code);
-      if (deviceTypesMap.has(onOffSwitch.code) && deviceTypesMap.has(colorTemperatureSwitch.code)) deviceTypesMap.delete(onOffSwitch.code);
-      if (deviceTypesMap.has(dimmableSwitch.code) && deviceTypesMap.has(colorTemperatureSwitch.code)) deviceTypesMap.delete(dimmableSwitch.code);
+      if (deviceTypesMap.has(onOffLightSwitch.code) && deviceTypesMap.has(dimmerSwitch.code)) deviceTypesMap.delete(onOffLightSwitch.code);
+      if (deviceTypesMap.has(onOffLightSwitch.code) && deviceTypesMap.has(colorDimmerSwitch.code)) deviceTypesMap.delete(onOffLightSwitch.code);
+      if (deviceTypesMap.has(dimmerSwitch.code) && deviceTypesMap.has(colorDimmerSwitch.code)) deviceTypesMap.delete(dimmerSwitch.code);
 
-      if (deviceTypesMap.has(onOffOutlet.code) && deviceTypesMap.has(dimmableOutlet.code)) deviceTypesMap.delete(onOffOutlet.code);
+      if (deviceTypesMap.has(onOffPlugInUnit.code) && deviceTypesMap.has(dimmablePlugInUnit.code)) deviceTypesMap.delete(onOffPlugInUnit.code);
 
       if (deviceTypesMap.has(onOffLight.code) && deviceTypesMap.has(dimmableLight.code)) deviceTypesMap.delete(onOffLight.code);
       if (deviceTypesMap.has(onOffLight.code) && deviceTypesMap.has(colorTemperatureLight.code)) deviceTypesMap.delete(onOffLight.code);
@@ -1007,28 +1008,31 @@ export class MutableDevice {
     return this;
   }
 
-  private createMainEndpoint() {
+  private createMainEndpoint(): MatterbridgeEndpoint {
     // Remove duplicates and superset device types on all endpoints
     this.removeDuplicatedAndSupersetDeviceTypes();
 
     // Create the mutable device for the main endpoint
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     const mainDevice = this.mutableDevices.get('') as MutableDeviceInterface;
     // Remove bridgedNode on server mode
     if (this.mode === 'server') {
       mainDevice.deviceTypes = mainDevice.deviceTypes.filter((deviceType) => deviceType.code !== bridgedNode.code);
     }
     mainDevice.friendlyName = this.deviceName;
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { id: this.deviceName, mode: this.mode });
     mainDevice.endpoint.log.logName = this.deviceName;
     this.endpoints.set('', mainDevice.endpoint);
     return mainDevice.endpoint;
   }
 
-  private createChildEndpoints() {
+  private createChildEndpoints(): this {
     // Remove duplicates and superset device types on all endpoints
     this.removeDuplicatedAndSupersetDeviceTypes();
 
     // Get the main endpoint
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     const mainDevice = this.mutableDevices.get('') as MutableDeviceInterface;
     if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined. Call createMainEndpoint() first.');
 
@@ -1036,6 +1040,7 @@ export class MutableDevice {
     for (const [endpoint, device] of Array.from(this.mutableDevices.entries()).filter(([endpoint]) => endpoint !== '')) {
       device.endpoint = mainDevice.endpoint.addChildDeviceType(
         endpoint,
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         device.deviceTypes as AtLeastOne<DeviceTypeDefinition>,
         device.tagList.length ? { tagList: device.tagList } : {},
       );
@@ -1045,7 +1050,7 @@ export class MutableDevice {
     return this;
   }
 
-  private removeDuplicatedClusterServers() {
+  private removeDuplicatedClusterServers(): this {
     // Filter out duplicate clusters and clusters objects on all endpoints
     for (const device of this.mutableDevices.values()) {
       // Filter out duplicate server clusters and server clusters objects. Remove the cluster server id when a cluster server object is present.
@@ -1080,7 +1085,7 @@ export class MutableDevice {
     return this;
   }
 
-  private createClusters(endpoint: string) {
+  private createClusters(endpoint: string): this {
     // Filter out duplicate clusters and clusters objects on all endpoints
     this.removeDuplicatedClusterServers();
 
@@ -1101,6 +1106,7 @@ export class MutableDevice {
       // Add the required clusters to the main endpoint
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
+      // oxlint-disable-next-line no-empty-function
       if (this.composedType) void mainDevice.endpoint.addFixedLabel('composed', this.composedType).catch(/* istanbul ignore next */ () => {});
       // Set the configUrl of the main endpoint
       if (this.configUrl) mainDevice.endpoint.configUrl = this.configUrl;

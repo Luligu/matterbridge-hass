@@ -1,4 +1,8 @@
-// src\helpers.test.ts
+/**
+ * @file vitest/helpers.test.ts
+ * @description This file contains the tests for the helper functions of the Home Assistant platform.
+ * @author Luca Liguori
+ */
 
 import {
   createUniqueId,
@@ -18,9 +22,9 @@ import {
   isSplitEntity,
   satisfiesAreaFilter,
   satisfiesLabelFilter,
-} from './helpers.js';
-import { HassArea, HassDevice, HassEntity, HassLabel, HassState, type HomeAssistant } from './homeAssistant.js';
-import type { HomeAssistantPlatform } from './module.js';
+} from '../src/helpers.js';
+import type { HassArea, HassDevice, HassEntity, HassLabel, HassState, HomeAssistant } from '../src/homeAssistant.js';
+import type { HomeAssistantPlatform } from '../src/module.js';
 
 function createHomeAssistant(): HomeAssistant {
   return {
@@ -74,7 +78,7 @@ describe('HassPlatform helpers', () => {
   it('should generate a Home Assistant device with null name for invalid input', () => {
     const homeAssistant = createHomeAssistant();
     // @ts-expect-error Testing edge case where name is undefined
-    const device: HassDevice = generateDevice(homeAssistant, undefined);
+    const device: HassDevice = generateDevice(homeAssistant);
 
     expect(device.name).toBeNull();
     expect(device.area_id).toBeNull();
@@ -134,7 +138,7 @@ describe('HassPlatform helpers', () => {
   it('should generate a fallback area id and name for invalid input', () => {
     const homeAssistant = createHomeAssistant();
     // @ts-expect-error Testing edge case where name is undefined
-    const area: HassArea = generateArea(homeAssistant, undefined);
+    const area: HassArea = generateArea(homeAssistant);
 
     expect(area.area_id).toBe('unnamed_area');
     expect(area.name).toBe('Unnamed Area');
@@ -166,7 +170,7 @@ describe('HassPlatform helpers', () => {
   it('should generate a fallback label id and name for invalid input', () => {
     const homeAssistant = createHomeAssistant();
     // @ts-expect-error Testing edge case where name is undefined
-    const label: HassLabel = generateLabel(homeAssistant, undefined);
+    const label: HassLabel = generateLabel(homeAssistant);
 
     expect(label.label_id).toBe('unnamed_label');
     expect(label.name).toBe('Unnamed Label');
@@ -318,7 +322,7 @@ describe('HassPlatform helpers', () => {
   it('should fall back to the entity name when the parent device has no usable name', () => {
     const homeAssistant = createHomeAssistant();
     // @ts-expect-error Testing edge case where device name is undefined
-    const device: HassDevice = generateDevice(homeAssistant, undefined);
+    const device: HassDevice = generateDevice(homeAssistant);
     const entity: HassEntity = generateEntity(homeAssistant, 'Temperature', 'sensor', device);
     const state: HassState = generateState(homeAssistant, entity, '21');
 
@@ -378,10 +382,11 @@ describe('HassPlatform helpers', () => {
 
     expect(entityHasLabel(createPlatform(labels), entity, 'unknown')).toBe(false);
 
-    expect(entityHasLabel(createPlatform(undefined), entity, 'Select')).toBe(false);
+    // @ts-expect-error Testing edge case where entity is undefined
+    expect(entityHasLabel(createPlatform(), entity, 'Select')).toBe(false);
 
     // @ts-expect-error Testing edge case where label is undefined
-    expect(entityHasLabel(createPlatform(labels), entity, undefined)).toBe(false);
+    expect(entityHasLabel(createPlatform(labels), entity)).toBe(false);
 
     // @ts-expect-error Testing edge case where label is number
     expect(entityHasLabel(createPlatform(labels), entity, 1)).toBe(false);
@@ -402,7 +407,7 @@ describe('HassPlatform helpers', () => {
     expect(isDisabled(null)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(isDisabled(undefined)).toBe(false);
+    expect(isDisabled()).toBe(false);
 
     entity.disabled_by = 'user';
     expect(isDisabled(entity)).toBe(true);
@@ -428,7 +433,7 @@ describe('HassPlatform helpers', () => {
     expect(isHidden(null)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(isHidden(undefined)).toBe(false);
+    expect(isHidden()).toBe(false);
 
     entity.hidden_by = 'user';
     expect(isHidden(entity)).toBe(true);
@@ -509,7 +514,7 @@ describe('HassPlatform helpers', () => {
     expect(satisfiesAreaFilter(undefined, device)).toBe(false);
 
     // @ts-expect-error Testing edge case where deviceOrEntity is undefined
-    expect(satisfiesAreaFilter(createPlatform('Living Room', [area]), undefined)).toBe(false);
+    expect(satisfiesAreaFilter(createPlatform('Living Room', [area]))).toBe(false);
 
     // @ts-expect-error Testing edge case where deviceOrEntity is null
     expect(satisfiesAreaFilter(createPlatform('Living Room', [area]), null)).toBe(false);
@@ -578,7 +583,7 @@ describe('HassPlatform helpers', () => {
     expect(satisfiesLabelFilter(undefined, device)).toBe(false);
 
     // @ts-expect-error Testing edge case where deviceOrEntity is undefined
-    expect(satisfiesLabelFilter(createPlatform('Important', [label]), undefined)).toBe(false);
+    expect(satisfiesLabelFilter(createPlatform('Important', [label]))).toBe(false);
 
     // @ts-expect-error Testing edge case where deviceOrEntity is null
     expect(satisfiesLabelFilter(createPlatform('Important', [label]), null)).toBe(false);
@@ -601,7 +606,7 @@ describe('HassPlatform helpers', () => {
     expect(isDeviceEntity(null)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(isDeviceEntity(undefined)).toBe(false);
+    expect(isDeviceEntity()).toBe(false);
 
     // @ts-expect-error Testing edge case where device_id is undefined
     deviceEntity.device_id = undefined;
@@ -625,7 +630,7 @@ describe('HassPlatform helpers', () => {
     expect(isIndividualEntity(null)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(isIndividualEntity(undefined)).toBe(false);
+    expect(isIndividualEntity()).toBe(false);
 
     // @ts-expect-error Testing edge case where device_id is undefined
     individualEntity.device_id = undefined;
@@ -655,7 +660,7 @@ describe('HassPlatform helpers', () => {
     expect(() => getDomain(null)).toThrow('The entity_id does not contain a domain');
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(() => getDomain(undefined)).toThrow('The entity_id does not contain a domain');
+    expect(() => getDomain()).toThrow('The entity_id does not contain a domain');
 
     // @ts-expect-error Testing edge case where entity_id is undefined
     entity.entity_id = undefined;
@@ -685,7 +690,7 @@ describe('HassPlatform helpers', () => {
     expect(() => getName(null)).toThrow('The entity_id does not contain a name');
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(() => getName(undefined)).toThrow('The entity_id does not contain a name');
+    expect(() => getName()).toThrow('The entity_id does not contain a name');
 
     // @ts-expect-error Testing edge case where entity_id is undefined
     entity.entity_id = undefined;
@@ -727,13 +732,14 @@ describe('HassPlatform helpers', () => {
     expect(isSplitEntity(createPlatform(['light.office'], labels, 'Split'), null)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(isSplitEntity(createPlatform(['light.office'], labels, 'Split'), undefined)).toBe(false);
+    expect(isSplitEntity(createPlatform(['light.office'], labels, 'Split'))).toBe(false);
 
     expect(isSplitEntity(createPlatform('light.office', labels, 'Split'), entity)).toBe(false);
 
     expect(isSplitEntity(createPlatform(['light.kitchen'], undefined, 'Split'), entity)).toBe(false);
 
-    expect(isSplitEntity(createPlatform(['light.office'], labels, undefined), entity)).toBe(false);
+    // @ts-expect-error Testing edge case where entity is undefined
+    expect(isSplitEntity(createPlatform(['light.office'], labels), entity)).toBe(false);
 
     expect(isSplitEntity(createPlatform(['light.office'], labels, 1), entity)).toBe(false);
 
@@ -810,9 +816,10 @@ describe('HassPlatform helpers', () => {
     expect(getEntityName(platform, null)).toBeNull();
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(getEntityName(platform, undefined)).toBeNull();
+    expect(getEntityName(platform)).toBeNull();
 
-    expect(getEntityName(createPlatform('Entity name', undefined), entity)).toBeNull();
+    // @ts-expect-error Testing edge case where entity is undefined
+    expect(getEntityName(createPlatform('Entity name'), entity)).toBeNull();
 
     expect(getEntityName(createPlatform(undefined, state), entity)).toBeNull();
 

@@ -1,11 +1,12 @@
 /**
+ * @file src/module.ts
  * @description This file contains the class HomeAssistantPlatform.
- * @file src\module.ts
  * @author Luca Liguori
  * @created 2024-09-13
  * @version 1.8.0
  * @license Apache-2.0
- * @copyright 2024, 2025, 2026 Luca Liguori.
+ *
+ * Copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,18 +21,28 @@
  * limitations under the License.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable jsdoc/reject-any-type */
+/* oxlint-disable typescript/no-explicit-any */
+/* oxlint-disable max-lines */
+/* oxlint-disable complexity */
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { bridgedNode, electricalSensor, MatterbridgeDynamicPlatform, MatterbridgeEndpoint, PlatformConfig, PlatformMatterbridge, powerSource, PrimitiveTypes } from 'matterbridge';
-import { AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
-import { ActionContext } from 'matterbridge/matter';
+import {
+  bridgedNode,
+  electricalSensor,
+  MatterbridgeDynamicPlatform,
+  type MatterbridgeEndpoint,
+  type PlatformConfig,
+  type PlatformMatterbridge,
+  powerSource,
+  type PrimitiveTypes,
+} from 'matterbridge';
+import { type AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, type LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
+import type { ActionContext } from 'matterbridge/matter';
 import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource } from 'matterbridge/matter/clusters';
-import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
-import { deepEqual, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
+import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
+import { deepEqual, getErrorMessage, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addButtonEntity } from './button.entity.js';
@@ -51,7 +62,7 @@ import { addEventEntity } from './event.entity.js';
 import { addHelperEntity } from './helper.entity.js';
 import { getDomain, getEntityName, isDeviceEntity, isDisabled, isHidden, isIndividualEntity, isSplitEntity, satisfiesAreaFilter, satisfiesLabelFilter } from './helpers.js';
 import {
-  DeviceId,
+  type DeviceId,
   type EntityId,
   type HassArea,
   type HassConfig,
@@ -128,6 +139,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   stateCache = new StateCache();
 
   /** Bridged devices map. Key is device.id for devices and entity.entity_id for individual entities and split entities (without the postfix). Value is the MatterbridgeEndpoint */
+  // oxlint-disable-next-line typescript/no-duplicate-type-constituents
   readonly matterbridgeDevices = new Map<DeviceId | EntityId, MatterbridgeEndpoint>();
 
   /** Entities that are currently being updated to avoid processing multiple updates at the same time. Keyed by entity.entity_id, value is the number of ongoing updates */
@@ -186,9 +198,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.8.0')) {
+    if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.9.0')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.8.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend.`,
+        `This plugin requires Matterbridge version >= "3.9.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend.`,
       );
     }
 
@@ -196,6 +208,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
       setImmediate(() => {
+        // oxlint-disable-next-line no-empty-function
         void this.onShutdown('Invalid configuration').catch(/* istanbul ignore next */ () => {});
       });
       this.wssSendSnackbarMessage('Home Assistant Plugin: configure Host and Token', 0, 'error');
@@ -203,7 +216,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
 
     // Set the default values for the config for old versions of it
-    // istanbul ignore next cause it's only for backward compatibility with old versions of the config that are missing the new properties
+    /* v8 ignore next cause it's only for backward compatibility with old versions of the config that are missing the new properties */
     {
       this.config.certificatePath = isValidString(config.certificatePath, 1) ? config.certificatePath : '';
       this.config.rejectUnauthorized = isValidBoolean(config.rejectUnauthorized) ? config.rejectUnauthorized : true;
@@ -230,6 +243,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
       this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
       this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
+      this.config.debug ??= false;
+      this.config.unregisterOnShutdown ??= false;
     }
 
     // Initialize air quality regex from config or use default
@@ -241,38 +256,42 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.ha.log.logLevel = this.log.logLevel;
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
+      // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
 
       this.log.info(`Fetching data from Home Assistant...`);
 
       void this.ha
         .fetchData()
+        // oxlint-disable-next-line promise/always-return
         .then(() => {
           this.log.info(`Fetched data from Home Assistant successfully`);
           // Subscribe when the data is fetched to avoid missing events during the fetch.
           this.log.info(`Subscribing to Home Assistant events...`);
+          // oxlint-disable-next-line promise/no-nesting
           void this.ha
             .subscribe()
+            // oxlint-disable-next-line promise/always-return
             .then((id) => {
               this.haSubscriptionId = id;
               this.log.info(`Subscribed to Home Assistant events successfully with id ${this.haSubscriptionId}`);
             })
-            .catch((error) => {
-              this.log.error(`Error subscribing to Home Assistant events: ${error}`);
+            .catch((error: unknown) => {
+              this.log.error(`Error subscribing to Home Assistant events: ${getErrorMessage(error)}`);
             });
           if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
           if (this.isConfigured) this.wssSendRestartRequired();
           // Subscribed
         })
-        .catch((error) => {
-          this.log.error(`Error fetching data from Home Assistant: ${error}`);
+        .catch((error: unknown) => {
+          this.log.error(`Error fetching data from Home Assistant: ${getErrorMessage(error)}`);
         });
     });
 
     this.ha.on('disconnected', () => {
       this.log.warn('Disconnected from Home Assistant');
       this.haSubscriptionId = null;
-      // istanbul ignore else
+      /* v8 ignore next */
       if (this.isReady) this.wssSendSnackbarMessage('Disconnected from Home Assistant', 5, 'warning');
     });
 
@@ -345,13 +364,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     });
 
     this.ha.on('event', (deviceId, entityId, old_state, new_state) => {
-      void this.updateHandler(deviceId, entityId, old_state, new_state).catch(/* istanbul ignore next */ () => {});
+      // oxlint-disable-next-line no-empty-function
+      void this.updateHandler(deviceId, entityId, old_state, new_state).catch(/* v8 ignore next */ () => {});
     });
 
     this.log.info(`Initialized platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
   }
 
-  override async onStart(reason?: string) {
+  override async onStart(reason?: string): Promise<void> {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     // Create the plugin directory inside the Matterbridge plugin directory
@@ -363,9 +383,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       await this.ha.connect();
       this.log.info(`Connected to Home Assistant at ${CYAN}${this.config.host}${nf}`);
     } catch (error) {
-      this.log.error(`Error connecting to Home Assistant at ${CYAN}${this.config.host}${nf}: ${error}`);
+      this.log.error(`Error connecting to Home Assistant at ${CYAN}${this.config.host}${nf}: ${getErrorMessage(error)}`);
     }
-    const check = () => {
+    const check = (): boolean => {
       this.log.debug(
         `Checking Home Assistant connection: connected ${CYAN}${this.ha.connected}${db} config ${CYAN}${this.ha.hassConfig !== null}${db} services ${CYAN}${this.ha.hassServices !== null}${db} subscription ${CYAN}${this.haSubscriptionId !== null}${db}`,
       );
@@ -374,18 +394,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     await waiter('Home Assistant connected', check, true, 110000, 1000); // Wait for 110 seconds with 1 second interval and throw error if not connected
 
     // Save devices, entities, states, config and services to a local file without awaiting
-    // prettier-ignore
-    void savePayload(this).catch(/* istanbul ignore next */ () => {});
+    // oxfmt-ignore
+    // oxlint-disable-next-line no-empty-function
+    void savePayload(this).catch(/* v8 ignore next */ () => {});
 
     // Write the Home Assistant report to the plugin directory without awaiting
-    void writeReport(this).catch(/* istanbul ignore next */ () => {});
+    // oxlint-disable-next-line no-empty-function
+    void writeReport(this).catch(/* v8 ignore next */ () => {});
 
     // Clean the selectDevice and selectEntity maps
     await this.ready;
     await this.clearSelect();
 
     // Load the cached states from storage to the in-memory cache before processing the entities. This is needed to have the latest available state of entities when they turn to unavailable.
-    // istanbul ignore else cause if the platform is ready then the context is defined
+    /* v8 ignore next cause if the platform is ready then the context is defined */
     if (this.context) await this.stateCache.load(this.context);
 
     // Pre-check the config
@@ -510,7 +532,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
-          // istanbul ignore next cause is not testable
+          /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
           this.endpointNames.set(entity.entity_id, this.config.controllerStrategy === 'Merge' ? '' : entity.entity_id);
@@ -530,7 +552,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     this.log.debug(`Individual entities endpoint map(${this.matterbridgeDevices.size}/${this.endpointNames.size}):`);
     for (const [entity, endpoint] of this.endpointNames) {
-      // istanbul ignore next cause is always main endpoint for individual entities
+      /* v8 ignore next cause is always main endpoint for individual entities */
       this.log.debug(`- individual entity ${CYAN}${entity}${db} mapped to endpoint ${CYAN}${endpoint === '' ? 'main' : endpoint}${db}`);
     }
 
@@ -593,11 +615,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       let battery = false;
       for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
         const state = this.ha.hassStates.get(entity.entity_id);
-        if (state && state.attributes['device_class'] === 'battery') {
+        if (state?.attributes['device_class'] === 'battery') {
           this.log.debug(`Device ${CYAN}${device.name}${db} has a battery entity: ${CYAN}${entity.entity_id}${db}`);
           battery = true;
         }
-        if (battery && state && state.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage') {
+        if (battery && state?.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage') {
           this.log.debug(`Device ${CYAN}${device.name}${db} has a battery voltage entity: ${CYAN}${entity.entity_id}${db}`);
           this.batteryVoltageEntities.add(entity.entity_id);
         }
@@ -670,7 +692,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         if (domain === 'vacuum' && this.config.enableServerRvc) {
           hasRvc = true;
           mutableDevice.setMode('server');
-          // istanbul ignore else
+          /* v8 ignore next */
           if (!battery) mutableDevice.addDeviceTypes('', powerSource); // Temporary fix for vacuum without battery and enableServerRvc
         }
         // Lookup and add helpers domain entity.
@@ -734,7 +756,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.create(this.config.controllerStrategy === 'Merge');
           mutableDevice.logMutableDevice();
           await this.registerDevice(mutableDevice.getEndpoint());
-          // istanbul ignore next cause is not testable
+          /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
         } catch (error) {
@@ -754,7 +776,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
           const endpoint = this.endpointNames.get(entity.entity_id);
           if (endpoint && mutableDevice.getRemappedEndpoints().has(endpoint)) {
-            this.log.debug(`- Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} remapped to endpoint ${CYAN}${'main'}${db}`);
+            this.log.debug(`- Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} remapped to endpoint ${CYAN}main${db}`);
             this.endpointNames.set(entity.entity_id, '');
           } else if (endpoint && !mutableDevice.getRemappedEndpoints().has(endpoint)) {
             this.log.debug(`- Device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} mapped to endpoint ${CYAN}${endpoint}${db}`);
@@ -888,7 +910,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
-          // istanbul ignore next cause is not testable
+          /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
           this.endpointNames.set(entity.entity_id, this.config.controllerStrategy === 'Merge' ? '' : entity.entity_id);
@@ -916,14 +938,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Started platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
   }
 
-  override async onConfigure() {
+  override async onConfigure(): Promise<void> {
     await super.onConfigure();
     this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}...`);
     try {
       for (const state of Array.from(this.ha.hassStates.values())) {
         // Skip states without entity
         const entity = this.ha.hassEntities.get(state.entity_id);
-        // istanbul ignore next cause is just a safety check, it should never happen that we have a state without an entity
+        /* v8 ignore next cause is just a safety check, it should never happen that we have a state without an entity */
         if (!entity) continue;
         // Skip unregistered entities
         if (this.endpointNames.get(entity.entity_id) === undefined) continue;
@@ -936,7 +958,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
       this.log.info(`Configured platform ${idn}${this.config.name}${rs}${nf}`);
     } catch (error) {
-      this.log.error(`Error configuring platform ${idn}${this.config.name}${rs}${er}: ${error}`);
+      this.log.error(`Error configuring platform ${idn}${this.config.name}${rs}${er}: ${getErrorMessage(error)}`);
     }
 
     // Show filter messages here to avoid multiple messages during the start process
@@ -969,9 +991,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.failedEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.failedEntities} entities failed to be created`, 60, 'error');
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  override async onChangeLoggerLevel(logLevel: LogLevel) {
+  // oxlint-disable-next-line typescript/require-await
+  override async onChangeLoggerLevel(logLevel: LogLevel): Promise<void> {
     this.log.info(`Logger level changed to ${logLevel}`);
+    this.log.logLevel = logLevel;
     this.ha.log.logLevel = logLevel;
     this.stateCache.log.logLevel = logLevel;
     for (const device of this.matterbridgeDevices.values()) {
@@ -979,9 +1002,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
   }
 
-  override async onShutdown(reason?: string) {
+  override async onShutdown(reason?: string): Promise<void> {
     // Save the state cache to restore it at the next startup.
-    // istanbul ignore else cause if the platform is ready then the context is defined
+    /* v8 ignore next cause if the platform is ready then the context is defined */
     if (this.context) await this.stateCache.save(this.context);
     await super.onShutdown(reason);
     this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason}`);
@@ -991,10 +1014,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.ha?.removeAllListeners();
       this.log.info('Home Assistant connection closed');
     } catch (error) {
-      this.log.error(`Error closing Home Assistant connection: ${error}`);
+      this.log.error(`Error closing Home Assistant connection: ${getErrorMessage(error)}`);
     }
 
-    if (this.config.unregisterOnShutdown === true) await this.unregisterAllDevices();
+    if (this.config.unregisterOnShutdown) await this.unregisterAllDevices();
 
     this.stateCache.clear();
     this.matterbridgeDevices.clear();
@@ -1033,7 +1056,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     command: string,
   ): Promise<void> {
     const entityId = endpointName;
-    // istanbul ignore next cause is just a safety check, it should never happen that we receive a command for an unregistered endpoint
+    /* v8 ignore next cause is just a safety check, it should never happen that we receive a command for an unregistered endpoint */
     if (!entityId) return;
     data.endpoint.log.info(`${db}Received matter command ${ign}${command}${rs}${db} for endpoint ${or}${endpointName}${db}:${or}${data.endpoint?.maybeNumber}${db}`);
     const state = this.ha.hassStates.get(entityId);
@@ -1043,7 +1066,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'cover') {
         // Special handling for cover goToLiftPercentage command. When goToLiftPercentage is called with 0, we may call the open service and when called with 10000 we may call the close service.
         // This allows to support also covers not supporting the set_cover_position service.
-        // istanbul ignore else cause we modify only the goToLiftPercentage command for covers
+        /* v8 ignore next cause we modify only the goToLiftPercentage command for covers */
         if (command === 'goToLiftPercentage' && data.request.liftPercent100thsValue === 10000) {
           await this.ha.callService(hassCommand.domain, 'close_cover', entityId);
           return;
@@ -1102,12 +1125,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           ) {
             // In Matter color temperature is represented in mireds while in Home Assistant it's represented in kelvin. We need to convert it before calling the service and also clamp it to the supported range if the attributes are available.
             const color_temp = data.endpoint.getAttribute(ColorControl, 'colorTemperatureMireds');
-            // istanbul ignore else
+            /* v8 ignore next */
             if (isValidNumber(color_temp))
               serviceAttributes['color_temp_kelvin'] =
-                state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
+                state?.attributes?.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin
                   ? clamp(miredsToKelvin(color_temp, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin)
-                  : // istanbul ignore next cause is just a safety check, it should never happen that we don't have the min and max color temp attributes
+                  : /* v8 ignore next cause is just a safety check, it should never happen that we don't have the min and max color temp attributes */
                     miredsToKelvin(color_temp, 'floor');
           }
 
@@ -1124,12 +1147,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             // Saturation = "CurrentSaturation" / 254
             // where CurrentSaturation is in the range from 0 to 254 inclusive.
             // TODO: fix getAttribute without .id
-            // istanbul ignore next cause codecov is not able to detect it as covered but it is
+            /* v8 ignore next cause codecov is not able to detect it as covered but it is */
             const hs_color = [
               Math.round((data.endpoint.getAttribute(ColorControl.id, 'currentHue') / 254) * 360),
               Math.round((data.endpoint.getAttribute(ColorControl.id, 'currentSaturation') / 254) * 100),
             ];
-            // istanbul ignore else
+            /* v8 ignore next */
             if (isValidArray(hs_color, 2)) serviceAttributes['hs_color'] = hs_color;
           }
 
@@ -1140,9 +1163,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             this.offUpdatedEntities.has(entityId)
           ) {
             // In Matter xy_color is represented with two attributes currentX and currentY range 0-65279 while in Home Assistant it's represented with a single attribute xy_color with an array of two values range 0-1.
-            // istanbul ignore next cause codecov is not able to detect it as covered but it is
+            /* v8 ignore next cause codecov is not able to detect it as covered but it is */
             const xy_color = convertMatterXYToHA(data.endpoint.getAttribute(ColorControl.id, 'currentX'), data.endpoint.getAttribute(ColorControl.id, 'currentY'));
-            // istanbul ignore else
+            /* v8 ignore next */
             if (isValidArray(xy_color, 2)) serviceAttributes['xy_color'] = xy_color;
           }
 
@@ -1178,7 +1201,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       attribute: string;
       converter?: any;
     },
+    // oxlint-disable-next-line typescript/explicit-module-boundary-types
     newValue: any,
+    // oxlint-disable-next-line typescript/explicit-module-boundary-types
     oldValue: any,
     context: ActionContext,
   ): void {
@@ -1221,42 +1246,46 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       `${db}Subscribed attribute ${hk}${getClusterNameById(hassSubscribe.clusterId)}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} ` +
         `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
     );
+    /* v8 ignore next cause every hassSubscribeConverter entry currently defines a converter */
     const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
-    // istanbul ignore else
     if (hassSubscribe.converter)
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
-    // prettier-ignore
-    if (value !== null) {
-      if (hassSubscribe.attribute === 'occupiedHeatingSetpoint' && state && state.state === 'heat_cool') {
-        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] }).catch(/* istanbul ignore next */ () => {});
-      } else if (hassSubscribe.attribute === 'occupiedCoolingSetpoint' && state && state.state === 'heat_cool') {
-        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value }).catch(/* istanbul ignore next */ () => {});
-      } else void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value }).catch(/* istanbul ignore next */ () => {});
-    }
+    // oxfmt-ignore
+    // oxlint-disable-next-line no-empty-function
+    if (value === null) {void this.ha.callService(domain, 'turn_off', entity.entity_id).catch(/* v8 ignore next */ () => {});}
     // The converter returns null for fan turn_on with percentage 0 => call turn_off
-    else void this.ha.callService(domain, 'turn_off', entity.entity_id).catch(/* istanbul ignore next */ () => {});
+    else {
+      if (hassSubscribe.attribute === 'occupiedHeatingSetpoint' && state?.state === 'heat_cool') {
+        // oxlint-disable-next-line no-empty-function
+        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] }).catch(/* v8 ignore next */ () => {});
+      } else if (hassSubscribe.attribute === 'occupiedCoolingSetpoint' && state?.state === 'heat_cool') {
+        // oxlint-disable-next-line no-empty-function
+        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value }).catch(/* v8 ignore next */ () => {});
+      // oxlint-disable-next-line no-empty-function
+      } else void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value }).catch(/* v8 ignore next */ () => {});
+    }
   }
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState): Promise<void> {
+    /* v8 ignore next cause an entity without a device_id is always registered under its own entityId, so the deviceId fallback is never taken */
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
-      // istanbul ignore else
+      /* v8 ignore next */
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found`);
       return;
     }
-    let endpoint = matterbridgeDevice.getChildEndpointById(entityId) || matterbridgeDevice.getChildEndpointById(entityId.replaceAll('.', ''));
+    let endpoint = matterbridgeDevice.getChildEndpointById(entityId) ?? matterbridgeDevice.getChildEndpointById(entityId.replaceAll('.', ''));
     if (!endpoint) {
       const mappedEndpoint = this.endpointNames.get(entityId);
       if (mappedEndpoint === '') {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice;
-      } else if (mappedEndpoint) {
-        // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
+      } /* v8 ignore start cause the AirQuality and PowerEnergy are now remapped to main so this branch is never taken */ else if (mappedEndpoint) {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
-        // istanbul ignore next cause the AirQuality and PowerEnergy are now remapped to main
         endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint);
       }
+      /* v8 ignore stop */
     }
     if (!endpoint) {
       this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found`);
@@ -1294,7 +1323,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       return;
     } else if (domain === 'sensor') {
       // Convert to the airquality sensor if the entity is an air quality sensor with regex
-      if (this.airQualityRegex && this.airQualityRegex.test(entityId)) {
+      if (this.airQualityRegex?.test(entityId)) {
         new_state.attributes['state_class'] = 'measurement';
         new_state.attributes['device_class'] = 'aqi';
         this.log.debug(`Converting entity ${CYAN}${entityId}${db} to air quality sensor`);
@@ -1314,7 +1343,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             );
       if (hassSensorConverter) {
         // accepted values: "0" "123" "-1" "23.5" "-0.25"
-        const stateValue = /^-?\d+(\.\d+)?$/.test(new_state.state) ? parseFloat(new_state.state) : new_state.state;
+        const stateValue = /^-?\d+(\.\d+)?$/.test(new_state.state) ? Number.parseFloat(new_state.state) : new_state.state;
         const convertedValue = hassSensorConverter.converter(stateValue, new_state.attributes['unit_of_measurement']);
         endpoint.log.debug(
           `Converting sensor ${new_state.attributes['state_class']}:${new_state.attributes['device_class']} value "${new_state.state}" to ${CYAN}${convertedValue}${db}`,
@@ -1333,7 +1362,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         endpoint.log.debug(
           `Converting binary_sensor ${new_state.attributes['device_class']} value "${new_state.state}" to ${CYAN}${typeof convertedValue === 'object' ? debugStringify(convertedValue) : convertedValue}${db}`,
         );
-        // istanbul ignore else
+        /* v8 ignore next */
         if (convertedValue !== null) await endpoint.setAttribute(hassBinarySensorConverter.clusterId, hassBinarySensorConverter.attribute, convertedValue, endpoint.log);
       } else {
         endpoint.log.warn(`Update binary_sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`);
@@ -1355,7 +1384,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
       if (hassUpdateState.length > 0) {
         for (const update of hassUpdateState) {
-          // istanbul ignore else
+          /* v8 ignore next */
           if (update.clusterId !== undefined) await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
         }
       } else {
@@ -1368,12 +1397,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       }
       // Update attributes of the device
       endpoint.log.debug(`*Processing update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
-      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) || 0) + 1);
+      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) ?? 0) + 1);
       const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
       if (hassUpdateAttributes.length > 0) {
         // console.error('Processing update attributes: ', hassUpdateAttributes.length);
         for (const update of hassUpdateAttributes) {
-          if ((this.updatingEntities.get(entityId) || 0) > 1) {
+          /* v8 ignore next cause updatingEntities is always set for entityId just above, unless onShutdown concurrently clears it mid-update */
+          if ((this.updatingEntities.get(entityId) ?? 0) > 1) {
             endpoint.log.debug(`**Stop processing update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
             break;
           }
@@ -1389,7 +1419,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         }
       }
       endpoint.log.debug(`*Processed update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
-      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) || 0) - 1);
+      /* v8 ignore next cause updatingEntities is always set for entityId at the start of this block, unless onShutdown concurrently clears it mid-update */
+      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) ?? 0) - 1);
     }
   }
 
@@ -1403,21 +1434,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    */
   override validateEntity(deviceName: string, entity_id: string, log: boolean = true): boolean {
     if (isValidArray(this.config.entityBlackList, 1) && this.config.entityBlackList.find((e) => e === getDomain(entity_id))) {
-      // istanbul ignore else
+      /* v8 ignore next */
       if (log) this.log.info(`Skipping entity ${CYAN}${entity_id}${nf} because in entityBlackList`);
       return false;
     }
     if (isValidArray(this.config.entityWhiteList, 1) && !this.config.entityWhiteList.find((e) => e === getDomain(entity_id))) {
-      // istanbul ignore else
+      /* v8 ignore next */
       if (log) this.log.info(`Skipping entity ${CYAN}${entity_id}${nf} because not in entityWhiteList`);
       return false;
     }
     if (
       isValidObject(this.config.deviceEntityBlackList, 1) &&
       deviceName in this.config.deviceEntityBlackList &&
-      (this.config.deviceEntityBlackList as Record<string, string[]>)[deviceName].includes(entity_id)
+      this.config.deviceEntityBlackList[deviceName].includes(entity_id)
     ) {
-      // istanbul ignore else
+      /* v8 ignore next */
       if (log) this.log.info(`Skipping entity ${CYAN}${entity_id}${nf} for device ${CYAN}${deviceName}${nf} because in deviceEntityBlackList`);
       return false;
     }
@@ -1440,7 +1471,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Using air quality regex: ${CYAN}${regexString}${nf}`);
       return customRegex;
     } catch (error) {
-      this.log.warn(`Invalid regex pattern "${regexString}": ${error}`);
+      this.log.warn(`Invalid regex pattern "${regexString}": ${getErrorMessage(error)}`);
       return undefined;
     }
   }

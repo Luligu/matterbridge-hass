@@ -1,30 +1,39 @@
-// src\homeAssistant.test.ts
+/**
+ * @file vitest/homeAssistant.test.ts
+ * @description This file contains the tests for the class HomeAssistant.
+ * @author Luca Liguori
+ */
 
-const MATTER_PORT = 0;
+/* oxlint-disable vitest/no-conditional-expect */
+/* oxlint-disable eslint/no-console */
+
 const NAME = 'HomeAssistant';
-const HOMEDIR = path.join('jest', NAME);
-
-// Home Assistant WebSocket Client Tests
 
 /**
  * WARNING!!!
  * The tests in this unit are supposed to run sequentially because they depend on the previous state.
  */
 
-/* eslint-disable jest/no-conditional-expect */
-/* eslint-disable no-console */
-
 import fs from 'node:fs';
 import https from 'node:https';
 import path from 'node:path';
 
-import { jest } from '@jest/globals';
-import { loggerLogSpy, setDebug, setupTest } from 'matterbridge/jestutils';
 import { CYAN, db, er, LogLevel } from 'matterbridge/logger';
 import { wait } from 'matterbridge/utils';
+import { loggerLogSpy, setDebug, setupTest } from 'matterbridge/vitest-utils';
 import { WebSocket, WebSocketServer } from 'ws';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassLabel, HassServices, HassState, HassWebSocketResponseResult, HomeAssistant } from './homeAssistant.js';
+import {
+  type HassArea,
+  type HassConfig,
+  type HassDevice,
+  type HassEntity,
+  type HassLabel,
+  type HassServices,
+  type HassState,
+  type HassWebSocketResponseResult,
+  HomeAssistant,
+} from '../src/homeAssistant.js';
 
 // Setup the test environment
 await setupTest(NAME, false);
@@ -60,6 +69,7 @@ describe('HomeAssistant', () => {
       ws.send(JSON.stringify({ type: 'auth_required' }));
 
       ws.on('message', (message) => {
+        // oxlint-disable-next-line typescript/no-base-to-string -- message is always a Buffer for JSON text frames
         const msg = JSON.parse(message.toString());
         // console.log('WebSocket server received a message:', msg);
         if (msg.type === 'auth' && msg.access_token === accessToken) {
@@ -163,20 +173,20 @@ describe('HomeAssistant', () => {
       console.error('WebSocket server error:', error);
     });
 
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       server.on('listening', () => {
         console.log('WebSocket server listening on', wsUrl + apiPath);
-        resolve(undefined);
+        resolve();
       });
     });
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   afterAll(async () => {
@@ -184,24 +194,24 @@ describe('HomeAssistant', () => {
       client.terminate();
     }
 
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       server.close(() => {
         console.log('WebSocket server closed');
-        resolve(undefined);
+        resolve();
       });
     });
 
-    // jest.restoreAllMocks(); we need for the second unit test suite
+    // vi.restoreAllMocks(); we need for the second unit test suite
   });
 
   it('client should connect', async () => {
     client = new WebSocket(wsUrl + apiPath);
     expect(client).toBeInstanceOf(WebSocket);
 
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       client.once('open', () => {
         console.log('WebSocket client connected');
-        resolve(undefined);
+        resolve();
       });
     });
   });
@@ -209,10 +219,10 @@ describe('HomeAssistant', () => {
   it('client should close', async () => {
     expect(client).toBeInstanceOf(WebSocket);
 
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       client.on('close', () => {
         console.log('WebSocket client closed');
-        resolve(undefined);
+        resolve();
       });
       client.close();
     });
@@ -274,7 +284,7 @@ describe('HomeAssistant', () => {
       homeAssistant.once('connected', () => {
         resolve();
       });
-      homeAssistant.connect();
+      void homeAssistant.connect();
     });
 
     expect(opened).toBe(true);
@@ -295,19 +305,19 @@ describe('HomeAssistant', () => {
   it('should log error if cannot parse message from Home Assistant', async () => {
     client.send('invalid message');
     await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: Unexpected token`));
   });
 
   it('should parse message from Home Assistant with binary=true', async () => {
     client.send('invalid message', { binary: true });
     await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: Unexpected token`));
   });
 
   it('should parse message from Home Assistant with binary=false', async () => {
     client.send('invalid message', { binary: false });
     await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: SyntaxError: Unexpected token`));
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, expect.stringContaining(`Error parsing WebSocket message: Unexpected token`));
   });
 
   it('should react to pong from Home Assistant', async () => {
@@ -348,7 +358,7 @@ describe('HomeAssistant', () => {
     );
     await wait(100);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Entity id ${CYAN}myentityid${db} not found processing event`);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     homeAssistant.hassEntities.set('myentityid', {
       entity_id: 'myentityid',
@@ -402,7 +412,7 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).fetchQueue.has('get_config')).toBeTruthy();
     clearTimeout((homeAssistant as any).fetchTimeout);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     (homeAssistant as any).onFetchTimeout();
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received config.`);
@@ -416,7 +426,7 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).fetchQueue.has('config/device_registry/list')).toBeTruthy();
     clearTimeout((homeAssistant as any).fetchTimeout);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     device_registry_response.push({ id: 'mydeviceid', name: 'My Device' } as HassDevice);
     (homeAssistant as any).onFetchTimeout();
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
@@ -434,7 +444,7 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).fetchQueue.has('config/entity_registry/list')).toBeTruthy();
     clearTimeout((homeAssistant as any).fetchTimeout);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     entity_registry_response.push({ entity_id: 'myentityid', device_id: 'mydeviceid' } as HassEntity);
     (homeAssistant as any).onFetchTimeout();
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
@@ -452,7 +462,7 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).fetchQueue.has('config/area_registry/list')).toBeTruthy();
     clearTimeout((homeAssistant as any).fetchTimeout);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     area_registry_response.push({ area_id: 'myareaid', name: 'My Area' } as HassArea);
     (homeAssistant as any).onFetchTimeout();
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
@@ -470,7 +480,7 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).fetchQueue.has('config/label_registry/list')).toBeTruthy();
     clearTimeout((homeAssistant as any).fetchTimeout);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     label_registry_response.push({ label_id: 'my_labelid', name: 'My Label' } as HassLabel);
     (homeAssistant as any).onFetchTimeout();
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
@@ -483,12 +493,12 @@ describe('HomeAssistant', () => {
   it('should fail executing the fetch queue', async () => {
     (homeAssistant as any).fetchQueue.clear();
     (homeAssistant as any).fetchQueue.add('config/device_registry/list', 'test');
-    const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(() => {
+    const fetchSpy = vi.spyOn(HomeAssistant.prototype, 'fetch').mockImplementationOnce(async () => {
       return Promise.reject(new Error('Failed to fetch registry'));
     });
     (homeAssistant as any).onFetchTimeout();
     await wait(100);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, `Error fetching ${CYAN}config/device_registry/list${er}: Error: Failed to fetch registry`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, `Error fetching ${CYAN}config/device_registry/list${er}: Failed to fetch registry`);
     expect((homeAssistant as any).fetchQueue.size).toBe(0);
     fetchSpy.mockRestore();
     clearTimeout((homeAssistant as any).fetchTimeout);
@@ -677,12 +687,12 @@ describe('HomeAssistant', () => {
 
   it('should fetch data from Home Assistant and fail', async () => {
     expect(homeAssistant.connected).toBe(true);
-    jest.spyOn(homeAssistant, 'fetch').mockImplementationOnce(() => {
+    vi.spyOn(homeAssistant, 'fetch').mockImplementationOnce(async () => {
       return Promise.reject(new Error('Failed to fetch data'));
     });
     await homeAssistant.fetchData();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Error: Failed to fetch data');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Failed to fetch data');
   });
 
   it('should request async call_service from Home Assistant', async () => {
@@ -778,7 +788,7 @@ describe('HomeAssistant', () => {
       homeAssistant.once('connected', () => {
         resolve();
       });
-      homeAssistant.connect();
+      void homeAssistant.connect();
     });
     expect(homeAssistant.connected).toBe(true);
     expect(homeAssistant.ws).not.toBeNull();
@@ -791,14 +801,14 @@ describe('HomeAssistant', () => {
     client = Array.from(server.clients)[0];
 
     (homeAssistant as any).stopPing();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     (homeAssistant as any).startPing();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     (homeAssistant as any).startPing();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Ping interval already started`);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await new Promise<void>((resolve) => {
       homeAssistant.once('socket_closed', () => {
         resolve();
@@ -810,14 +820,14 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).reconnectTimeout).not.toBeUndefined();
     expect((homeAssistant as any).reconnectRetries).toBe(reconnectRetries);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     (homeAssistant as any).startReconnect();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Reconnecting already in progress.');
 
-    jest.clearAllMocks();
-    jest.advanceTimersByTime(reconnectTimeoutTime * 1000);
+    vi.clearAllMocks();
+    vi.advanceTimersByTime(reconnectTimeoutTime * 1000);
 
-    jest.useRealTimers();
+    vi.useRealTimers();
 
     await new Promise<void>((resolve) => {
       homeAssistant.once('connected', () => {
@@ -827,14 +837,14 @@ describe('HomeAssistant', () => {
     expect(homeAssistant.connected).toBe(true);
     expect(homeAssistant.ws).not.toBeNull();
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await new Promise<void>((resolve) => {
       homeAssistant.once('error', () => {
         resolve();
       });
       homeAssistant.ws?.emit('error', new Error('Test error'));
     });
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket error: Error: Test error');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'WebSocket error: Test error');
 
     await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -844,25 +854,25 @@ describe('HomeAssistant', () => {
     homeAssistant = new HomeAssistant(wsUrl, accessToken, 1, 2);
 
     const unhandledRejections: unknown[] = [];
-    const unhandledRejectionHandler = (reason: unknown) => {
+    const unhandledRejectionHandler = (reason: unknown): void => {
       unhandledRejections.push(reason);
     };
     process.on('unhandledRejection', unhandledRejectionHandler);
 
     try {
-      const connectSpy = jest.spyOn(homeAssistant, 'connect').mockRejectedValue(new Error('Connection failed'));
+      const connectSpy = vi.spyOn(homeAssistant, 'connect').mockRejectedValue(new Error('Connection failed'));
 
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       (homeAssistant as any).startReconnect();
-      jest.advanceTimersByTime(1000);
-      jest.useRealTimers();
+      vi.advanceTimersByTime(1000);
+      vi.useRealTimers();
 
       await new Promise<void>((resolve) => setImmediate(resolve));
 
       expect(connectSpy).toHaveBeenCalledTimes(1);
       expect(unhandledRejections).toHaveLength(0);
     } finally {
-      jest.useRealTimers();
+      vi.useRealTimers();
       process.off('unhandledRejection', unhandledRejectionHandler);
       await homeAssistant.close();
       homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -874,11 +884,11 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).reconnectTimeoutTime).toBe(0);
     expect((homeAssistant as any).reconnectRetries).toBe(0);
 
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       homeAssistant.once('connected', () => {
-        resolve(undefined);
+        resolve();
       });
-      homeAssistant.connect();
+      void homeAssistant.connect();
     });
 
     expect(homeAssistant.connected).toBe(true);
@@ -888,18 +898,18 @@ describe('HomeAssistant', () => {
     expect((homeAssistant as any).reconnectTimeout).toBeUndefined();
 
     (homeAssistant as any).stopPing();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     (homeAssistant as any).startPing();
 
-    jest.advanceTimersByTime((homeAssistant as any).pingIntervalTime);
+    vi.advanceTimersByTime((homeAssistant as any).pingIntervalTime);
 
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Sending WebSocket ping...');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`Sending Home Assistant ping id`));
     expect((homeAssistant as any).pingTimeout).not.toBeUndefined();
 
-    jest.advanceTimersByTime((homeAssistant as any).pingTimeoutTime);
+    vi.advanceTimersByTime((homeAssistant as any).pingTimeoutTime);
 
-    jest.useRealTimers();
+    vi.useRealTimers();
 
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Ping timeout. Closing connection...');
 
@@ -937,6 +947,7 @@ describe('HomeAssistant with ssl', () => {
       console.log('WebSocket ssl server new client connected:', ip);
       socket.send(JSON.stringify({ type: 'auth_required' }));
       socket.on('message', (message) => {
+        // oxlint-disable-next-line typescript/no-base-to-string -- message is always a Buffer for JSON text frames
         const msg = JSON.parse(message.toString());
         console.log('WebSocket ssl server received a message:', msg);
         if (msg.type === 'auth' && msg.access_token === accessToken) {
@@ -1026,7 +1037,7 @@ describe('HomeAssistant with ssl', () => {
                   code: 'notanevent',
                   message: 'Not a valid event type',
                 },
-              } as HassWebSocketResponseResult),
+              }),
             );
           } else if (msg.event_type === 'notajson') {
             socket.send('not a json');
@@ -1038,7 +1049,7 @@ describe('HomeAssistant with ssl', () => {
                 id: msg.id,
                 type: 'result',
                 success: true,
-              } as HassWebSocketResponseResult),
+              }),
             );
           }
         } else if (msg.type === 'unsubscribe_events') {
@@ -1052,7 +1063,7 @@ describe('HomeAssistant with ssl', () => {
                   code: 'notanid',
                   message: 'Not a valid subscription id',
                 },
-              } as HassWebSocketResponseResult),
+              }),
             );
           } else if (msg.subscription === -2) {
             socket.send('not a json');
@@ -1064,7 +1075,7 @@ describe('HomeAssistant with ssl', () => {
                 id: msg.id,
                 type: 'result',
                 success: true,
-              } as HassWebSocketResponseResult),
+              }),
             );
           }
         } else if (msg.type === 'call_service' && msg.domain === 'notajson') {
@@ -1123,11 +1134,11 @@ describe('HomeAssistant with ssl', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   afterAll(async () => {
@@ -1208,7 +1219,7 @@ describe('HomeAssistant with ssl', () => {
       homeAssistant.once('connected', () => {
         resolve();
       });
-      homeAssistant.connect();
+      void homeAssistant.connect();
     });
 
     expect(homeAssistant.connected).toBe(true);
@@ -1280,7 +1291,7 @@ describe('HomeAssistant with ssl', () => {
       homeAssistant.once('disconnected', () => {
         resolve();
       });
-      homeAssistant.close();
+      void homeAssistant.close();
     });
 
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -1289,14 +1300,14 @@ describe('HomeAssistant with ssl', () => {
   it('startPing should log message if disconnect from Home Assistant with ssl', async () => {
     expect(homeAssistant.connected).toBe(false);
 
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     (homeAssistant as any).startPing();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Starting ping interval...');
-    jest.advanceTimersByTime((homeAssistant as any).pingIntervalTime);
+    vi.advanceTimersByTime((homeAssistant as any).pingIntervalTime);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'WebSocket not open sending ping. Closing connection...');
-    jest.useRealTimers();
+    vi.useRealTimers();
 
-    homeAssistant.close();
+    void homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
   });
 
@@ -1326,12 +1337,12 @@ describe('HomeAssistant with ssl', () => {
 
   it('should fetch data from Home Assistant and fail', async () => {
     expect(homeAssistant.connected).toBe(true);
-    jest.spyOn(homeAssistant, 'fetch').mockImplementationOnce(() => {
+    vi.spyOn(homeAssistant, 'fetch').mockImplementationOnce(async () => {
       return Promise.reject(new Error('Failed to fetch data'));
     });
     await homeAssistant.fetchData();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Error: Failed to fetch data');
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Failed to fetch data');
   });
 
   it('should subscribe to Home Assistant', async () => {
@@ -1435,11 +1446,11 @@ describe('HomeAssistant with ssl', () => {
       await homeAssistant.connect();
     } catch (error: any) {
       expect(error).toBeInstanceOf(Error);
-      expect(error.message).toContain('WebSocket error connecting to Home Assistant: Error: ENOENT');
+      expect(error.message).toContain('WebSocket error connecting to Home Assistant: ENOENT');
     }
 
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Loading CA certificate from ./invalid/cert.pem...`);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`WebSocket error connecting to Home Assistant: Error: ENOENT`));
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining(`WebSocket error connecting to Home Assistant: ENOENT`));
     expect(homeAssistant.connected).toBe(false);
     await homeAssistant.close();
     homeAssistant.removeAllListeners(); // Remove all listeners to avoid memory leaks
@@ -1455,7 +1466,7 @@ describe('HomeAssistant with ssl', () => {
       homeAssistant.once('connected', () => {
         resolve();
       });
-      homeAssistant.connect();
+      void homeAssistant.connect();
     });
 
     expect(homeAssistant.connected).toBe(true);
@@ -1466,10 +1477,10 @@ describe('HomeAssistant with ssl', () => {
     expect(homeAssistant.hassServices).toBeNull();
     expect(homeAssistant.hassConfig).toBeNull();
 
-    // jest.restoreAllMocks();
+    // vi.restoreAllMocks();
     expect(homeAssistant.ws).toBeDefined();
     if (!homeAssistant.ws) return;
-    jest.spyOn(homeAssistant.ws, 'close').mockImplementationOnce((code?: number, data?: string | Buffer) => {
+    vi.spyOn(homeAssistant.ws, 'close').mockImplementationOnce((code?: number, data?: string | Buffer) => {
       // Simulate a close event with a short timeout
     });
 
@@ -1516,7 +1527,7 @@ describe('HomeAssistant with ssl', () => {
   });
 
   it('should connect to Home Assistant with ssl and self-signed CA certificate', async () => {
-    // jest.restoreAllMocks();
+    // vi.restoreAllMocks();
     homeAssistant = new HomeAssistant(`wss://localhost:${port}`, accessToken, undefined, undefined, path.join('certificates', 'matterbridge-hass-ca.crt'), true);
 
     await homeAssistant.connect();
@@ -1535,7 +1546,16 @@ describe('HomeAssistant with ssl', () => {
 });
 
 describe('HomeAssistant parser', () => {
-  const readMockHomeAssistantFile = (filePath: string) => {
+  const readMockHomeAssistantFile = (
+    filePath: string,
+  ): {
+    devices: HassDevice[];
+    entities: HassEntity[];
+    areas: HassArea[];
+    states: HassState[];
+    config: HassConfig;
+    services: HassServices;
+  } | null => {
     try {
       const data = fs.readFileSync(filePath, 'utf8');
       return JSON.parse(data) as {
@@ -1586,7 +1606,7 @@ describe('HomeAssistant parser', () => {
     }
     let output = 'HassDevice properties:';
     Array.from(properties)
-      .sort()
+      .toSorted()
       .forEach((property) => {
         output += `\n- ${property}`;
       });
@@ -1617,7 +1637,7 @@ describe('HomeAssistant parser', () => {
     }
     let output = 'HassEntity properties:';
     Array.from(properties)
-      .sort()
+      .toSorted()
       .forEach((property) => {
         output += `\n- ${property}`;
       });
@@ -1640,7 +1660,7 @@ describe('HomeAssistant parser', () => {
     }
     let output = 'HassArea properties:';
     Array.from(properties)
-      .sort()
+      .toSorted()
       .forEach((property) => {
         output += `\n- ${property}`;
       });
@@ -1680,7 +1700,7 @@ describe('HomeAssistant parser', () => {
     }
     let output = 'HassState properties:';
     Array.from(properties)
-      .sort()
+      .toSorted()
       .forEach((property) => {
         output += `\n- ${property}`;
       });
@@ -1688,7 +1708,7 @@ describe('HomeAssistant parser', () => {
     console.log(output);
     output = 'HassState attributes properties:';
     Array.from(attributeProperties)
-      .sort()
+      .toSorted()
       .forEach((property) => {
         output += `\n- ${property}`;
       });

@@ -1,8 +1,10 @@
-// src\homeAssistant.real.test.ts
+/**
+ * @file vitest/homeAssistant.real.test.ts
+ * @description This file contains the tests for the class HomeAssistant against a real Home Assistant server.
+ * @author Luca Liguori
+ */
 
-const MATTER_PORT = 0;
 const NAME = 'HomeAssistantReal';
-const HOMEDIR = path.join('jest', NAME);
 
 // Home Assistant Real WebSocket Client Tests on a local host
 
@@ -14,12 +16,11 @@ const HOMEDIR = path.join('jest', NAME);
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { jest } from '@jest/globals';
-import { loggerLogSpy, setupTest } from 'matterbridge/jestutils';
 import { LogLevel } from 'matterbridge/logger';
 import { getIpv4InterfaceAddress } from 'matterbridge/utils';
+import { loggerLogSpy, setupTest } from 'matterbridge/vitest-utils';
 
-import { HassArea, HassConfig, HassDevice, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
+import { type HassArea, type HassConfig, type HassDevice, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
 
 // Setup the test environment
 await setupTest(NAME, false);
@@ -42,15 +43,15 @@ describe('HomeAssistant real test on server', () => {
   let area_registry_response: HassArea[] = [];
   let label_registry_response: HassArea[] = [];
   let states_response: HassState[] = [];
-  let services_response: HassServices = {} as HassServices;
+  let services_response: HassServices = {};
   let config_response: HassConfig = {} as HassConfig;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(async () => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should have at least one test', () => {
@@ -79,7 +80,7 @@ describe('HomeAssistant real test on server', () => {
       homeAssistant.once('connected', () => {
         resolve();
       });
-      homeAssistant.connect();
+      void homeAssistant.connect();
     });
 
     expect(opened).toBe(true);
@@ -202,7 +203,7 @@ describe('HomeAssistant real test on server', () => {
       homeAssistant.on('disconnected', () => {
         resolve();
       });
-      homeAssistant.close();
+      void homeAssistant.close();
     });
 
     expect(closed).toBe(true);

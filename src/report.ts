@@ -1,11 +1,12 @@
 /**
+ * @file src/report.ts
  * @description This file contains the Home Assistant report helper.
- * @file src\report.ts
  * @author Luca Liguori
  * @created 2026-04-05
  * @version 1.0.0
  * @license Apache-2.0
- * @copyright 2026, 2027, 2028 Luca Liguori.
+ *
+ * Copyright 2026, 2027, 2028 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +21,12 @@
  * limitations under the License.
  */
 
+/* oxlint-disable typescript/no-unnecessary-template-expression */
+
 import fs from 'node:fs';
 import path from 'node:path';
+
+import { getErrorMessage } from 'matterbridge/utils';
 
 import { isHidden, isIndividualEntity, isSplitEntity } from './helpers.js';
 import type { HomeAssistantPlatform } from './module.js';
@@ -127,7 +132,7 @@ export async function writeReport(platform: HomeAssistantPlatform): Promise<stri
     await fs.promises.writeFile(reportPath, createReport(platform));
     platform.log.debug(`Home Assistant report successfully written to ${reportPath}`);
   } catch (error) {
-    platform.log.error(`Error writing Home Assistant report to ${reportPath}: ${error}`);
+    platform.log.error(`Error writing Home Assistant report to ${reportPath}: ${getErrorMessage(error)}`);
   }
 
   return reportPath;

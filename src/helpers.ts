@@ -1,11 +1,12 @@
 /**
+ * @file src/helpers.ts
  * @description This file contains helper functions for the Home Assistant platform.
- * @file src\helpers.ts
  * @author Luca Liguori
  * @created 2024-09-13
  * @version 1.0.0
  * @license Apache-2.0
- * @copyright 2026, 2027, 2028 Luca Liguori.
+ *
+ * Copyright 2026, 2027, 2028 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -146,6 +147,7 @@ export function isDeviceEntity(entity: HassEntity): entity is HassEntity & { dev
   if (!isValidObject(entity)) {
     return false;
   }
+  // oxlint-disable-next-line no-eq-null
   return entity.device_id != null;
 }
 
@@ -399,7 +401,7 @@ export function generateEntity(
   const entity: HassEntity = {
     id: createUniqueId(),
     entity_id,
-    area_id: device !== null ? null : area_id,
+    area_id: device === null ? area_id : null,
     categories: {},
     config_entry_id: null,
     config_subentry_id: null,
@@ -451,6 +453,7 @@ export function generateState(
     last_changed: timestamp,
     last_reported: timestamp,
     last_updated: timestamp,
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     attributes: {
       friendly_name: friendlyName,
       ...attributes,

@@ -1,13 +1,16 @@
-// src\stateCache.test.ts
+/**
+ * @file vitest/stateCache.test.ts
+ * @description This file contains the tests for the class StateCache.
+ * @author Luca Liguori
+ */
 
 const NAME = 'StateCache';
 
-import { jest } from '@jest/globals';
-import { setupTest } from 'matterbridge/jestutils';
 import type { NodeStorage } from 'matterbridge/storage';
+import { setupTest } from 'matterbridge/vitest-utils';
 
-import { type HassState, UnitOfTemperature, VacuumActivity } from './homeAssistant.js';
-import { StateCache } from './stateCache.js';
+import { type HassState, UnitOfTemperature, VacuumActivity } from '../src/homeAssistant.js';
+import { StateCache } from '../src/stateCache.js';
 
 // Setup the test environment
 await setupTest(NAME, false);
@@ -68,17 +71,17 @@ describe('StateCache', () => {
   let context: Pick<NodeStorage, 'get' | 'set'>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     storedCache = [createState('light.kitchen', 'off')];
 
-    const getMock: NodeStorage['get'] = jest.fn(async <T = any>(_key: string, defaultValue?: T): Promise<T> => {
+    const getMock = vi.fn(async <T = unknown>(_key: string, defaultValue?: T): Promise<T> => {
       return ((storedCache as unknown as T) ?? defaultValue) as T;
-    });
+    }) as unknown as NodeStorage['get'];
 
-    const setMock: NodeStorage['set'] = jest.fn(async <T = any>(_key: string, value: T) => {
+    const setMock = vi.fn(async (_key: string, value: unknown) => {
       storedCache = value as HassState[];
       return {} as Awaited<ReturnType<NodeStorage['set']>>;
-    });
+    }) as unknown as NodeStorage['set'];
 
     context = {
       get: getMock,

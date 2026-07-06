@@ -1,11 +1,13 @@
-import { jest } from '@jest/globals';
-import { onOffMountedSwitch, onOffOutlet } from 'matterbridge';
+/**
+ * @file vitest/button.entity.test.ts
+ * @description This file contains the tests for the addButtonEntity function.
+ * @author Luca Liguori
+ */
+
+import { mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
 import { OnOff } from 'matterbridge/matter/clusters';
 
-import { addButtonEntity } from './button.entity.js';
-
-// TODO: Remove when require Matterbridge 3.8.1 or later
-/* eslint-disable @typescript-eslint/no-deprecated */
+import { addButtonEntity } from '../src/button.entity.js';
 
 type CommandHandler = (data: { endpoint: { setAttribute: (...args: unknown[]) => unknown; log: unknown } }) => void | Promise<void>;
 
@@ -28,34 +30,31 @@ function createMockMutableDevice(): MutableDeviceLike & {
       const ep = endpoint ?? '';
       if (!deviceTypes[ep]) deviceTypes[ep] = [];
       for (const deviceType of types) deviceTypes[ep].push(deviceType.code);
-      return this as any;
+      return this;
     },
     addCommandHandler(endpoint: string, command: string, handler: CommandHandler) {
       const ep = endpoint ?? '';
       commandHandlers[ep] ||= {};
       commandHandlers[ep][command] = handler;
-      return this as any;
+      return this;
     },
-  } as MutableDeviceLike & {
-    deviceTypes: Record<string, number[]>;
-    commandHandlers: Record<string, Record<string, CommandHandler>>;
   };
 }
 
-function createPlatform() {
+function createPlatform(): any {
   return {
     log: {
-      debug: jest.fn(),
+      debug: vi.fn(),
     },
     ha: {
-      callService: jest.fn(async () => undefined),
+      callService: vi.fn(async () => {}),
     },
   } as any;
 }
 
 describe('addButtonEntity', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('returns undefined for unsupported domain', () => {
@@ -78,19 +77,19 @@ describe('addButtonEntity', () => {
     const ep = addButtonEntity(platform, md as any, entity, {} as any);
 
     expect(ep).toBe(entity.entity_id);
-    expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+    expect(md.deviceTypes[entity.entity_id]).toEqual([mountedOnOffControl.code, onOffPlugInUnit.code]);
     expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
 
     const endpoint = {
-      setAttribute: jest.fn(async () => undefined),
-      log: { debug: jest.fn() },
+      setAttribute: vi.fn(async () => {}),
+      log: { debug: vi.fn() },
     };
 
     const timeoutPromises: Promise<unknown>[] = [];
-    const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(((cb: (...args: unknown[]) => unknown, _ms?: number) => {
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation(((cb: (...args: unknown[]) => unknown, _ms?: number) => {
       const result = cb();
       timeoutPromises.push(Promise.resolve(result));
-      return { unref: jest.fn() } as any;
+      return { unref: vi.fn() } as any;
     }) as any);
 
     try {
@@ -114,7 +113,7 @@ describe('addButtonEntity', () => {
     const ep = addButtonEntity(platform, md as any, entity, {} as any);
 
     expect(ep).toBe(entity.entity_id);
-    expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+    expect(md.deviceTypes[entity.entity_id]).toEqual([mountedOnOffControl.code, onOffPlugInUnit.code]);
     expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
   });
 });

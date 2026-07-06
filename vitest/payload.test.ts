@@ -1,21 +1,24 @@
-// src\payload.test.ts
+/**
+ * @file vitest/payload.test.ts
+ * @description This file contains the tests for the Home Assistant payload helper.
+ * @author Luca Liguori
+ */
 
 const NAME = 'Payload';
-const HOMEDIR = path.join('jest', NAME);
-const PAYLOAD_DIRECTORY = path.join(HOMEDIR, 'matterbridge-hass');
-const FILE_PATH = path.join(PAYLOAD_DIRECTORY, 'homeassistant.json');
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { jest } from '@jest/globals';
-import { setupTest } from 'matterbridge/jestutils';
+import { HOMEDIR, setupTest } from 'matterbridge/vitest-utils';
 
-import type { HassArea, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import { savePayload } from './payload.js';
+import type { HassArea, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from '../src/homeAssistant.js';
+import { savePayload } from '../src/payload.js';
 
 // Setup the test environment
 await setupTest(NAME, false);
+
+const PAYLOAD_DIRECTORY = path.join(HOMEDIR, 'matterbridge-hass');
+const FILE_PATH = path.join(PAYLOAD_DIRECTORY, 'homeassistant.json');
 
 function createHomeAssistant(): HomeAssistant {
   return {
@@ -32,8 +35,8 @@ function createHomeAssistant(): HomeAssistant {
 type PayloadPlatformStub = {
   ha: HomeAssistant;
   log: {
-    debug: ReturnType<typeof jest.fn>;
-    error: ReturnType<typeof jest.fn>;
+    debug: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
   };
   matterbridge: {
     matterbridgePluginDirectory: string;
@@ -44,8 +47,8 @@ function createPlatform(pluginDirectory = HOMEDIR): PayloadPlatformStub {
   return {
     ha: createHomeAssistant(),
     log: {
-      debug: jest.fn(),
-      error: jest.fn(),
+      debug: vi.fn(),
+      error: vi.fn(),
     },
     matterbridge: {
       matterbridgePluginDirectory: pluginDirectory,
@@ -55,7 +58,7 @@ function createPlatform(pluginDirectory = HOMEDIR): PayloadPlatformStub {
 
 describe('Payload', () => {
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     await fs.promises.mkdir(PAYLOAD_DIRECTORY, { recursive: true });
     await fs.promises.rm(FILE_PATH, { force: true });
   });

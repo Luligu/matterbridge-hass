@@ -1,6 +1,7 @@
 {
   "version": "2.0.0",
   "tasks": [
+    // --DO NOT EDIT BELOW THIS LINE--
     {
       "label": "Start",
       "detail": "npm run start",
@@ -58,25 +59,23 @@
     },
     {
       "label": "Lint",
-      "detail": "Run ESLint",
+      "detail": "Run lint",
       "type": "npm",
       "script": "lint",
       "problemMatcher": ["$eslint-stylish"]
     },
     {
       "label": "Format",
-      "detail": "Run Prettier",
+      "detail": "Run format",
       "type": "npm",
       "script": "format",
       "problemMatcher": []
     },
     {
       "label": "Test",
-      "detail": "Run Jest with coverage and verbose",
-      "type": "shell",
-      "command": "node",
-      "args": ["--no-warnings", "--experimental-vm-modules", "node_modules/jest/bin/jest.js", "--verbose", "--coverage", "--maxWorkers=100%"],
-      "group": { "kind": "test", "isDefault": true },
+      "detail": "Run test with coverage",
+      "type": "npm",
+      "script": "test:coverage",
       "problemMatcher": []
     },
     {
@@ -115,6 +114,22 @@
       "problemMatcher": []
     },
     {
+      "label": "Update",
+      "detail": "Update the package with mb-run",
+      "type": "shell",
+      "command": "mb-run",
+      "args": ["--update"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Upgrade",
+      "detail": "Upgrade the package with mb-run",
+      "type": "shell",
+      "command": "mb-run",
+      "args": ["--upgrade"],
+      "problemMatcher": []
+    },
+    {
       "label": "Git Status",
       "detail": "Run Git Status Script",
       "type": "shell",
@@ -146,19 +161,18 @@
       "args": ["scripts/remove-workflows.mjs"],
       "problemMatcher": []
     },
+    // --DO NOT EDIT ABOVE THIS LINE--
     {
       "label": "Test: Module",
       "type": "shell",
-      "command": "node",
+      "command": "npx",
       "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
+        "vitest",
+        "run",
+        "--reporter=verbose",
         "--coverage",
         "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/module.ts",
+        "--coverage.include=src/module.ts",
         "module.test.ts",
         "module.matter.test.ts",
         "module.auto.test.ts"
@@ -169,16 +183,14 @@
     {
       "label": "Test: Home Assistant",
       "type": "shell",
-      "command": "node",
+      "command": "npx",
       "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
+        "vitest",
+        "run",
+        "--reporter=verbose",
         "--coverage",
         "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/homeAssistant.ts",
+        "--coverage.include=src/homeAssistant.ts",
         "homeAssistant.test.ts",
         "homeAssistant.real.test.ts"
       ],
@@ -188,117 +200,65 @@
     {
       "label": "Test: Mutable Device",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/mutableDevice.ts",
-        "mutableDevice.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/mutableDevice.ts", "mutableDevice.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Helpers",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/helpers.ts",
-        "helpers.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/helpers.ts", "helpers.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Payload",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/payload.ts",
-        "payload.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/payload.ts", "payload.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Report",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/report.ts",
-        "report.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/report.ts", "report.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Converters",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/converters.ts",
-        "converters.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/converters.ts", "converters.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Entities",
       "type": "shell",
-      "command": "node",
+      "command": "npx",
       "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
+        "vitest",
+        "run",
+        "--reporter=verbose",
         "--coverage",
         "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/binary_sensor.entity.ts",
-        "--collectCoverageFrom=src/button.entity.ts",
-        "--collectCoverageFrom=src/control.entity.ts",
-        "--collectCoverageFrom=src/event.entity.ts",
-        "--collectCoverageFrom=src/helper.entity.ts",
-        "--collectCoverageFrom=src/sensor.entity.ts",
-        "src/binary_sensor.entity.test.ts",
-        "src/button.entity.test.ts",
-        "src/control.entity.test.ts",
-        "src/event.entity.test.ts",
-        "src/helper.entity.test.ts",
-        "src/sensor.entity.test.ts"
+        "--coverage.include=src/binary_sensor.entity.ts",
+        "--coverage.include=src/button.entity.ts",
+        "--coverage.include=src/control.entity.ts",
+        "--coverage.include=src/event.entity.ts",
+        "--coverage.include=src/helper.entity.ts",
+        "--coverage.include=src/sensor.entity.ts",
+        "binary_sensor.entity.test.ts",
+        "button.entity.test.ts",
+        "control.entity.test.ts",
+        "event.entity.test.ts",
+        "helper.entity.test.ts",
+        "sensor.entity.test.ts"
       ],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
@@ -306,18 +266,8 @@
     {
       "label": "Test: State Cache",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/stateCache.ts",
-        "stateCache.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/stateCache.ts", "stateCache.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     }

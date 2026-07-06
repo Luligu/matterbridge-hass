@@ -1,12 +1,14 @@
-// src\report.test.ts
+/**
+ * @file vitest/report.test.ts
+ * @description This file contains the tests for the Home Assistant report helper.
+ * @author Luca Liguori
+ */
 
-import * as fs from 'node:fs';
-import * as os from 'node:os';
-import * as path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-import { jest } from '@jest/globals';
-
-import { createReport, writeReport } from './report.js';
+import { createReport, writeReport } from '../src/report.js';
 
 describe('report', () => {
   type ReportPlatform = Parameters<typeof createReport>[0];
@@ -14,8 +16,8 @@ describe('report', () => {
   const createPlatform = (pluginDirectory = ''): ReportPlatform => {
     return {
       log: {
-        debug: jest.fn(),
-        error: jest.fn(),
+        debug: vi.fn(),
+        error: vi.fn(),
       },
       matterbridge: {
         matterbridgePluginDirectory: pluginDirectory,
@@ -139,8 +141,8 @@ describe('report', () => {
   const createFallbackPlatform = (pluginDirectory = ''): ReportPlatform => {
     return {
       log: {
-        debug: jest.fn(),
-        error: jest.fn(),
+        debug: vi.fn(),
+        error: vi.fn(),
       },
       matterbridge: {
         matterbridgePluginDirectory: pluginDirectory,
@@ -259,7 +261,7 @@ describe('report', () => {
       const reportPath = await writeReport(platform);
       expect(reportPath).toBe(path.join(pluginDirectory, 'matterbridge-hass', 'report.log'));
       expect(platform.log.debug).not.toHaveBeenCalled();
-      expect(platform.log.error).toHaveBeenCalledWith(expect.stringContaining(`Error writing Home Assistant report to ${reportPath}: Error: ENOENT`));
+      expect(platform.log.error).toHaveBeenCalledWith(expect.stringContaining(`Error writing Home Assistant report to ${reportPath}: ENOENT`));
     } finally {
       fs.rmSync(pluginDirectory, { recursive: true, force: true });
     }

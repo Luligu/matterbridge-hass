@@ -1,11 +1,13 @@
-import { jest } from '@jest/globals';
-import { onOffMountedSwitch, onOffOutlet } from 'matterbridge';
+/**
+ * @file vitest/helper.entity.test.ts
+ * @description This file contains the tests for the addHelperEntity function.
+ * @author Luca Liguori
+ */
+
+import { mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
 import { OnOff } from 'matterbridge/matter/clusters';
 
-import { addHelperEntity } from './helper.entity.js';
-
-// TODO: Remove when require Matterbridge 3.8.1 or later
-/* eslint-disable @typescript-eslint/no-deprecated */
+import { addHelperEntity } from '../src/helper.entity.js';
 
 type CommandHandler = (data?: { endpoint: { setAttribute: (...args: unknown[]) => unknown; log: unknown } }) => void | Promise<void>;
 
@@ -30,47 +32,42 @@ function createMockMutableDevice(): MutableDeviceLike & {
     commandHandlers,
     setComposedType(type: string) {
       (this as any).lastComposedType = type;
-      return this as any;
+      return this;
     },
     setConfigUrl(url: string) {
       (this as any).lastConfigUrl = url;
-      return this as any;
+      return this;
     },
     addDeviceTypes(endpoint: string, ...types: any[]) {
       const ep = endpoint ?? '';
       if (!deviceTypes[ep]) deviceTypes[ep] = [];
       for (const deviceType of types) deviceTypes[ep].push(deviceType.code);
-      return this as any;
+      return this;
     },
     addCommandHandler(endpoint: string, command: string, handler: CommandHandler) {
       const ep = endpoint ?? '';
       commandHandlers[ep] ||= {};
       commandHandlers[ep][command] = handler;
-      return this as any;
+      return this;
     },
-  } as unknown as MutableDeviceLike & {
-    lastComposedType?: string;
-    lastConfigUrl?: string;
-    deviceTypes: Record<string, number[]>;
-    commandHandlers: Record<string, Record<string, CommandHandler>>;
   };
 }
 
-function createPlatform(host: string) {
+function createPlatform(host: string): any {
   return {
     config: { host },
     log: {
-      debug: jest.fn(),
+      debug: vi.fn(),
     },
     ha: {
-      callService: jest.fn(async () => undefined),
+      callService: vi.fn(async () => {}),
     },
   } as any;
 }
 
 describe('addHelperEntity', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('returns undefined for unsupported domain', () => {
@@ -95,7 +92,7 @@ describe('addHelperEntity', () => {
     expect(ep).toBe(entity.entity_id);
     expect(md.lastComposedType).toBe('Hass Automation');
     expect(md.lastConfigUrl).toBe('http://homeassistant.local:8123/config/automation/dashboard');
-    expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+    expect(md.deviceTypes[entity.entity_id]).toEqual([mountedOnOffControl.code, onOffPlugInUnit.code]);
     expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
     expect(md.commandHandlers[entity.entity_id]).toHaveProperty('off');
   });
@@ -135,7 +132,7 @@ describe('addHelperEntity', () => {
       expect(ep).toBe(entity.entity_id);
       expect(md.lastComposedType).toBeUndefined();
       expect(md.lastConfigUrl).toBeUndefined();
-      expect(md.deviceTypes[entity.entity_id]).toEqual([onOffMountedSwitch.code, onOffOutlet.code]);
+      expect(md.deviceTypes[entity.entity_id]).toEqual([mountedOnOffControl.code, onOffPlugInUnit.code]);
       expect(md.commandHandlers[entity.entity_id]).toHaveProperty('on');
       expect(md.commandHandlers[entity.entity_id]).toHaveProperty('off');
     },
@@ -152,15 +149,15 @@ describe('addHelperEntity', () => {
     const offHandler = md.commandHandlers[entity.entity_id].off;
 
     const endpoint = {
-      setAttribute: jest.fn(async () => undefined),
-      log: { debug: jest.fn() },
+      setAttribute: vi.fn(async () => {}),
+      log: { debug: vi.fn() },
     };
 
     const timeoutPromises: Promise<unknown>[] = [];
-    const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(((cb: (...args: unknown[]) => unknown, _ms?: number) => {
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation(((cb: (...args: unknown[]) => unknown, _ms?: number) => {
       const result = cb();
       timeoutPromises.push(Promise.resolve(result));
-      return { unref: jest.fn() } as any;
+      return { unref: vi.fn() } as any;
     }) as any);
 
     try {
@@ -186,15 +183,15 @@ describe('addHelperEntity', () => {
     const handler = md.commandHandlers[entity.entity_id].on;
 
     const endpoint = {
-      setAttribute: jest.fn(async () => undefined),
-      log: { debug: jest.fn() },
+      setAttribute: vi.fn(async () => {}),
+      log: { debug: vi.fn() },
     };
 
     const timeoutPromises: Promise<unknown>[] = [];
-    const setTimeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(((cb: (...args: unknown[]) => unknown, _ms?: number) => {
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout').mockImplementation(((cb: (...args: unknown[]) => unknown, _ms?: number) => {
       const result = cb();
       timeoutPromises.push(Promise.resolve(result));
-      return { unref: jest.fn() } as any;
+      return { unref: vi.fn() } as any;
     }) as any);
 
     try {
@@ -220,11 +217,11 @@ describe('addHelperEntity', () => {
     const offHandler = md.commandHandlers[entity.entity_id].off;
 
     const endpoint = {
-      setAttribute: jest.fn(async () => undefined),
-      log: { debug: jest.fn() },
+      setAttribute: vi.fn(async () => {}),
+      log: { debug: vi.fn() },
     };
 
-    const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+    const setTimeoutSpy = vi.spyOn(global, 'setTimeout');
 
     try {
       await onHandler({ endpoint });

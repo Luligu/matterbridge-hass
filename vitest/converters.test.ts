@@ -1,6 +1,10 @@
-// src\converters.test.ts
+/**
+ * @file vitest/converters.test.ts
+ * @description This file contains the tests for the HomeAssistantPlatform converters.
+ * @author Luca Liguori
+ */
 
-/* eslint-disable jest/no-conditional-expect */
+/* oxlint-disable vitest/no-conditional-expect */
 
 import { airQualitySensor, electricalSensor, powerSource, pressureSensor } from 'matterbridge';
 import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters';
@@ -22,8 +26,18 @@ import {
   roundTo,
   temp,
   tempToFahrenheit,
-} from './converters.js';
-import { ClimateEntityFeature, ColorMode, FanEntityFeature, HassConfig, HassState, HassUnitSystem, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
+} from '../src/converters.js';
+import {
+  ClimateEntityFeature,
+  ColorMode,
+  FanEntityFeature,
+  type HassConfig,
+  type HassState,
+  type HassUnitSystem,
+  HomeAssistant,
+  HVACMode,
+  UnitOfTemperature,
+} from '../src/homeAssistant.js';
 
 function createSelectState(options: string[]): HassState {
   return {
@@ -40,6 +54,7 @@ function createSelectState(options: string[]): HassState {
 describe('HassPlatform converters', () => {
   it('should return the feature names for supported features', () => {
     expect(getFeatureNames(FanEntityFeature, 0)).toEqual([]);
+    // oxlint-disable-next-line unicorn/no-useless-undefined
     expect(getFeatureNames(FanEntityFeature, undefined)).toEqual([]);
     expect(getFeatureNames(FanEntityFeature, 63)).toEqual(['SET_SPEED', 'OSCILLATE', 'DIRECTION', 'PRESET_MODE', 'TURN_OFF', 'TURN_ON']);
     // hvac_modes: [ 'auto', 'heat', 'off' ]
@@ -320,19 +335,19 @@ describe('HassPlatform converters', () => {
     hassCommandConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
-        expect(converter.converter({ liftPercent100thsValue: 10000 }, {}, undefined)).toEqual({ position: 0 });
+        expect(converter.converter({ liftPercent100thsValue: 10000 }, {})).toEqual({ position: 0 });
       }
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
-        expect(converter.converter({ liftPercent100thsValue: 3000 }, {}, undefined)).toEqual({ position: 70 });
+        expect(converter.converter({ liftPercent100thsValue: 3000 }, {})).toEqual({ position: 70 });
       }
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
-        expect(converter.converter({ liftPercent100thsValue: 0 }, {}, undefined)).toEqual({ position: 100 });
+        expect(converter.converter({ liftPercent100thsValue: 0 }, {})).toEqual({ position: 100 });
       }
       if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
-        expect(converter.converter({ targetLevel: 100 }, {}, undefined)).toEqual({ position: 100 });
+        expect(converter.converter({ targetLevel: 100 }, {})).toEqual({ position: 100 });
       }
       if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
-        expect(converter.converter({ targetLevel: 0 }, {}, undefined)).toEqual({ position: 0 });
+        expect(converter.converter({ targetLevel: 0 }, {})).toEqual({ position: 0 });
       }
       if (converter.converter && converter.command === 'moveToLevel') {
         expect(converter.converter({ level: 254 }, undefined as any, undefined as any)).toEqual({ brightness: 255 });
@@ -386,9 +401,9 @@ describe('HassPlatform converters', () => {
         expect(converter.converter(FanControl.FanMode.Medium)).toBe('medium');
         expect(converter.converter(FanControl.FanMode.High)).toBe('high');
         expect(converter.converter(FanControl.FanMode.Auto)).toBe('auto');
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        // oxlint-disable-next-line typescript/no-deprecated
         expect(converter.converter(FanControl.FanMode.Smart)).toBe('auto');
-        // eslint-disable-next-line @typescript-eslint/no-deprecated
+        // oxlint-disable-next-line typescript/no-deprecated
         expect(converter.converter(FanControl.FanMode.On)).toBe('auto');
         expect(converter.converter(10)).toBe(null);
       }
@@ -441,17 +456,17 @@ describe('HassPlatform converters', () => {
   it('fan preset subscribe maps smart/on to auto (line 376)', () => {
     const c = hassSubscribeConverter.find((x) => x.domain === 'fan' && x.service === 'turn_on' && x.with === 'preset_mode');
     expect(c).toBeDefined();
-    if (!c || !c.converter) return;
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    if (!c?.converter) return;
+    // oxlint-disable-next-line typescript/no-deprecated
     expect(c.converter(FanControl.FanMode.Smart)).toBe('auto');
-    // eslint-disable-next-line @typescript-eslint/no-deprecated
+    // oxlint-disable-next-line typescript/no-deprecated
     expect(c.converter(FanControl.FanMode.On)).toBe('auto');
   });
 
   it('fan preset subscribe invalid value returns null (line 379)', () => {
     const c = hassSubscribeConverter.find((x) => x.domain === 'fan' && x.service === 'turn_on' && x.with === 'preset_mode');
     expect(c).toBeDefined();
-    if (!c || !c.converter) return;
+    if (!c?.converter) return;
     expect(c.converter(-1 as any)).toBe(null); // below range
     expect(c.converter(999 as any)).toBe(null); // above range
   });
@@ -467,19 +482,19 @@ describe('HassPlatform converters', () => {
       expect(convertMatterXYToHA(32768, 32768)).toEqual([0.5, 0.5]);
     });
     it('should handle floats and round to 4 decimals', () => {
-      expect(convertMatterXYToHA(12345, 54321)).toEqual([parseFloat((12345 / 65536).toFixed(4)), parseFloat((54321 / 65536).toFixed(4))]);
+      expect(convertMatterXYToHA(12345, 54321)).toEqual([Number.parseFloat((12345 / 65536).toFixed(4)), Number.parseFloat((54321 / 65536).toFixed(4))]);
     });
     it('should clamp negative X and valid Y', () => {
-      expect(convertMatterXYToHA(-10, 100)).toEqual([0, parseFloat((100 / 65536).toFixed(4))]);
+      expect(convertMatterXYToHA(-10, 100)).toEqual([0, Number.parseFloat((100 / 65536).toFixed(4))]);
     });
     it('should clamp valid X and Y above max', () => {
-      expect(convertMatterXYToHA(100, 70000)).toEqual([parseFloat((100 / 65536).toFixed(4)), parseFloat((65279 / 65536).toFixed(4))]);
+      expect(convertMatterXYToHA(100, 70000)).toEqual([Number.parseFloat((100 / 65536).toFixed(4)), Number.parseFloat((65279 / 65536).toFixed(4))]);
     });
     it('should clamp X below min and Y above max', () => {
-      expect(convertMatterXYToHA(-5, 70000)).toEqual([0, parseFloat((65279 / 65536).toFixed(4))]);
+      expect(convertMatterXYToHA(-5, 70000)).toEqual([0, Number.parseFloat((65279 / 65536).toFixed(4))]);
     });
     it('should clamp X above max and Y below min', () => {
-      expect(convertMatterXYToHA(70000, -5)).toEqual([parseFloat((65279 / 65536).toFixed(4)), 0]);
+      expect(convertMatterXYToHA(70000, -5)).toEqual([Number.parseFloat((65279 / 65536).toFixed(4)), 0]);
     });
   });
 

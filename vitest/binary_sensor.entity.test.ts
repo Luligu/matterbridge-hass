@@ -1,10 +1,17 @@
-import { jest } from '@jest/globals';
+/**
+ * @file vitest/binary_sensor.entity.test.ts
+ * @description This file contains the tests for the addBinarySensorEntity function.
+ * @author Luca Liguori
+ */
+
+/* oxlint-disable typescript/non-nullable-type-assertion-style */
+
 import { contactSensor, occupancySensor, powerSource, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
 import { BooleanState, OccupancySensing, PowerSource, SmokeCoAlarm } from 'matterbridge/matter/clusters';
 
-import { addBinarySensorEntity } from './binary_sensor.entity.js';
-import { hassDomainBinarySensorsConverter } from './converters.js';
-import { MutableDevice } from './mutableDevice.js';
+import { addBinarySensorEntity } from '../src/binary_sensor.entity.js';
+import { hassDomainBinarySensorsConverter } from '../src/converters.js';
+import type { MutableDevice } from '../src/mutableDevice.js';
 
 function createMockMutableDevice(): MutableDevice & {
   deviceTypes: Record<string, number[]>;
@@ -32,46 +39,46 @@ function createMockMutableDevice(): MutableDevice & {
       const ep = endpoint ?? '';
       if (!deviceTypes[ep]) deviceTypes[ep] = [];
       deviceTypes[ep].push(deviceType.code);
-      return this as any;
+      return this;
     },
     addClusterServerIds(endpoint: string, clusterId: any) {
       const ep = endpoint ?? '';
       if (!clusters[ep]) clusters[ep] = [];
       clusters[ep].push(clusterId);
-      return this as any;
+      return this;
     },
     setFriendlyName(endpoint: string, name: string) {
       friendlyNames[endpoint ?? ''] = name;
-      return this as any;
+      return this;
     },
     addClusterServerBooleanState(endpoint: string, value: boolean) {
       booleanDefaults[endpoint ?? ''] = value;
-      return this as any;
+      return this;
     },
     addClusterServerSmokeAlarmSmokeCoAlarm(endpoint: string, value: number) {
       smokeAlarmDefaults[endpoint ?? ''] = value;
-      return this as any;
+      return this;
     },
     addClusterServerCoAlarmSmokeCoAlarm(endpoint: string, value: number) {
       coAlarmDefaults[endpoint ?? ''] = value;
-      return this as any;
+      return this;
     },
   } as any;
 }
 
-const mockPlatform = { log: { debug: jest.fn() } } as any;
+const mockPlatform = { log: { debug: vi.fn() } } as any;
 
 describe('addBinarySensorEntity', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
-  const baseEntity = (device_class: string, idSuffix: string) =>
+  const baseEntity = (device_class: string, idSuffix: string): any =>
     ({
       entity_id: `binary_sensor.entity_${idSuffix}`,
     }) as any;
 
-  const baseState = (device_class: string, state: string, friendly = 'Friendly') =>
+  const baseState = (device_class: string, state: string, friendly = 'Friendly'): any =>
     ({
       state,
       attributes: { device_class, friendly_name: friendly },
@@ -81,7 +88,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = { entity_id: 'sensor.not_a_binary_sensor' } as any;
     const state = { state: 'on', attributes: { device_class: 'door' } } as any;
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(ep).toBeUndefined();
     expect(Object.keys(md.deviceTypes).length).toBe(0);
   });
@@ -91,7 +98,7 @@ describe('addBinarySensorEntity', () => {
     const entity = { entity_id: 'binary_sensor.entity_no_device_class' } as any;
     const state = { state: 'on', attributes: { friendly_name: 'No DC' } } as any;
 
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(ep).toBe(entity.entity_id);
 
     expect(md.deviceTypes[entity.entity_id][0]).toBe(contactSensor.code);
@@ -107,7 +114,7 @@ describe('addBinarySensorEntity', () => {
     const entity = { entity_id: 'binary_sensor.entity_no_device_class_no_friendly' } as any;
     const state = { state: 'off', attributes: {} } as any;
 
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(ep).toBe(entity.entity_id);
 
     expect(md.deviceTypes[entity.entity_id][0]).toBe(contactSensor.code);
@@ -122,7 +129,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('door', 'door');
     const state = baseState('door', 'on', 'Door Friendly');
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(ep).toBe(entity.entity_id);
     const endpoint = ep as string;
     expect(md.booleanDefaults[endpoint]).toBe(false);
@@ -135,7 +142,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('door', 'door_no_friendly');
     const state = { state: 'off', attributes: { device_class: 'door' } } as any;
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state) as string;
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.friendlyNames[ep]).toBeUndefined();
     expect(md.booleanDefaults[ep]).toBe(true);
   });
@@ -144,7 +151,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('window', 'window');
     const state = baseState('window', 'off');
-    addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(Object.values(md.booleanDefaults)[0]).toBe(true);
   });
 
@@ -152,7 +159,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('moisture', 'moisture');
     const state = baseState('moisture', 'on');
-    addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(Object.values(md.booleanDefaults)[0]).toBe(true);
     expect(Object.values(md.deviceTypes)[0][0]).toBe(waterLeakDetector.code);
   });
@@ -161,7 +168,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('moisture', 'moisture_off');
     const state = baseState('moisture', 'off');
-    addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(md.booleanDefaults[entity.entity_id]).toBe(false);
   });
 
@@ -169,7 +176,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('cold', 'cold');
     const state = baseState('cold', 'on');
-    addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(Object.values(md.booleanDefaults)[0]).toBe(true);
     expect(Object.values(md.deviceTypes)[0][0]).toBe(waterFreezeDetector.code);
   });
@@ -178,7 +185,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('cold', 'cold_off');
     const state = baseState('cold', 'off');
-    addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(md.booleanDefaults[entity.entity_id]).toBe(false);
   });
 
@@ -186,7 +193,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('motion', 'motion');
     const state = baseState('motion', 'on');
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state) as string;
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.deviceTypes[ep][0]).toBe(occupancySensor.code);
     expect(md.clusters[ep]).toContain(OccupancySensing.id);
   });
@@ -195,7 +202,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('smoke', 'smoke');
     const state = baseState('smoke', 'on');
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state) as string;
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.deviceTypes[ep][0]).toBe(smokeCoAlarm.code);
     expect(md.smokeAlarmDefaults[ep]).toBe(SmokeCoAlarm.AlarmState.Critical);
   });
@@ -204,7 +211,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('smoke', 'smoke_off');
     const state = baseState('smoke', 'off');
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state) as string;
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.smokeAlarmDefaults[ep]).toBe(SmokeCoAlarm.AlarmState.Normal);
   });
 
@@ -212,7 +219,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('carbon_monoxide', 'co');
     const state = baseState('carbon_monoxide', 'off');
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state) as string;
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.deviceTypes[ep][0]).toBe(smokeCoAlarm.code);
     expect(md.coAlarmDefaults[ep]).toBe(SmokeCoAlarm.AlarmState.Normal);
   });
@@ -221,7 +228,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('carbon_monoxide', 'co_on');
     const state = baseState('carbon_monoxide', 'on');
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state) as string;
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.coAlarmDefaults[ep]).toBe(SmokeCoAlarm.AlarmState.Critical);
   });
 
@@ -229,7 +236,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = baseEntity('battery', 'battery');
     const state = baseState('battery', 'off');
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(ep).toBe('');
     expect(md.deviceTypes[''][0]).toBe(powerSource.code);
     expect(md.clusters['']).toContain(PowerSource.id);
@@ -239,7 +246,7 @@ describe('addBinarySensorEntity', () => {
     const md = createMockMutableDevice();
     const entity = { entity_id: 'binary_sensor.unknown_type' } as any;
     const state = { state: 'on', attributes: { device_class: 'not_supported' } } as any;
-    const ep = addBinarySensorEntity(mockPlatform, md as any, entity, state);
+    const ep = addBinarySensorEntity(mockPlatform, md, entity, state);
     expect(ep).toBeUndefined();
     expect(Object.keys(md.deviceTypes).length).toBe(0);
   });
@@ -250,7 +257,7 @@ describe('addBinarySensorEntity', () => {
     for (const dc of classes) {
       const entity = { entity_id: `binary_sensor.test_${dc}` } as any;
       const state = { state: 'on', attributes: { device_class: dc, friendly_name: dc } } as any;
-      addBinarySensorEntity(mockPlatform, md as any, entity, state);
+      addBinarySensorEntity(mockPlatform, md, entity, state);
     }
     expect(Object.values(md.deviceTypes).flat().length).toBeGreaterThanOrEqual(classes.length);
   });

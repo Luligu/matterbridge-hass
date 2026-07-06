@@ -1,11 +1,12 @@
 /**
+ * @file src/converters.ts
  * @description This file contains the HomeAssistantPlatform converters.
- * @file src\converters.ts
  * @author Luca Liguori
  * @created 2024-09-13
  * @version 1.3.0
  * @license Apache-2.0
- * @copyright 2024, 2025, 2026 Luca Liguori.
+ *
+ * Copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,38 +21,37 @@
  * limitations under the License.
  */
 
-// TODO: Remove when require Matterbridge 3.8.1 or later
-/* eslint-disable @typescript-eslint/no-deprecated */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* oxlint-disable typescript/no-explicit-any */
+/* oxlint-disable typescript/no-unsafe-enum-comparison */
 
 import {
   airQualitySensor,
   basicVideoPlayer,
   colorTemperatureLight,
-  CommandHandlers,
+  type CommandHandlers,
   contactSensor,
-  coverDevice,
-  DeviceTypeDefinition,
+  type DeviceTypeDefinition,
   dimmableLight,
-  doorLockDevice,
+  doorLock,
   electricalSensor,
   extendedColorLight,
-  fanDevice,
+  fan,
   humiditySensor,
   lightSensor,
   modeSelect,
   occupancySensor,
   onOffLight,
-  onOffOutlet,
+  onOffPlugInUnit,
   powerSource,
   pressureSensor,
   roboticVacuumCleaner,
   smokeCoAlarm,
   temperatureSensor,
-  thermostatDevice,
+  thermostat,
   waterFreezeDetector,
   waterLeakDetector,
   waterValve,
+  windowCovering,
 } from 'matterbridge';
 import {
   AirQuality,
@@ -89,10 +89,10 @@ import {
   ValveConfigurationAndControl,
   WindowCovering,
 } from 'matterbridge/matter/clusters';
-import { ClusterId } from 'matterbridge/matter/types';
+import type { ClusterId } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { ColorMode, HassState, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
+import { ColorMode, type HassState, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 
 /**
  * Returns the names of enabled bit-flag features for any numeric enum.
@@ -108,9 +108,12 @@ import { ColorMode, HassState, HomeAssistant, HVACMode, UnitOfTemperature } from
  */
 export function getFeatureNames<T extends Record<string, number | string>>(featureEnum: T, supported_features: number | undefined): string[] {
   if (supported_features === undefined) return [];
-  return Object.entries(featureEnum)
-    .filter(([_, value]) => typeof value === 'number' && (supported_features & (value as number)) !== 0)
-    .map(([key]) => key);
+  return (
+    Object.entries(featureEnum)
+      // oxlint-disable-next-line no-bitwise
+      .filter(([_, value]) => typeof value === 'number' && (supported_features & value) !== 0)
+      .map(([key]) => key)
+  );
 }
 
 /**
@@ -228,6 +231,7 @@ export function pressure(value: number, unit?: string): number | null {
 export function aqi(value: number | string, _unit?: string): number | null {
   // console.log(`Converting AQI value(${typeof value}): ${value} with unit: ${unit}`);
   if (typeof value === 'string') {
+    // oxlint-disable-next-line no-param-reassign
     value = value.toLowerCase();
     if (value === 'excellent') return AirQuality.AirQualityEnum.Good;
     if (value === 'healthy') return AirQuality.AirQualityEnum.Good;
@@ -245,7 +249,7 @@ export function aqi(value: number | string, _unit?: string): number | null {
     return null;
   }
   if (isValidNumber(value, 0, 500)) {
-    return Math.round(((value as number) / 500) * 5 + 1);
+    return Math.round((value / 500) * 5 + 1);
   }
   return null;
 }
@@ -274,8 +278,8 @@ export function convertMatterXYToHA(currentX: number, currentY: number): [number
   // Clamp input values to [0, 65279]
   const safeX = Math.max(MIN, Math.min(currentX, MAX));
   const safeY = Math.max(MIN, Math.min(currentY, MAX));
-  const x = parseFloat((safeX / SCALE).toFixed(4));
-  const y = parseFloat((safeY / SCALE).toFixed(4));
+  const x = Number.parseFloat((safeX / SCALE).toFixed(4));
+  const y = Number.parseFloat((safeY / SCALE).toFixed(4));
   return [x, y];
 }
 
@@ -325,7 +329,7 @@ function getSelectOptionFromMode(request: Record<string, unknown>, state: HassSt
 }
 
 /** Update Home Assistant state to Matterbridge device states */
-// prettier-ignore
+// oxfmt-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId | undefined; attribute: string; value: any }[] = [
     { domain: 'switch', state: 'on', clusterId: OnOff.id, attribute: 'onOff', value: true },
     { domain: 'switch', state: 'off', clusterId: OnOff.id, attribute: 'onOff', value: false },
@@ -390,7 +394,7 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
   ];
 
 /** Update Home Assistant attributes to Matterbridge device attributes */
-// prettier-ignore
+// oxfmt-ignore
 export const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: ClusterId; attribute: string; converter: (value: any, state: HassState) => any }[] = [
     { domain: 'light', with: 'brightness', clusterId: LevelControl.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 1, 255) ? Math.round(value / 255 * 254) : null) },
     { domain: 'light', with: 'color_mode', clusterId: ColorControl.id, attribute: 'colorMode', converter: (value: string) => {
@@ -423,6 +427,7 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
       }
     } },
     { domain: 'fan', with: 'direction', clusterId: FanControl.id, attribute: 'airflowDirection', converter: (value: 'forward' | 'reverse') => (isValidString(value, 7, 7) ? value === 'forward' ? FanControl.AirflowDirection.Forward : FanControl.AirflowDirection.Reverse : null) },
+    // oxlint-disable-next-line typescript/no-unnecessary-boolean-literal-compare
     { domain: 'fan', with: 'oscillating', clusterId: FanControl.id, attribute: 'rockSetting', converter: (value: boolean) => (isValidBoolean(value) ? value === true ? { rockLeftRight: false, rockUpDown: false, rockRound: true } : { rockLeftRight: false, rockUpDown: false, rockRound: false } : null) },
 
     // Matter WindowCovering: 0 = open 10000 = closed
@@ -442,24 +447,24 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
  * Convert Home Assistant domains (with attributes) to Matterbridge device types and clusterIds.
  * If the device type is null, no device type will be added. It will use hassDomainSensorsConverter and hassDomainBinarySensorsConverter to determine the device type and clusterId.
  */
-// prettier-ignore
+// oxfmt-ignore
 export const hassDomainConverter: { domain: string; withAttribute?: string; deviceType: DeviceTypeDefinition | null; clusterId: ClusterId | null }[] = [
-    { domain: 'switch',                                 deviceType: onOffOutlet,            clusterId: OnOff.id },
+    { domain: 'switch',                                 deviceType: onOffPlugInUnit,        clusterId: OnOff.id },
     { domain: 'light',                                  deviceType: onOffLight,             clusterId: OnOff.id },
     { domain: 'light',    withAttribute: 'brightness',  deviceType: dimmableLight,          clusterId: LevelControl.id },
     { domain: 'light',    withAttribute: 'color_temp_kelvin',  deviceType: colorTemperatureLight,  clusterId: ColorControl.id },
     { domain: 'light',    withAttribute: 'hs_color',    deviceType: extendedColorLight,     clusterId: ColorControl.id },
     { domain: 'light',    withAttribute: 'rgb_color',   deviceType: extendedColorLight,     clusterId: ColorControl.id },
     { domain: 'light',    withAttribute: 'xy_color',    deviceType: extendedColorLight,     clusterId: ColorControl.id },
-    { domain: 'lock',                                   deviceType: doorLockDevice,         clusterId: DoorLock.id },
-    { domain: 'fan',                                    deviceType: fanDevice,              clusterId: FanControl.id },
-    { domain: 'cover',                                  deviceType: coverDevice,            clusterId: WindowCovering.id },
-    { domain: 'climate',                                deviceType: thermostatDevice,       clusterId: Thermostat.id },
+    { domain: 'lock',                                   deviceType: doorLock,               clusterId: DoorLock.id },
+    { domain: 'fan',                                    deviceType: fan,                    clusterId: FanControl.id },
+    { domain: 'cover',                                  deviceType: windowCovering,         clusterId: WindowCovering.id },
+    { domain: 'climate',                                deviceType: thermostat,             clusterId: Thermostat.id },
     { domain: 'valve',                                  deviceType: waterValve,             clusterId: ValveConfigurationAndControl.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcRunMode.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcCleanMode.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.id },
-    { domain: 'remote',                                 deviceType: onOffOutlet,            clusterId: OnOff.id },
+    { domain: 'remote',                                 deviceType: onOffPlugInUnit,        clusterId: OnOff.id },
     { domain: 'input_select',                           deviceType: modeSelect,             clusterId: ModeSelect.id },
     { domain: 'select',                                 deviceType: modeSelect,             clusterId: ModeSelect.id },
     { domain: 'media_player',                           deviceType: basicVideoPlayer,       clusterId: MediaPlayback.id },
@@ -468,7 +473,7 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
   ];
 
 /** Convert Home Assistant sensor domains attributes to Matterbridge device types and clusterIds */
-// prettier-ignore
+// oxfmt-ignore
 export const hassDomainSensorsConverter: { domain: string; withStateClass: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: number | string, unit?: string) => any }[] = [
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'battery',               endpoint: '',             deviceType: powerSource,        clusterId: PowerSource.id,                  attribute: 'batPercentRemaining', converter: (value) => (isValidNumber(value, 0, 100) ? Math.round((value) * 2) : null) },
     { domain: 'sensor',     withStateClass: 'measurement',  withDeviceClass: 'voltage',               endpoint: '',             deviceType: powerSource,        clusterId: PowerSource.id,                  attribute: 'batVoltage',      converter: (value, unit) => (isValidNumber(value, 0, 100000) ? Math.round(value * (unit === 'V' ? 1000 : 1)) : null) },
@@ -498,24 +503,24 @@ export const hassDomainSensorsConverter: { domain: string; withStateClass: strin
   ];
 
 /** Convert Home Assistant binary_sensor domains attributes to Matterbridge device types and clusterIds */
-// prettier-ignore
+// oxfmt-ignore
 export const hassDomainBinarySensorsConverter: { domain: string; withDeviceClass: string; endpoint?: string; deviceType: DeviceTypeDefinition; clusterId: ClusterId; attribute: string; converter: (value: string) => any }[] = [
     { domain: 'binary_sensor',    withDeviceClass: 'battery',         endpoint: '',             deviceType: powerSource,          clusterId: PowerSource.id,        attribute: 'batChargeLevel',  converter: (value: string) => (value === 'off' ? 0 : 2) },
-    { domain: 'binary_sensor',    withDeviceClass: 'window',                                    deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
-    { domain: 'binary_sensor',    withDeviceClass: 'door',                                      deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
-    { domain: 'binary_sensor',    withDeviceClass: 'garage_door',                               deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
-    { domain: 'binary_sensor',    withDeviceClass: 'vibration',                                 deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? false : true) },
-    { domain: 'binary_sensor',    withDeviceClass: 'cold',                                      deviceType: waterFreezeDetector,  clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? true : false) },
-    { domain: 'binary_sensor',    withDeviceClass: 'moisture',                                  deviceType: waterLeakDetector,    clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on' ? true : false) },
-    { domain: 'binary_sensor',    withDeviceClass: 'occupancy',                                 deviceType: occupancySensor,      clusterId: OccupancySensing.id,   attribute: 'occupancy',       converter: (value) => ({occupied: value === 'on' ? true : false}) },
-    { domain: 'binary_sensor',    withDeviceClass: 'motion',                                    deviceType: occupancySensor,      clusterId: OccupancySensing.id,   attribute: 'occupancy',       converter: (value) => ({occupied: value === 'on' ? true : false}) },
-    { domain: 'binary_sensor',    withDeviceClass: 'presence',                                  deviceType: occupancySensor,      clusterId: OccupancySensing.id,   attribute: 'occupancy',       converter: (value) => ({occupied: value === 'on' ? true : false}) },
+    { domain: 'binary_sensor',    withDeviceClass: 'window',                                    deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value !== 'on') },
+    { domain: 'binary_sensor',    withDeviceClass: 'door',                                      deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value !== 'on') },
+    { domain: 'binary_sensor',    withDeviceClass: 'garage_door',                               deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value !== 'on') },
+    { domain: 'binary_sensor',    withDeviceClass: 'vibration',                                 deviceType: contactSensor,        clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value !== 'on') },
+    { domain: 'binary_sensor',    withDeviceClass: 'cold',                                      deviceType: waterFreezeDetector,  clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on') },
+    { domain: 'binary_sensor',    withDeviceClass: 'moisture',                                  deviceType: waterLeakDetector,    clusterId: BooleanState.id,       attribute: 'stateValue',      converter: (value) => (value === 'on') },
+    { domain: 'binary_sensor',    withDeviceClass: 'occupancy',                                 deviceType: occupancySensor,      clusterId: OccupancySensing.id,   attribute: 'occupancy',       converter: (value) => ({ occupied: value === 'on' }) },
+    { domain: 'binary_sensor',    withDeviceClass: 'motion',                                    deviceType: occupancySensor,      clusterId: OccupancySensing.id,   attribute: 'occupancy',       converter: (value) => ({ occupied: value === 'on' }) },
+    { domain: 'binary_sensor',    withDeviceClass: 'presence',                                  deviceType: occupancySensor,      clusterId: OccupancySensing.id,   attribute: 'occupancy',       converter: (value) => ({ occupied: value === 'on' }) },
     { domain: 'binary_sensor',    withDeviceClass: 'smoke',                                     deviceType: smokeCoAlarm,         clusterId: SmokeCoAlarm.id,       attribute: 'smokeState',      converter: (value) => (value === 'on' ?  SmokeCoAlarm.AlarmState.Critical :  SmokeCoAlarm.AlarmState.Normal) },
     { domain: 'binary_sensor',    withDeviceClass: 'carbon_monoxide',                           deviceType: smokeCoAlarm,         clusterId: SmokeCoAlarm.id,       attribute: 'coState',         converter: (value) => (value === 'on' ?  SmokeCoAlarm.AlarmState.Critical :  SmokeCoAlarm.AlarmState.Normal) },
   ];
 
 /** Convert Home Assistant event types to Matterbridge event types */
-// prettier-ignore
+// oxfmt-ignore
 export const hassDomainEventConverter: { hassEventType: string; matterbridgeEventType: 'Single' | 'Double' | 'Long' | 'Press' | 'Release'; }[] = [
     { hassEventType: 'single',            matterbridgeEventType: 'Single' },
     { hassEventType: 'single_push',       matterbridgeEventType: 'Single' },
@@ -533,8 +538,8 @@ export const hassDomainEventConverter: { hassEventType: string; matterbridgeEven
   ];
 
 /** Convert Home Assistant domains services to Matterbridge commands for device types */
-// prettier-ignore
-export const hassCommandConverter: { command: CommandHandlers; domain: string; service: string; converter?: (request: Record<string, any>, attributes: Record<string, any>, state: HassState | undefined) => any }[] = [
+// oxfmt-ignore
+export const hassCommandConverter: { command: CommandHandlers; domain: string; service: string; converter?: (request: Record<string, any>, attributes: Record<string, any>, state?: HassState) => any }[] = [
     { command: 'on',                      domain: 'switch', service: 'turn_on' },
     { command: 'off',                     domain: 'switch', service: 'turn_off' },
     { command: 'toggle',                  domain: 'switch', service: 'toggle' },
@@ -544,7 +549,7 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'toggle',                  domain: 'light', service: 'toggle' },
     { command: 'moveToLevel',             domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
     { command: 'moveToLevelWithOnOff',    domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
-    { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request, attributes, state) => { return { color_temp_kelvin: state && state.attributes.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin ? clamp(miredsToKelvin(request.colorTemperatureMireds, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin) : miredsToKelvin(request.colorTemperatureMireds, 'floor') } } },
+    { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request, attributes, state) => { return { color_temp_kelvin: state?.attributes?.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin ? clamp(miredsToKelvin(request.colorTemperatureMireds, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin) : miredsToKelvin(request.colorTemperatureMireds, 'floor') } } },
     { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request) => { return { xy_color: convertMatterXYToHA(request.colorX, request.colorY) } } },
     { command: 'moveToHue',               domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
     { command: 'moveToSaturation',        domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
@@ -585,10 +590,11 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
  * Convert Home Assistant domains services and attributes to Matterbridge subscribed cluster / attributes.
  * Returning null will send turn_off service to Home Assistant instead of turn_on with attributes.
  */
-// prettier-ignore
+// oxfmt-ignore
 export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: number) => any }[] = [
     { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {
-       
+
+      // oxlint-disable-next-line typescript/no-deprecated
       if( isValidNumber(value, FanControl.FanMode.Low, FanControl.FanMode.Smart) ) {
         if (value === FanControl.FanMode.Low) return 'low';
         else if (value === FanControl.FanMode.Medium) return 'medium';

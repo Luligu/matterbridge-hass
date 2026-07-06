@@ -1,4 +1,10 @@
-// src\module.auto.test.ts
+/**
+ * @file vitest/module.auto.test.ts
+ * @description This file contains the tests for the class HomeAssistantPlatform (auto discovery).
+ * @author Luca Liguori
+ */
+
+/* oxlint-disable eslint/no-console */
 
 /**
  * WARNING!!!
@@ -6,31 +12,20 @@
  * Is not possible for timing reasons to create and destroy a Matter node each test to keep isolation.
  */
 
-/* eslint-disable no-console */
-// TODO: Remove when require Matterbridge 3.8.1 or later
-/* eslint-disable @typescript-eslint/no-deprecated */
-
 const NAME = 'PlatformAuto';
 const MATTER_PORT = 6200;
 const MATTER_CREATE_ONLY = true;
 const MATTER_PAUSE = 10;
-const HOMEDIR = path.join('.cache', 'jest', NAME);
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { jest } from '@jest/globals';
-import { MatterbridgeEndpoint, onOffMountedSwitch, onOffOutlet } from 'matterbridge';
+import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
+import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
+import { VendorId } from 'matterbridge/matter/types';
 import {
-  addDevice,
-  addVirtualEndpointMatterbridgeSpy,
-  aggregator,
-  createServerNode,
-  createTestEnvironment,
-  deleteDevice,
-  destroyTestEnvironment,
   flushAsync,
-  flushServerNode,
+  HOMEDIR,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -38,76 +33,85 @@ import {
   loggerInfoSpy,
   loggerNoticeSpy,
   loggerWarnSpy,
-  server,
   setDebug,
   setupTest,
+} from 'matterbridge/vitest-utils';
+import {
+  addDevice,
+  aggregator,
+  createServerNode,
+  createTestEnvironment,
+  deleteDevice,
+  destroyTestEnvironment,
+  flushServerNode,
+  server,
   startServerNode,
   stopServerNode,
-} from 'matterbridge/jestutils';
-import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
-import { VendorId } from 'matterbridge/matter/types';
+} from 'matterbridge/vitest-utils/matter';
 
-import { createUniqueId, generateArea, generateDevice, generateEntity, generateLabel, generateState, getDomain, getEntityName, getName } from './helpers.js';
-import { HassConfig, HassContext, HassEntity, HassServices, HassState, HomeAssistant } from './homeAssistant.js';
-import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from './module.js';
-import { MutableDevice } from './mutableDevice.js';
+import { createUniqueId, generateArea, generateDevice, generateEntity, generateLabel, generateState, getDomain, getEntityName, getName } from '../src/helpers.js';
+import { type HassConfig, type HassContext, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
+import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
+import { MutableDevice } from '../src/mutableDevice.js';
 
-const connectSpy = jest.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(() => {
+const connectSpy = vi.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(async () => {
   console.log(`Mocked connect`);
   return Promise.resolve('2025.1.0'); // Simulate a successful connection with a version string
 });
 
-const closeSpy = jest.spyOn(HomeAssistant.prototype, 'close').mockImplementation(() => {
+const closeSpy = vi.spyOn(HomeAssistant.prototype, 'close').mockImplementation(async () => {
   console.log(`Mocked close`);
   return Promise.resolve();
 });
 
-const subscribeSpy = jest.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation(() => {
+const subscribeSpy = vi.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation(async () => {
   console.log(`Mocked subscribe`);
   return Promise.resolve(1); // Simulate a successful subscription with a subscription ID
 });
 
-const fetchDataSpy = jest.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(() => {
+const fetchDataSpy = vi.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(async () => {
   console.log(`Mocked fetchData`);
   return Promise.resolve();
 });
 
-const fetchSpy = jest.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation((api: string) => {
+const fetchSpy = vi.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation(async (api: string) => {
   console.log(`Mocked fetch: ${api}`);
   return Promise.resolve();
 });
 
-const callServiceSpy = jest
+const callServiceSpy = vi
   .spyOn(HomeAssistant.prototype, 'callService')
-  .mockImplementation((domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
+  .mockImplementation(async (domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
     console.log(`Mocked callService: domain ${domain} service ${service} entityId ${entityId}`);
     return Promise.resolve({ context: {} as HassContext, response: undefined });
   });
 
-const savePayloadMock = jest.fn(async () => undefined);
-const writeReportMock = jest.fn(async () => '');
+const { savePayloadMock, writeReportMock } = vi.hoisted(() => ({
+  savePayloadMock: vi.fn(async () => {}),
+  writeReportMock: vi.fn(async () => ''),
+}));
 
-jest.unstable_mockModule('./payload.js', () => ({
+vi.mock('../src/payload.js', () => ({
   savePayload: savePayloadMock,
 }));
 
-jest.unstable_mockModule('./report.js', () => ({
+vi.mock('../src/report.js', () => ({
   writeReport: writeReportMock,
 }));
 
-const { HomeAssistantPlatform } = await import('./module.js');
+const { HomeAssistantPlatform } = await import('../src/module.js');
 
-const addClusterServerBatteryPowerSourceSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBatteryPowerSource');
-const addClusterServerBooleanStateSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
-const addClusterServerSmokeAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerSmokeAlarmSmokeCoAlarm');
-const addClusterServerCoAlarmSmokeCoAlarmSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoAlarmSmokeCoAlarm');
-const addClusterServerColorTemperatureColorControlSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerColorTemperatureColorControl');
-const addClusterServerColorControlSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerColorControl');
-const addClusterServerAutoModeThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
-const addClusterServerHeatingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
-const addClusterServerCoolingThermostatSpy = jest.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
-const addVacuumSpy = jest.spyOn(MutableDevice.prototype, 'addVacuum');
-const addSelectSpy = jest.spyOn(MutableDevice.prototype, 'addSelect');
+const addClusterServerBatteryPowerSourceSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerBatteryPowerSource');
+const addClusterServerBooleanStateSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
+const addClusterServerSmokeAlarmSmokeCoAlarmSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerSmokeAlarmSmokeCoAlarm');
+const addClusterServerCoAlarmSmokeCoAlarmSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerCoAlarmSmokeCoAlarm');
+const addClusterServerColorTemperatureColorControlSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerColorTemperatureColorControl');
+const addClusterServerColorControlSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerColorControl');
+const addClusterServerAutoModeThermostatSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
+const addClusterServerHeatingThermostatSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
+const addClusterServerCoolingThermostatSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
+const addVacuumSpy = vi.spyOn(MutableDevice.prototype, 'addVacuum');
+const addSelectSpy = vi.spyOn(MutableDevice.prototype, 'addSelect');
 
 MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
 
@@ -126,22 +130,22 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.8.0',
+    matterbridgeVersion: '3.9.0',
     log,
-    addBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+    addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await addDevice(aggregator, device, 1, 0);
     }),
-    removeBridgedEndpoint: jest.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+    removeBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await deleteDevice(aggregator, device, 1, 0);
     }),
-    removeAllBridgedEndpoints: jest.fn(async (pluginName: string) => {
+    removeAllBridgedEndpoints: vi.fn(async (pluginName: string) => {
       for (const device of aggregator.parts) {
         await deleteDevice(aggregator, device, 1, 0);
       }
     }),
-    addVirtualEndpoint: jest.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
+    addVirtualEndpoint: vi.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
       console.log(`Mocked addVirtualEndpoint: pluginName ${pluginName} name ${name} type ${type}`);
-      const device = new MatterbridgeEndpoint([onOffMountedSwitch, onOffOutlet], { id: name.replaceAll(' ', '') + ':' + type })
+      const device = new MatterbridgeEndpoint([mountedOnOffControl, onOffPlugInUnit], { id: name.replaceAll(' ', '') + ':' + type })
         .createDefaultBridgedDeviceBasicInformationClusterServer(name, createUniqueId(), VendorId(0xfff1), 'Matterbridge', 'Matterbridge Virtual Device')
         .addRequiredClusterServers();
       await addDevice(aggregator, device, 1, 0);
@@ -162,7 +166,7 @@ describe('Matterbridge ' + NAME, () => {
 
   beforeEach(async () => {
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(async () => {
@@ -179,12 +183,12 @@ describe('Matterbridge ' + NAME, () => {
     await destroyTestEnvironment();
 
     // Restore all mocks
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 
     // logKeepAlives(log);
   });
 
-  async function cleanup() {
+  async function cleanup(): Promise<void> {
     // Clean the test environment
     if (haPlatform) {
       // Reset start messages
@@ -210,7 +214,7 @@ describe('Matterbridge ' + NAME, () => {
       haPlatform.ha.hassStates.clear();
       haPlatform.ha.hassAreas.clear();
       haPlatform.ha.hassLabels.clear();
-      haPlatform.ha.hassServices = {} as HassServices;
+      haPlatform.ha.hassServices = {};
       haPlatform.ha.hassConfig = {} as HassConfig;
       await haPlatform.clearSelect();
       await haPlatform.unregisterAllDevices();
@@ -257,7 +261,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.haSubscriptionId = 1;
     haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
     haPlatform.ha.hassConfig = {} as HassConfig; // Simulate Home Assistant configuration
-    haPlatform.ha.hassServices = {} as HassServices; // Simulate Home Assistant services
+    haPlatform.ha.hassServices = {}; // Simulate Home Assistant services
   });
 
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {
@@ -481,7 +485,7 @@ describe('Matterbridge ' + NAME, () => {
       { name: 'Pressure', domain: 'sensor', state: '1013', attributes: { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' } },
     ];
     for (const entityData of individualEntities) {
-      entityData.generatedEntity = generateEntity(haPlatform.ha, entityData.name, entityData.domain as any, undefined, null, [], entityData.state);
+      entityData.generatedEntity = generateEntity(haPlatform.ha, entityData.name, entityData.domain, undefined, null, [], entityData.state);
       entityData.generatedState = generateState(haPlatform.ha, entityData.generatedEntity, entityData.state, entityData.attributes);
     }
 
@@ -522,7 +526,7 @@ describe('Matterbridge ' + NAME, () => {
       { name: 'Pressure', domain: 'sensor', state: '1013', attributes: { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' } },
     ];
     for (const entityData of individualEntities) {
-      entityData.generatedEntity = generateEntity(haPlatform.ha, entityData.name, entityData.domain as any, undefined, null, [], entityData.state);
+      entityData.generatedEntity = generateEntity(haPlatform.ha, entityData.name, entityData.domain, undefined, null, [], entityData.state);
       entityData.generatedState = generateState(haPlatform.ha, entityData.generatedEntity, entityData.state, entityData.attributes);
     }
 
@@ -746,7 +750,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(0);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     haPlatform.filterMessages.length = 0;
     await haPlatform.onConfigure();
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -796,7 +800,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(2);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     haPlatform.filterMessages.length = 0;
     await haPlatform.onConfigure();
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -841,7 +845,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(0);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     haPlatform.filterMessages.length = 0;
     await haPlatform.onConfigure();
     expect(loggerWarnSpy).not.toHaveBeenCalled();

@@ -1,11 +1,12 @@
 /**
+ * @file src/button.entity.ts
  * @description This file contains the addButtonEntity function.
- * @file src\button.entity.ts
  * @author Luca Liguori
  * @created 2026-03-19
  * @version 1.1.0
  * @license Apache-2.0
- * @copyright 2026, 2027, 2028 Luca Liguori.
+ *
+ * Copyright 2026, 2027, 2028 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +21,7 @@
  * limitations under the License.
  */
 
-// TODO: Remove when require Matterbridge 3.8.1 or later
-/* eslint-disable @typescript-eslint/no-deprecated */
-
-import { onOffMountedSwitch, onOffOutlet } from 'matterbridge';
+import { mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
 import { OnOff } from 'matterbridge/matter/clusters';
 import { CYAN, db } from 'node-ansi-logger';
 
@@ -49,13 +47,14 @@ export function addButtonEntity(platform: HomeAssistantPlatform, mutableDevice: 
 
   platform.log.debug(`- button domain platform "${entity.platform}" endpoint "${endpointName}" for entity ${CYAN}${entity.entity_id}${db}`);
 
-  // Add to the mutable endpoint the superset onOffMountedSwitch and subset onOffOutlet device type for global compatibility with all controllers
-  mutableDevice.addDeviceTypes(endpointName, onOffMountedSwitch, onOffOutlet);
+  // Add to the mutable endpoint the superset mountedOnOffControl and subset onOffPlugInUnit device type for global compatibility with all controllers
+  mutableDevice.addDeviceTypes(endpointName, mountedOnOffControl, onOffPlugInUnit);
   mutableDevice.addCommandHandler(endpointName, 'on', async (data) => {
     await platform.ha.callService(domain, 'press', entity.entity_id);
     // We revert the state after 500ms except for input_boolean that mantain the state
     setTimeout(() => {
       // istanbul ignore next cause is too long
+      // oxlint-disable-next-line no-empty-function
       void data.endpoint.setAttribute(OnOff, 'onOff', false, data.endpoint.log).catch(/* istanbul ignore next */ () => {});
     }, 500).unref();
   });

@@ -1,11 +1,12 @@
 /**
+ * @file src/homeAssistant.ts
  * @description This file contains the class HomeAssistant.
- * @file src\homeAssistant.ts
  * @author Luca Liguori
  * @created 2024-09-14
  * @version 1.2.0
  * @license Apache-2.0
- * @copyright 2024, 2025, 2026 Luca Liguori.
+ *
+ * Copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,14 +20,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* eslint-disable jsdoc/reject-any-type */
+
+/* oxlint-disable max-lines */
 
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
 
 import { AnsiLogger, CYAN, db, debugStringify, er, LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
-import { hasParameter } from 'matterbridge/utils';
-import WebSocket, { ErrorEvent } from 'ws';
+import { getErrorMessage, hasParameter } from 'matterbridge/utils';
+import { WebSocket, type ErrorEvent } from 'ws';
 
 export type DeviceId = string;
 export type EntityId = string;
@@ -34,7 +36,7 @@ export type EntityId = string;
 /**
  * Interface representing a Home Assistant device.
  */
-// prettier-ignore
+// oxfmt-ignore
 export interface HassDevice {
   id: DeviceId;                                           // Unique ID of the device (e.g., "14231f5b82717f1d9e2f71d354120331")
   area_id: string | null;                                 // Area ID this device belongs to
@@ -63,7 +65,7 @@ export interface HassDevice {
 /**
  * Interface representing a Home Assistant entity.
  */
-// prettier-ignore
+// oxfmt-ignore
 export interface HassEntity {
   id: string;                                                 // Unique ID of the entity (e.g., "368c6fd2f264aba2242e0658612c250e")
   entity_id: EntityId;                                        // Unique ID of the entity (e.g., "light.living_room")
@@ -1206,14 +1208,7 @@ export class HomeAssistant extends EventEmitter {
    * @param {string | undefined} [certificatePath] - The path to the CA certificate for secure WebSocket connections. Defaults to undefined.
    * @param {boolean | undefined} [rejectUnauthorized] - Whether to reject unauthorized certificates. Defaults to undefined.
    */
-  constructor(
-    url: string,
-    accessToken: string,
-    reconnectTimeoutTime: number = 60,
-    reconnectRetries: number = 10,
-    certificatePath: string | undefined = undefined,
-    rejectUnauthorized: boolean | undefined = undefined,
-  ) {
+  constructor(url: string, accessToken: string, reconnectTimeoutTime: number = 60, reconnectRetries: number = 10, certificatePath?: string, rejectUnauthorized?: boolean) {
     super();
     this.wsUrl = url;
     this.wsAccessToken = accessToken;
@@ -1228,12 +1223,12 @@ export class HomeAssistant extends EventEmitter {
     });
   }
 
-  private onOpen = () => {
+  private onOpen = (): void => {
     this.log.debug('WebSocket connection established');
     this.emit('socket_opened');
   };
 
-  private onPing(data: Buffer) {
+  private onPing(data: Buffer): void {
     this.log.debug('WebSocket ping received');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
@@ -1243,7 +1238,7 @@ export class HomeAssistant extends EventEmitter {
     this.emit('ping', data);
   }
 
-  private onPong(data: Buffer) {
+  private onPong(data: Buffer): void {
     this.log.debug('WebSocket pong received');
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
@@ -1253,24 +1248,25 @@ export class HomeAssistant extends EventEmitter {
     this.emit('pong', data);
   }
 
-  private onError(error: Error) {
-    const errorMessage = `WebSocket error: ${error}`;
+  private onError(error: Error): void {
+    const errorMessage = `WebSocket error: ${getErrorMessage(error)}`;
     this.log.debug(errorMessage);
     this.emit('error', errorMessage);
   }
 
-  private onMessage(data: WebSocket.RawData, isBinary: boolean) {
+  private onMessage(data: WebSocket.RawData, isBinary: boolean): void {
     let response;
     try {
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/no-base-to-string
       response = JSON.parse(isBinary ? data.toString() : (data as unknown as string)) as HassWebSocketResponse;
     } catch (error) {
-      this.log.error(`Error parsing WebSocket message: ${error}`);
+      this.log.error(`Error parsing WebSocket message: ${getErrorMessage(error)}`);
       return;
     }
     // console.log(`Received WebSocket message:`, response);
     if (response.type === 'pong') {
       this.log.debug(`Home Assistant pong received with id ${response.id}`);
-      // istanbul ignore else
+      /* v8 ignore next */
       if (this.pingTimeout) {
         clearTimeout(this.pingTimeout);
         this.pingTimeout = undefined;
@@ -1284,7 +1280,7 @@ export class HomeAssistant extends EventEmitter {
         this.emit('error', errorMessage);
         return;
       }
-      // istanbul ignore next
+      /* v8 ignore next */
       if (this.verbose) this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}:${rs}\n${debugStringify(response.event)}`);
       if (response.event.event_type === 'state_changed') {
         const entity = this.hassEntities.get(response.event.data.entity_id);
@@ -1292,7 +1288,7 @@ export class HomeAssistant extends EventEmitter {
           this.log.debug(`Entity id ${CYAN}${response.event.data.entity_id}${db} not found processing event`);
           return;
         }
-        // istanbul ignore else
+        /* v8 ignore next */
         if (response.event.data.old_state && response.event.data.new_state) {
           this.hassStates.set(response.event.data.new_state.entity_id, response.event.data.new_state);
           this.emit('event', entity.device_id, entity.entity_id, response.event.data.old_state, response.event.data.new_state);
@@ -1303,41 +1299,41 @@ export class HomeAssistant extends EventEmitter {
       } else if (response.event.event_type === 'core_config_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        /* v8 ignore next cause is too long to test the fetch timeout in this case */
         this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('get_config');
       } else if (response.event.event_type === 'device_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        /* v8 ignore next cause is too long to test the fetch timeout in this case */
         this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/device_registry/list');
       } else if (response.event.event_type === 'entity_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        /* v8 ignore next cause is too long to test the fetch timeout in this case */
         this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/entity_registry/list');
       } else if (response.event.event_type === 'area_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        /* v8 ignore next cause is too long to test the fetch timeout in this case */
         this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/area_registry/list');
       } else if (response.event.event_type === 'label_registry_updated') {
         this.log.debug(`Event ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
         clearTimeout(this.fetchTimeout);
-        // istanbul ignore next cause is too long to test the fetch timeout in this case
+        /* v8 ignore next cause is too long to test the fetch timeout in this case */
         this.fetchTimeout = setTimeout(() => void this.onFetchTimeout(), 5000).unref();
         this.fetchQueue.add('config/label_registry/list');
       } else {
-        // istanbul ignore else
+        /* v8 ignore next */
         if (this.debug) this.log.debug(`Unknown event type ${CYAN}${response.event.event_type}${db} received id ${CYAN}${response.id}${db}`);
       }
     }
   }
 
-  private onClose(code: number, reason: Buffer) {
+  private onClose(code: number, reason: Buffer): void {
     const closeMessage = `WebSocket connection closed. Code: ${code} Reason: ${reason.toString()}`;
     this.log.debug(closeMessage);
     this.connected = false;
@@ -1347,7 +1343,7 @@ export class HomeAssistant extends EventEmitter {
     this.startReconnect();
   }
 
-  private async onFetchTimeout() {
+  private async onFetchTimeout(): Promise<void> {
     this.fetchTimeout = undefined;
     this.log.debug(`Fetch timeout reached, processing fetch queue of ${this.fetchQueue.size} fetch id(s)...`);
     for (const fetchId of this.fetchQueue) {
@@ -1355,36 +1351,41 @@ export class HomeAssistant extends EventEmitter {
       try {
         const data = await this.fetch(fetchId);
         this.log.debug(`Received data for ${CYAN}${fetchId}${db}`);
-        // istanbul ignore else
+        /* v8 ignore next */
         if (fetchId === 'get_config') {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const config = data as HassConfig;
           this.log.debug(`Received config.`);
           this.hassConfig = config;
           HomeAssistant.hassConfig = this.hassConfig;
           this.emit('config', config);
         } else if (fetchId === 'config/device_registry/list') {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const devices = data as HassDevice[];
           this.log.debug(`Received ${devices.length} devices.`);
           devices.forEach((device) => this.hassDevices.set(device.id, device));
           this.emit('devices', devices);
         } else if (fetchId === 'config/entity_registry/list') {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const entities = data as HassEntity[];
           this.log.debug(`Received ${entities.length} entities.`);
           entities.forEach((entity) => this.hassEntities.set(entity.entity_id, entity));
           this.emit('entities', entities);
         } else if (fetchId === 'config/area_registry/list') {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const areas = data as HassArea[];
           this.log.debug(`Received ${areas.length} areas.`);
           areas.forEach((area) => this.hassAreas.set(area.area_id, area));
           this.emit('areas', areas);
         } else if (fetchId === 'config/label_registry/list') {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const labels = data as HassLabel[];
           this.log.debug(`Received ${labels.length} labels.`);
           labels.forEach((label) => this.hassLabels.set(label.label_id, label));
           this.emit('labels', labels);
         }
       } catch (error) {
-        this.log.error(`Error fetching ${CYAN}${fetchId}${er}: ${error}`);
+        this.log.error(`Error fetching ${CYAN}${fetchId}${er}: ${getErrorMessage(error)}`);
       }
       this.fetchQueue.delete(fetchId);
     }
@@ -1396,7 +1397,7 @@ export class HomeAssistant extends EventEmitter {
    * @returns {Promise<string>} - A Promise that resolves to the HA version when the connection is established and authenticated, or rejects with an error if the connection fails.
    * @throws {Error} - Throws an error if already connected or if there is an error during connection or authentication.
    */
-  // eslint-disable-next-line @typescript-eslint/promise-function-async
+  // oxlint-disable-next-line typescript/promise-function-async
   connect(): Promise<string> {
     return new Promise((resolve, reject) => {
       if (this.connected) {
@@ -1409,6 +1410,7 @@ export class HomeAssistant extends EventEmitter {
         if (this.wsUrl.startsWith('ws://')) {
           this.ws = new WebSocket(this.wsUrl + '/api/websocket');
         } else if (this.wsUrl.startsWith('wss://')) {
+          // oxlint-disable-next-line typescript/no-unnecessary-type-arguments
           let ca: string | Buffer<ArrayBufferLike> | (string | Buffer<ArrayBufferLike>)[] | undefined;
           // Load the CA certificate if provided
           if (this.certificatePath) {
@@ -1430,21 +1432,22 @@ export class HomeAssistant extends EventEmitter {
         this.ws.on('pong', this.onPong.bind(this));
         this.ws.on('close', this.onClose.bind(this));
 
-        this.ws.onerror = (event: ErrorEvent) => {
+        this.ws.onerror = (event: ErrorEvent): void => {
           this.log.error(`WebSocket error: ${event.message}`);
           this.emit('error', `WebSocket error: ${event.message}`);
           return reject(new Error(`WebSocket error: ${event.message}`));
         };
 
-        this.ws.onmessage = (event: WebSocket.MessageEvent) => {
+        this.ws.onmessage = (event: WebSocket.MessageEvent): void => {
           let response;
           try {
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/no-base-to-string
             response = JSON.parse(event.data.toString()) as HassWebSocketResponse;
           } catch (error) {
-            return reject(new Error(`Error parsing WebSocket message: ${error}`));
+            return reject(new Error(`Error parsing WebSocket message: ${getErrorMessage(error)}`));
           }
           // console.log(`Received WebSocket message:`, response);
-          // istanbul ignore else
+          /* v8 ignore next */
           if (response.type === 'auth_required') {
             this.log.debug(`Authentication required: ${debugStringify(response)}`);
             this.log.debug('Authentication required. Sending auth message...');
@@ -1452,7 +1455,7 @@ export class HomeAssistant extends EventEmitter {
               JSON.stringify({
                 type: 'auth',
                 access_token: this.wsAccessToken,
-              } as HassWebSocketRequestAuth),
+              }),
             );
           } else if (response.type === 'auth_ok') {
             // Handle successful authentication
@@ -1474,7 +1477,7 @@ export class HomeAssistant extends EventEmitter {
           }
         };
       } catch (error) {
-        const errorMessage = `WebSocket error connecting to Home Assistant: ${error}`;
+        const errorMessage = `WebSocket error connecting to Home Assistant: ${getErrorMessage(error)}`;
         this.log.debug(errorMessage);
         return reject(new Error(errorMessage));
       }
@@ -1485,7 +1488,7 @@ export class HomeAssistant extends EventEmitter {
    * Starts the ping interval to keep the WebSocket connection alive.
    * Logs an error if the ping interval is already started.
    */
-  private startPing() {
+  private startPing(): void {
     if (this.pingInterval) {
       this.log.debug('Ping interval already started');
       return;
@@ -1494,7 +1497,8 @@ export class HomeAssistant extends EventEmitter {
     this.pingInterval = setInterval(() => {
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
         this.log.error('WebSocket not open sending ping. Closing connection...');
-        void this.close().catch(/* istanbul ignore next */ () => {});
+        // oxlint-disable-next-line no-empty-function
+        void this.close().catch(/* v8 ignore next */ () => {});
         return;
       }
       this.log.debug(`Sending WebSocket ping...`);
@@ -1504,12 +1508,13 @@ export class HomeAssistant extends EventEmitter {
         JSON.stringify({
           id: this.requestId++,
           type: 'ping',
-        } as HassWebSocketRequestPing),
+        }),
       );
       this.log.debug('Starting ping timeout...');
       this.pingTimeout = setTimeout(() => {
         this.log.error('Ping timeout. Closing connection...');
-        void this.close().catch(/* istanbul ignore next */ () => {});
+        // oxlint-disable-next-line no-empty-function
+        void this.close().catch(/* v8 ignore next */ () => {});
         this.startReconnect();
       }, this.pingTimeoutTime).unref();
       this.log.debug('Started ping timeout');
@@ -1520,7 +1525,7 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Stops the ping interval and clears any pending timeouts.
    */
-  private stopPing() {
+  private stopPing(): void {
     this.log.debug('Stopping ping interval...');
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
@@ -1538,7 +1543,7 @@ export class HomeAssistant extends EventEmitter {
   /**
    * Start the reconnection timeout if reconnectTimeoutTime and reconnectRetries are set in the config.
    */
-  private startReconnect() {
+  private startReconnect(): void {
     if (this.reconnectTimeout) {
       this.log.debug(`Reconnecting already in progress.`);
       return;
@@ -1548,10 +1553,8 @@ export class HomeAssistant extends EventEmitter {
       this.reconnectTimeout = setTimeout(() => {
         const attempt = this.reconnectRetry;
         this.log.notice(`Reconnecting attempt ${attempt} of ${this.reconnectRetries}...`);
-        void this.connect().catch((error) => {
-          // istanbul ignore next
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          this.log.debug(`Reconnection attempt ${attempt} failed: ${errorMessage}`);
+        void this.connect().catch((error: unknown) => {
+          this.log.debug(`Reconnection attempt ${attempt} failed: ${getErrorMessage(error)}`);
         });
         this.reconnectRetry++;
         this.reconnectTimeout = undefined;
@@ -1568,10 +1571,11 @@ export class HomeAssistant extends EventEmitter {
    * @param {string} [reason] - The reason for closing the connection. Default is 'Normal closure'.
    * @returns {Promise<void>} - A Promise that resolves when the connection is closed or rejects with an error if the connection could not be closed.
    */
-  // eslint-disable-next-line @typescript-eslint/promise-function-async
+  // oxlint-disable-next-line typescript/promise-function-async
   close(code: number = 1000, reason: string = 'Normal closure'): Promise<void> {
     return new Promise((resolve, reject) => {
       this.log.info('Closing Home Assistant connection...');
+      let timer: NodeJS.Timeout | undefined;
 
       this.stopPing();
       if (this.reconnectTimeout) {
@@ -1579,7 +1583,7 @@ export class HomeAssistant extends EventEmitter {
         this.reconnectTimeout = undefined;
       }
 
-      const cleanup = () => {
+      const cleanup = (): void => {
         clearTimeout(timer);
         this.ws?.removeAllListeners();
         this.ws = null;
@@ -1588,21 +1592,21 @@ export class HomeAssistant extends EventEmitter {
         this.log.info('Home Assistant connection closed');
       };
 
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         const message = `Close did not complete before the timeout of ${this._responseTimeout} ms`;
         this.log.debug(message);
         cleanup();
         return reject(new Error(message));
       }, this._responseTimeout).unref();
 
-      const onClose = () => {
+      const onClose = (): void => {
         this.log.debug('Close received closed event from Home Assistant');
         this.emit('socket_closed', code, Buffer.from(reason));
         cleanup();
         return resolve();
       };
 
-      const onError = () => {
+      const onError = (): void => {
         const message = 'Close received error event while closing connection to Home Assistant';
         this.log.debug(message);
         cleanup();
@@ -1638,10 +1642,11 @@ export class HomeAssistant extends EventEmitter {
    * - areas
    * - labels
    */
-  async fetchData() {
+  async fetchData(): Promise<void> {
     try {
       this.log.debug('Fetching initial data from Home Assistant...');
 
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       this.hassConfig = (await this.fetch('get_config')) as HassConfig;
       HomeAssistant.hassConfig = this.hassConfig;
       this.log.debug('Received config.');
@@ -1653,35 +1658,42 @@ export class HomeAssistant extends EventEmitter {
         this.log.debug(`State is ${CYAN}${this.hassConfig.state}${db}. Waiting (${retries}/100) for Home Assistant to be RUNNING...`);
         retries += 1;
         await new Promise((resolve) => setTimeout(resolve, 1000));
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         this.hassConfig = (await this.fetch('get_config')) as HassConfig;
         HomeAssistant.hassConfig = this.hassConfig;
         this.emit('config', this.hassConfig);
       }
 
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       this.hassServices = (await this.fetch('get_services')) as HassServices;
       this.log.debug('Received services.');
       this.emit('services', this.hassServices);
 
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       const devices = (await this.fetch('config/device_registry/list')) as HassDevice[];
       devices.forEach((device: HassDevice) => this.hassDevices.set(device.id, device));
       this.log.debug(`Received ${devices.length} devices.`);
       this.emit('devices', devices);
 
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       const entities = (await this.fetch('config/entity_registry/list')) as HassEntity[];
       entities.forEach((entity: HassEntity) => this.hassEntities.set(entity.entity_id, entity));
       this.log.debug(`Received ${entities.length} entities.`);
       this.emit('entities', entities);
 
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       const states = (await this.fetch('get_states')) as HassState[];
       states.forEach((state: HassState) => this.hassStates.set(state.entity_id, state));
       this.log.debug(`Received ${states.length} states.`);
       this.emit('states', states);
 
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       const areas = (await this.fetch('config/area_registry/list')) as HassArea[];
       areas.forEach((area: HassArea) => this.hassAreas.set(area.area_id, area));
       this.log.debug(`Received ${areas.length} areas.`);
       this.emit('areas', areas);
 
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
       const labels = (await this.fetch('config/label_registry/list')) as HassLabel[];
       labels.forEach((label: HassLabel) => this.hassLabels.set(label.label_id, label));
       this.log.debug(`Received ${labels.length} labels.`);
@@ -1689,7 +1701,7 @@ export class HomeAssistant extends EventEmitter {
 
       this.log.debug('Initial data fetched successfully.');
     } catch (error) {
-      this.log.error(`Error fetching initial data: ${error}`);
+      this.log.error(`Error fetching initial data: ${getErrorMessage(error)}`);
     }
   }
 
@@ -1707,7 +1719,7 @@ export class HomeAssistant extends EventEmitter {
    *     console.error('Error:', error);
    *   });
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/promise-function-async
+  // oxlint-disable-next-line typescript/no-explicit-any, typescript/promise-function-async
   fetch(type: string): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -1720,14 +1732,16 @@ export class HomeAssistant extends EventEmitter {
       const requestId = this.requestId++;
 
       const timer = setTimeout(() => {
+        // oxlint-disable-next-line no-use-before-define
         this.ws?.removeEventListener('message', handleMessage);
         return reject(new Error(`Fetch type ${type} id ${requestId} did not complete before the timeout`));
       }, this._responseTimeout).unref();
 
-      const handleMessage = (event: WebSocket.MessageEvent) => {
+      const handleMessage = (event: WebSocket.MessageEvent): void => {
         try {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/no-base-to-string
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseFetch;
-          // istanbul ignore else
+          /* v8 ignore next */
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1748,7 +1762,7 @@ export class HomeAssistant extends EventEmitter {
       this.ws.addEventListener('message', handleMessage);
 
       this.log.debug(`Fetching ${CYAN}${type}${db} with id ${CYAN}${requestId}${db} and timeout ${CYAN}${this._responseTimeout}${db} ms ...`);
-      this.ws.send(JSON.stringify({ id: requestId, type } as HassWebSocketRequestFetch));
+      this.ws.send(JSON.stringify({ id: requestId, type }));
     });
   }
 
@@ -1765,7 +1779,7 @@ export class HomeAssistant extends EventEmitter {
    *     console.error('Error subscribing:', error);
    *   });
    */
-  // eslint-disable-next-line @typescript-eslint/promise-function-async
+  // oxlint-disable-next-line typescript/promise-function-async
   subscribe(event?: string): Promise<number> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -1778,14 +1792,16 @@ export class HomeAssistant extends EventEmitter {
       const requestId = this.requestId++;
 
       const timer = setTimeout(() => {
+        // oxlint-disable-next-line no-use-before-define
         this.ws?.removeEventListener('message', handleMessage);
         return reject(new Error(`Subscribe event ${event} id ${requestId} did not complete before the timeout`));
       }, this._responseTimeout).unref();
 
-      const handleMessage = (event: WebSocket.MessageEvent) => {
+      const handleMessage = (event: WebSocket.MessageEvent): void => {
         try {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/no-base-to-string
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
-          // istanbul ignore else
+          /* v8 ignore next */
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1811,7 +1827,7 @@ export class HomeAssistant extends EventEmitter {
           id: requestId,
           type: 'subscribe_events',
           event_type: event,
-        } as HassWebSocketRequestSubscribeEvents),
+        }),
       );
     });
   }
@@ -1829,7 +1845,7 @@ export class HomeAssistant extends EventEmitter {
    *      console.error('Error unsubscribing:', error);
    *    });
    */
-  // eslint-disable-next-line @typescript-eslint/promise-function-async
+  // oxlint-disable-next-line typescript/promise-function-async
   unsubscribe(subscriptionId: number): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -1842,14 +1858,16 @@ export class HomeAssistant extends EventEmitter {
       const requestId = this.requestId++;
 
       const timer = setTimeout(() => {
+        // oxlint-disable-next-line no-use-before-define
         this.ws?.removeEventListener('message', handleMessage);
         return reject(new Error(`Unsubscribe subscription ${subscriptionId} id ${requestId} did not complete before the timeout`));
       }, this._responseTimeout).unref();
 
-      const handleMessage = (event: WebSocket.MessageEvent) => {
+      const handleMessage = (event: WebSocket.MessageEvent): void => {
         try {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/no-base-to-string
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseResult;
-          // istanbul ignore else
+          /* v8 ignore next */
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
             this.ws?.removeEventListener('message', handleMessage);
@@ -1875,7 +1893,7 @@ export class HomeAssistant extends EventEmitter {
           id: requestId,
           type: 'unsubscribe_events',
           subscription: subscriptionId,
-        } as HassWebSocketRequestUnsubscribeEvents),
+        }),
       );
     });
   }
@@ -1894,7 +1912,7 @@ export class HomeAssistant extends EventEmitter {
    * await this.callService('switch', 'toggle', 'switch.living_room');
    * await this.callService('light', 'turn_on', 'light.living_room', { brightness: 255 });
    */
-  // eslint-disable-next-line @typescript-eslint/promise-function-async
+  // oxlint-disable-next-line typescript/promise-function-async
   callService(domain: string, service: string, entityId: string, serviceData: Record<string, HomeAssistantPrimitive> = {}): Promise<{ context: HassContext; response: unknown }> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -1907,12 +1925,14 @@ export class HomeAssistant extends EventEmitter {
       const requestId = this.requestId++;
 
       const timer = setTimeout(() => {
+        // oxlint-disable-next-line no-use-before-define
         this.ws?.removeEventListener('message', handleMessage);
         return reject(new Error(`CallService service ${domain}.${service} entity ${entityId} id ${requestId} did not complete before the timeout`));
       }, this._responseTimeout).unref();
 
-      const handleMessage = (event: WebSocket.MessageEvent) => {
+      const handleMessage = (event: WebSocket.MessageEvent): void => {
         try {
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/no-base-to-string
           const response = JSON.parse(event.data.toString()) as HassWebSocketResponseCallService;
           if (response.type === 'result' && response.id === requestId) {
             clearTimeout(timer);
@@ -1949,7 +1969,7 @@ export class HomeAssistant extends EventEmitter {
             entity_id: entityId, // Optional target entity_id to send the command to, if not provided it will use the service_data entity_id
           },
           // return_response: true, // Must be included for service actions that return response data. Fails for service actions that return response data.
-        } as HassWebSocketRequestCallService),
+        }),
       );
     });
   }
