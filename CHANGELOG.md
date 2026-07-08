@@ -37,6 +37,9 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Changed
 
+- [package]: Apply uniform style.
+- [package]: Upgrade package.
+- [package]: Update dependencies.
 - [package]: Migrate the project from ESLint + Prettier + Jest to the native toolchain: oxlint + oxfmt + tsgo + Vitest.
 - [tests]: Convert the full test suite from Jest to Vitest and move it from `src` to `vitest`.
 - [package]: Replace deprecated Matterbridge device types with their current equivalents: `onOffOutlet` → `onOffPlugInUnit`, `dimmableOutlet` → `dimmablePlugInUnit`, `onOffMountedSwitch` → `mountedOnOffControl`, `onOffSwitch` → `onOffLightSwitch`, `dimmableSwitch` → `dimmerSwitch`, `colorTemperatureSwitch` → `colorDimmerSwitch`, `doorLockDevice` → `doorLock`, `coverDevice` → `windowCovering`, `thermostatDevice` → `thermostat`, `fanDevice` → `fan`.

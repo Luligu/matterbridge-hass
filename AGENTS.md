@@ -1,10 +1,10 @@
-# Matterbridge Agents Instructions (v.1.0.0)
+# Matterbridge Agents Instructions (v.1.0.2)
 
 ## Style And Formatting
 
 - Follow [STYLEGUIDE.md](./STYLEGUIDE.md) for code style, naming, JSDoc, validation, logging, and formatting expectations.
 - JSDoc requirements are enforced by the linter. Treat missing or incomplete JSDoc on required APIs as a real lint issue, not optional documentation.
-- Import and export ordering are enforced by the linter or by theformater. Preserve the existing grouped and sorted order unless a change requires updating it.
+- Import and export ordering are enforced by the linter or by the formatter. Preserve the existing grouped and sorted order unless a change requires updating it.
 - Follow the existing formatting and do not fight the formatter.
 
 ## Scope And Safety
@@ -27,11 +27,11 @@
 
 ## Documentation
 
-- When behavior changes, update the relevant tests and documentation.
+- When behavior changes, update the relevant tests and documentation in the README.md files.
 
 ## Additional Agent Guidance
 
-For task-specific guidance, read relevant files in `.agents/`:
+For task-specific guidance, read relevant files in [.agents](./.agents/):
 
-- `.agents/testing.md` for testing and validation expectations
-- `.agents/matterbridge.md` for instruction about using matterbridge in a plugin
+- `.agents/testing.md` for testing and validation expectations;
+- `.agents/matterbridge.md` for instruction about using matterbridge in a plugin.
