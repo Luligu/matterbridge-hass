@@ -23,14 +23,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable jsdoc/reject-function-type */
 
-import { colorTemperatureLight, dimmableLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
+import { airConditioner, colorTemperatureLight, dimmableLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes, thermostatDevice } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { LevelControl } from 'matterbridge/matter/clusters';
+import { FanControl, LevelControl } from 'matterbridge/matter/clusters';
 import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
+import {
+  getFeatureNames,
+  hassCommandConverter,
+  hassDomainConverter,
+  hassSubscribeConverter,
+  kelvinToMireds,
+  matterFanModeFromHassClimateFanMode,
+  matterFanPercentFromHassClimateFanMode,
+  roundTo,
+  temp,
+} from './converters.js';
 import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
 import {
   ClimateEntityFeature,
@@ -158,6 +168,30 @@ export function addControlEntity(
       mutableDevice.addClusterServerColorTemperatureColorControl(endpointName, minMireds, maxMireds);
     } else {
       mutableDevice.addClusterServerColorControl(endpointName, minMireds, maxMireds);
+    }
+  }
+
+  // Configure the climate entities exposed as Room Air Conditioner (Matter 1.2, 0x0072) with the airConditionerLabel.
+  // The Thermostat device type is replaced by the Air Conditioner device type, the required Dead Front OnOff cluster is
+  // added and, when the entity has fan_modes, a base Fan Control cluster mapped to the climate fan modes is added.
+  // prettier-ignore
+  if (domain === 'climate' && entityHasLabel(platform, entity, platform.config.airConditionerLabel)) {
+    platform.log.debug(`= air conditioner device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db} fan_modes: ${CYAN}${state.attributes['fan_modes']}${db} fan_mode: ${CYAN}${state.attributes['fan_mode']}${db}`);
+    mutableDevice.removeDeviceTypes(endpointName, thermostatDevice);
+    mutableDevice.addDeviceTypes(endpointName, airConditioner);
+    mutableDevice.addClusterServerDeadFrontOnOff(endpointName, state.state !== 'off' && state.state !== 'unavailable');
+    if (isValidArray(state.attributes['fan_modes'], 1)) {
+      const fanModes = state.attributes['fan_modes'] as string[];
+      const hasAuto = fanModes.some((mode) => isValidString(mode, 1) && ['auto', 'smart'].includes(mode.toLowerCase()));
+      const fanMode = isValidString(state.attributes['fan_mode'], 1) ? matterFanModeFromHassClimateFanMode(state.attributes['fan_mode'], fanModes) : null;
+      const percent = isValidString(state.attributes['fan_mode'], 1) ? matterFanPercentFromHassClimateFanMode(state.attributes['fan_mode'], fanModes) : null;
+      mutableDevice.addClusterServerBaseFanControl(
+        endpointName,
+        fanMode ?? FanControl.FanMode.Off,
+        hasAuto ? FanControl.FanModeSequence.OffLowMedHighAuto : FanControl.FanModeSequence.OffLowMedHigh,
+        percent ?? 0,
+        percent ?? 0,
+      );
     }
   }
 

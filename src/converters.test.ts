@@ -3,13 +3,15 @@
 /* eslint-disable jest/no-conditional-expect */
 
 import { airQualitySensor, electricalSensor, powerSource, pressureSensor } from 'matterbridge';
-import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters';
+import { AirQuality, FanControl, OnOff, Thermostat } from 'matterbridge/matter/clusters';
 
 import {
   clamp,
   convertHAXYToMatter,
   convertMatterXYToHA,
   getFeatureNames,
+  hassClimateFanModeFromMatterFanMode,
+  hassClimateFanModeFromMatterFanPercent,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
   hassDomainConverter,
@@ -18,6 +20,8 @@ import {
   hassUpdateAttributeConverter,
   hassUpdateStateConverter,
   kelvinToMireds,
+  matterFanModeFromHassClimateFanMode,
+  matterFanPercentFromHassClimateFanMode,
   miredsToKelvin,
   roundTo,
   temp,
@@ -124,10 +128,80 @@ describe('HassPlatform converters', () => {
   it('should verify the hassUpdateStateConverter converter', () => {
     hassUpdateStateConverter.forEach((converter) => {
       expect(converter.domain.length).toBeGreaterThan(0);
-      if (converter.domain === 'climate' && converter.state === 'auto') {
+      if (converter.domain === 'climate' && converter.state === 'auto' && converter.clusterId !== OnOff.id) {
+        // The Thermostat systemMode is not updated for the auto state; the OnOff row (air conditioner Dead Front) is.
         expect(converter.clusterId).toBeUndefined();
       }
     });
+  });
+
+  it('should convert hass climate fan modes to matter fan modes', () => {
+    const mideaFanModes = ['Silent', 'Low', 'Medium', 'High', 'Full', 'Auto'];
+    // Canonical names don't need the fan_modes list
+    expect(matterFanModeFromHassClimateFanMode('auto', mideaFanModes)).toBe(FanControl.FanMode.Auto);
+    expect(matterFanModeFromHassClimateFanMode('smart')).toBe(FanControl.FanMode.Auto);
+    expect(matterFanModeFromHassClimateFanMode('off')).toBe(FanControl.FanMode.Off);
+    expect(matterFanModeFromHassClimateFanMode('Low', mideaFanModes)).toBe(FanControl.FanMode.Low);
+    expect(matterFanModeFromHassClimateFanMode('medium')).toBe(FanControl.FanMode.Medium);
+    expect(matterFanModeFromHassClimateFanMode('mid')).toBe(FanControl.FanMode.Medium);
+    expect(matterFanModeFromHassClimateFanMode('High', mideaFanModes)).toBe(FanControl.FanMode.High);
+    // Non canonical names are ranked by their position in the speed fan modes
+    expect(matterFanModeFromHassClimateFanMode('Silent', mideaFanModes)).toBe(FanControl.FanMode.Low);
+    expect(matterFanModeFromHassClimateFanMode('Full', mideaFanModes)).toBe(FanControl.FanMode.High);
+    expect(matterFanModeFromHassClimateFanMode('turbo', ['quiet', 'turbo'])).toBe(FanControl.FanMode.High);
+    expect(matterFanModeFromHassClimateFanMode('quiet', ['quiet', 'turbo'])).toBe(FanControl.FanMode.Low);
+    expect(matterFanModeFromHassClimateFanMode('single', ['single'])).toBe(FanControl.FanMode.High);
+    // Unknown names and invalid values return null
+    expect(matterFanModeFromHassClimateFanMode('unknown', mideaFanModes)).toBe(null);
+    expect(matterFanModeFromHassClimateFanMode('turbo')).toBe(null);
+    expect(matterFanModeFromHassClimateFanMode('')).toBe(null);
+  });
+
+  it('should convert matter fan modes to hass climate fan modes', () => {
+    const mideaFanModes = ['Silent', 'Low', 'Medium', 'High', 'Full', 'Auto'];
+    // Canonical names are preferred when present
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Auto, mideaFanModes)).toBe('Auto');
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Low, mideaFanModes)).toBe('Low');
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Medium, mideaFanModes)).toBe('Medium');
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.High, mideaFanModes)).toBe('High');
+    // The speed fan modes are sampled positionally when no canonical name is present
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Low, ['quiet', 'strong', 'turbo'])).toBe('quiet');
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Medium, ['quiet', 'strong', 'turbo'])).toBe('strong');
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.High, ['quiet', 'strong', 'turbo'])).toBe('turbo');
+    // Auto falls back to the highest speed when no auto fan mode is present
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Auto, ['quiet', 'turbo'])).toBe('turbo');
+    // Off returns null: the caller turns the entity off
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Off, mideaFanModes)).toBe(null);
+    // Invalid values return null
+    expect(hassClimateFanModeFromMatterFanMode(FanControl.FanMode.Low)).toBe(null);
+    expect(hassClimateFanModeFromMatterFanMode(100 as FanControl.FanMode, mideaFanModes)).toBe(null);
+  });
+
+  it('should convert hass climate fan modes to matter fan percent', () => {
+    const mideaFanModes = ['Silent', 'Low', 'Medium', 'High', 'Full', 'Auto'];
+    expect(matterFanPercentFromHassClimateFanMode('Silent', mideaFanModes)).toBe(20);
+    expect(matterFanPercentFromHassClimateFanMode('Low', mideaFanModes)).toBe(40);
+    expect(matterFanPercentFromHassClimateFanMode('Medium', mideaFanModes)).toBe(60);
+    expect(matterFanPercentFromHassClimateFanMode('High', mideaFanModes)).toBe(80);
+    expect(matterFanPercentFromHassClimateFanMode('Full', mideaFanModes)).toBe(100);
+    // Auto and unknown names return null
+    expect(matterFanPercentFromHassClimateFanMode('Auto', mideaFanModes)).toBe(null);
+    expect(matterFanPercentFromHassClimateFanMode('unknown', mideaFanModes)).toBe(null);
+    expect(matterFanPercentFromHassClimateFanMode('', mideaFanModes)).toBe(null);
+  });
+
+  it('should convert matter fan percent to hass climate fan modes', () => {
+    const mideaFanModes = ['Silent', 'Low', 'Medium', 'High', 'Full', 'Auto'];
+    expect(hassClimateFanModeFromMatterFanPercent(1, mideaFanModes)).toBe('Silent');
+    expect(hassClimateFanModeFromMatterFanPercent(20, mideaFanModes)).toBe('Silent');
+    expect(hassClimateFanModeFromMatterFanPercent(50, mideaFanModes)).toBe('Medium');
+    expect(hassClimateFanModeFromMatterFanPercent(80, mideaFanModes)).toBe('High');
+    expect(hassClimateFanModeFromMatterFanPercent(100, mideaFanModes)).toBe('Full');
+    // Percent 0 returns null: the caller turns the entity off
+    expect(hassClimateFanModeFromMatterFanPercent(0, mideaFanModes)).toBe(null);
+    // Invalid values return null
+    expect(hassClimateFanModeFromMatterFanPercent(50, [])).toBe(null);
+    expect(hassClimateFanModeFromMatterFanPercent(101, mideaFanModes)).toBe(null);
   });
 
   it('should verify the hassUpdateAttributeConverter converter', () => {

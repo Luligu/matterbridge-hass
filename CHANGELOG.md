@@ -12,6 +12,14 @@ If you like this project and find it useful, please consider giving it a **star*
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
+## [Unreleased]
+
+### Added
+
+- [climate]: Added the `airConditionerLabel` config option: climate entities with this label are exposed as a Room Air Conditioner device (Matter 1.2, 0x0072) instead of a Thermostat device. The device gets the required Dead Front OnOff cluster mapped to climate turn_on/turn_off and, when the entity has fan_modes, a base Fan Control cluster mapped to the climate fan modes (including Auto when available). The hvac modes of the entity still select the Thermostat cluster features, so cooling only units get a cooling only Thermostat cluster.
+- [climate]: Added the dry and fan_only states and the fan_mode attribute updates for climate entities exposed as air conditioner.
+- [module]: The state and attribute update converters now skip attributes the endpoint doesn't have, instead of logging an error.
+
 ## [1.3.1] - 2026-06-07
 
 ### Fixed

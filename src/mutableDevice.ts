@@ -384,6 +384,22 @@ export class MutableDevice {
   }
 
   /**
+   * Removes one or more Matter device types from the specified endpoint.
+   *
+   * Device types are matched by their device type code. Removing a device type that is not
+   * present is a no-op.
+   *
+   * @param {string} endpoint - Endpoint identifier ('' for main endpoint).
+   * @param {...DeviceTypeDefinition[]} deviceTypes - Device type definitions to remove.
+   * @returns {this} The current instance for chaining.
+   */
+  removeDeviceTypes(endpoint: string, ...deviceTypes: DeviceTypeDefinition[]): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.deviceTypes = device.deviceTypes.filter((deviceType) => !deviceTypes.some((removed) => removed.code === deviceType.code));
+    return this;
+  }
+
+  /**
    * Adds one or more cluster server IDs (simple form) to the specified endpoint.
    *
    * If a full cluster server object for the same ID is later added via
@@ -748,6 +764,61 @@ export class MutableDevice {
           airflowDirection, // Writable attribute
         },
       ),
+    );
+    return this;
+  }
+
+  /**
+   * Adds a base Fan Control cluster server (no Rocking, Wind, Step or AirflowDirection features) to the endpoint.
+   *
+   * The Auto feature is enabled only when the provided fan mode sequence includes Auto.
+   *
+   * @param {string} endpoint - Endpoint identifier ('' for main endpoint).
+   * @param {FanControl.FanMode} fanMode - Initial fan mode.
+   * @param {FanControl.FanModeSequence} fanModeSequence - Fixed fan mode sequence.
+   * @param {number} percentSetting - Initial percent setting (0-100).
+   * @param {number} percentCurrent - Initial percent current (0-100).
+   * @returns {this} The current instance for chaining.
+   */
+  addClusterServerBaseFanControl(
+    endpoint: string,
+    fanMode: FanControl.FanMode = FanControl.FanMode.Off,
+    fanModeSequence: FanControl.FanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto,
+    percentSetting: number = 0,
+    percentCurrent: number = 0,
+  ): this {
+    const device = this.initializeEndpoint(endpoint);
+    const hasAuto =
+      fanModeSequence === FanControl.FanModeSequence.OffLowMedHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffLowHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffHighAuto;
+    device.clusterServersObjs.push(
+      getClusterServerObj(FanControl.id, hasAuto ? MatterbridgeFanControlServer.with(FanControl.Feature.Auto) : MatterbridgeFanControlServer.with(), {
+        fanMode, // Writable and persistent attribute
+        fanModeSequence, // Fixed attribute
+        percentSetting, // Writable attribute
+        percentCurrent,
+      }),
+    );
+    return this;
+  }
+
+  /**
+   * Adds an OnOff cluster server with the Dead Front feature to the endpoint.
+   *
+   * The Dead Front OnOff cluster is required by appliance device types like the Room Air Conditioner:
+   * when turned off the device shows a "dead front" (the other clusters report null/default values).
+   *
+   * @param {string} endpoint - Endpoint identifier ('' for main endpoint).
+   * @param {boolean} onOff - Initial on/off state.
+   * @returns {this} The current instance for chaining.
+   */
+  addClusterServerDeadFrontOnOff(endpoint: string, onOff: boolean): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(OnOff.id, MatterbridgeOnOffServer.with(OnOff.Feature.DeadFrontBehavior), {
+        onOff,
+      }),
     );
     return this;
   }

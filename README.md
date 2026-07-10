@@ -76,7 +76,7 @@ Pair Matterbridge to your controller.
 | lock         | locked, locking, unlocking, unlocked       |                                                                                         |
 | fan          | on, off                                    | percentage, preset_mode (1), direction, oscillating                                     |
 | cover        | open, closed, opening, closing             | current_position                                                                        |
-| climate      | off, heat, cool, heat_cool, auto           | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
+| climate (3)  | off, heat, cool, heat_cool, auto, dry, fan_only | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp, fan_mode (3) |
 | valve        | open, closed, opening, closing             | current_position                                                                        |
 | vacuum (2)   | idle, cleaning, paused, docked, returning  |                                                                                         |
 | button       |                                            |                                                                                         |
@@ -87,6 +87,8 @@ Pair Matterbridge to your controller.
 (1) - Supported preset_modes: auto, low, medium, high.
 
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
+
+(3) - Climate entities are exposed as a Thermostat device by default. Climate entities with the label configured in `airConditionerLabel` are exposed as a Room Air Conditioner device (Matter 1.2): the device gets an OnOff cluster (Dead Front) mapped to climate turn_on/turn_off and, when the entity has fan_modes, a Fan Control cluster mapped to the climate fan modes (the dry and fan_only states and the fan_mode attribute are only mapped for air conditioners). In both cases the hvac modes of the entity select the Thermostat cluster features, so cooling only units get a cooling only Thermostat cluster and the controller doesn't show a Heat mode.
 
 These domains are supported also like individual and split entities.
 

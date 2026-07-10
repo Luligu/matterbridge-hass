@@ -95,6 +95,8 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   enableServerRvc: boolean;
   discardHiddenEntities: boolean;
   virtualControlLabel: string;
+  /** Expose climate entities with this label name as Room Air Conditioner devices instead of Thermostat devices */
+  airConditionerLabel: string;
 }
 
 /**
@@ -230,6 +232,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
       this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
       this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
+      this.config.airConditionerLabel = isValidString(this.config.airConditionerLabel, 1) ? this.config.airConditionerLabel : '';
     }
 
     // Initialize air quality regex from config or use default
@@ -1221,7 +1224,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       `${db}Subscribed attribute ${hk}${getClusterNameById(hassSubscribe.clusterId)}${db}:${hk}${hassSubscribe.attribute}${db} on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} ` +
         `changed from ${YELLOW}${typeof oldValue === 'object' ? debugStringify(oldValue) : oldValue}${db} to ${YELLOW}${typeof newValue === 'object' ? debugStringify(newValue) : newValue}${db}`,
     );
-    const value = hassSubscribe.converter ? hassSubscribe.converter(newValue) : newValue;
+    const value = hassSubscribe.converter ? hassSubscribe.converter(newValue, state) : newValue;
     // istanbul ignore else
     if (hassSubscribe.converter)
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
@@ -1355,6 +1358,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
       if (hassUpdateState.length > 0) {
         for (const update of hassUpdateState) {
+          // Skip the update if the endpoint doesn't have the cluster attribute (i.e. OnOff rows for climate entities not exposed as air conditioner).
+          if (update.clusterId !== undefined && !endpoint.hasAttributeServer(update.clusterId, update.attribute)) {
+            endpoint.log.debug(`Update state ${CYAN}${domain}${db}:${CYAN}${new_state.state}${db} skipped: no attribute ${CYAN}${update.attribute}${db} for entity ${entityId}`);
+            continue;
+          }
           // istanbul ignore else
           if (update.clusterId !== undefined) await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
         }
@@ -1378,6 +1386,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             break;
           }
           // console.error('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
+          // Skip the update if the endpoint doesn't have the cluster attribute (i.e. FanControl rows for climate entities not exposed as air conditioner).
+          if (!endpoint.hasAttributeServer(update.clusterId, update.attribute)) {
+            endpoint.log.debug(`Update attribute ${CYAN}${update.with}${db} skipped: no attribute ${CYAN}${update.attribute}${db} for entity ${entityId}`);
+            continue;
+          }
           // @ts-expect-error: dynamic property access for Home Assistant state attribute
           const value = new_state.attributes[update.with];
           if (value !== null) {

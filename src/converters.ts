@@ -322,6 +322,116 @@ function getSelectOptionFromMode(request: Record<string, unknown>, state: HassSt
   return { option: options[optionIndex] };
 }
 
+/**
+ * Returns the ordered list of speed fan modes of a climate entity (auto, smart and off excluded).
+ *
+ * @param {string[] | undefined} fanModes - The climate entity fan_modes attribute.
+ * @returns {string[]} The fan modes that represent a speed, in the order provided by Home Assistant (assumed ascending).
+ */
+function getClimateSpeedFanModes(fanModes?: string[]): string[] {
+  if (!isValidArray(fanModes, 1)) return [];
+  return fanModes.filter((mode) => isValidString(mode, 1) && !['auto', 'smart', 'off'].includes(mode.toLowerCase()));
+}
+
+/**
+ * Converts a Home Assistant climate fan mode string to a Matter FanControl.FanMode.
+ *
+ * Canonical names (auto, smart, off, low, medium, mid, high) are matched first; any other name is ranked
+ * by its position in the ordered list of speed fan modes and mapped to Low / Medium / High.
+ *
+ * @param {string} fanMode - The Home Assistant climate fan_mode attribute value.
+ * @param {string[]} [fanModes] - The climate entity fan_modes attribute, used for positional ranking.
+ * @returns {FanControl.FanMode | null} The Matter fan mode, or null when the value cannot be mapped.
+ */
+export function matterFanModeFromHassClimateFanMode(fanMode: string, fanModes?: string[]): FanControl.FanMode | null {
+  if (!isValidString(fanMode, 1)) return null;
+  const mode = fanMode.toLowerCase();
+  if (mode === 'auto' || mode === 'smart') return FanControl.FanMode.Auto;
+  if (mode === 'off') return FanControl.FanMode.Off;
+  if (mode === 'low') return FanControl.FanMode.Low;
+  if (mode === 'medium' || mode === 'mid') return FanControl.FanMode.Medium;
+  if (mode === 'high') return FanControl.FanMode.High;
+  const speeds = getClimateSpeedFanModes(fanModes).map((m) => m.toLowerCase());
+  const index = speeds.indexOf(mode);
+  if (index === -1) return null;
+  if (speeds.length === 1) return FanControl.FanMode.High;
+  const ratio = index / (speeds.length - 1);
+  if (ratio <= 1 / 3) return FanControl.FanMode.Low;
+  if (ratio <= 2 / 3) return FanControl.FanMode.Medium;
+  return FanControl.FanMode.High;
+}
+
+/**
+ * Converts a Matter FanControl.FanMode to a Home Assistant climate fan mode string.
+ *
+ * Canonical names are preferred when present in the entity fan_modes; otherwise the ordered list of
+ * speed fan modes is sampled positionally (Low = first, Medium = middle, High = last). Auto, Smart and
+ * On map to the auto fan mode when available and fall back to the highest speed.
+ *
+ * @param {FanControl.FanMode} fanMode - The Matter fan mode written by the controller.
+ * @param {string[]} [fanModes] - The climate entity fan_modes attribute.
+ * @returns {string | null} The Home Assistant fan mode to send with climate.set_fan_mode, or null when
+ * the value cannot be mapped (FanControl.FanMode.Off returns null: the caller turns the entity off).
+ */
+export function hassClimateFanModeFromMatterFanMode(fanMode: FanControl.FanMode, fanModes?: string[]): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  if (!isValidNumber(fanMode, FanControl.FanMode.Off, FanControl.FanMode.Smart)) return null;
+  if (fanMode === FanControl.FanMode.Off) return null;
+  if (!isValidArray(fanModes, 1)) return null;
+  const lower = fanModes.map((mode) => mode.toLowerCase());
+  const speeds = getClimateSpeedFanModes(fanModes);
+  const findCanonical = (...names: string[]): string | undefined => {
+    for (const name of names) {
+      const index = lower.indexOf(name);
+      if (index !== -1) return fanModes[index];
+    }
+    return undefined;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
+  if (fanMode === FanControl.FanMode.Auto || fanMode === FanControl.FanMode.Smart || fanMode === FanControl.FanMode.On) {
+    return findCanonical('auto', 'smart') ?? (speeds.length > 0 ? speeds[speeds.length - 1] : null);
+  }
+  if (speeds.length === 0) return null;
+  if (fanMode === FanControl.FanMode.Low) return findCanonical('low') ?? speeds[0];
+  if (fanMode === FanControl.FanMode.Medium) return findCanonical('medium', 'mid') ?? speeds[Math.floor((speeds.length - 1) / 2)];
+  return findCanonical('high') ?? speeds[speeds.length - 1];
+}
+
+/**
+ * Converts a Home Assistant climate fan mode string to a Matter FanControl percent value.
+ *
+ * The percent is derived from the position of the fan mode in the ordered list of speed fan modes.
+ *
+ * @param {string} fanMode - The Home Assistant climate fan_mode attribute value.
+ * @param {string[]} [fanModes] - The climate entity fan_modes attribute.
+ * @returns {number | null} The percent value (1-100), or null when the fan mode is auto or cannot be mapped.
+ */
+export function matterFanPercentFromHassClimateFanMode(fanMode: string, fanModes?: string[]): number | null {
+  if (!isValidString(fanMode, 1)) return null;
+  const speeds = getClimateSpeedFanModes(fanModes).map((m) => m.toLowerCase());
+  const index = speeds.indexOf(fanMode.toLowerCase());
+  if (index === -1) return null;
+  return Math.round(((index + 1) / speeds.length) * 100);
+}
+
+/**
+ * Converts a Matter FanControl percent value to a Home Assistant climate fan mode string.
+ *
+ * The percent range is split evenly across the ordered list of speed fan modes.
+ *
+ * @param {number} percent - The percent value (1-100) written by the controller.
+ * @param {string[]} [fanModes] - The climate entity fan_modes attribute.
+ * @returns {string | null} The Home Assistant fan mode to send with climate.set_fan_mode, or null when
+ * the value cannot be mapped (percent 0 returns null: the caller turns the entity off).
+ */
+export function hassClimateFanModeFromMatterFanPercent(percent: number, fanModes?: string[]): string | null {
+  if (!isValidNumber(percent, 1, 100)) return null;
+  const speeds = getClimateSpeedFanModes(fanModes);
+  if (speeds.length === 0) return null;
+  const index = Math.min(speeds.length - 1, Math.ceil((percent / 100) * speeds.length) - 1);
+  return speeds[index];
+}
+
 /** Update Home Assistant state to Matterbridge device states */
 // prettier-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId | undefined; attribute: string; value: any }[] = [
@@ -349,6 +459,16 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'climate', state: 'cool', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.Cool },
     { domain: 'climate', state: 'heat_cool', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
     { domain: 'climate', state: 'auto', clusterId: undefined, attribute: '', value: null }, // 'auto' is not updated directly
+    { domain: 'climate', state: 'dry', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.Dry },
+    { domain: 'climate', state: 'fan_only', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.FanOnly },
+    // The OnOff rows only apply to climate entities exposed as air conditioner (Dead Front OnOff cluster).
+    { domain: 'climate', state: 'off', clusterId: OnOff.id, attribute: 'onOff', value: false },
+    { domain: 'climate', state: 'heat', clusterId: OnOff.id, attribute: 'onOff', value: true },
+    { domain: 'climate', state: 'cool', clusterId: OnOff.id, attribute: 'onOff', value: true },
+    { domain: 'climate', state: 'heat_cool', clusterId: OnOff.id, attribute: 'onOff', value: true },
+    { domain: 'climate', state: 'auto', clusterId: OnOff.id, attribute: 'onOff', value: true },
+    { domain: 'climate', state: 'dry', clusterId: OnOff.id, attribute: 'onOff', value: true },
+    { domain: 'climate', state: 'fan_only', clusterId: OnOff.id, attribute: 'onOff', value: true },
 
     { domain: 'valve', state: 'opening', clusterId: ValveConfigurationAndControl.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
     { domain: 'valve', state: 'open', clusterId: ValveConfigurationAndControl.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Open },
@@ -432,6 +552,10 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'climate', with: 'target_temp_high',    clusterId: Thermostat.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.attributes?.hvac_modes?.includes(HVACMode.HEAT_COOL) || state.attributes?.hvac_modes?.includes(HVACMode.COOL)) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
     { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.attributes?.hvac_modes?.includes(HVACMode.HEAT_COOL) || state.attributes?.hvac_modes?.includes(HVACMode.HEAT)) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
     { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
+    // The FanControl rows only apply to climate entities exposed as air conditioner with a Fan Control cluster.
+    { domain: 'climate', with: 'fan_mode',            clusterId: FanControl.id, attribute: 'fanMode', converter: (value: string, state: HassState) => matterFanModeFromHassClimateFanMode(value, state.attributes['fan_modes']) },
+    { domain: 'climate', with: 'fan_mode',            clusterId: FanControl.id, attribute: 'percentCurrent', converter: (value: string, state: HassState) => matterFanPercentFromHassClimateFanMode(value, state.attributes['fan_modes']) },
+    { domain: 'climate', with: 'fan_mode',            clusterId: FanControl.id, attribute: 'percentSetting', converter: (value: string, state: HassState) => matterFanPercentFromHassClimateFanMode(value, state.attributes['fan_modes']) },
 
     { domain: 'valve', with: 'current_position', clusterId: ValveConfigurationAndControl.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value) : null) },
   ];
@@ -570,6 +694,11 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'changeToMode',            domain: 'input_select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) } },
     { command: 'changeToMode',            domain: 'select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) }  },
 
+    // The climate on/off/toggle commands only apply to climate entities exposed as air conditioner (Dead Front OnOff cluster).
+    { command: 'on',                      domain: 'climate', service: 'turn_on' },
+    { command: 'off',                     domain: 'climate', service: 'turn_off' },
+    { command: 'toggle',                  domain: 'climate', service: 'toggle' },
+
     { command: 'on',                      domain: 'media_player', service: 'turn_on' },
     { command: 'off',                     domain: 'media_player', service: 'turn_off' },
     { command: 'play',                    domain: 'media_player', service: 'media_play' },
@@ -584,7 +713,7 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
  * Returning null will send turn_off service to Home Assistant instead of turn_on with attributes.
  */
 // prettier-ignore
-export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: number) => any }[] = [
+export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: any, state?: HassState) => any }[] = [
     { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {
       // eslint-disable-next-line @typescript-eslint/no-deprecated
       if( isValidNumber(value, FanControl.FanMode.Low, FanControl.FanMode.Smart) ) {
@@ -612,4 +741,7 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
     }},
     { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedHeatingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
     { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedCoolingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
+    // The FanControl rows only apply to climate entities exposed as air conditioner with a Fan Control cluster.
+    { domain: 'climate',  service: 'set_fan_mode',    with: 'fan_mode',     clusterId: FanControl.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode, state?: HassState) => hassClimateFanModeFromMatterFanMode(value, state?.attributes['fan_modes']) },
+    { domain: 'climate',  service: 'set_fan_mode',    with: 'fan_mode',     clusterId: FanControl.id,  attribute: 'percentSetting', converter: (value: number, state?: HassState) => hassClimateFanModeFromMatterFanPercent(value, state?.attributes['fan_modes']) },
   ]

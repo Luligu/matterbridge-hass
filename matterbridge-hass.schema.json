@@ -229,6 +229,12 @@
       "type": "string",
       "default": ""
     },
+    "airConditionerLabel": {
+      "title": "Air Conditioner Label",
+      "description": "Expose climate entities with this label (use label name) as a Room Air Conditioner device (Matter 1.2) instead of a Thermostat device. The device gets an OnOff cluster (Dead Front) mapped to climate turn_on/turn_off and, when the entity has fan_modes, a Fan Control cluster mapped to the climate fan modes. The hvac modes of the entity still select the Thermostat features (e.g. cooling only units get a cooling only Thermostat cluster).",
+      "type": "string",
+      "default": ""
+    },
     "debug": {
       "title": "Enable Debug",
       "description": "Enable the debug for the plugin (development only)",

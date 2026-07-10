@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import {
+  airConditioner,
   colorTemperatureLight,
   coverDevice,
   dimmableLight,
@@ -12,7 +13,7 @@ import {
   thermostatDevice,
   waterValve,
 } from 'matterbridge';
-import { LevelControl } from 'matterbridge/matter/clusters';
+import { FanControl, LevelControl } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from './control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from './converters.js';
@@ -39,6 +40,12 @@ function createMockMutableDevice(): MutableDevice {
     }),
     setFriendlyName: jest.fn(),
     get: jest.fn((ep: string) => ({ deviceTypes: ensure(ep).deviceTypes })),
+    removeDeviceTypes: jest.fn((ep: string, deviceType: any) => {
+      ensure(ep);
+      endpoints[ep].deviceTypes = endpoints[ep].deviceTypes.filter((dt) => dt.code !== deviceType.code);
+      // @ts-expect-error chainable return
+      return this;
+    }),
     addClusterServerColorTemperatureColorControl: jest.fn(),
     addClusterServerColorControl: jest.fn(),
     addClusterServerAutoModeThermostat: jest.fn(),
@@ -46,6 +53,8 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerCoolingThermostat: jest.fn(),
     addClusterServerHeatingCoolingThermostat: jest.fn(),
     addClusterServerCompleteFanControl: jest.fn(),
+    addClusterServerBaseFanControl: jest.fn(),
+    addClusterServerDeadFrontOnOff: jest.fn(),
     addVacuum: jest.fn(),
     addSelect: jest.fn(),
     addOnOff: jest.fn(),
@@ -461,6 +470,77 @@ describe('addControlEntity', () => {
       callback('new', 'old', {} as any, e.entity_id, call[1], call[2]);
     }
     expect(subscribeHandler).toHaveBeenCalledTimes(calls.length);
+  });
+
+  it('climate with the air conditioner label is exposed as a room air conditioner', () => {
+    const [md, e, s] = make('climate', 'office_ac', {
+      hvac_modes: ['off', 'cool', 'dry', 'fan_only'],
+      current_temperature: 24,
+      temperature: 22,
+      fan_modes: ['Silent', 'Low', 'Medium', 'High', 'Full', 'Auto'],
+      fan_mode: 'Auto',
+      friendly_name: 'Office AC',
+    });
+    (s as any).state = 'cool';
+    (e as any).labels = ['ac_label_id'];
+    const platform = {
+      config: { virtualControlLabel: '', airConditionerLabel: 'Air Conditioner' },
+      log: mockLog,
+      ha: { hassLabels: new Map([['ac_label_id', { label_id: 'ac_label_id', name: 'Air Conditioner' }]]) },
+    } as any;
+    addControlEntity(platform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+    expect(md.removeDeviceTypes).toHaveBeenCalledWith(e.entity_id, thermostatDevice);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, airConditioner);
+    expect(md.addClusterServerDeadFrontOnOff).toHaveBeenCalledWith(e.entity_id, true);
+    expect(md.addClusterServerBaseFanControl).toHaveBeenCalledWith(e.entity_id, FanControl.FanMode.Auto, FanControl.FanModeSequence.OffLowMedHighAuto, 0, 0);
+    expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
+    expect(md.addClusterServerHeatingThermostat).not.toHaveBeenCalled();
+  });
+
+  it('climate with the air conditioner label and state off adds a dead front OnOff cluster off', () => {
+    const [md, e, s] = make('climate', 'office_ac', { hvac_modes: ['off', 'cool'], current_temperature: 24, temperature: 22, fan_modes: ['low', 'high'], fan_mode: 'low' });
+    (s as any).state = 'off';
+    (e as any).labels = ['ac_label_id'];
+    const platform = {
+      config: { virtualControlLabel: '', airConditionerLabel: 'Air Conditioner' },
+      log: mockLog,
+      ha: { hassLabels: new Map([['ac_label_id', { label_id: 'ac_label_id', name: 'Air Conditioner' }]]) },
+    } as any;
+    addControlEntity(platform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerDeadFrontOnOff).toHaveBeenCalledWith(e.entity_id, false);
+    // No auto fan mode: the fan mode sequence has no Auto
+    expect(md.addClusterServerBaseFanControl).toHaveBeenCalledWith(e.entity_id, FanControl.FanMode.Low, FanControl.FanModeSequence.OffLowMedHigh, 50, 50);
+  });
+
+  it('climate with the air conditioner label and no fan_modes adds no fan control cluster', () => {
+    const [md, e, s] = make('climate', 'office_ac', { hvac_modes: ['off', 'cool'], current_temperature: 24, temperature: 22 });
+    (s as any).state = 'cool';
+    (e as any).labels = ['ac_label_id'];
+    const platform = {
+      config: { virtualControlLabel: '', airConditionerLabel: 'Air Conditioner' },
+      log: mockLog,
+      ha: { hassLabels: new Map([['ac_label_id', { label_id: 'ac_label_id', name: 'Air Conditioner' }]]) },
+    } as any;
+    addControlEntity(platform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerDeadFrontOnOff).toHaveBeenCalledWith(e.entity_id, true);
+    expect(md.addClusterServerBaseFanControl).not.toHaveBeenCalled();
+  });
+
+  it('climate without the air conditioner label stays a thermostat', () => {
+    const [md, e, s] = make('climate', 'plain_thermostat', { hvac_modes: ['off', 'cool'], current_temperature: 24, temperature: 22, fan_modes: ['low', 'high'] });
+    (s as any).state = 'cool';
+    (e as any).labels = ['other_label_id'];
+    const platform = {
+      config: { virtualControlLabel: '', airConditionerLabel: 'Air Conditioner' },
+      log: mockLog,
+      ha: { hassLabels: new Map([['ac_label_id', { label_id: 'ac_label_id', name: 'Air Conditioner' }]]) },
+    } as any;
+    addControlEntity(platform, md, e as any, s as any, commandHandler, subscribeHandler as any);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, thermostatDevice);
+    expect(md.removeDeviceTypes).not.toHaveBeenCalled();
+    expect(md.addClusterServerDeadFrontOnOff).not.toHaveBeenCalled();
+    expect(md.addClusterServerBaseFanControl).not.toHaveBeenCalled();
+    expect(md.addClusterServerCoolingThermostat).toHaveBeenCalled();
   });
 
   it('climate domain with unsupported hvac modes adds no thermostat cluster servers', () => {

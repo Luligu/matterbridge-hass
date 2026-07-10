@@ -9,6 +9,7 @@ import path from 'node:path';
 
 import { jest } from '@jest/globals';
 import {
+  airConditioner,
   bridgedNode,
   colorTemperatureLight,
   colorTemperatureSwitch,
@@ -64,6 +65,7 @@ import {
   RelativeHumidityMeasurement,
   SmokeCoAlarm,
   TemperatureMeasurement,
+  Thermostat,
 } from 'matterbridge/matter/clusters';
 
 import { MutableDevice } from './mutableDevice.js';
@@ -1335,6 +1337,78 @@ describe('MutableDevice', () => {
     expect(childEndpoint.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'onOff', 'powerSource']);
 
     await addDevice(aggregator, device);
+    mutableDevice.destroy();
+  });
+
+  test('should removeDeviceTypes', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device removeDeviceTypes');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostatDevice);
+    expect(mutableDevice.get().deviceTypes).toContain(thermostatDevice);
+    mutableDevice.removeDeviceTypes('', thermostatDevice);
+    expect(mutableDevice.get().deviceTypes).not.toContain(thermostatDevice);
+    expect(mutableDevice.get().deviceTypes).toContain(bridgedNode);
+    // Removing a device type that is not present is a no-op
+    mutableDevice.removeDeviceTypes('', thermostatDevice);
+    expect(mutableDevice.get().deviceTypes).toHaveLength(1);
+    mutableDevice.destroy();
+  });
+
+  test('should create a room air conditioner device', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device Air Conditioner');
+    mutableDevice.addDeviceTypes('', bridgedNode, airConditioner);
+    mutableDevice.addClusterServerDeadFrontOnOff('', true);
+    mutableDevice.addClusterServerCoolingThermostat('', 24.3, 22, 16, 31);
+    mutableDevice.addClusterServerBaseFanControl('', FanControl.FanMode.Auto, FanControl.FanModeSequence.OffLowMedHighAuto, 50, 50);
+
+    device = mutableDevice.create();
+    expect(device).toBeDefined();
+    expect(device.deviceTypes.get(airConditioner.code)).toBeDefined();
+    expect(device.deviceTypes.get(thermostatDevice.code)).toBeUndefined();
+    expect(device.getAllClusterServerNames()).toEqual(expect.arrayContaining(['onOff', 'thermostat', 'fanControl', 'identify']));
+
+    await addDevice(aggregator, device);
+
+    // Dead Front OnOff cluster
+    expect(device.getAttribute(OnOff.id, 'featureMap')).toEqual(expect.objectContaining({ lighting: false, deadFrontBehavior: true, offOnly: false }));
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
+    // Cooling only Thermostat cluster
+    expect(device.getAttribute(Thermostat.id, 'featureMap')).toEqual(expect.objectContaining({ heating: false, cooling: true, autoMode: false }));
+    expect(device.getAttribute(Thermostat.id, 'controlSequenceOfOperation')).toBe(Thermostat.ControlSequenceOfOperation.CoolingOnly);
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+    expect(device.getAttribute(Thermostat.id, 'occupiedCoolingSetpoint')).toBe(2200);
+    // Base FanControl cluster with the Auto feature
+    expect(device.getAttribute(FanControl.id, 'featureMap')).toEqual(
+      expect.objectContaining({ multiSpeed: false, auto: true, rocking: false, wind: false, airflowDirection: false }),
+    );
+    expect(device.getAttribute(FanControl.id, 'fanModeSequence')).toBe(FanControl.FanModeSequence.OffLowMedHighAuto);
+    expect(device.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Auto);
+    expect(device.getAttribute(FanControl.id, 'percentSetting')).toBe(50);
+
+    // The dry and fan_only climate states write the Dry / FanOnly system modes on the (cooling only) thermostat
+    await expect(device.setAttribute(Thermostat.id, 'systemMode', Thermostat.SystemMode.Dry, device.log)).resolves.toBe(true);
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Dry);
+    await expect(device.setAttribute(Thermostat.id, 'systemMode', Thermostat.SystemMode.FanOnly, device.log)).resolves.toBe(true);
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.FanOnly);
+
+    mutableDevice.destroy();
+  });
+
+  test('should create a base fan control without the auto feature', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device Air Conditioner No Auto');
+    mutableDevice.addDeviceTypes('', bridgedNode, airConditioner);
+    mutableDevice.addClusterServerDeadFrontOnOff('', false);
+    mutableDevice.addClusterServerCoolingThermostat('', 24.3, 22, 16, 31);
+    mutableDevice.addClusterServerBaseFanControl('', FanControl.FanMode.Low, FanControl.FanModeSequence.OffLowMedHigh, 33, 33);
+
+    device = mutableDevice.create();
+    expect(device).toBeDefined();
+    await addDevice(aggregator, device);
+
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    expect(device.getAttribute(FanControl.id, 'featureMap')).toEqual(expect.objectContaining({ auto: false }));
+    expect(device.getAttribute(FanControl.id, 'fanModeSequence')).toBe(FanControl.FanModeSequence.OffLowMedHigh);
+    expect(device.getAttribute(FanControl.id, 'fanMode')).toBe(FanControl.FanMode.Low);
+
     mutableDevice.destroy();
   });
 });
