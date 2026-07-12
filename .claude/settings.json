@@ -33,6 +33,7 @@
       "Bash(bun remove:*)"
     ],
     "allow": [
+      "Bash(npm run)",
       "Bash(npm run typecheck:*)",
       "Bash(npm run build:*)",
       "Bash(npm run test:*)",
@@ -47,8 +48,6 @@
       "Bash(oxlint:*)",
       "Bash(npx tsc:*)",
       "Bash(tsc:*)",
-      "Bash(npx tsgo:*)",
-      "Bash(tsgo:*)",
       "Bash(cd:*)",
       "Bash(tail:*)"
     ]

@@ -1,6 +1,6 @@
 # Style Guide
 
-Concise rules the codebase and Copilot suggestions should follow.
+Concise rules the codebase and all agent suggestions should follow.
 
 ## 1. General Principles
 
