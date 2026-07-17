@@ -5,7 +5,7 @@
  */
 
 const NAME = 'MutableDevice';
-const MATTER_PORT = 6200;
+const MATTER_PORT = 6300;
 const MATTER_CREATE_ONLY = true;
 
 import {
