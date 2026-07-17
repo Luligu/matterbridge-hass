@@ -2664,9 +2664,7 @@ describe('Matterbridge ' + NAME, () => {
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
-      /* brightness: 255*/
-    });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {/* brightness: 255*/});
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
@@ -2676,9 +2674,7 @@ describe('Matterbridge ' + NAME, () => {
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
-      /* brightness: 255 */
-    });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {/* brightness: 255 */});
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
@@ -2819,9 +2815,7 @@ describe('Matterbridge ' + NAME, () => {
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
-      /* brightness: 255, color_temp_kelvin: 4000*/
-    });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {/* brightness: 255, color_temp_kelvin: 4000*/});
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
@@ -2832,9 +2826,7 @@ describe('Matterbridge ' + NAME, () => {
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
-      /* brightness: 255, color_temp_kelvin: 4000*/
-    });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {/* brightness: 255, color_temp_kelvin: 4000*/});
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
@@ -2942,9 +2934,7 @@ describe('Matterbridge ' + NAME, () => {
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'on');
     expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
-      /* brightness: 255, hs_color: [0, 0]*/
-    });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {/* brightness: 255, hs_color: [0, 0]*/});
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'off');
@@ -2954,9 +2944,7 @@ describe('Matterbridge ' + NAME, () => {
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'onOff', 'toggle');
     expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
-    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {
-      /* brightness: 255, hs_color: [0, 0]*/
-    });
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, {/* brightness: 255, hs_color: [0, 0]*/});
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'levelControl', 'moveToLevel', {
