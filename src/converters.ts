@@ -356,6 +356,9 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'climate', state: 'heat_cool', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
     { domain: 'climate', state: 'auto', clusterId: undefined, attribute: '', value: null }, // 'auto' is not updated directly
 
+    { domain: 'humidifier', state: 'on', clusterId: OnOff.id, attribute: 'onOff', value: true },
+    { domain: 'humidifier', state: 'off', clusterId: OnOff.id, attribute: 'onOff', value: false },
+
     { domain: 'valve', state: 'opening', clusterId: ValveConfigurationAndControl.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
     { domain: 'valve', state: 'open', clusterId: ValveConfigurationAndControl.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Open },
     { domain: 'valve', state: 'closing', clusterId: ValveConfigurationAndControl.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
@@ -440,6 +443,9 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'climate', with: 'target_temp_low',     clusterId: Thermostat.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.attributes?.hvac_modes?.includes(HVACMode.HEAT_COOL) || state.attributes?.hvac_modes?.includes(HVACMode.HEAT)) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
     { domain: 'climate', with: 'current_temperature', clusterId: Thermostat.id, attribute: 'localTemperature', converter: (value: number) => (isValidNumber(value) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
 
+    { domain: 'humidifier', with: 'humidity',         clusterId: LevelControl.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value * 2.54) : null) },
+    { domain: 'humidifier', with: 'current_humidity', clusterId: RelativeHumidityMeasurement.id, attribute: 'measuredValue', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value * 100) : null) },
+
     { domain: 'valve', with: 'current_position', clusterId: ValveConfigurationAndControl.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(value) : null) },
   ];
 
@@ -460,6 +466,9 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'fan',                                    deviceType: fan,                    clusterId: FanControl.id },
     { domain: 'cover',                                  deviceType: windowCovering,         clusterId: WindowCovering.id },
     { domain: 'climate',                                deviceType: thermostat,             clusterId: Thermostat.id },
+    { domain: 'humidifier',                             deviceType: onOffPlugInUnit,        clusterId: OnOff.id },
+    { domain: 'humidifier', withAttribute: 'humidity',  deviceType: onOffPlugInUnit,        clusterId: LevelControl.id },
+    { domain: 'humidifier', withAttribute: 'current_humidity', deviceType: humiditySensor, clusterId: RelativeHumidityMeasurement.id },
     { domain: 'valve',                                  deviceType: waterValve,             clusterId: ValveConfigurationAndControl.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcRunMode.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcCleanMode.id },
@@ -584,6 +593,9 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'stop',                    domain: 'media_player', service: 'media_stop' },
     { command: 'previous',                domain: 'media_player', service: 'media_previous_track' },
     { command: 'next',                    domain: 'media_player', service: 'media_next_track' },
+
+    { command: 'on',                      domain: 'humidifier', service: 'turn_on' },
+    { command: 'off',                     domain: 'humidifier', service: 'turn_off' },
   ];
 
 /**
@@ -620,4 +632,6 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
     }},
     { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedHeatingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
     { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedCoolingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
+
+    { domain: 'humidifier', service: 'set_humidity',  with: 'humidity',     clusterId: LevelControl.id, attribute: 'currentLevel', converter: (value: number) => Math.round(value / 2.54) },
   ]

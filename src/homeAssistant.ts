@@ -601,6 +601,22 @@ export interface HassStateClimateAttributes {
   supported_features?: ClimateEntityFeature; // Supported features of the climate entity
 }
 
+/**
+ * Interface representing the attributes of a Home Assistant humidifier entity's state.
+ */
+export interface HassStateHumidifierAttributes {
+  humidity: number | null; // Target humidity setting
+  current_humidity: number | null; // Current humidity
+  min_humidity: number; // Minimum humidity setting
+  max_humidity: number; // Maximum humidity setting
+  target_humidity_step?: number;
+  available_modes?: string[];
+  mode?: string | null;
+  action?: string | null;
+  device_class?: 'humidifier' | 'dehumidifier' | null;
+  supported_features?: number;
+}
+
 /** Supported features of the climate entity.*/
 export enum ClimateEntityFeature {
   TARGET_TEMPERATURE = 1,
