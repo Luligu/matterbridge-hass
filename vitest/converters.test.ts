@@ -244,6 +244,14 @@ describe('HassPlatform converters', () => {
         expect(converter.converter(100, {} as HassState)).toBe(100);
         expect(converter.converter(-1, {} as HassState)).toBe(null);
       }
+      if (converter.domain === 'humidifier' && converter.with === 'humidity') {
+        expect(converter.converter(50, {} as HassState)).toBe(127);
+        expect(converter.converter('50', {} as HassState)).toBe(null);
+      }
+      if (converter.domain === 'humidifier' && converter.with === 'current_humidity') {
+        expect(converter.converter(48, {} as HassState)).toBe(4800);
+        expect(converter.converter('48', {} as HassState)).toBe(null);
+      }
     });
   });
 
@@ -439,6 +447,9 @@ describe('HassPlatform converters', () => {
           } as HassUnitSystem,
         } as HassConfig;
         expect(converter.converter(1000)).toBe(10);
+      }
+      if (converter.domain === 'humidifier' && converter.service === 'set_humidity' && converter.converter) {
+        expect(converter.converter(127)).toBe(50);
       }
     });
   });
