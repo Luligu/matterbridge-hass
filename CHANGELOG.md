@@ -36,8 +36,8 @@ If you like this project and find it useful, please consider giving it a **star*
 
 ### Added
 
-- [chip] Add chip-test toolchain agents instruction and chip-test runner.
-- [frontend] Add plugin-frontend agents instructions.
+- [chip]: Add chip-test toolchain agents instruction and chip-test runner.
+- [frontend]: Add plugin-frontend agents instructions.
 
 ### Changed
 
