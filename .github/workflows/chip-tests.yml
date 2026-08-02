@@ -1,0 +1,52 @@
+# CHIP conformance test suite (on demand) v.1.0.0
+# Path: .github/workflows/chip-tests.yml
+
+name: CHIP conformance tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  chip-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - name: Clone matterbridge repo (dev branch)
+        run: git clone --depth 1 --single-branch --no-tags -b dev https://github.com/Luligu/matterbridge.git ../matterbridge
+
+      - name: Install matterbridge dependencies
+        working-directory: ../matterbridge
+        run: npm ci --no-fund --no-audit
+
+      - name: Build matterbridge
+        working-directory: ../matterbridge
+        run: npm run build
+
+      - name: Link matterbridge globally
+        working-directory: ../matterbridge
+        run: npm link --no-fund --no-audit
+
+      - name: Install plugin dependencies
+        run: npm ci --no-fund --no-audit
+
+      - name: Link matterbridge in the plugin
+        run: npm link matterbridge --no-fund --no-audit
+
+      - name: Start the chip-test container
+        run: node scripts/run-chip-tests.mjs --start
+
+      - name: Run the full CHIP test suite
+        run: node scripts/run-chip-tests.mjs
+
+      - name: Stop the chip-test container
+        if: always()
+        run: node scripts/run-chip-tests.mjs --stop
