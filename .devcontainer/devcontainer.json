@@ -1,4 +1,4 @@
-// .devcontainer/devcontainer.json v. 1.0.5
+// .devcontainer/devcontainer.json v.1.2.0
 
 // This file defines the development container configuration for a Matterbridge Plugin.
 
@@ -32,43 +32,59 @@ Dev containers have networking limitations depending on the host OS and Docker s
 {
   // Name of the dev container
   "name": "Matterbridge Plugin Dev Container",
-  // Use the Microsoft pre-built image with Debian (Trixie) and Node.js 24 for a consistent and optimized development environment
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-trixie",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   // Inherit timezone from the host environment (set TZ on the host, e.g. Europe/Paris)
   "containerEnv": {
     "TZ": "${localEnv:TZ}"
   },
   // Use the non-root node user (passwordless sudo in this image)
   "remoteUser": "node",
-  // Mount the local matterbridge and node_modules workspace folder to the container's workspace volumes to improve performance
   "mounts": [
+    // Package specific volumes for node_modules, .cache, Matterbridge .matterbridge, .mattercert to improve performance
     "source=${localWorkspaceFolderBasename}-node_modules,target=${containerWorkspaceFolder}/node_modules,type=volume",
     "source=${localWorkspaceFolderBasename}-cache,target=${containerWorkspaceFolder}/.cache,type=volume",
     "source=${localWorkspaceFolderBasename}-plugins,target=/home/node/Matterbridge,type=volume",
     "source=${localWorkspaceFolderBasename}-storage,target=/home/node/.matterbridge,type=volume",
     "source=${localWorkspaceFolderBasename}-cert,target=/home/node/.mattercert,type=volume",
+    // Dev container shared volumes for matterbridge, npm cache, bun cache, bash history, claude, codex and agents to improve performance
     "source=matterbridge,target=/matterbridge,type=volume",
+    "source=npm-cache,target=/home/node/.npm,type=volume",
+    "source=bun-cache,target=/home/node/.bun/install/cache,type=volume",
+    "source=bash-cache,target=/home/node/.bash-cache,type=volume",
     "source=claude,target=/home/node/.claude,type=volume",
     "source=codex,target=/home/node/.codex,type=volume",
     "source=agents,target=/home/node/.agents,type=volume"
   ],
-  // Create the matterbridge Docker network if it doesn't exist, then pull the base image (runs on the HOST before the container starts).
-  "initializeCommand": "(docker network inspect matterbridge || docker network create matterbridge) && docker pull mcr.microsoft.com/devcontainers/javascript-node:24-trixie",
-  // On create, update npm, install and link the dev of matterbridge and install and build the plugin (runs inside the container)
-  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh",
-  // On start, run the plugin in watch mode (runs inside the container)
-  "postStartCommand": "bash .devcontainer/postStartCommand.sh",
+  // Set up the Docker environment (runs on the host before the container starts)
+  "initializeCommand": "bash .devcontainer/initialize.sh",
+  // On create, prepare the directories, install and link the dev of matterbridge and install and build the plugin (runs inside the container)
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  // On start, install and build the plugin (runs inside the container)
+  "postStartCommand": "bash .devcontainer/post-start.sh",
   "runArgs": [
     // Give the Docker container the same name as the repository (must be unique on host)
     "--name",
     "${localWorkspaceFolderBasename}",
+    // OpenAI sandbox requisites (https://learn.chatgpt.com/docs/sandboxing?surface=cli)
+    "--security-opt",
+    "seccomp=unconfined",
     // Use network host mode if on Docker Engine on Linux or WSL 2 to allow full local network access and mDNS support
     // "--network=host"
     // Use a shared bridge network to allow to access other containers with their names (dns resolution). With the default bridge, dns resolution does not work (only ip:port).
     "--network=matterbridge"
   ],
   // Publish the Matterbridge UI port on the Docker host (so http://localhost:8283 works even without VS Code port forwarding)
-  "appPort": [8283],
+  "forwardPorts": [8283],
+  "portsAttributes": {
+    "8283": {
+      "label": "Matterbridge frontend"
+    }
+  },
+  "otherPortsAttributes": {
+    "onAutoForward": "ignore"
+  },
   "customizations": {
     "vscode": {
       // Extensions to install in the dev container
@@ -83,75 +99,8 @@ Dev containers have networking limitations depending on the host OS and Docker s
         "github.vscode-pull-request-github",
         "openai.chatgpt"
       ],
-      // Settings for the VS Code environment
+      // Settings for the VS Code environment specific to the dev container (overrides user and workspace settings)
       "settings": {
-        // Default .vscode/settings.json
-        "eslint.enable": false,
-        "prettier.enable": false,
-        "oxc.enable": true,
-        "js/ts.experimental.useTsgo": true,
-        "js/ts.tsdk.promptToUseWorkspaceVersion": false,
-        "terminal.integrated.scrollback": 1000,
-        "editor.tabSize": 2,
-        "editor.rulers": [180],
-        "editor.formatOnSave": false,
-        "editor.defaultFormatter": "oxc.oxc-vscode",
-        "[javascript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-        "[typescript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-        "[json]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-        "[jsonc]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-        "[markdown]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
-        "editor.formatOnSaveMode": "file",
-        "editor.codeActionsOnSave": {
-          "source.format.oxc": "always",
-          "source.fixAll.oxc": "always"
-        },
-        "diffEditor.ignoreTrimWhitespace": false,
-        "files.eol": "\n",
-        "files.insertFinalNewline": true,
-        "files.trimFinalNewlines": true,
-        "files.trimTrailingWhitespace": true,
-        "files.watcherExclude": {
-          "**/build/**": true,
-          "**/.cache/**": true,
-          "**/coverage/**": true
-        },
-        "search.exclude": {
-          "**/node_modules": true,
-          "**/dist": true,
-          "**/build": true,
-          "**/.cache": true,
-          "**/coverage": true
-        },
-        "git.autofetch": true,
-        "git.autoRepositoryDetection": false,
-        // VS Code's Copilot Chat extension settings
-        "chat.useCustomizationsInParentRepositories": true, // Default false.
-        "chat.tools.terminal.autoApprove": {
-          "npx tsc": true,
-          "npx oxlint": true,
-          "npx oxfmt": true,
-          "npx vitest": true,
-          "npm run": true,
-          "npm run build": true,
-          "npm run typecheck": true,
-          "npm run lint": true,
-          "npm run format:check": true,
-          "npm run test": true,
-          "npm run test:coverage": true,
-          "npm run update-htmls": true,
-          "git status": true,
-          "git diff": true,
-          "git diff --check": true,
-          "git diff --stat": true,
-          "git log": true,
-          "git show": true,
-          "git branch -vv": true,
-          "git ls-files": true,
-          "git --no-pager diff --stat": true,
-          "git --no-pager diff --check": true
-        },
-        // Dev Container specific settings
         "terminal.integrated.defaultProfile.linux": "bash",
         "js/ts.tsserver.watchOptions": {
           "watchFile": "dynamicPriorityPolling",

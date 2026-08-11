@@ -1,14 +1,16 @@
-# Codex config v.1.0.3
+# Codex config.toml v.1.0.4
 
 approval_policy = "on-request"
+
 approvals_reviewer = "user"
 
 web_search = "live"
 
-default_permissions = ":workspace"
+default_permissions = "matterbridge_safe"
 
 [shell_environment_policy]
 inherit = "core"
+ignore_default_excludes = false
 
 [windows]
 sandbox = "elevated"
@@ -21,7 +23,7 @@ extends = ":workspace"
 enabled = false
 
 [permissions.matterbridge_safe.filesystem]
-glob_scan_max_depth = 4
+glob_scan_max_depth = 5
 
 [permissions.matterbridge_safe.filesystem.":workspace_roots"]
 ".env" = "deny"

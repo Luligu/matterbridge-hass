@@ -1,4 +1,4 @@
-# Codecov (plugin) v. 2.0.6
+# Codecov (plugin) v. 2.0.7
 # Path: .github/workflows/codecov.yml
 
 name: Codecov
@@ -32,8 +32,15 @@ jobs:
       - name: Verify Npm version
         run: npm -v
 
-      - name: Clone matterbridge repo
-        run: git clone --depth 1 --single-branch --no-tags https://github.com/Luligu/matterbridge.git ../matterbridge
+      - name: Select matterbridge branch
+        id: select_matterbridge_ref
+        shell: bash
+        run: |
+          ref=$(node -p "require('./package.json').automator?.workflow || 'main'")
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Clone matterbridge repo branch ${{ steps.select_matterbridge_ref.outputs.ref }}
+        run: git clone --depth 1 --single-branch --no-tags -b ${{ steps.select_matterbridge_ref.outputs.ref }} https://github.com/Luligu/matterbridge.git ../matterbridge
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge

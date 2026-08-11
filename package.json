@@ -115,14 +115,14 @@
   "dependencies": {
     "node-ansi-logger": "3.3.0",
     "node-persist-manager": "2.1.0",
-    "ws": "8.21.2"
+    "ws": "8.21.3"
   },
   "devDependencies": {
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "4.1.10",
-    "oxfmt": "0.62.0",
-    "oxlint": "1.77.0",
+    "oxfmt": "0.63.0",
+    "oxlint": "1.78.0",
     "oxlint-tsgolint": "7.0.2001",
     "typescript": "7.0.2",
     "vitest": "4.1.10"
