@@ -1210,8 +1210,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const state = this.ha.hassStates.get(entity.entity_id);
     let endpoint: MatterbridgeEndpoint | undefined;
     if (isDeviceEntity(entity)) {
-      // Device entity
-      const matterbridgeDevice = this.matterbridgeDevices.get(entity.device_id);
+      // Device entity. Split entities are registered by entity_id, so fall back to it when the device_id lookup fails.
+      const matterbridgeDevice = this.matterbridgeDevices.get(entity.device_id) ?? this.matterbridgeDevices.get(entity.entity_id);
       if (!matterbridgeDevice) {
         this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found`);
         return;
