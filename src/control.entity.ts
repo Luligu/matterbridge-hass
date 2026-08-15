@@ -31,7 +31,17 @@ import { LevelControl } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
+import {
+  convertHAFanPresetModesToMatter,
+  convertHAFanPresetModeToMatter,
+  getFeatureNames,
+  hassCommandConverter,
+  hassDomainConverter,
+  hassSubscribeConverter,
+  kelvinToMireds,
+  roundTo,
+  temp,
+} from './converters.js';
 import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
 import {
   ClimateEntityFeature,
@@ -200,13 +210,26 @@ export function addControlEntity(
     }
   }
 
-  // Configure the FanControl cluster default values and features.
+  /*
+   * Configure the FanControl cluster default values and features.
+   */
+  // TODO Add wind support in converters
   // oxfmt-ignore
   if (domain === 'fan') {
     platform.log.debug(`= fan device ${CYAN}${entity.entity_id}${db} preset_modes: ${CYAN}${state.attributes['preset_modes']}${db} direction: ${CYAN}${state.attributes['direction']}${db} oscillating: ${CYAN}${state.attributes['oscillating']}${db}`);
     platform.log.debug(`# fan device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(FanEntityFeature, state.attributes.supported_features)}${db}`);
-    if (isValidString(state.attributes['direction']) || isValidBoolean(state.attributes['oscillating'])) {
-      mutableDevice.addClusterServerCompleteFanControl(endpointName);
+    if (isValidString(state.attributes['direction']) || isValidBoolean(state.attributes['oscillating']) || (isValidArray(state.attributes['preset_modes']) && (state.attributes['preset_modes'].includes('natural_wind') || state.attributes['preset_modes'].includes('sleep_wind')))) {
+      /*
+       * Create a FanControl cluster with the following features: [FanControl.Feature.Auto], FanControl.Feature.Step, FanControl.Feature.Rocking, FanControl.Feature.AirflowDirection, FanControl.Feature.Wind
+       * fanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto
+       */
+      mutableDevice.addClusterServerCompleteFanControl(endpointName, convertHAFanPresetModeToMatter(state.attributes['preset_mode']), convertHAFanPresetModesToMatter(state.attributes['preset_modes']));
+    } else {
+      /*
+       * Create a FanControl cluster with the following features: [FanControl.Feature.Auto], FanControl.Feature.Step
+       * fanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto
+       */
+      mutableDevice.addClusterServerDefaultFanControl(endpointName, convertHAFanPresetModeToMatter(state.attributes['preset_mode']), convertHAFanPresetModesToMatter(state.attributes['preset_modes']));
     }
   }
 

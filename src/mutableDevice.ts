@@ -178,12 +178,15 @@ export class MutableDevice {
   }
 
   /**
-   * Sets the log level for the mutable device and clears all internal maps and sets to reset the device state.
+   * Sets the log level for the mutable device and propagates it to the main endpoint and all the child endpoints already created.
    *
    * @param {LogLevel} level - The log level to set for the mutable device.
    */
   setLogLevel(level: LogLevel): void {
     this.log.logLevel = level;
+    for (const endpoint of this.endpoints.values()) {
+      endpoint.log.logLevel = level;
+    }
   }
 
   /**
@@ -724,21 +727,63 @@ export class MutableDevice {
     return this;
   }
 
+  addClusterServerDefaultFanControl(
+    endpoint: string,
+    fanMode: FanControl.FanMode = FanControl.FanMode.Off,
+    fanModeSequence: FanControl.FanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto,
+    percentSetting: number = 0,
+    percentCurrent: number = 0,
+  ): this {
+    const device = this.initializeEndpoint(endpoint);
+    const hasAutoFeature =
+      fanModeSequence === FanControl.FanModeSequence.OffLowMedHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffLowHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffHighAuto;
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        FanControl.id,
+        hasAutoFeature ? MatterbridgeFanControlServer.with(FanControl.Feature.Auto, FanControl.Feature.Step) : MatterbridgeFanControlServer.with(FanControl.Feature.Step),
+        {
+          // Base fan control attributes
+          fanMode, // Writable and persistent attribute
+          fanModeSequence, // Fixed attribute
+          percentSetting, // Writable attribute
+          percentCurrent,
+        },
+      ),
+    );
+    return this;
+  }
+
   addClusterServerCompleteFanControl(
     endpoint: string,
     fanMode: FanControl.FanMode = FanControl.FanMode.Off,
     fanModeSequence: FanControl.FanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto,
     percentSetting: number = 0,
     percentCurrent: number = 0,
-    rockSupport: { rockLeftRight: boolean; rockUpDown: boolean; rockRound: boolean } = { rockLeftRight: false, rockUpDown: false, rockRound: true },
-    rockSetting: { rockLeftRight: boolean; rockUpDown: boolean; rockRound: boolean } = { rockLeftRight: false, rockUpDown: false, rockRound: true },
+    rockSupport: FanControl.Rock = { rockLeftRight: false, rockUpDown: false, rockRound: true },
+    rockSetting: FanControl.Rock = { rockLeftRight: false, rockUpDown: false, rockRound: true },
     airflowDirection: FanControl.AirflowDirection = FanControl.AirflowDirection.Forward,
+    windSupport: FanControl.Wind = { sleepWind: true, naturalWind: true },
+    windSetting: FanControl.Wind = { sleepWind: false, naturalWind: false },
   ): this {
     const device = this.initializeEndpoint(endpoint);
+    const hasAutoFeature =
+      fanModeSequence === FanControl.FanModeSequence.OffLowMedHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffLowHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffHighAuto;
     device.clusterServersObjs.push(
       getClusterServerObj(
         FanControl.id,
-        MatterbridgeFanControlServer.with(FanControl.Feature.Auto, FanControl.Feature.Step, FanControl.Feature.Rocking, FanControl.Feature.AirflowDirection),
+        hasAutoFeature
+          ? MatterbridgeFanControlServer.with(
+              FanControl.Feature.Auto,
+              FanControl.Feature.Step,
+              FanControl.Feature.Rocking,
+              FanControl.Feature.AirflowDirection,
+              FanControl.Feature.Wind,
+            )
+          : MatterbridgeFanControlServer.with(FanControl.Feature.Step, FanControl.Feature.Rocking, FanControl.Feature.AirflowDirection, FanControl.Feature.Wind),
         {
           // Base fan control attributes
           fanMode, // Writable and persistent attribute
@@ -750,6 +795,9 @@ export class MutableDevice {
           rockSetting, // Writable attribute
           // AirflowDirection feature
           airflowDirection, // Writable attribute
+          // Wind feature
+          windSupport, // Fixed attribute
+          windSetting, // Writable attribute
         },
       ),
     );
@@ -1023,6 +1071,7 @@ export class MutableDevice {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { id: this.deviceName, mode: this.mode });
     mainDevice.endpoint.log.logName = this.deviceName;
+    mainDevice.endpoint.log.logLevel = this.log.logLevel;
     this.endpoints.set('', mainDevice.endpoint);
     return mainDevice.endpoint;
   }
@@ -1045,6 +1094,7 @@ export class MutableDevice {
         device.tagList.length ? { tagList: device.tagList } : {},
       );
       device.endpoint.log.logName = device.friendlyName;
+      device.endpoint.log.logLevel = this.log.logLevel;
       this.endpoints.set(endpoint, device.endpoint);
     }
     return this;
@@ -1151,9 +1201,9 @@ export class MutableDevice {
     }
     // Add the subscribe handlers
     for (const subscribeHandler of device.subscribeHandlers) {
+      // v8 ignore else - just defensive
       if (device.endpoint.hasAttributeServer(subscribeHandler.clusterId, subscribeHandler.attribute))
-        // TODO: remove when require matterbridge 3.8.1 or higher
-        void device.endpoint.subscribeAttribute(
+        device.endpoint.subscribeAttribute(
           subscribeHandler.clusterId,
           subscribeHandler.attribute,
           (newValue: unknown, oldValue: unknown, context: ActionContext) => {

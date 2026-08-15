@@ -616,6 +616,11 @@ describe('Matterbridge ' + NAME, () => {
     const endpoint = haPlatform.matterbridgeDevices.get(device.id);
     expect(endpoint).toBeDefined();
     expect(endpoint?.getChildEndpoints().length).toBe(3);
+
+    // onChangeLoggerLevel() must propagate the new log level to the main endpoint and all its child endpoints
+    await haPlatform.onChangeLoggerLevel(LogLevel.NOTICE);
+    expect(endpoint?.log.logLevel).toBe(LogLevel.NOTICE);
+    for (const child of endpoint?.getChildEndpoints() ?? []) expect(child.log.logLevel).toBe(LogLevel.NOTICE);
   });
 
   it('should call onStart and register a device with three entities if the device has label filter', async () => {

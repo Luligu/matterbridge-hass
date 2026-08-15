@@ -1556,7 +1556,8 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).not.toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.High, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentCurrent', 50, expect.anything());
 
     vi.clearAllMocks();
@@ -1676,7 +1677,8 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).not.toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.High, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentCurrent', 50, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'airflowDirection', FanControl.AirflowDirection.Forward, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'rockSetting', { rockLeftRight: false, rockUpDown: false, rockRound: true }, expect.anything());
@@ -1696,7 +1698,7 @@ describe('Matterbridge ' + NAME, () => {
     await invokeSubscribeHandler(device, FanControl.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Medium);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.DEBUG,
-      `Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} not changed`,
+      `Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} not changed: skipping it`,
     );
 
     // Simulate a change in fan mode and call the event handler
@@ -3556,7 +3558,7 @@ describe('Matterbridge ' + NAME, () => {
     );
     await flushAsync();
 
-    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Stop processing update event from Home Assistant`));
+    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Stop updating`));
 
     // Clean the test environment
     haPlatform.config.namePostfix = '';

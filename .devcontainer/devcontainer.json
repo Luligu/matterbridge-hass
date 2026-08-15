@@ -1,4 +1,4 @@
-// .devcontainer/devcontainer.json v.1.2.0
+// .devcontainer/devcontainer.json v.1.2.1
 
 // This file defines the development container configuration for a Matterbridge Plugin.
 
@@ -101,13 +101,7 @@ Dev containers have networking limitations depending on the host OS and Docker s
       ],
       // Settings for the VS Code environment specific to the dev container (overrides user and workspace settings)
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash",
-        "js/ts.tsserver.watchOptions": {
-          "watchFile": "dynamicPriorityPolling",
-          "watchDirectory": "dynamicPriorityPolling",
-          "fallbackPolling": "dynamicPriorityPolling",
-          "excludeDirectories": ["**/.cache/**", "**/node_modules/**", "**/coverage/**", "**/dist/**", "**/build/**", "**/docs/**"]
-        }
+        "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   }

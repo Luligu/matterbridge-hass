@@ -42,7 +42,7 @@ import { type AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, type L
 import type { ActionContext } from 'matterbridge/matter';
 import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
-import { deepEqual, getErrorMessage, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
+import { deepEqual, fireAndForget, getErrorMessage, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
 import { addBinarySensorEntity } from './binary_sensor.entity.js';
 import { addButtonEntity } from './button.entity.js';
@@ -142,7 +142,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   // oxlint-disable-next-line typescript/no-duplicate-type-constituents
   readonly matterbridgeDevices = new Map<DeviceId | EntityId, MatterbridgeEndpoint>();
 
-  /** Entities that are currently being updated to avoid processing multiple updates at the same time. Keyed by entity.entity_id, value is the number of ongoing updates */
+  /** Entities that are currently being updated to avoid processing multiple updates at the same time. Keyed by entity.entity_id, value is the id of the latest ongoing update */
   readonly updatingEntities = new Map<EntityId, number>();
 
   /** Light entities that currently received updates while off. Set by entity.entity_id */
@@ -208,8 +208,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
       setImmediate(() => {
-        // oxlint-disable-next-line no-empty-function
-        void this.onShutdown('Invalid configuration').catch(/* istanbul ignore next */ () => {});
+        fireAndForget(this.onShutdown('Invalid configuration'), this.log, 'onShutdown');
       });
       this.wssSendSnackbarMessage('Home Assistant Plugin: configure Host and Token', 0, 'error');
       throw new Error('Host and token must be defined in the configuration');
@@ -364,8 +363,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     });
 
     this.ha.on('event', (deviceId, entityId, old_state, new_state) => {
-      // oxlint-disable-next-line no-empty-function
-      void this.updateHandler(deviceId, entityId, old_state, new_state).catch(/* v8 ignore next */ () => {});
+      fireAndForget(this.updateHandler(deviceId, entityId, old_state, new_state), this.log, 'updateHandler');
     });
 
     this.log.info(`Initialized platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
@@ -999,6 +997,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.stateCache.log.logLevel = logLevel;
     for (const device of this.matterbridgeDevices.values()) {
       device.log.logLevel = logLevel;
+      for (const child of device.getChildEndpoints()) {
+        child.log.logLevel = logLevel;
+      }
     }
   }
 
@@ -1210,10 +1211,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const state = this.ha.hassStates.get(entity.entity_id);
     let endpoint: MatterbridgeEndpoint | undefined;
     if (isDeviceEntity(entity)) {
-      // Device entity
-      const matterbridgeDevice = this.matterbridgeDevices.get(entity.device_id);
+      // Device entity. Split entities are registered by entity_id, so fall back to it when the device_id lookup fails.
+      const matterbridgeDevice = this.matterbridgeDevices.get(entity.device_id) ?? this.matterbridgeDevices.get(entity.entity_id);
       if (!matterbridgeDevice) {
-        this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found`);
+        this.log.debug(`Subscribe handler: Matterbridge device ${entity.device_id} for ${entity.entity_id} not found: skipping it`);
         return;
       }
       // If it has not been remapped to the main endpoint
@@ -1225,20 +1226,20 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       endpoint = this.matterbridgeDevices.get(entity.entity_id);
     }
     if (!endpoint) {
-      this.log.debug(`Subscribe handler: Endpoint ${entity.entity_id} for device ${entity.device_id} not found`);
+      this.log.debug(`Subscribe handler: Endpoint ${entity.entity_id} for device ${entity.device_id} not found: skipping it`);
       return;
     }
     if (context && !context.fabric) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${getClusterNameById(hassSubscribe.clusterId)}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update`,
+          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update: skipping it`,
       );
       return; // Skip offline updates
     }
     if ((typeof newValue !== 'object' && newValue === oldValue) || (typeof newValue === 'object' && deepEqual(newValue, oldValue))) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${getClusterNameById(hassSubscribe.clusterId)}${db}:${hk}${hassSubscribe.attribute}${db} ` +
-          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} not changed`,
+          `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} not changed: skipping it`,
       );
       return; // Skip unchanged values
     }
@@ -1251,19 +1252,26 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (hassSubscribe.converter)
       endpoint.log.debug(`Converter: ${typeof newValue === 'object' ? debugStringify(newValue) : newValue} => ${typeof value === 'object' ? debugStringify(value) : value}`);
     const domain = entity.entity_id.split('.')[0];
-    // oxfmt-ignore
-    // oxlint-disable-next-line no-empty-function
-    if (value === null) {void this.ha.callService(domain, 'turn_off', entity.entity_id).catch(/* v8 ignore next */ () => {});}
+    if (value === null) {
+      fireAndForget(this.ha.callService(domain, 'turn_off', entity.entity_id), endpoint.log, 'callService turn_off');
+    }
     // The converter returns null for fan turn_on with percentage 0 => call turn_off
     else {
       if (hassSubscribe.attribute === 'occupiedHeatingSetpoint' && state?.state === 'heat_cool') {
-        // oxlint-disable-next-line no-empty-function
-        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] }).catch(/* v8 ignore next */ () => {});
+        fireAndForget(
+          this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: value, target_temp_high: state.attributes['target_temp_high'] }),
+          endpoint.log,
+          `callService ${hassSubscribe.service}`,
+        );
       } else if (hassSubscribe.attribute === 'occupiedCoolingSetpoint' && state?.state === 'heat_cool') {
-        // oxlint-disable-next-line no-empty-function
-        void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value }).catch(/* v8 ignore next */ () => {});
-      // oxlint-disable-next-line no-empty-function
-      } else void this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value }).catch(/* v8 ignore next */ () => {});
+        fireAndForget(
+          this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { target_temp_low: state.attributes['target_temp_low'], target_temp_high: value }),
+          endpoint.log,
+          `callService ${hassSubscribe.service}`,
+        );
+      } else {
+        fireAndForget(this.ha.callService(domain, hassSubscribe.service, entity.entity_id, { [hassSubscribe.with]: value }), endpoint.log, `callService ${hassSubscribe.service}`);
+      }
     }
   }
 
@@ -1272,7 +1280,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
       /* v8 ignore next */
-      if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found`);
+      if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found: skipping it`);
       return;
     }
     let endpoint = matterbridgeDevice.getChildEndpointById(entityId) ?? matterbridgeDevice.getChildEndpointById(entityId.replaceAll('.', ''));
@@ -1288,7 +1296,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       /* v8 ignore stop */
     }
     if (!endpoint) {
-      this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found`);
+      this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found: skipping it`);
       return;
     }
     // Set the device reachable attribute to false if the new state is unavailable and skip the update since the device is unreachable. Cache the last state of the entity to be able to create it on restart.
@@ -1350,8 +1358,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         );
         if (convertedValue !== null) await endpoint.setAttribute(hassSensorConverter.clusterId, hassSensorConverter.attribute, convertedValue, endpoint.log);
       } else {
-        endpoint.log.warn(
-          `Update sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['state_class']}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`,
+        endpoint.log.debug(
+          `Update sensor ${CYAN}${domain}${db}:${CYAN}${new_state.attributes['state_class']}${db}:${CYAN}${new_state.attributes['device_class']}${db} not supported for entity ${entityId}`,
         );
       }
     } else if (domain === 'binary_sensor') {
@@ -1365,7 +1373,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         /* v8 ignore next */
         if (convertedValue !== null) await endpoint.setAttribute(hassBinarySensorConverter.clusterId, hassBinarySensorConverter.attribute, convertedValue, endpoint.log);
       } else {
-        endpoint.log.warn(`Update binary_sensor ${CYAN}${domain}${wr}:${CYAN}${new_state.attributes['device_class']}${wr} not supported for entity ${entityId}`);
+        endpoint.log.debug(`Update binary_sensor ${CYAN}${domain}${db}:${CYAN}${new_state.attributes['device_class']}${db} not supported for entity ${entityId}`);
       }
     } else if (domain === 'event') {
       // Update event of the device
@@ -1380,47 +1388,54 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (currentMode >= 0) await endpoint.setAttribute(ModeSelect, 'currentMode', currentMode + 1, endpoint.log);
       else endpoint.log.debug(`Update ${CYAN}${new_state.attributes['options']?.join(', ')}${db} >>> ${CYAN}${new_state.state}${db} not supported for entity ${entityId}`);
     } else {
-      // Update state of the device
+      // Update the state of the device
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
       if (hassUpdateState.length > 0) {
         for (const update of hassUpdateState) {
-          /* v8 ignore next */
-          if (update.clusterId !== undefined) await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
+          /* v8 ignore else */
+          if (update.clusterId !== undefined) {
+            endpoint.log.debug(`*Update state for cluster ${getClusterNameById(update.clusterId)} attribute ${update.attribute} value ${CYAN}${update.value}${db}`);
+            await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
+          }
         }
       } else {
-        endpoint.log.warn(`Update state ${CYAN}${domain}${wr}:${CYAN}${new_state.state}${wr} not supported for entity ${entityId}`);
+        endpoint.log.debug(`Update state ${CYAN}${domain}${db}:${CYAN}${new_state.state}${db} not supported for entity ${entityId}`);
       }
       // Some devices wrongly update attributes even if the state is off. Provisionally we will skip the update of attributes in this case.
       if ((domain === 'light' || domain === 'fan') && new_state.state === 'off') {
         endpoint.log.info(`State is off, skipping update of attributes for entity ${CYAN}${entityId}${nf}`);
         return;
       }
-      // Update attributes of the device
-      endpoint.log.debug(`*Processing update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
-      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) ?? 0) + 1);
+      // Update the attributes of the device. A new update while the previous one is still in progress will stop the previous one and process the new one.
+      const updateId = (this.updatingEntities.get(entityId) ?? 0) + 1;
+      endpoint.log.debug(
+        `*Updating id ${CYAN}${updateId}${db} attributes from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`,
+      );
+      this.updatingEntities.set(entityId, updateId);
       const hassUpdateAttributes = hassUpdateAttributeConverter.filter((updateAttribute) => updateAttribute.domain === domain);
       if (hassUpdateAttributes.length > 0) {
-        // console.error('Processing update attributes: ', hassUpdateAttributes.length);
         for (const update of hassUpdateAttributes) {
-          /* v8 ignore next cause updatingEntities is always set for entityId just above, unless onShutdown concurrently clears it mid-update */
-          if ((this.updatingEntities.get(entityId) ?? 0) > 1) {
-            endpoint.log.debug(`**Stop processing update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
+          if (this.updatingEntities.get(entityId) !== updateId) {
+            endpoint.log.debug(
+              `**Stop updating id ${CYAN}${updateId}${db} attributes from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`,
+            );
             break;
           }
-          // console.error('- processing update attribute', update.with, 'value', new_state.attributes[update.with]);
           // @ts-expect-error: dynamic property access for Home Assistant state attribute
           const value = new_state.attributes[update.with];
           if (value !== null) {
             const convertedValue = update.converter(value, new_state);
-            // console.error(`-- converting update attribute (entity: ${entityId}) (${hassUpdateAttributes.length}) update.with ${update.with} value ${value} to ${convertedValue} for cluster ${update.clusterId} attribute ${update.attribute}`);
-            endpoint.log.debug(`Converting attribute ${update.with} value ${value} to ${CYAN}${convertedValue}${db}`);
-            if (convertedValue !== null) await endpoint.setAttribute(update.clusterId, update.attribute, convertedValue, endpoint.log);
+            if (convertedValue !== null) {
+              endpoint.log.debug(`Converting id ${CYAN}${updateId}${db} attribute ${update.with} value ${value} to ${CYAN}${convertedValue}${db}`);
+              await endpoint.setAttribute(update.clusterId, update.attribute, convertedValue, endpoint.log);
+            }
           }
         }
       }
-      endpoint.log.debug(`*Processed update event from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`);
-      /* v8 ignore next cause updatingEntities is always set for entityId at the start of this block, unless onShutdown concurrently clears it mid-update */
-      this.updatingEntities.set(entityId, (this.updatingEntities.get(entityId) ?? 0) - 1);
+      endpoint.log.debug(
+        `*Updated id ${CYAN}${updateId}${db} attributes from Home Assistant device ${idn}${matterbridgeDevice?.deviceName}${rs}${db} entity ${CYAN}${entityId}${db}`,
+      );
+      if (this.updatingEntities.get(entityId) === updateId) this.updatingEntities.delete(entityId);
     }
   }
 

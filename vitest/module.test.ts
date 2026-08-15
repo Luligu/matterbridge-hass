@@ -515,13 +515,19 @@ describe('HassPlatform', () => {
     haPlatform.matterbridgeDevices.set('123456789', device);
 
     haPlatform.subscribeHandler({ device_id: '123', entity_id: undefined } as any, {} as any, undefined, undefined, {} as any);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Matterbridge device 123 for undefined not found`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Matterbridge device 123 for undefined not found: skipping it`);
 
     haPlatform.subscribeHandler({ device_id: '123456789', entity_id: 'notvalid' } as any, {} as any, undefined, undefined, {} as any);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Endpoint notvalid for device 123456789 not found`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Endpoint notvalid for device 123456789 not found: skipping it`);
 
     haPlatform.subscribeHandler({ entity_id: 'notvalid' } as any, {} as any, undefined, undefined, {} as any);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Endpoint notvalid for device 123456789 not found`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Endpoint notvalid for device 123456789 not found: skipping it`);
+
+    // Split entities are registered by entity_id, not device_id; subscribeHandler must fall back to the entity_id lookup (see PR #239).
+    haPlatform.matterbridgeDevices.set('switch.split_switch', device);
+    haPlatform.subscribeHandler({ device_id: 'no-such-device', entity_id: 'switch.split_switch' } as any, {} as any, undefined, undefined, {} as any);
+    expect(loggerDebugSpy).not.toHaveBeenCalledWith(`Subscribe handler: Matterbridge device no-such-device for switch.split_switch not found: skipping it`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Endpoint switch.split_switch for device no-such-device not found: skipping it`);
 
     haPlatform.matterbridgeDevices.clear();
   });
@@ -550,12 +556,12 @@ describe('HassPlatform', () => {
     vi.clearAllMocks();
     haPlatform.endpointNames.set('notanentity', 'notanentity');
     await haPlatform.updateHandler('notadevice', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(`Update handler: Matterbridge device notadevice for notanentity not found`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Update handler: Matterbridge device notadevice for notanentity not found: skipping it`);
     haPlatform.endpointNames.delete('notanentity');
 
     vi.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'notanentity', { state: 'off' } as HassState, { state: 'on' } as HassState);
-    expect(loggerDebugSpy).toHaveBeenCalledWith(`Update handler: Endpoint notanentity for dimmableDoubleOutlet not found`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Update handler: Endpoint notanentity for dimmableDoubleOutlet not found: skipping it`);
 
     vi.clearAllMocks();
     await haPlatform.updateHandler('dimmableDoubleOutlet', 'switch.switch_switch_1', { state: 'off' } as HassState, { state: 'on' } as HassState);
@@ -2431,7 +2437,10 @@ describe('HassPlatform', () => {
     } as HassState;
     await haPlatform.updateHandler(device.id, 'fan.fan_fan', state, state);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`${db}Received update event from Home Assistant device`));
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Update state ${CYAN}fan${wr}:${CYAN}unknownstate${wr} not supported for entity fan.fan_fan`));
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.DEBUG,
+      expect.stringContaining(`Update state ${CYAN}fan${db}:${CYAN}unknownstate${db} not supported for entity fan.fan_fan`),
+    );
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', expect.anything(), expect.anything());
 
     /*

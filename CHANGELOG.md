@@ -28,7 +28,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
-## [1.4.1] - Dev branch
+## [1.5.0] - Dev branch
 
 ### Breaking changes
 
@@ -38,6 +38,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [chip]: Add chip-test toolchain agents instruction and chip-test runner.
 - [frontend]: Add plugin-frontend agents instructions.
+- [converters]: Add `convertHAFanPresetModesToMatter()` to convert a single `preset_modes` to the corresponding `FanModeSequence`.
+- [converters]: Add `convertHAFanPresetModeToMatter()` to convert a single `preset_mode` to the corresponding `FanMode`.
 
 ### Changed
 
@@ -47,8 +49,18 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Bump `oxlint-tsgolint` to v.7.0.2001.
 - [package]: Bump `@types/node` to v.26.2.0.
 - [package]: Update agents configs.
-- [devcontainer]: Bump `Dev Container` to v.1.2.0.
+- [devcontainer]: Bump `Dev Container` to v.1.2.1.
 - [vscode]: Bump `settings` to v.1.0.10.
+- [subscribe]: Improve logging and use fireAndForget().
+- [endpoint]: Set logger level of the main and child MatterbridgeEndpoint(s) at creation via `MutableDevice.setLogLevel()`.
+- [update]: Downgrade the `sensor`, `binary_sensor` and generic state "not supported" logs from warn to debug.
+- [converters]: Change the `fan` `on` state converter to `fanMode` to `High`; `fanMode` is also derived from the `preset_mode` attribute converter.
+
+### Fixed
+
+- [update]: Fix multiple update handler.
+- [platform]: Fix `onChangeLoggerLevel` not propagating the new log level to child endpoints (only the main endpoint of each device was updated).
+- [subscribe]: Fix `subscribeHandler` not finding split entities registered by `entity_id`, which silently dropped controller attribute writes for them. Thanks to @zayninteligencia-Zayn-E for reporting and diagnosing the issue in PR #239.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

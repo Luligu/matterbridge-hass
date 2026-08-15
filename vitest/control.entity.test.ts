@@ -50,6 +50,7 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerHeatingThermostat: vi.fn(),
     addClusterServerCoolingThermostat: vi.fn(),
     addClusterServerHeatingCoolingThermostat: vi.fn(),
+    addClusterServerDefaultFanControl: vi.fn(),
     addClusterServerCompleteFanControl: vi.fn(),
     addVacuum: vi.fn(),
     addSelect: vi.fn(),
