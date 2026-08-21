@@ -771,7 +771,7 @@ describe('MutableDevice', () => {
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await device.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
     await device.setAttribute(FanControl.id, 'percentSetting', 50);
-    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+    expect(subscribeHandler).toHaveBeenCalledTimes(4);
 
     mutableDevice.destroy();
     // setDebug(false);
@@ -818,7 +818,7 @@ describe('MutableDevice', () => {
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await childEndpoint.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
     await childEndpoint.setAttribute(FanControl.id, 'percentSetting', 50);
-    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+    expect(subscribeHandler).toHaveBeenCalledTimes(4);
 
     // setDebug(false);
 
@@ -866,7 +866,7 @@ describe('MutableDevice', () => {
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await device.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
     await device.setAttribute(FanControl.id, 'percentSetting', 50);
-    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+    expect(subscribeHandler).toHaveBeenCalledTimes(4);
 
     // setDebug(false);
 

@@ -28,11 +28,11 @@ If you like this project and find it useful, please consider giving it a star on
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
-## [1.5.0] - Dev branch
+## [1.5.0] - 2028-08-21
 
 ### Breaking changes
 
-- [matterbridge]: Require matterbridge v.3.10.0 with matter v.1.6.0.
+- [matterbridge]: Require matterbridge v.3.10.6 with matter v.1.6.0.
 
 ### Added
 
@@ -40,6 +40,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [frontend]: Add plugin-frontend agents instructions.
 - [converters]: Add `convertHAFanPresetModesToMatter()` to convert a single `preset_modes` to the corresponding `FanModeSequence`.
 - [converters]: Add `convertHAFanPresetModeToMatter()` to convert a single `preset_mode` to the corresponding `FanMode`.
+- [devcontainer]: Add `Dev Container` v.2.0.0 with a double stack Node and Bun.
 
 ### Changed
 

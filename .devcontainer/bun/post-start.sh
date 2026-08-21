@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# .devcontainer/post-start.sh v.1.2.0
+# .devcontainer/bun/post-start.sh v.2.0.0
 
 # This script runs after the Dev Container is started to set up the dev container environment.
 
@@ -16,24 +16,33 @@ echo "Architecture: $(uname -m)"
 echo "Kernel Version: $(uname -r)"
 echo "Uptime: $(uptime -p || echo 'unavailable')"
 echo "Date: $(date)"
-echo "Node.js version: $(node -v)"
-echo "Npm version: $(npm -v)"
-echo "Npm cache: $(npm config get cache)"
 echo "Bun version: $(bun -v)"
 echo "Bun global cache: ${HOME}/.bun/install/cache"
 echo ""
 
 echo "1.post-start - Installing the plugin dependencies..."
-npm install --no-fund --no-audit
+[ -f package-lock.json ] && mv package-lock.json package-lock.json.bak || true
+bun install
+[ -f package-lock.json.bak ] && mv package-lock.json.bak package-lock.json || true
 
 echo "2.post-start - Linking Matterbridge..."
-if ! npm link matterbridge --no-fund --no-audit; then
+if ! bun link matterbridge; then
 	echo "Retrying link with elevated permissions..."
-	sudo npm link matterbridge --no-fund --no-audit
-	sudo chown -R node:node ./node_modules
+	sudo bun link matterbridge
+	sudo chown -R bun:bun ./node_modules
 fi
 
 echo "3.post-start - Building the plugin..."
-npm run build
+bun run build
 
-echo "4.post-start - Post start setup completed!"
+echo "4.post-start - Checking for the plugin frontend..."
+if [ -f apps/frontend/package.json ]; then
+	echo "4.post-start - Building the plugin frontend..."
+	cd apps/frontend
+	[ -f package-lock.json ] && mv package-lock.json package-lock.json.bak || true
+	bun install && bun run build
+	[ -f package-lock.json.bak ] && mv package-lock.json.bak package-lock.json || true
+	cd ../..
+fi
+
+echo "5.post-start - Post start setup completed!"
