@@ -34,6 +34,7 @@ import {
   smokeCoAlarm,
   temperatureSensor,
   thermostat,
+  waterValve,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
@@ -53,6 +54,7 @@ import {
   RelativeHumidityMeasurement,
   SmokeCoAlarm,
   TemperatureMeasurement,
+  ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
 import { HOMEDIR, setDebug, setupTest } from 'matterbridge/vitest-utils';
 import {
@@ -601,6 +603,18 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(3);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addValve', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device valve');
+    mutableDevice.addDeviceTypes('', bridgedNode, waterValve);
+    mutableDevice.addValve('', ValveConfigurationAndControl.ValveState.Open, 50, 5000, false);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
 
     mutableDevice.destroy();
   });

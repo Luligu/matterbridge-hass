@@ -60,6 +60,7 @@ import {
   MediaPlayerService,
   UnitOfTemperature,
   VacuumEntityFeature,
+  ValveEntityFeature,
 } from './homeAssistant.js';
 import type { HomeAssistantPlatform } from './module.js';
 import type { MutableDevice } from './mutableDevice.js';
@@ -240,6 +241,15 @@ export function addControlEntity(
       `# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`,
     );
     mutableDevice.addVacuum(endpointName);
+  }
+
+  // Configure the valve.
+  if (domain === 'valve') {
+    platform.log.debug(`= valve device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db} current_position: ${CYAN}${state.attributes['current_position']}${db}`);
+    platform.log.debug(
+      `# valve device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(ValveEntityFeature, state.attributes.supported_features)}${db}`,
+    );
+    mutableDevice.addValve(endpointName);
   }
 
   // Configure the select.

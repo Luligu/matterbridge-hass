@@ -28,7 +28,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
-## [1.5.0] - 2028-08-21
+## [1.5.0] - Dev branch
 
 ### Breaking changes
 
@@ -45,10 +45,10 @@ If you like this project and find it useful, please consider giving it a star on
 ### Changed
 
 - [package]: Bump `ws` to v.8.21.2.
-- [package]: Bump `oxfmt` to v.0.63.0.
-- [package]: Bump `oxlint` to v.1.78.0.
+- [package]: Bump `oxfmt` to v.0.65.0.
+- [package]: Bump `oxlint` to v.1.88.0.
 - [package]: Bump `oxlint-tsgolint` to v.7.0.2001.
-- [package]: Bump `@types/node` to v.26.2.0.
+- [package]: Bump `@types/node` to v.26.4.0.
 - [package]: Update agents configs.
 - [devcontainer]: Bump `Dev Container` to v.1.2.1.
 - [vscode]: Bump `settings` to v.1.0.10.

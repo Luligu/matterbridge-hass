@@ -43,6 +43,7 @@ import {
   MatterbridgeOnOffServer,
   MatterbridgeSmokeCoAlarmServer,
   MatterbridgeThermostatServer,
+  MatterbridgeValveConfigurationAndControlServer,
   onOffLight,
   onOffLightSwitch,
   onOffPlugInUnit,
@@ -75,6 +76,7 @@ import {
   RvcRunMode,
   SmokeCoAlarm,
   Thermostat,
+  ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById, type Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
@@ -834,6 +836,35 @@ export class MutableDevice {
         ],
         operationalState: RvcOperationalState.OperationalState.Docked,
         operationalError: { errorStateId: RvcOperationalState.ErrorState.NoError, errorStateDetails: 'Fully operational' },
+      }),
+    );
+    return this;
+  }
+
+  addValve(
+    endpoint: string,
+    valveState: ValveConfigurationAndControl.ValveState = ValveConfigurationAndControl.ValveState.Closed,
+    valveLevel: number = 0,
+    movementDuration: number = 2000,
+    autoClose: boolean = true,
+  ): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(ValveConfigurationAndControl.id, MatterbridgeValveConfigurationAndControlServer, {
+        currentState: valveState,
+        targetState: valveState,
+        openDuration: null,
+        defaultOpenDuration: null, // Writable and persistent across restarts
+        remainingDuration: null,
+        valveFault: { generalFault: false, blocked: false, leaking: false, notConnected: false, shortCircuit: false, currentExceeded: false },
+        // Feature.Level
+        currentLevel: valveLevel,
+        targetLevel: valveLevel,
+        defaultOpenLevel: 100, // Writable and persistent across restarts
+        levelStep: 1, // Fixed
+        // Simulation knobs
+        movementDuration,
+        autoClose,
       }),
     );
     return this;

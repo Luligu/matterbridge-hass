@@ -53,6 +53,7 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerDefaultFanControl: vi.fn(),
     addClusterServerCompleteFanControl: vi.fn(),
     addVacuum: vi.fn(),
+    addValve: vi.fn(),
     addSelect: vi.fn(),
     addOnOff: vi.fn(),
     addBasicVideoPlayer: vi.fn(),
@@ -237,6 +238,7 @@ describe('addControlEntity', () => {
     const [md, e, s] = make('valve', 'water', { current_position: 70 });
     addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, waterValve);
+    expect(md.addValve).toHaveBeenCalledWith(e.entity_id);
   });
 
   it('lock and cover mapping', () => {
