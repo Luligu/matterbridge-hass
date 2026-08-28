@@ -44,13 +44,12 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Changed
 
-- [package]: Bump `ws` to v.8.21.2.
+- [package]: Bump `ws` to v.8.21.3.
 - [package]: Bump `oxfmt` to v.0.65.0.
-- [package]: Bump `oxlint` to v.1.88.0.
+- [package]: Bump `oxlint` to v.1.80.0.
 - [package]: Bump `oxlint-tsgolint` to v.7.0.2001.
 - [package]: Bump `@types/node` to v.26.4.0.
 - [package]: Update agents configs.
-- [devcontainer]: Bump `Dev Container` to v.1.2.1.
 - [vscode]: Bump `settings` to v.1.0.10.
 - [subscribe]: Improve logging and use fireAndForget().
 - [endpoint]: Set logger level of the main and child MatterbridgeEndpoint(s) at creation via `MutableDevice.setLogLevel()`.
