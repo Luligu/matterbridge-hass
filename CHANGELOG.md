@@ -28,7 +28,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
-## [1.5.0] - Dev branch
+## [1.5.0] - 2026-08-28
 
 ### Breaking changes
 
@@ -62,6 +62,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [update]: Fix multiple update handler.
 - [platform]: Fix `onChangeLoggerLevel` not propagating the new log level to child endpoints (only the main endpoint of each device was updated).
 - [subscribe]: Fix `subscribeHandler` not finding split entities registered by `entity_id`, which silently dropped controller attribute writes for them. Thanks to @zayninteligencia-Zayn-E for reporting and diagnosing the issue in PR #239.
+- [bun]: Fix WebSocket tls connection in bun runtime, waiting for the bun fix.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
