@@ -1418,10 +1418,17 @@ export class HomeAssistant extends EventEmitter {
             ca = readFileSync(this.certificatePath); // Load CA certificate from the provided path
             this.log.debug(`CA certificate loaded successfully`);
           }
-          this.ws = new WebSocket(this.wsUrl + '/api/websocket', {
+          // Node's `ws` reads `ca`/`rejectUnauthorized` as top-level options (same shape as `https.request`).
+          // Bun's native WebSocket implementation, which `ws` delegates to when running on Bun, only reads
+          // TLS options nested under `tls` and silently ignores the top-level ones. Passing both shapes at
+          // once keeps this working identically on Node and Bun without runtime detection: each runtime
+          // reads the fields it understands and ignores the other.
+          const wsOptions: WebSocket.ClientOptions & { tls?: { ca?: typeof ca; rejectUnauthorized?: boolean } } = {
             ca,
             rejectUnauthorized: this.rejectUnauthorized,
-          });
+            tls: { ca, rejectUnauthorized: this.rejectUnauthorized },
+          };
+          this.ws = new WebSocket(this.wsUrl + '/api/websocket', wsOptions);
         } else {
           return reject(new Error(`Invalid WebSocket URL: ${this.wsUrl}. It must start with ws:// or wss://`));
         }

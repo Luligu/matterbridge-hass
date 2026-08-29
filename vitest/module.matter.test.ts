@@ -175,7 +175,7 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.9.0',
+    matterbridgeVersion: '3.10.6',
     log,
     addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await addDevice(aggregator, device, 1, 0);
@@ -1148,11 +1148,11 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentLevel')).toBe(0);
 
     await invokeBehaviorCommand(device, 'ValveConfigurationAndControl', 'open', { targetLevel: 100 });
-    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Open);
+    // The new server update with timer so the expectation is removed: expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Open);
     expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'set_valve_position', valveEntity.entity_id, { position: 100 });
 
     await invokeBehaviorCommand(device, 'ValveConfigurationAndControl', 'close');
-    expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
+    // The new server update with timer so the expectation is removed: expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
     expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'close_valve', valveEntity.entity_id, undefined);
 
     // Clean the test environment
@@ -1289,7 +1289,7 @@ describe('Matterbridge ' + NAME, () => {
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcOperationalState', 'pause');
-    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2); // Pause no longer forces RvcRunMode back to Idle: currentMode stays Cleaning
     expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'pause', vacuumEntity.entity_id, undefined);
 
@@ -1301,8 +1301,8 @@ describe('Matterbridge ' + NAME, () => {
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcOperationalState', 'goHome');
-    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
-    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Docked);
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2); // GoHome no longer forces RvcRunMode back to Idle: currentMode stays Cleaning
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger); // GoHome now transitions through SeekingCharger instead of jumping straight to Docked
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
 
     // setDebug(false);
@@ -1556,7 +1556,8 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).not.toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.High, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentCurrent', 50, expect.anything());
 
     vi.clearAllMocks();
@@ -1676,7 +1677,8 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${fanEntity.entity_id}${db}...`);
-    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).not.toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.Auto, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'fanMode', FanControl.FanMode.High, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'percentCurrent', 50, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'airflowDirection', FanControl.AirflowDirection.Forward, expect.anything());
     expect(setAttributeSpy).toHaveBeenCalledWith(FanControl.id, 'rockSetting', { rockLeftRight: false, rockUpDown: false, rockRound: true }, expect.anything());
@@ -1696,7 +1698,7 @@ describe('Matterbridge ' + NAME, () => {
     await invokeSubscribeHandler(device, FanControl.id, 'fanMode', FanControl.FanMode.Medium, FanControl.FanMode.Medium);
     expect(loggerLogSpy).toHaveBeenCalledWith(
       LogLevel.DEBUG,
-      `Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} not changed`,
+      `Subscribed attribute ${hk}FanControl${db}:${hk}fanMode${db} on endpoint ${or}${device.maybeId}${db}:${or}${device.maybeNumber}${db} not changed: skipping it`,
     );
 
     // Simulate a change in fan mode and call the event handler
@@ -3556,7 +3558,7 @@ describe('Matterbridge ' + NAME, () => {
     );
     await flushAsync();
 
-    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Stop processing update event from Home Assistant`));
+    expect(loggerDebugSpy).toHaveBeenCalledWith(expect.stringContaining(`Stop updating`));
 
     // Clean the test environment
     haPlatform.config.namePostfix = '';

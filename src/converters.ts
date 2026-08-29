@@ -92,7 +92,7 @@ import {
 import type { ClusterId } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { ColorMode, type HassState, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
+import { ColorMode, type HassState, type HassStateFanAttributes, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 
 /**
  * Returns the names of enabled bit-flag features for any numeric enum.
@@ -304,6 +304,43 @@ export function convertHAXYToMatter(xyColor: [number, number]): { currentX: numb
 }
 
 /**
+ * Pick the FanModeSequence that best matches the fan's preset_modes: the supported speed steps (low/medium/high)
+ * select the base sequence, and whether 'auto' is among the preset_modes selects the Auto-conformant variant.
+ *
+ * @param {HassStateFanAttributes['preset_modes']} presetModes The preset_modes attribute of the Home Assistant fan entity.
+ * @returns {FanControl.FanModeSequence} The FanModeSequence matching the supported speed steps, with or without Auto.
+ */
+export function convertHAFanPresetModesToMatter(presetModes: HassStateFanAttributes['preset_modes']): FanControl.FanModeSequence {
+  const modes = presetModes ?? [];
+  const hasAuto = modes.includes('auto');
+  const hasLow = modes.includes('low');
+  const hasMedium = modes.includes('medium');
+  if (hasAuto) {
+    if (hasLow && hasMedium) return FanControl.FanModeSequence.OffLowMedHighAuto;
+    if (hasLow) return FanControl.FanModeSequence.OffLowHighAuto;
+    return FanControl.FanModeSequence.OffHighAuto;
+  }
+  if (hasLow && hasMedium) return FanControl.FanModeSequence.OffLowMedHigh;
+  if (hasLow) return FanControl.FanModeSequence.OffLowHigh;
+  return FanControl.FanModeSequence.OffHigh;
+}
+
+/**
+ * Convert a Home Assistant fan preset_mode to the corresponding Matter FanMode.
+ *
+ * @param {HassStateFanAttributes['preset_mode']} presetMode The preset_mode attribute of the Home Assistant fan entity.
+ * @returns {FanControl.FanMode} The matching FanMode, or FanControl.FanMode.Off when the preset_mode is not recognized.
+ */
+export function convertHAFanPresetModeToMatter(presetMode: HassStateFanAttributes['preset_mode']): FanControl.FanMode {
+  if (!isValidString(presetMode, 3, 6)) return FanControl.FanMode.Off;
+  if (presetMode === 'low') return FanControl.FanMode.Low;
+  if (presetMode === 'medium') return FanControl.FanMode.Medium;
+  if (presetMode === 'high') return FanControl.FanMode.High;
+  if (presetMode === 'auto') return FanControl.FanMode.Auto;
+  return FanControl.FanMode.Off;
+}
+
+/**
  * Returns the selected Home Assistant option for a Matter mode change request.
  *
  * @param {Record<string, unknown>} request - Matter command payload containing the target mode index.
@@ -328,7 +365,12 @@ function getSelectOptionFromMode(request: Record<string, unknown>, state: HassSt
   return { option: options[optionIndex] };
 }
 
-/** Update Home Assistant state to Matterbridge device states */
+/**
+ * Update Home Assistant state to Matterbridge device states
+ *
+ * @remarks
+ * clusterId: undefined skip the state update
+ */
 // oxfmt-ignore
 export const hassUpdateStateConverter: { domain: string; state: string; clusterId: ClusterId | undefined; attribute: string; value: any }[] = [
     { domain: 'switch', state: 'on', clusterId: OnOff.id, attribute: 'onOff', value: true },
@@ -342,7 +384,7 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'lock', state: 'unlocking', clusterId: DoorLock.id, attribute: 'lockState', value: DoorLock.LockState.NotFullyLocked },
     { domain: 'lock', state: 'unlocked', clusterId: DoorLock.id, attribute: 'lockState', value: DoorLock.LockState.Unlocked },
 
-    { domain: 'fan', state: 'on', clusterId: FanControl.id, attribute: 'fanMode', value: FanControl.FanMode.Auto },
+    { domain: 'fan', state: 'on', clusterId: FanControl.id, attribute: 'fanMode', value: FanControl.FanMode.High },
     { domain: 'fan', state: 'off', clusterId: FanControl.id, attribute: 'fanMode', value: FanControl.FanMode.Off },
 
     { domain: 'cover', state: 'opening', clusterId: WindowCovering.id, attribute: 'operationalStatus', value: { global: WindowCovering.MovementStatus.Opening, lift: WindowCovering.MovementStatus.Opening, tilt: 0 } },
@@ -393,7 +435,12 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'media_player', state: 'off', clusterId: MediaPlayback.id, attribute: 'currentState', value: MediaPlayback.PlaybackState.NotPlaying },
   ];
 
-/** Update Home Assistant attributes to Matterbridge device attributes */
+/**
+ * Update Home Assistant attributes to Matterbridge device attributes
+ *
+ * @remarks
+ * when the converter returns null the attribute update is skipped
+ */
 // oxfmt-ignore
 export const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: ClusterId; attribute: string; converter: (value: any, state: HassState) => any }[] = [
     { domain: 'light', with: 'brightness', clusterId: LevelControl.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 1, 255) ? Math.round(value / 255 * 254) : null) },

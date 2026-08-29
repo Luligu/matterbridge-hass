@@ -1,4 +1,4 @@
-# Publish to npm (plugin) v. 2.0.5
+# Publish to npm (plugin) v. 2.0.6
 # Path: .github/workflows/publish.yml
 
 name: Publish to npm
@@ -45,8 +45,15 @@ jobs:
       - name: Verify Npm version
         run: npm -v
 
-      - name: Clone matterbridge repo branch main
-        run: git clone --depth 1 --single-branch --no-tags -b main https://github.com/Luligu/matterbridge.git ../matterbridge
+      - name: Select matterbridge branch
+        id: select_matterbridge_ref
+        shell: bash
+        run: |
+          ref=$(node -p "require('./package.json').automator?.workflow || 'main'")
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Clone matterbridge repo branch ${{ steps.select_matterbridge_ref.outputs.ref }}
+        run: git clone --depth 1 --single-branch --no-tags -b ${{ steps.select_matterbridge_ref.outputs.ref }} https://github.com/Luligu/matterbridge.git ../matterbridge
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge
@@ -189,8 +196,15 @@ jobs:
       - name: Verify Npm version
         run: npm -v
 
-      - name: Clone matterbridge repo branch dev
-        run: git clone --depth 1 --single-branch --no-tags -b dev https://github.com/Luligu/matterbridge.git ../matterbridge
+      - name: Select matterbridge branch
+        id: select_matterbridge_ref
+        shell: bash
+        run: |
+          ref=$(node -p "require('./package.json').automator?.workflow || 'dev'")
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Clone matterbridge repo branch ${{ steps.select_matterbridge_ref.outputs.ref }}
+        run: git clone --depth 1 --single-branch --no-tags -b ${{ steps.select_matterbridge_ref.outputs.ref }} https://github.com/Luligu/matterbridge.git ../matterbridge
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge

@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -106,7 +106,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "reset": "npm run deepClean && npm run softReset",
-    "softReset": "npm install --no-fund --no-audit && npm prune && npm link --no-fund --no-audit matterbridge && npm run build && npm run typecheck",
+    "softReset": "npm install --no-fund --no-audit && npm prune --no-fund --no-audit && npm link --no-fund --no-audit matterbridge && npm run build && npm run typecheck",
     "checkDependencies": "npm install --no-fund --no-audit --no-save npm-check-updates && ncu && npm run softReset",
     "updateDependencies": "npm install --no-fund --no-audit --no-save npm-check-updates && ncu -u && npm run softReset",
     "runMeBeforePublish": "npm run cleanBuild && npm run format && npm run lint && npm run build && npm run typecheck && npm run test:coverage",
@@ -115,16 +115,16 @@
   "dependencies": {
     "node-ansi-logger": "3.3.0",
     "node-persist-manager": "2.1.0",
-    "ws": "8.21.1"
+    "ws": "8.21.3"
   },
   "devDependencies": {
-    "@types/node": "26.1.1",
+    "@types/node": "26.4.0",
     "@types/ws": "8.18.1",
-    "@vitest/coverage-v8": "4.1.10",
-    "oxfmt": "0.59.0",
-    "oxlint": "1.74.0",
-    "oxlint-tsgolint": "0.25.0",
+    "@vitest/coverage-v8": "4.1.11",
+    "oxfmt": "0.65.0",
+    "oxlint": "1.80.0",
+    "oxlint-tsgolint": "7.0.2001",
     "typescript": "7.0.2",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }

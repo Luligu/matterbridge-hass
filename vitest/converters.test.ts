@@ -11,6 +11,8 @@ import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters
 
 import {
   clamp,
+  convertHAFanPresetModeToMatter,
+  convertHAFanPresetModesToMatter,
   convertHAXYToMatter,
   convertMatterXYToHA,
   getFeatureNames,
@@ -536,6 +538,60 @@ describe('HassPlatform converters', () => {
     it('should clamp X below 0 and Y valid', () => {
       const y = 0.5;
       expect(convertHAXYToMatter([-2, y])).toEqual({ currentX: 0, currentY: Math.round(y * 65536) });
+    });
+  });
+
+  describe('convertHAFanPresetModesToMatter', () => {
+    it('should return OffLowMedHighAuto for low, medium, high and auto', () => {
+      expect(convertHAFanPresetModesToMatter(['low', 'medium', 'high', 'auto'])).toBe(FanControl.FanModeSequence.OffLowMedHighAuto);
+    });
+    it('should return OffLowHighAuto for low, high and auto', () => {
+      expect(convertHAFanPresetModesToMatter(['low', 'high', 'auto'])).toBe(FanControl.FanModeSequence.OffLowHighAuto);
+    });
+    it('should return OffHighAuto for high and auto only', () => {
+      expect(convertHAFanPresetModesToMatter(['high', 'auto'])).toBe(FanControl.FanModeSequence.OffHighAuto);
+    });
+    it('should return OffLowMedHigh for low, medium and high without auto', () => {
+      expect(convertHAFanPresetModesToMatter(['low', 'medium', 'high'])).toBe(FanControl.FanModeSequence.OffLowMedHigh);
+    });
+    it('should return OffLowHigh for low and high without auto', () => {
+      expect(convertHAFanPresetModesToMatter(['low', 'high'])).toBe(FanControl.FanModeSequence.OffLowHigh);
+    });
+    it('should return OffHigh for high only without auto', () => {
+      expect(convertHAFanPresetModesToMatter(['high'])).toBe(FanControl.FanModeSequence.OffHigh);
+    });
+    it('should return OffHigh for an empty preset_modes array', () => {
+      expect(convertHAFanPresetModesToMatter([])).toBe(FanControl.FanModeSequence.OffHigh);
+    });
+    it('should return OffHigh for a null preset_modes', () => {
+      expect(convertHAFanPresetModesToMatter(null)).toBe(FanControl.FanModeSequence.OffHigh);
+    });
+  });
+
+  describe('convertHAFanPresetModeToMatter', () => {
+    it('should return Low for low', () => {
+      expect(convertHAFanPresetModeToMatter('low')).toBe(FanControl.FanMode.Low);
+    });
+    it('should return Medium for medium', () => {
+      expect(convertHAFanPresetModeToMatter('medium')).toBe(FanControl.FanMode.Medium);
+    });
+    it('should return High for high', () => {
+      expect(convertHAFanPresetModeToMatter('high')).toBe(FanControl.FanMode.High);
+    });
+    it('should return Auto for auto', () => {
+      expect(convertHAFanPresetModeToMatter('auto')).toBe(FanControl.FanMode.Auto);
+    });
+    it('should return Off for an unrecognized preset_mode', () => {
+      expect(convertHAFanPresetModeToMatter('natural_wind' as any)).toBe(FanControl.FanMode.Off);
+      expect(convertHAFanPresetModeToMatter('sleep_wind' as any)).toBe(FanControl.FanMode.Off);
+      expect(convertHAFanPresetModeToMatter('other' as any)).toBe(FanControl.FanMode.Off);
+    });
+    it('should return Off for a null preset_mode', () => {
+      expect(convertHAFanPresetModeToMatter(null)).toBe(FanControl.FanMode.Off);
+    });
+    it('should return Off for an invalid string length', () => {
+      expect(convertHAFanPresetModeToMatter('' as any)).toBe(FanControl.FanMode.Off);
+      expect(convertHAFanPresetModeToMatter('x' as any)).toBe(FanControl.FanMode.Off);
     });
   });
 });

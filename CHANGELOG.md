@@ -1,5 +1,3 @@
-<!-- eslint-disable markdown/no-missing-label-refs -->
-
 # <img src="https://matterbridge.io/assets/matterbridge.svg" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge hass plugin changelog
 
 [![npm version](https://img.shields.io/npm/v/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
@@ -12,7 +10,6 @@
 [![tested with Vitest](https://img.shields.io/badge/tested_with-Vitest-6E9F18.svg?logo=vitest&logoColor=white)](https://vitest.dev)
 [![styled with Oxc](https://img.shields.io/badge/styled_with-Oxc-9BE4E0.svg?logo=oxc&logoColor=white)](https://oxc.rs/docs/guide/usage/formatter.html)
 [![linted with Oxc](https://img.shields.io/badge/linted_with-Oxc-9BE4E0.svg?logo=oxc&logoColor=white)](https://oxc.rs/docs/guide/usage/linter.html)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![TypeScript Native](https://img.shields.io/badge/TypeScript_Native-3178C6?logo=typescript&logoColor=white)](https://github.com/microsoft/typescript-go)
 [![ESM](https://img.shields.io/badge/ESM-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![matterbridge.io](https://img.shields.io/badge/matterbridge.io-online-brightgreen)](https://matterbridge.io)
@@ -21,13 +18,52 @@
 
 All notable changes to this project will be documented in this file.
 
-If you like this project and find it useful, please consider giving it a **star** on [GitHub](https://github.com/Luligu/matterbridge-hass) and **sponsoring** it.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+If you like this project and find it useful, please consider giving it a star on [GitHub](https://github.com/Luligu/matterbridge-hass) and sponsoring it.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
 ## Possible issue upgrading the plugin
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
+
+## [1.5.0] - 2026-08-28
+
+### Breaking changes
+
+- [matterbridge]: Require matterbridge v.3.10.6 with matter v.1.6.0.
+
+### Added
+
+- [chip]: Add chip-test toolchain agents instruction and chip-test runner.
+- [frontend]: Add plugin-frontend agents instructions.
+- [converters]: Add `convertHAFanPresetModesToMatter()` to convert a single `preset_modes` to the corresponding `FanModeSequence`.
+- [converters]: Add `convertHAFanPresetModeToMatter()` to convert a single `preset_mode` to the corresponding `FanMode`.
+- [devcontainer]: Add `Dev Container` v.2.0.0 with a double stack Node and Bun.
+
+### Changed
+
+- [package]: Bump `ws` to v.8.21.3.
+- [package]: Bump `oxfmt` to v.0.65.0.
+- [package]: Bump `oxlint` to v.1.80.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2001.
+- [package]: Bump `@types/node` to v.26.4.0.
+- [package]: Update agents configs.
+- [vscode]: Bump `settings` to v.1.0.10.
+- [subscribe]: Improve logging and use fireAndForget().
+- [endpoint]: Set logger level of the main and child MatterbridgeEndpoint(s) at creation via `MutableDevice.setLogLevel()`.
+- [update]: Downgrade the `sensor`, `binary_sensor` and generic state "not supported" logs from warn to debug.
+- [converters]: Change the `fan` `on` state converter to `fanMode` to `High`; `fanMode` is also derived from the `preset_mode` attribute converter.
+
+### Fixed
+
+- [update]: Fix multiple update handler.
+- [platform]: Fix `onChangeLoggerLevel` not propagating the new log level to child endpoints (only the main endpoint of each device was updated).
+- [subscribe]: Fix `subscribeHandler` not finding split entities registered by `entity_id`, which silently dropped controller attribute writes for them. Thanks to @zayninteligencia-Zayn-E for reporting and diagnosing the issue in PR #239.
+- [bun]: Fix WebSocket tls connection in bun runtime, waiting for the bun fix.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.4.0] - 2026-07-17
 
@@ -1151,34 +1187,3 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 First published release.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
-
-<!-- Commented out section
-## [1.1.2] - 2024-03-08
-
-### Added
-
-- [Feature 1]: Description of the feature.
-- [Feature 2]: Description of the feature.
-
-### Changed
-
-- [Feature 3]: Description of the change.
-- [Feature 4]: Description of the change.
-
-### Deprecated
-
-- [Feature 5]: Description of the deprecation.
-
-### Removed
-
-- [Feature 6]: Description of the removal.
-
-### Fixed
-
-- [Bug 1]: Description of the bug fix.
-- [Bug 2]: Description of the bug fix.
-
-### Security
-
-- [Security 1]: Description of the security improvement.
--->

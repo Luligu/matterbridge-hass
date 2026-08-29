@@ -9,6 +9,7 @@ const MATTER_PORT = 6300;
 const MATTER_CREATE_ONLY = true;
 
 import {
+  basicVideoPlayer,
   bridgedNode,
   colorDimmerSwitch,
   colorTemperatureLight,
@@ -19,6 +20,7 @@ import {
   electricalSensor,
   extendedColorLight,
   fan,
+  genericSwitch,
   humiditySensor,
   invokeSubscribeHandler,
   MatterbridgeEndpoint,
@@ -32,6 +34,7 @@ import {
   smokeCoAlarm,
   temperatureSensor,
   thermostat,
+  waterValve,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
@@ -51,6 +54,7 @@ import {
   RelativeHumidityMeasurement,
   SmokeCoAlarm,
   TemperatureMeasurement,
+  ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
 import { HOMEDIR, setDebug, setupTest } from 'matterbridge/vitest-utils';
 import {
@@ -543,10 +547,46 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
+  it('should addClusterServerDefaultFanControl', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device default fan control');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostat);
+    mutableDevice.addClusterServerDefaultFanControl('');
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addClusterServerDefaultFanControl without the Auto feature', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device default fan control no auto');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostat);
+    mutableDevice.addClusterServerDefaultFanControl('', FanControl.FanMode.Off, FanControl.FanModeSequence.OffLowMedHigh);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
   it('should addClusterServerCompleteFanControl', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device complete fan control');
     mutableDevice.addDeviceTypes('', bridgedNode, thermostat);
     mutableDevice.addClusterServerCompleteFanControl('');
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addClusterServerCompleteFanControl without the Auto feature', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device complete fan control no auto');
+    mutableDevice.addDeviceTypes('', bridgedNode, thermostat);
+    mutableDevice.addClusterServerCompleteFanControl('', FanControl.FanMode.Off, FanControl.FanModeSequence.OffLowMedHigh);
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
@@ -563,6 +603,66 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(3);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addValve', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device valve');
+    mutableDevice.addDeviceTypes('', bridgedNode, waterValve);
+    mutableDevice.addValve('', ValveConfigurationAndControl.ValveState.Open, 50, 5000, false);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addSelect', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device select');
+    mutableDevice.addDeviceTypes('', bridgedNode, genericSwitch);
+    mutableDevice.addSelect('', 'Select an option', ['Option 1', 'Option 2']);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addOnOff', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device on off');
+    mutableDevice.addDeviceTypes('', bridgedNode, onOffLight);
+    mutableDevice.addOnOff('', true);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addBasicVideoPlayer', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device basic video player');
+    mutableDevice.addDeviceTypes('', bridgedNode, basicVideoPlayer);
+    mutableDevice.addBasicVideoPlayer('');
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addKeypadInput', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device keypad input');
+    mutableDevice.addDeviceTypes('', bridgedNode, basicVideoPlayer);
+    mutableDevice.addKeypadInput('');
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
 
     mutableDevice.destroy();
   });
@@ -685,7 +785,7 @@ describe('MutableDevice', () => {
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await device.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
     await device.setAttribute(FanControl.id, 'percentSetting', 50);
-    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+    expect(subscribeHandler).toHaveBeenCalledTimes(4);
 
     mutableDevice.destroy();
     // setDebug(false);
@@ -714,7 +814,7 @@ describe('MutableDevice', () => {
     device = mutableDevice.create();
     expect(device).toBeDefined();
     mutableDevice.logMutableDevice();
-    expect(subscribeAttributeMatterbridgeEndpointSpy).toHaveBeenCalledTimes(4);
+    expect(subscribeAttributeMatterbridgeEndpointSpy).toHaveBeenCalledTimes(5);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['BridgedNode', 'PowerSource']);
@@ -732,7 +832,7 @@ describe('MutableDevice', () => {
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await childEndpoint.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
     await childEndpoint.setAttribute(FanControl.id, 'percentSetting', 50);
-    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+    expect(subscribeHandler).toHaveBeenCalledTimes(4);
 
     // setDebug(false);
 
@@ -763,7 +863,7 @@ describe('MutableDevice', () => {
     device = mutableDevice.create(true);
     expect(device).toBeDefined();
     mutableDevice.logMutableDevice();
-    expect(subscribeAttributeMatterbridgeEndpointSpy).toHaveBeenCalledTimes(4);
+    expect(subscribeAttributeMatterbridgeEndpointSpy).toHaveBeenCalledTimes(5);
 
     // Verify the remap
     expect(mutableDevice.size()).toBe(1);
@@ -780,7 +880,7 @@ describe('MutableDevice', () => {
     expect(subscribeHandler).toHaveBeenCalledTimes(0);
     await device.setAttribute(FanControl.id, 'fanMode', FanControl.FanMode.Auto);
     await device.setAttribute(FanControl.id, 'percentSetting', 50);
-    expect(subscribeHandler).toHaveBeenCalledTimes(2);
+    expect(subscribeHandler).toHaveBeenCalledTimes(4);
 
     // setDebug(false);
 
@@ -984,6 +1084,12 @@ describe('MutableDevice', () => {
     expect(device.configUrl).toBe('http://example.com/config');
     expect(mutableDevice.size()).toBe(3);
     expect(mutableDevice.getEndpoints().size).toBe(3);
+
+    // setLogLevel() called after create() must propagate to the main endpoint and all the already created child endpoints
+    for (const endpoint of mutableDevice.getEndpoints().values()) expect(endpoint.log.logLevel).not.toBe(LogLevel.NONE);
+    mutableDevice.setLogLevel(LogLevel.NONE);
+    for (const endpoint of mutableDevice.getEndpoints().values()) expect(endpoint.log.logLevel).toBe(LogLevel.NONE);
+
     await addDevice(aggregator, device);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
