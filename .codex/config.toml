@@ -1,19 +1,34 @@
-# Codex config.toml v.1.0.4
+# Codex config v.1.0.5
 
 approval_policy = "on-request"
-
-approvals_reviewer = "user"
+approvals_reviewer = "auto_review"
 
 web_search = "live"
 
-default_permissions = "matterbridge_safe"
+default_permissions = ":workspace"
 
 [shell_environment_policy]
 inherit = "core"
-ignore_default_excludes = false
 
 [windows]
 sandbox = "elevated"
+
+[permissions.matterbridge_unsafe]
+description = "Workspace access with sensitive files denied and network enabled."
+extends = ":workspace"
+
+[permissions.matterbridge_unsafe.network]
+enabled = true
+
+[permissions.matterbridge_unsafe.filesystem]
+glob_scan_max_depth = 4
+
+[permissions.matterbridge_unsafe.filesystem.":workspace_roots"]
+".env" = "deny"
+".env.*" = "deny"
+"**/.env" = "deny"
+"**/.env.*" = "deny"
+"**/secrets/**" = "deny"
 
 [permissions.matterbridge_safe]
 description = "Workspace access with sensitive files denied and network disabled."
@@ -23,7 +38,7 @@ extends = ":workspace"
 enabled = false
 
 [permissions.matterbridge_safe.filesystem]
-glob_scan_max_depth = 5
+glob_scan_max_depth = 4
 
 [permissions.matterbridge_safe.filesystem.":workspace_roots"]
 ".env" = "deny"
