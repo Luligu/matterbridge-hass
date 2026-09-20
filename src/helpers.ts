@@ -453,10 +453,10 @@ export function generateState(
     last_changed: timestamp,
     last_reported: timestamp,
     last_updated: timestamp,
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     attributes: {
       friendly_name: friendlyName,
       ...attributes,
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     } as HassState['attributes'],
     context: {
       id: createUniqueId(),

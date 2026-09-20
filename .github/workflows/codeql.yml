@@ -4,13 +4,13 @@ name: CodeQL
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths-ignore:
       - 'screenshots/**' # any file under screenshots/
       - 'scripts/**' # any file under scripts/
       - '**/*.md' # any .md anywhere
   pull_request:
-    branches: [main]
+    branches: [main, dev]
     paths-ignore:
       - 'screenshots/**' # any file under screenshots/
       - 'scripts/**' # any file under scripts/

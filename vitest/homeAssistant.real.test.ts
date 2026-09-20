@@ -182,7 +182,7 @@ describe('HomeAssistant real test on server', () => {
   });
 
   it('should fail to call_service to Home Assistant with a not valid entity', async () => {
-    await expect(homeAssistant.callService('light', 'turn_on', 'notvalid')).rejects.toThrow("not a valid value for dictionary value @ data['target']['entity_id']. Got 'notvalid'");
+    await expect(homeAssistant.callService('light', 'turn_on', 'notvalid')).rejects.toThrow("expected 'all' or 'none' at 'target.entity_id'. Got 'notvalid'");
   });
 
   it('should unsubscribe to Home Assistant', async () => {
