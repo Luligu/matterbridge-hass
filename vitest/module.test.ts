@@ -444,6 +444,17 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
 
+    // Light off and minLevel undefined => fallback to minLevel 1
+    vi.clearAllMocks();
+    const getAttribute = child3.getAttribute.bind(child3);
+    const getAttributeSpy = vi
+      .spyOn(child3, 'getAttribute')
+      .mockImplementation(((cluster: any, attribute: string, log?: any) =>
+        attribute === 'onOff' ? false : attribute === 'minLevel' ? undefined : getAttribute(cluster, attribute, log)) as any);
+    await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'light.light_light_3', 'moveToLevelWithOnOff');
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
+    getAttributeSpy.mockRestore();
+
     vi.clearAllMocks();
     await haPlatform.commandHandler(
       { endpoint: child3, request: { colorTemperatureMireds: 300 }, cluster: 'colorControl', attributes: {} },
