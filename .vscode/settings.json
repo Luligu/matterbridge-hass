@@ -1,4 +1,4 @@
-// VS Code settings v.1.0.12
+// VS Code settings v.1.0.13
 {
   "eslint.enable": false,
   "prettier.enable": false,
@@ -43,6 +43,7 @@
   "chat.useCustomizationsInParentRepositories": true, // Default false.
   "chat.useAgentsMdFile": true, // Load AGENTS.md at the workspace root as always-on instructions.
   "chat.useNestedAgentsMdFiles": true, // Also load nested AGENTS.md files in subfolders. Experimental.
+  "github.copilot.chat.commitMessageGeneration.instructions": [{ "file": ".github/commit-message-instructions.md" }], // Conventional Commits for the Source Control "Generate Commit Message" button.
   "chat.tools.terminal.autoApprove": {
     // Denied: raw tool invocations must go through the npm scripts (AGENTS.md hard rule).
     "npx tsc": false,
