@@ -267,7 +267,7 @@ export function addControlEntity(
             });
           })
           // oxlint-disable-next-line no-empty-function
-          .catch(/* istanbul ignore next */ () => {});
+          .catch(/* v8 ignore next */ () => {});
       });
     }
   }
@@ -312,7 +312,7 @@ export function addControlEntity(
               });
             })
             // oxlint-disable-next-line no-empty-function
-            .catch(/* istanbul ignore next */ () => {});
+            .catch(/* v8 ignore next */ () => {});
         }
       });
     }
@@ -323,7 +323,7 @@ export function addControlEntity(
     platform.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
     mutableDevice.addCommandHandler(entity.entity_id, hassCommand.command, (data, endpointName, command) => {
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion no-empty-function
-      void commandHandler(data as any, endpointName, command).catch(/* istanbul ignore next */ () => {});
+      void commandHandler(data as any, endpointName, command).catch(/* v8 ignore next */ () => {});
     });
   }
 

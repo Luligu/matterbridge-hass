@@ -1188,7 +1188,7 @@ export class MutableDevice {
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
       // oxlint-disable-next-line no-empty-function
-      if (this.composedType) void mainDevice.endpoint.addFixedLabel('composed', this.composedType).catch(/* istanbul ignore next */ () => {});
+      if (this.composedType) void mainDevice.endpoint.addFixedLabel('composed', this.composedType).catch(/* v8 ignore next */ () => {});
       // Set the configUrl of the main endpoint
       if (this.configUrl) mainDevice.endpoint.configUrl = this.configUrl;
       // Add the command handlers
