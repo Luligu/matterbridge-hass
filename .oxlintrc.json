@@ -1,6 +1,8 @@
-// .oxlintrc.json 1.0.18
+// .oxlintrc.json 1.1.0
 
 // This Oxlint configuration (shared between all matterbridge packages) is designed for a TypeScript project using ESM modules.
+// Oxlint respect .gitignore.
+// Package specific directories and files that should be ignored are merged from the .oxlintignore files in each package.
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "ignorePatterns": [
@@ -8,18 +10,16 @@
     "**/.git/**",
     "apps/**",
     "**/build/**",
-    "chip/**",
     "**/coverage/**",
     "**/dist/**",
-    "**/temp/**",
     "**/node_modules/**",
     "**/out/**",
-    "**/scripts/**",
     "**/screenshots/**",
-    "vendor/**",
+    "**/scripts/**",
+    "**/temp/**",
+    "**/tmp/**",
     "**/package-lock.json",
-    "**/bin/**",
-    "**/src/mock/**"
+    "**/bun.lock"
   ],
   "env": {
     "builtin": true,

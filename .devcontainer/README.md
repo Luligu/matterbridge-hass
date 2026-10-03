@@ -17,7 +17,7 @@ Node and Bun configurations for Matterbridge plugins, aligned with Matterbridgeâ
 - Creation prepares ownership and installs/builds Matterbridge from the dev branch into the shared runtime-specific /workspaces/matterbridge volume, then links it globally.
 - Creation also installs plugin dependencies, links Matterbridge, builds the plugin and its optional apps/frontend, registers the plugin with Matterbridge, and checks for outdated packages.
 - Each start installs plugin dependencies, links Matterbridge, and builds the plugin and its optional apps/frontend.
-- Frontend dependencies and Matterbridge runtime state also use named volumes. Port 8283 exposes the Matterbridge frontend over IPv4 and IPv6.
+- Matterbridge runtime state also uses named volumes, and so do the frontend dependencies when the plugin has an apps/frontend (mb-run adds the apps/frontend/node_modules volume only then, so no empty apps/frontend is created otherwise). Port 8283 exposes the Matterbridge frontend over IPv4 and IPv6.
 
 ## Docker VMM host setup
 

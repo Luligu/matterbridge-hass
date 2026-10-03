@@ -1,5 +1,5 @@
 {
-  "_comment": "Antigravity settings v.1.0.1",
+  "_comment": "Antigravity settings v.1.0.5",
   "sandboxing": {
     "workspaceOnly": true,
     "subagentIsolation": "branch",
@@ -72,7 +72,15 @@
       "command(find)",
       "command(grep)",
       "command(echo)",
-      "command(cd)"
+      "command(cd)",
+      "command(git status)",
+      "command(git diff)",
+      "command(git diff --check)",
+      "command(git diff --stat)",
+      "command(git log)",
+      "command(git show)",
+      "command(git branch -vv)",
+      "command(git ls-files)"
     ]
   }
 }

@@ -99,7 +99,7 @@ jobs:
         shell: bash
         run: |
           echo "has_jest=$(test -f jest.config.js && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "has_vitest=$(test -f vite.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_vitest=$(test -f vitest.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Run Jest tests
         if: steps.check_configs.outputs.has_jest == 'true'
