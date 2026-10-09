@@ -43,6 +43,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Changed
 
+- [test]: Migrate tests from `matterbridge/vitest-utils` to the unified `matterbridge/test-utils`.
 - [styleguide]: Update [`STYLEGUIDE.md`](STYLEGUIDE.md) to v.1.1.0: align it with the lint and format config and add the Commit Messages and Changelog sections.
 - [vscode]: Update `.vscode/settings.json` to v.1.0.15: configure commit message instructions, exclude templates from Vitest discovery and refine terminal command approvals.
 - [agents]: Update `.antigravity/settings.json` to v.1.0.5: allow read-only Git commands.

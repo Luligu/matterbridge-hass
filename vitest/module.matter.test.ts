@@ -56,9 +56,23 @@ import {
   TotalVolatileOrganicCompoundsConcentrationMeasurement,
   ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
+import { flushAsync } from 'matterbridge/test-utils';
 import {
-  flushAsync,
+  getMoveToColorRequest,
+  getMoveToColorTemperatureRequest,
+  getMoveToHueAndSaturationRequest,
+  getMoveToHueRequest,
+  getMoveToLevelRequest,
+  getMoveToSaturationRequest,
+} from 'matterbridge/test-utils/matter';
+import {
   HOMEDIR,
+  addDevice,
+  aggregator,
+  createServerNode,
+  createTestEnvironment,
+  destroyTestEnvironment,
+  flushServerNode,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -66,26 +80,12 @@ import {
   loggerInfoSpy,
   loggerLogSpy,
   loggerWarnSpy,
+  server,
   setDebug,
   setupTest,
-} from 'matterbridge/vitest-utils';
-import {
-  addDevice,
-  aggregator,
-  createServerNode,
-  createTestEnvironment,
-  destroyTestEnvironment,
-  flushServerNode,
-  getMoveToColorRequest,
-  getMoveToColorTemperatureRequest,
-  getMoveToHueAndSaturationRequest,
-  getMoveToHueRequest,
-  getMoveToLevelRequest,
-  getMoveToSaturationRequest,
-  server,
   startServerNode,
   stopServerNode,
-} from 'matterbridge/vitest-utils/matter';
+} from 'matterbridge/test-utils/vitest';
 
 import { miredsToKelvin } from '../src/converters.js';
 import { ColorMode, type HassConfig, type HassContext, type HassDevice, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';

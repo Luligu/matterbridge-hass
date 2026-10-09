@@ -7,7 +7,7 @@
 const NAME = 'StateCache';
 
 import type { NodeStorage } from 'matterbridge/storage';
-import { setupTest } from 'matterbridge/vitest-utils';
+import { setupTest } from 'matterbridge/test-utils/vitest';
 
 import { type HassState, UnitOfTemperature, VacuumActivity } from '../src/homeAssistant.js';
 import { StateCache } from '../src/stateCache.js';

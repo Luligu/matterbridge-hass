@@ -56,17 +56,19 @@ import {
   TemperatureMeasurement,
   ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
-import { HOMEDIR, setDebug, setupTest } from 'matterbridge/vitest-utils';
 import {
+  HOMEDIR,
   addDevice,
   aggregator,
   createServerNode,
   createTestEnvironment,
   destroyTestEnvironment,
   flushServerNode,
+  setDebug,
+  setupTest,
   startServerNode,
   stopServerNode,
-} from 'matterbridge/vitest-utils/matter';
+} from 'matterbridge/test-utils/vitest';
 
 import { MutableDevice } from '../src/mutableDevice.js';
 

@@ -23,10 +23,13 @@ import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEnd
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 import { EndpointNumber } from 'matterbridge/matter/types';
-import { wait } from 'matterbridge/utils';
+import { flushAsync } from 'matterbridge/test-utils';
 import {
-  flushAsync,
   HOMEDIR,
+  createServerNode,
+  createTestEnvironment,
+  destroyTestEnvironment,
+  flushServerNode,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -36,8 +39,8 @@ import {
   loggerWarnSpy,
   setDebug,
   setupTest,
-} from 'matterbridge/vitest-utils';
-import { createServerNode, createTestEnvironment, destroyTestEnvironment, flushServerNode } from 'matterbridge/vitest-utils/matter';
+} from 'matterbridge/test-utils/vitest';
+import { wait } from 'matterbridge/utils';
 
 import { type HassArea, type HassConfig, type HassDevice, type HassEntity, type HassLabel, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';

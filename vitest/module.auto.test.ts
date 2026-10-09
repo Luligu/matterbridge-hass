@@ -23,20 +23,9 @@ import path from 'node:path';
 import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
 import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
 import { VendorId } from 'matterbridge/matter/types';
+import { flushAsync } from 'matterbridge/test-utils';
 import {
-  flushAsync,
   HOMEDIR,
-  log,
-  loggerDebugSpy,
-  loggerErrorSpy,
-  loggerFatalSpy,
-  loggerInfoSpy,
-  loggerNoticeSpy,
-  loggerWarnSpy,
-  setDebug,
-  setupTest,
-} from 'matterbridge/vitest-utils';
-import {
   addDevice,
   aggregator,
   createServerNode,
@@ -44,10 +33,19 @@ import {
   deleteDevice,
   destroyTestEnvironment,
   flushServerNode,
+  log,
+  loggerDebugSpy,
+  loggerErrorSpy,
+  loggerFatalSpy,
+  loggerInfoSpy,
+  loggerNoticeSpy,
+  loggerWarnSpy,
   server,
+  setDebug,
+  setupTest,
   startServerNode,
   stopServerNode,
-} from 'matterbridge/vitest-utils/matter';
+} from 'matterbridge/test-utils/vitest';
 
 import { createUniqueId, generateArea, generateDevice, generateEntity, generateLabel, generateState, getDomain, getEntityName, getName } from '../src/helpers.js';
 import { type HassConfig, type HassContext, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
