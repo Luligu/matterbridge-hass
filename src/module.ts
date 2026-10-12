@@ -78,6 +78,7 @@ import { MutableDevice } from './mutableDevice.js';
 import { savePayload } from './payload.js';
 import { writeReport } from './report.js';
 import { addSensorEntity } from './sensor.entity.js';
+import { handleSetupFetch } from './setup.js';
 import { StateCache } from './stateCache.js';
 
 export interface HomeAssistantPlatformConfig extends PlatformConfig {
@@ -182,6 +183,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /* Set to true to skip the check for the endpoint owner after registering a device. This is useful for testing purposes only. */
   dryRun = false;
 
+  /** True when host or token are missing: the plugin only serves the setup page and doesn't connect to Home Assistant. */
+  setupMode = false;
+
   /**
    * Constructor for the HomeAssistantPlatform class.
    * It initializes the platform, verifies the Matterbridge version, and sets up the Home Assistant connection.
@@ -205,14 +209,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     }
 
     this.log.info(`Initializing platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
-
-    if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
-      setImmediate(() => {
-        fireAndForget(this.onShutdown('Invalid configuration'), this.log, 'onShutdown');
-      });
-      this.wssSendSnackbarMessage('Home Assistant Plugin: configure Host and Token', 0, 'error');
-      throw new Error('Host and token must be defined in the configuration');
-    }
 
     // Set the default values for the config for old versions of it
     /* v8 ignore next cause it's only for backward compatibility with old versions of the config that are missing the new properties */
@@ -244,6 +240,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
       this.config.debug ??= false;
       this.config.unregisterOnShutdown ??= false;
+    }
+
+    // Without host and token wait in setup mode: the plugin page (setup wizard) asks for them.
+    if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
+      this.setupMode = true;
+      this.ha = new HomeAssistant(this.config.host ?? '', '');
+      this.wssSendSnackbarMessage('Home Assistant Plugin: open the plugin page to connect to Home Assistant', 0, 'warning');
+      this.log.warn('Home Assistant is not set up yet. Open the plugin page from the Matterbridge home page to connect to Home Assistant.');
+      return;
     }
 
     // Initialize air quality regex from config or use default
@@ -371,6 +376,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   override async onStart(reason?: string): Promise<void> {
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
+
+    if (this.setupMode) {
+      this.log.warn('Home Assistant is not set up yet. Open the plugin page from the Matterbridge home page to connect to Home Assistant.');
+      return;
+    }
 
     // Create the plugin directory inside the Matterbridge plugin directory
     await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
@@ -1001,6 +1011,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         child.log.logLevel = logLevel;
       }
     }
+  }
+
+  /**
+   * Serve the REST API of the plugin page (setup wizard and device picker) at /plugins/matterbridge-hass/api/:path.
+   *
+   * @param {string} method - The HTTP method.
+   * @param {string} [path] - The api path.
+   * @param {Record<string, unknown>} [query] - The query parameters.
+   * @param {unknown} [body] - The request body.
+   * @returns {Promise<unknown>} The JSON response, or undefined for 404.
+   */
+  override async onFetch(method: string, path?: string, query?: Record<string, unknown>, body?: unknown): Promise<unknown> {
+    return handleSetupFetch(this, method, path, query, body);
   }
 
   override async onShutdown(reason?: string): Promise<void> {
