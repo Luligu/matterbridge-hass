@@ -339,6 +339,14 @@ describe('Setup page API', () => {
       integration: 'zha',
       notUseful: 'Only battery information reaches Matter',
     });
+    // Entities from two integrations: the device belongs to the most used one.
+    expect(
+      analyze([
+        ['switch.extra', 'Outlet', undefined, null, 'mqtt'],
+        ['sensor.t', 'Temperature sensor', 'temperature', null, 'zha'],
+        ['sensor.h', 'Humidity sensor', 'humidity', null, 'zha'],
+      ]),
+    ).toMatchObject({ main: ['sensor.t', 'sensor.h'], integration: 'zha' });
     expect(analyze([['sensor.uptime', null]]).notUseful).toBe('Nothing here works in Matter');
     expect(analyzeDevice([], [], (id) => new Map<string, string>().get(id))).toEqual({ capabilities: [], integration: '', notUseful: 'Nothing here works in Matter' });
   });
