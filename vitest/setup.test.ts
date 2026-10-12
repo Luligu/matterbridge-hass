@@ -6,6 +6,7 @@
 
 const NAME = 'Setup';
 
+import { lookup } from 'node:dns/promises';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { BroadcastChannel } from 'node:worker_threads';
@@ -33,6 +34,12 @@ import {
   toHttpUrl,
   toWebSocketUrl,
 } from '../src/setup.js';
+
+// Keep the real DNS lookup and answer a host name only where a test asks for it.
+vi.mock('node:dns/promises', async (importOriginal) => {
+  const original = await importOriginal<typeof import('node:dns/promises')>();
+  return { ...original, lookup: vi.fn(original.lookup) };
+});
 
 // Setup the test environment
 await setupTest(NAME, false);
@@ -158,10 +165,11 @@ function createPlatform(config = createConfig(), ha = createHomeAssistant(true))
 /**
  * Start a fake Home Assistant WebSocket API.
  *
- * @param {boolean} silent - Don't send auth_required (to test the timeout).
+ * @param {'normal' | 'silent' | 'bare' | 'close'} mode - silent: no auth_required (to test the timeout), bare: noise and answers without version and location,
+ *  close: close the connection after the auth.
  * @returns {Promise<{ url: string; close: () => Promise<void> }>} The ws url and a close function.
  */
-async function startFakeHomeAssistant(silent = false): Promise<{ url: string; close: () => Promise<void> }> {
+async function startFakeHomeAssistant(mode: 'normal' | 'silent' | 'bare' | 'close' = 'normal'): Promise<{ url: string; close: () => Promise<void> }> {
   const results: Record<string, unknown> = {
     'get_config': { state: 'RUNNING', location_name: 'Home', unit_system: { temperature: '°C', pressure: 'hPa' } },
     'get_services': {},
@@ -174,11 +182,18 @@ async function startFakeHomeAssistant(silent = false): Promise<{ url: string; cl
   const wss = new WebSocketServer({ port: 0, host: '127.0.0.1' });
   await new Promise<void>((resolve) => wss.on('listening', () => resolve()));
   wss.on('connection', (ws) => {
-    if (!silent) ws.send(JSON.stringify({ type: 'auth_required' }));
+    if (mode === 'bare') {
+      ws.send('not json');
+      ws.send(JSON.stringify({ type: 'event' }));
+    }
+    if (mode !== 'silent') ws.send(JSON.stringify({ type: 'auth_required' }));
     ws.on('message', (data) => {
       // oxlint-disable-next-line typescript/no-base-to-string
       const message = JSON.parse(data.toString()) as { type: string; id?: number; access_token?: string };
-      if (message.type === 'auth') ws.send(JSON.stringify(message.access_token === 'good' ? { type: 'auth_ok', ha_version: '2026.10.0' } : { type: 'auth_invalid' }));
+      if (message.type === 'auth' && mode === 'close') ws.close();
+      else if (message.type === 'auth' && mode === 'bare') ws.send(JSON.stringify({ type: 'auth_ok' }));
+      else if (mode === 'bare') ws.send(JSON.stringify({ id: message.id, type: 'result', success: true, result: {} }));
+      else if (message.type === 'auth') ws.send(JSON.stringify(message.access_token === 'good' ? { type: 'auth_ok', ha_version: '2026.10.0' } : { type: 'auth_invalid' }));
       else ws.send(JSON.stringify({ id: message.id, type: 'result', success: true, result: results[message.type] ?? null }));
     });
   });
@@ -198,6 +213,8 @@ describe('Setup page API', () => {
     expect(toWebSocketUrl('ws://ha.local:8123/api/websocket')).toBe('ws://ha.local:8123');
     expect(toWebSocketUrl('wss://ha.local:8123')).toBe('wss://ha.local:8123');
     expect(toWebSocketUrl(' 192.168.1.10:8123 ')).toBe('ws://192.168.1.10:8123');
+    expect(toWebSocketUrl('http://ha.local:8123///')).toBe('ws://ha.local:8123');
+    expect(toWebSocketUrl('http://ha.local:8123' + '/'.repeat(100000))).toBe('ws://ha.local:8123');
     expect(toHttpUrl('ws://ha.local:8123')).toBe('http://ha.local:8123');
     expect(toHttpUrl('wss://ha.local:8123')).toBe('https://ha.local:8123');
   });
@@ -421,8 +438,17 @@ describe('Setup page API', () => {
     expect(await checkToken(server.url, 'good')).toMatchObject({ ok: false, error: 'unreachable' });
   });
 
+  test('should check the token when Home Assistant sends noise, no version or closes', async () => {
+    const bare = await startFakeHomeAssistant('bare');
+    expect(await checkToken(bare.url, 'good')).toEqual({ ok: true, version: '', locationName: undefined });
+    await bare.close();
+    const closing = await startFakeHomeAssistant('close');
+    expect(await checkToken(closing.url, 'good')).toEqual({ ok: false, error: 'unreachable', message: 'Connection closed by Home Assistant' });
+    await closing.close();
+  });
+
   test('should time out the token check when Home Assistant stays silent', async () => {
-    const server = await startFakeHomeAssistant(true);
+    const server = await startFakeHomeAssistant('silent');
     expect(await checkToken(server.url, 'good', undefined, true, 200)).toMatchObject({ ok: false, error: 'unreachable', message: 'Home Assistant did not answer in time' });
     await server.close();
   });
@@ -447,6 +473,22 @@ describe('Setup page API', () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
+  test('should name the servers found and keep the order when nothing is saved', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = typeof input === 'string' ? input : '';
+      if (url === 'http://homeassistant.local:8123/manifest.json' || url === 'http://192.0.2.20:8123/manifest.json')
+        return new Response(JSON.stringify({ name: 'Home Assistant' }));
+      throw new Error('offline');
+    });
+    vi.mocked(lookup).mockResolvedValueOnce({ address: '192.0.2.10', family: 4 });
+    // homeassistant.local resolves to the Matterbridge computer: it is shown as local with its name.
+    expect(await discoverHomeAssistant('', 100, ['192.0.2.10'], ['192.0.2.20'], [8123])).toEqual([
+      { url: 'http://192.0.2.10:8123', label: 'Found on your network', local: true, name: 'homeassistant.local' },
+      { url: 'http://192.0.2.20:8123', label: 'Found on your network', local: false },
+    ]);
+    fetchSpy.mockRestore();
+  });
+
   test('should list the local network addresses without our own when scanning', () => {
     const hosts = getLocalSubnetHosts(['192.168.1.5']);
     expect(hosts.length).toBe(253);
@@ -461,6 +503,8 @@ describe('Setup page API', () => {
     matterbridge.onmessage = (event: unknown): void => {
       const message = (event as { data: { type: string; dst: string; id: number } }).data;
       if (message.type === 'matterbridge_restart' && message.dst === 'matterbridge') {
+        // Other messages on the channel are ignored.
+        matterbridge.postMessage({ type: 'matterbridge_restart', src: 'matterbridge', dst: 'platform', id: 0, result: { success: false } });
         matterbridge.postMessage({ ...message, src: 'matterbridge', dst: 'platform', result: { success: true } });
       }
     };
@@ -508,6 +552,8 @@ describe('Setup page API', () => {
     expect(platform.saveConfig).toHaveBeenCalledTimes(2);
 
     expect(await handleSetupFetch(platform, 'GET', 'unknown', {}, null)).toBeUndefined();
+    expect(await handleSetupFetch(platform, 'GET', undefined, {}, null)).toBeUndefined();
+    expect(await handleSetupFetch(platform, 'POST', 'token', {}, null)).toMatchObject({ ok: false, error: 'invalid' });
     await server.close();
 
     config.host = 'ws://127.0.0.1:1';
@@ -522,12 +568,41 @@ describe('Setup page API', () => {
   });
 
   test('should use the plugin connection and discover when the plugin is connected', async () => {
-    const platform = createPlatform();
-    const items = (await handleSetupFetch(platform, 'get', 'items', undefined, null)) as { ok: boolean; items: SetupItem[] };
-    expect(items.ok).toBe(true);
+    const platform = createPlatform(createConfig({ entityWhiteList: undefined, entityBlackList: undefined }));
+    const items = (await handleSetupFetch(platform, 'get', 'items', undefined, null)) as { ok: boolean; items: SetupItem[]; onlyDomains: string[]; neverDomains: string[] };
+    expect(items).toMatchObject({ ok: true, onlyDomains: [], neverDomains: [] });
     expect(items.items.length).toBe(4);
     expect(await handleSetupFetch(platform, 'GET', 'status', undefined, null)).toMatchObject({ configured: true, connected: true, host: 'http://homeassistant.local:8123' });
-    const discovered = (await handleSetupFetch(platform, 'GET', 'discover', undefined, null)) as { servers: unknown[] };
-    expect(Array.isArray(discovered.servers)).toBe(true);
-  }, 10000);
+    // No network scan in the test: every probe fails at once and the saved address is an IP (no name lookup).
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+    platform.config.host = 'ws://127.0.0.1:1';
+    expect(await handleSetupFetch(platform, 'GET', 'discover', undefined, null)).toEqual({ servers: [] });
+    fetchSpy.mockRestore();
+  });
+
+  test('should report Home Assistant unreachable when the plugin is connected but has no data', async () => {
+    const ha = createHomeAssistant(true);
+    (ha as unknown as { hassConfig: null }).hassConfig = null;
+    const platform = createPlatform(createConfig({ host: 'ws://127.0.0.1:1' }), ha);
+    expect(await handleSetupFetch(platform, 'GET', 'items', {}, null)).toMatchObject({ ok: false, error: 'unreachable' });
+  });
+
+  test('should name the rows with fallbacks when the registry has missing data', () => {
+    const ha = createHomeAssistant(true);
+    ha.hassEntities.set('scene.bare', entity('scene.bare', null, null, { area_id: 'gone', labels: undefined }));
+    ha.hassEntities.set('scene.label', entity('scene.label', null, null, { labels: ['gone'] }));
+    ha.hassStates.set('scene.bare', state('scene.bare'));
+    ha.hassStates.set('scene.label', state('scene.label', { friendly_name: 'Label scene' }));
+    const platform = createPlatform(createConfig({ splitNameStrategy: 'Friendly name' }), ha);
+    const items = buildSetupItems(platform, ha);
+    expect(items.find((i) => i.id === 'scene.bare')).toMatchObject({ name: 'scene.bare', area: 'No area', labels: [] });
+    expect(items.find((i) => i.id === 'scene.label')).toMatchObject({ name: 'Label scene', labels: ['gone'] });
+    // Without the lists in the config the selection is written from scratch.
+    const config = platform.config as unknown as Record<string, unknown>;
+    delete config['whiteList'];
+    delete config['blackList'];
+    delete config['deviceEntityBlackList'];
+    applySelection(platform, items, { selected: ['scene.bare'], unchecked: {}, onlyDomains: [], neverDomains: [], reset: false });
+    expect(platform.config).toMatchObject({ whiteList: ['scene.bare'], blackList: [], deviceEntityBlackList: {} });
+  });
 });

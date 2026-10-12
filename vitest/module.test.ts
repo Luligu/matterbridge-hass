@@ -243,6 +243,9 @@ describe('HassPlatform', () => {
     mockConfig.host = '';
     mockConfig.token = 'long-lived token';
     expect(new HomeAssistantPlatform(matterbridge, log, mockConfig).setupMode).toBe(true);
+    const noHostConfig: Partial<HomeAssistantPlatformConfig> = { ...mockConfig };
+    delete noHostConfig.host;
+    expect(new HomeAssistantPlatform(matterbridge, log, noHostConfig as HomeAssistantPlatformConfig).setupMode).toBe(true);
   });
 
   it('should initialize platform with config name', async () => {

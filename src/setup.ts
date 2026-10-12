@@ -125,10 +125,10 @@ const setupData = new WeakMap<HomeAssistantPlatform, HomeAssistant>();
  * @returns {string} The ws:// or wss:// url without trailing slash.
  */
 export function toWebSocketUrl(url: string): string {
-  const trimmed = url
-    .trim()
-    .replace(/\/api\/websocket$/, '')
-    .replace(/\/+$/, '');
+  // Plain string checks instead of a /\/+$/ regex: the url comes from the page and the regex is slow on many slashes.
+  let trimmed = url.trim();
+  if (trimmed.endsWith('/api/websocket')) trimmed = trimmed.slice(0, -'/api/websocket'.length);
+  while (trimmed.endsWith('/')) trimmed = trimmed.slice(0, -1);
   if (trimmed.startsWith('https://')) return 'wss://' + trimmed.slice(8);
   if (trimmed.startsWith('http://')) return 'ws://' + trimmed.slice(7);
   if (trimmed.startsWith('ws://') || trimmed.startsWith('wss://')) return trimmed;
@@ -184,6 +184,7 @@ export function getMatterType(entityId: string, state: HassState | undefined, su
 export function getOwnAddresses(): string[] {
   const own: string[] = [];
   for (const addresses of Object.values(networkInterfaces())) {
+    /* v8 ignore next cause networkInterfaces() never lists an interface without addresses */
     for (const address of addresses ?? []) if (address.family === 'IPv4' && !address.internal) own.push(address.address);
   }
   return own;
@@ -360,6 +361,7 @@ export async function checkToken(url: string, token: string, certificatePath?: s
     const finish = (result: TokenCheckResult): void => {
       clearTimeout(timer);
       ws.removeAllListeners();
+      /* v8 ignore next cause it only swallows a late socket error after the check is finished */
       ws.on('error', () => null);
       ws.close();
       resolve(result);
@@ -408,6 +410,7 @@ export async function loadHomeAssistantData(platform: HomeAssistantPlatform, ref
   try {
     let timer: NodeJS.Timeout | undefined;
     const timeout = new Promise<never>((_resolve, reject) => {
+      /* v8 ignore next cause is too long to test the 15 seconds timeout */
       timer = setTimeout(() => reject(new Error('Home Assistant did not answer in time')), 15000);
     });
     try {
@@ -417,6 +420,7 @@ export async function loadHomeAssistantData(platform: HomeAssistantPlatform, ref
       clearTimeout(timer);
     }
   } finally {
+    /* v8 ignore next cause close() doesn't reject on a closed connection */
     await ha.close().catch(() => null);
     ha.removeAllListeners();
   }
