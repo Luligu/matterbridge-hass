@@ -228,16 +228,27 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shut down platform ${idn}${mockConfig.name}${rs}${nf} completed`);
   });
 
-  it('should not initialize platform with config name', () => {
+  it('should start in setup mode when host or token are missing', async () => {
     mockConfig.host = '';
     mockConfig.token = '';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow('Host and token must be defined in the configuration');
+    expect(new HomeAssistantPlatform(matterbridge, log, mockConfig).setupMode).toBe(true);
     mockConfig.host = 'http://homeassistant.local:8123';
     mockConfig.token = '';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow('Host and token must be defined in the configuration');
+    const setupPlatform = new HomeAssistantPlatform(matterbridge, log, mockConfig);
+    expect(setupPlatform.setupMode).toBe(true);
+    expect(setupPlatform.ha.connected).toBe(false);
+    await setupPlatform.onStart('Test setup mode');
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.WARN,
+      'Home Assistant is not set up yet. Open the plugin page from the Matterbridge home page to connect to Home Assistant.',
+    );
+    expect(await setupPlatform.onFetch('GET', 'status')).toMatchObject({ configured: false, connected: false });
     mockConfig.host = '';
     mockConfig.token = 'long-lived token';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow('Host and token must be defined in the configuration');
+    expect(new HomeAssistantPlatform(matterbridge, log, mockConfig).setupMode).toBe(true);
+    const noHostConfig: Partial<HomeAssistantPlatformConfig> = { ...mockConfig };
+    delete noHostConfig.host;
+    expect(new HomeAssistantPlatform(matterbridge, log, noHostConfig as HomeAssistantPlatformConfig).setupMode).toBe(true);
   });
 
   it('should initialize platform with config name', async () => {
