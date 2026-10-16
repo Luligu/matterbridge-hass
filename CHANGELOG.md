@@ -30,6 +30,10 @@ If you like this project and find it useful, please consider giving it a star on
 
 ## [1.5.1] - Dev branch
 
+### Fixed
+
+- [startup]: Retry transient initial Home Assistant fetch failures within a bounded startup budget; propagate errors, publish only complete registries, and cancel stale initialization on disconnect or shutdown.
+
 ### Breaking changes
 
 - [matterbridge]: Require matterbridge v.3.10.10 with matter v.1.6.0.

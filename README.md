@@ -203,6 +203,12 @@ All the individual entities use the main whiteList, blackList.
 
 Since the release 0.4.0 it is also possible to pickup any device entity and split ("decompose") it to make it an independent Matter device.
 
+## Startup recovery
+
+After authentication, the plugin fetches the Home Assistant configuration, services, and complete device/entity/state/area/label inventory before subscribing to events. A failed fetch is retried up to three times on the same connection, with two seconds between attempts and a 105-second initialization budget inside the existing startup readiness timeout.
+
+A failed attempt does not publish partial registries. Disconnecting or shutting down cancels initialization, so a late response from an old connection cannot mark the plugin ready. Persistent failures still fail startup; this does not replace the WebSocket reconnect settings or automatically restart a plugin that has already failed startup. An event-subscription failure is not retried on the same connection because a timed-out subscription may already have been accepted by Home Assistant.
+
 ## Config
 
 You may need to set some config values in the frontend (wait that the plugin has been configured before changing the config):

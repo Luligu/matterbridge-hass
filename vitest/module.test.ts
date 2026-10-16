@@ -146,6 +146,7 @@ describe('HassPlatform', () => {
     console.log(`Mocked HomeAssistant.subscribe: ${event}`);
     return Promise.resolve(15);
   });
+  const originalFetchData = HomeAssistant.prototype.fetchData;
   const fetchDataSpy = vi.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(async () => {
     console.log(`Mocked HomeAssistant.fetchData`);
     return Promise.resolve();
@@ -608,6 +609,166 @@ describe('HassPlatform', () => {
     expect(writeReportMock).toHaveBeenCalled();
   });
 
+  it('should recover an initial services timeout without reconnecting or subscribing to partial data', async () => {
+    let serviceRequests = 0;
+    const responses: Record<string, unknown> = {
+      'get_config': { ...mockData.config, state: 'RUNNING' },
+      'get_services': mockData.services,
+      'config/device_registry/list': mockData.devices,
+      'config/entity_registry/list': mockData.entities,
+      'get_states': mockData.states,
+      'config/area_registry/list': mockData.areas,
+      'config/label_registry/list': mockData.labels,
+    };
+    await fetchSpy.withImplementation(
+      async (type) => {
+        if (type === 'get_services' && ++serviceRequests === 1) throw new Error('get_services did not complete before the timeout');
+        return responses[type];
+      },
+      async () => {
+        await fetchDataSpy.withImplementation(originalFetchData, async () => {
+          haPlatform.ha.emit('connected', '2026.10.1');
+          await wait(100);
+          expect(haPlatform.ha.connected).toBe(true);
+          expect(haPlatform.haSubscriptionId).toBeNull();
+          expect(subscribeSpy).not.toHaveBeenCalled();
+          expect(loggerInfoSpy).not.toHaveBeenCalledWith('Fetched data from Home Assistant successfully');
+          await vi.waitFor(() => expect(haPlatform.haSubscriptionId).toBe(15), { timeout: 5000 });
+          expect(serviceRequests).toBe(2);
+          expect(fetchDataSpy).toHaveBeenCalledTimes(2);
+          expect(subscribeSpy).toHaveBeenCalledTimes(1);
+          expect(connectSpy).not.toHaveBeenCalled();
+          expect(haPlatform.ha.hassEntities.size).toBe(mockData.entities.length);
+        });
+      },
+    );
+  }, 10000);
+
+  it('should stop after three failed snapshots and never subscribe to a partial inventory', async () => {
+    const responses: Record<string, unknown> = {
+      'get_config': { ...mockData.config, state: 'RUNNING' },
+      'get_services': mockData.services,
+      'config/device_registry/list': mockData.devices,
+      'config/entity_registry/list': mockData.entities,
+      'get_states': mockData.states,
+      'config/area_registry/list': mockData.areas,
+    };
+    await fetchSpy.withImplementation(
+      async (type) => {
+        if (type === 'config/label_registry/list') throw new Error('Label registry unavailable');
+        return responses[type];
+      },
+      async () => {
+        await fetchDataSpy.withImplementation(originalFetchData, async () => {
+          haPlatform.ha.emit('connected', '2026.10.1');
+          await vi.waitFor(() => expect(loggerErrorSpy).toHaveBeenCalledWith('Error fetching data from Home Assistant: Label registry unavailable'), { timeout: 6000 });
+          expect(fetchDataSpy).toHaveBeenCalledTimes(3);
+          expect(haPlatform.haSubscriptionId).toBeNull();
+          expect(haPlatform.ha.hassDevices.size).toBe(0);
+          expect(haPlatform.ha.hassEntities.size).toBe(0);
+          expect(subscribeSpy).not.toHaveBeenCalled();
+          expect(loggerInfoSpy).not.toHaveBeenCalledWith('Fetched data from Home Assistant successfully');
+          await wait(2100);
+          expect(fetchDataSpy).toHaveBeenCalledTimes(3);
+        });
+      },
+    );
+  }, 10000);
+
+  it('should cancel a scheduled initialization retry when disconnected', async () => {
+    await fetchDataSpy.withImplementation(
+      async () => {
+        throw new Error('Temporary failure');
+      },
+      async () => {
+        haPlatform.ha.emit('connected', '2026.10.1');
+        await wait(100);
+        haPlatform.ha.emit('disconnected', 'Connection lost');
+        await wait(2100);
+        expect(fetchDataSpy).toHaveBeenCalledTimes(1);
+        expect(subscribeSpy).not.toHaveBeenCalled();
+        expect(haPlatform.haSubscriptionId).toBeNull();
+      },
+    );
+  });
+
+  it('should ignore an old initialization result after a replacement connection succeeds', async () => {
+    let finishOldFetch!: () => void;
+    fetchDataSpy.mockImplementationOnce(
+      async () =>
+        new Promise<void>((resolve) => {
+          finishOldFetch = resolve;
+        }),
+    );
+    haPlatform.ha.emit('connected', '2026.10.1');
+    haPlatform.ha.emit('disconnected', 'Connection lost');
+    haPlatform.ha.emit('connected', '2026.10.1');
+    await vi.waitFor(() => expect(haPlatform.haSubscriptionId).toBe(15));
+    finishOldFetch();
+    await wait(100);
+    expect(subscribeSpy).toHaveBeenCalledTimes(1);
+    expect(haPlatform.haSubscriptionId).toBe(15);
+  });
+
+  it('should ignore a late subscription response after disconnection', async () => {
+    let finishSubscription!: (id: number) => void;
+    subscribeSpy.mockImplementationOnce(
+      async () =>
+        new Promise<number>((resolve) => {
+          finishSubscription = resolve;
+        }),
+    );
+    haPlatform.ha.emit('connected', '2026.10.1');
+    await vi.waitFor(() => expect(subscribeSpy).toHaveBeenCalledTimes(1));
+    haPlatform.ha.emit('disconnected', 'Connection lost');
+    finishSubscription(99);
+    await wait(100);
+    expect(haPlatform.haSubscriptionId).toBeNull();
+    expect(loggerInfoSpy).not.toHaveBeenCalledWith('Subscribed to Home Assistant events successfully with id 99');
+  });
+
+  it('should cancel initialization retries when the platform shuts down', async () => {
+    const stoppingPlatform = initializePlugin(matterbridge, log, { ...mockConfig });
+    await fetchDataSpy.withImplementation(
+      async () => {
+        throw new Error('Temporary failure');
+      },
+      async () => {
+        stoppingPlatform.ha.emit('connected', '2026.10.1');
+        await wait(100);
+        await stoppingPlatform.onShutdown('Initialization cancellation test');
+        stoppingPlatform.ha.emit('connected', '2026.10.1');
+        await wait(2100);
+        expect(fetchDataSpy).toHaveBeenCalledTimes(1);
+        expect(subscribeSpy).not.toHaveBeenCalled();
+        expect(stoppingPlatform.haSubscriptionId).toBeNull();
+      },
+    );
+  });
+
+  it('should reject late initialization completion after the startup budget expires', async () => {
+    vi.useFakeTimers();
+    try {
+      let finish!: () => void;
+      fetchDataSpy.mockImplementationOnce(
+        async () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      haPlatform.ha.emit('connected', '2026.10.1');
+      await vi.advanceTimersByTimeAsync(105_000);
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Home Assistant initialization timed out');
+      finish();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(subscribeSpy).not.toHaveBeenCalled();
+      expect(haPlatform.haSubscriptionId).toBeNull();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('should receive events from ha', async () => {
     haPlatform.isConfigured = true;
     haPlatform.ha.emit('connected', '2024.09.1');
@@ -624,7 +785,8 @@ describe('HassPlatform', () => {
     haPlatform.ha.emit('connected', '2024.09.1');
     await wait(100);
     expect(loggerNoticeSpy).toHaveBeenCalledWith(`Connected to Home Assistant 2024.09.1`);
-    expect(loggerErrorSpy).toHaveBeenCalledWith(`Error fetching data from Home Assistant: FetchData failed`);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('FetchData failed. Retrying in 2 seconds'));
+    expect(subscribeSpy).not.toHaveBeenCalled();
 
     vi.clearAllMocks();
     subscribeSpy.mockImplementationOnce(async () => {
