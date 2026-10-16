@@ -21,6 +21,7 @@ import path from 'node:path';
 
 import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEndpoint, onOffPlugInUnit, windowCovering } from 'matterbridge';
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
+import type { ActionContext } from 'matterbridge/matter';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
@@ -545,6 +546,24 @@ describe('HassPlatform', () => {
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Subscribe handler: Endpoint switch.split_switch for device no-such-device not found: skipping it`);
 
     haPlatform.matterbridgeDevices.clear();
+  });
+
+  it.each([
+    { name: 'local actor without a fabric property', context: { offline: true }, forwarded: false },
+    { name: 'context with an undefined fabric', context: { fabric: undefined }, forwarded: false },
+    { name: 'remote actor with a fabric', context: { fabric: {} }, forwarded: true },
+  ])('should preserve update forwarding for a $name', ({ context, forwarded }) => {
+    const entity = { entity_id: 'fan.context_test', device_id: null } as HassEntity;
+    const endpoint = new MatterbridgeEndpoint(bridgedNode, { id: entity.entity_id }, true);
+    haPlatform.matterbridgeDevices.set(entity.entity_id, endpoint);
+    haPlatform.subscribeHandler(
+      entity,
+      { domain: 'fan', service: 'set_percentage', with: 'percentage', clusterId: FanControl.id, attribute: 'fanMode' },
+      50,
+      25,
+      context as unknown as ActionContext,
+    );
+    expect(callServiceSpy.mock.calls).toEqual(forwarded ? [['fan', 'set_percentage', entity.entity_id, { percentage: 50 }]] : []);
   });
 
   it('should call updateHandler', async () => {

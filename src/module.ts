@@ -1273,7 +1273,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.debug(`Subscribe handler: Endpoint ${entity.entity_id} for device ${entity.device_id} not found: skipping it`);
       return;
     }
-    if (context && !context.fabric) {
+    if (context && (!('fabric' in context) || !context.fabric)) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${getClusterNameById(hassSubscribe.clusterId)}${db}:${hk}${hassSubscribe.attribute}${db} ` +
           `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update: skipping it`,
