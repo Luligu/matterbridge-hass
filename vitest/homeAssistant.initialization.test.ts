@@ -1,6 +1,13 @@
 /**
  * Regression tests for complete, cancellable Home Assistant snapshots.
  */
+import { setTimeout as delay } from 'node:timers/promises';
+
+vi.mock('node:timers/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:timers/promises')>();
+  return { ...actual, setTimeout: vi.fn(actual.setTimeout) };
+});
+
 import { HomeAssistant, type HassConfig, type HassDevice, type HassEntity } from '../src/homeAssistant.js';
 
 describe('Home Assistant initialization snapshots', () => {
@@ -70,6 +77,19 @@ describe('Home Assistant initialization snapshots', () => {
     controller.abort();
     await expect(ha.fetchData(controller.signal)).rejects.toThrow();
     expect(ha.fetch).not.toHaveBeenCalled();
+  });
+
+  it('should reject a snapshot when Home Assistant never reaches RUNNING', async () => {
+    vi.mocked(ha.fetch).mockResolvedValue({ state: 'STARTING' });
+    await vi.mocked(delay).withImplementation(
+      async () => undefined,
+      async () => {
+        await expect(ha.fetchData()).rejects.toThrow('Home Assistant did not reach RUNNING');
+      },
+    );
+    expect(ha.fetch).toHaveBeenCalledTimes(101);
+    expect(ha.fetch).not.toHaveBeenCalledWith('get_services');
+    expect(ha.hassServices).toBeNull();
   });
 
   it('should cancel the wait for RUNNING promptly', async () => {

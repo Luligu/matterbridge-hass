@@ -755,8 +755,14 @@ describe('HassPlatform', () => {
       async () => {
         stoppingPlatform.ha.emit('connected', '2026.10.1');
         await wait(100);
-        await stoppingPlatform.onShutdown('Initialization cancellation test');
-        stoppingPlatform.ha.emit('connected', '2026.10.1');
+        await closeSpy.withImplementation(
+          async () => {
+            stoppingPlatform.ha.emit('connected', '2026.10.1');
+          },
+          async () => {
+            await stoppingPlatform.onShutdown('Initialization cancellation test');
+          },
+        );
         await wait(2100);
         expect(fetchDataSpy).toHaveBeenCalledTimes(1);
         expect(subscribeSpy).not.toHaveBeenCalled();
@@ -785,6 +791,40 @@ describe('HassPlatform', () => {
       expect(vi.getTimerCount()).toBe(0);
     } finally {
       vi.useRealTimers();
+    }
+  });
+
+  it.each([false, true])('should fail startup with no snapshot and cancel any pending fetch (connected: %s)', async (connected) => {
+    const startingPlatform = initializePlugin(matterbridge, log, { ...mockConfig });
+    const mkdir = vi.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
+    let finish!: () => void;
+    let signal: AbortSignal | undefined;
+    vi.useFakeTimers();
+    try {
+      await fetchDataSpy.withImplementation(
+        async (abortSignal) => {
+          signal = abortSignal;
+          await new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+        },
+        async () => {
+          const startup = startingPlatform.onStart('Incomplete snapshot').catch((error: unknown) => error);
+          await vi.advanceTimersByTimeAsync(0);
+          if (connected) startingPlatform.ha.emit('connected', '2026.10.1');
+          await vi.advanceTimersByTimeAsync(110_000);
+          expect(await startup).toBeInstanceOf(Error);
+          expect(signal?.aborted).toBe(connected ? true : undefined);
+          if (connected) finish();
+          await vi.advanceTimersByTimeAsync(0);
+          expect(subscribeSpy).not.toHaveBeenCalled();
+          expect(startingPlatform.haSubscriptionId).toBeNull();
+          expect(matterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
+        },
+      );
+    } finally {
+      vi.useRealTimers();
+      mkdir.mockRestore();
     }
   });
 
