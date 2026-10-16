@@ -796,7 +796,7 @@ describe('HassPlatform', () => {
 
   it.each([false, true])('should fail startup with no snapshot and cancel any pending fetch (connected: %s)', async (connected) => {
     const startingPlatform = initializePlugin(matterbridge, log, { ...mockConfig });
-    const mkdir = vi.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
+    const mkdir = vi.spyOn(fs.promises, 'mkdir').mockResolvedValue('mock-plugin-directory');
     let finish!: () => void;
     let signal: AbortSignal | undefined;
     vi.useFakeTimers();

@@ -82,7 +82,7 @@ describe('Home Assistant initialization snapshots', () => {
   it('should reject a snapshot when Home Assistant never reaches RUNNING', async () => {
     vi.mocked(ha.fetch).mockResolvedValue({ state: 'STARTING' });
     await vi.mocked(delay).withImplementation(
-      async () => undefined,
+      async () => {},
       async () => {
         await expect(ha.fetchData()).rejects.toThrow('Home Assistant did not reach RUNNING');
       },
