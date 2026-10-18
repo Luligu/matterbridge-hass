@@ -28,7 +28,6 @@ import {
   subscribeCommand,
   updateAttribute,
 } from 'matterbridge';
-
 import { LaundryWasher, RoboticVacuumCleaner } from 'matterbridge/devices';
 ```
 

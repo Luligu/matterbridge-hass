@@ -1,14 +1,13 @@
-// .oxfmtrc.json 1.1.0
+// .oxfmtrc.json 1.2.0
 
-// This Oxfmt configuration (shared between all matterbridge packages) is designed for a TypeScript project using ESM modules.
+// This Oxfmt configuration (shared between all matterbridge packages) is designed for a TypeScript project using ESM modules (Node.js) and a Vite/React/TypeScript frontend (browser).
 // Oxfmt respect .gitignore.
-// Package specific directories and files that should be ignored are merged from the .oxfmtignore files in each package.
+// Package specific directories and files that should be ignored are merged by mb-run --upgrade from the automator.ignore.oxfmt value in the root package.json.
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "ignorePatterns": [
     "**/.cache/**",
     "**/.git/**",
-    "apps/**",
     "**/build/**",
     "**/coverage/**",
     "**/dist/**",

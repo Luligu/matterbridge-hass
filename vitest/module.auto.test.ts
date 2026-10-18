@@ -131,14 +131,14 @@ describe('Matterbridge ' + NAME, () => {
     matterbridgeVersion: '3.10.10',
     log,
     addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await addDevice(aggregator, device, 1, 0);
+      await addDevice(aggregator, device, 1, 1, 1, 0);
     }),
     removeBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await deleteDevice(aggregator, device, 1, 0);
+      await deleteDevice(aggregator, device, 1, 1, 1, 0);
     }),
     removeAllBridgedEndpoints: vi.fn(async (pluginName: string) => {
       for (const device of aggregator.parts) {
-        await deleteDevice(aggregator, device, 1, 0);
+        await deleteDevice(aggregator, device, 1, 1, 1, 0);
       }
     }),
     addVirtualEndpoint: vi.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
@@ -146,7 +146,7 @@ describe('Matterbridge ' + NAME, () => {
       const device = new MatterbridgeEndpoint([mountedOnOffControl, onOffPlugInUnit], { id: name.replaceAll(' ', '') + ':' + type })
         .createDefaultBridgedDeviceBasicInformationClusterServer(name, createUniqueId(), VendorId(0xfff1), 'Matterbridge', 'Matterbridge Virtual Device')
         .addRequiredClusterServers();
-      await addDevice(aggregator, device, 1, 0);
+      await addDevice(aggregator, device, 1, 1, 1, 0);
     }),
   } as any;
 

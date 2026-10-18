@@ -1,4 +1,4 @@
-# Publish to npm (plugin) v. 2.0.6
+# Publish to npm (plugin) v. 2.0.7
 # Path: .github/workflows/publish.yml
 
 name: Publish to npm
@@ -79,9 +79,6 @@ jobs:
       - name: Typecheck the plugin
         run: npm run typecheck
 
-      - name: Lint the plugin
-        run: npm run lint
-
       - name: Check the plugin frontend
         id: check_frontend
         shell: bash
@@ -91,6 +88,9 @@ jobs:
         if: steps.check_frontend.outputs.has_frontend == 'true'
         working-directory: apps/frontend
         run: npm ci --no-fund --no-audit
+
+      - name: Lint the plugin
+        run: npm run lint
 
       - name: Build the frontend
         if: steps.check_frontend.outputs.has_frontend == 'true'
@@ -230,9 +230,6 @@ jobs:
       - name: Typecheck the plugin
         run: npm run typecheck
 
-      - name: Lint the plugin
-        run: npm run lint
-
       - name: Check the plugin frontend
         id: check_frontend
         shell: bash
@@ -242,6 +239,9 @@ jobs:
         if: steps.check_frontend.outputs.has_frontend == 'true'
         working-directory: apps/frontend
         run: npm ci --no-fund --no-audit
+
+      - name: Lint the plugin
+        run: npm run lint
 
       - name: Build the frontend
         if: steps.check_frontend.outputs.has_frontend == 'true'

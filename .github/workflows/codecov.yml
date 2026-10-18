@@ -1,4 +1,4 @@
-# Codecov (plugin) v. 2.0.7
+# Codecov (plugin) v. 2.0.8
 # Path: .github/workflows/codecov.yml
 
 name: Codecov
@@ -66,9 +66,6 @@ jobs:
       - name: Typecheck the plugin
         run: npm run typecheck
 
-      - name: Lint the plugin
-        run: npm run lint
-
       - name: Check the plugin frontend
         id: check_frontend
         shell: bash
@@ -78,6 +75,9 @@ jobs:
         if: steps.check_frontend.outputs.has_frontend == 'true'
         working-directory: apps/frontend
         run: npm ci --no-fund --no-audit
+
+      - name: Lint the plugin
+        run: npm run lint
 
       - name: Build the frontend
         if: steps.check_frontend.outputs.has_frontend == 'true'

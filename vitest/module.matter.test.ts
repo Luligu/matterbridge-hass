@@ -178,7 +178,7 @@ describe('Matterbridge ' + NAME, () => {
     matterbridgeVersion: '3.10.10',
     log,
     addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await addDevice(aggregator, device, 1, 0);
+      await addDevice(aggregator, device, 1, 1, 1, 0);
     }),
     removeBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: vi.fn(async (pluginName: string) => {}),

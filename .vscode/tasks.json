@@ -117,16 +117,32 @@
       "label": "Update",
       "detail": "Update the package with mb-run",
       "type": "shell",
-      "command": "mb-run",
-      "args": ["--update"],
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--update"],
       "problemMatcher": []
     },
     {
       "label": "Upgrade",
       "detail": "Upgrade the package with mb-run",
       "type": "shell",
-      "command": "mb-run",
-      "args": ["--upgrade"],
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--upgrade"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Install and Validate",
+      "detail": "Install dependencies, build, typecheck, lint, and format with mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--install", "--build", "--typecheck", "--lint", "--format"],
+      "problemMatcher": []
+    },
+    {
+      "label": "System info",
+      "detail": "Show system information with mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--info"],
       "problemMatcher": []
     },
     {
