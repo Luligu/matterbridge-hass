@@ -146,6 +146,138 @@
       "problemMatcher": []
     },
     {
+      "label": "Bundle",
+      "detail": "Bundle with esbuild using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--esbuild"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Minify",
+      "detail": "Bundle and minify with esbuild using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--esbuild", "minify"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Obfuscate",
+      "detail": "Bundle, minify and obfuscate with esbuild using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--esbuild", "minify", "obfuscate"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pack",
+      "detail": "Build and pack the package tarball using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--pack"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pack Minify",
+      "detail": "Build, minify and pack the package tarball using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--pack", "minify"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pack Obfuscate",
+      "detail": "Build, minify, obfuscate and pack the package tarball using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--pack", "minify", "obfuscate"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Ubuntu Install",
+      "detail": "Run an ubuntu:latest container on the host network with Node.js and bun",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--pull",
+        "always",
+        "--hostname",
+        "ubuntu",
+        "--name",
+        "ubuntu",
+        "--network",
+        "host",
+        "--entrypoint",
+        "bash",
+        "ubuntu:latest",
+        "-c",
+        "if [ ! -e /var/lib/matterbridge-install.done ]; then apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && curl -4 -fsSL https://matterbridge.io/scripts/install-debian.sh | bash || exit 1; fi; exec \"$@\"",
+        "_",
+        "bash"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Debian Install",
+      "detail": "Run a debian:latest container on the host network with Node.js and bun",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--pull",
+        "always",
+        "--hostname",
+        "debian",
+        "--name",
+        "debian",
+        "--network",
+        "host",
+        "--entrypoint",
+        "bash",
+        "debian:latest",
+        "-c",
+        "if [ ! -e /var/lib/matterbridge-install.done ]; then apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && curl -4 -fsSL https://matterbridge.io/scripts/install-debian.sh | bash || exit 1; fi; exec \"$@\"",
+        "_",
+        "bash"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Alpine Install",
+      "detail": "Run an alpine:latest container on the host network with Node.js and bun",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--pull",
+        "always",
+        "--hostname",
+        "alpine",
+        "--name",
+        "alpine",
+        "--network",
+        "host",
+        "--entrypoint",
+        "sh",
+        "alpine:latest",
+        "-c",
+        "if [ ! -e /var/lib/matterbridge-install.done ]; then apk add --no-cache curl && curl -4 -fsSL https://matterbridge.io/scripts/install-alpine.sh | sh || exit 1; fi; exec \"$@\"",
+        "_",
+        "bash"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "Git Status",
       "detail": "Run Git Status Script",
       "type": "shell",

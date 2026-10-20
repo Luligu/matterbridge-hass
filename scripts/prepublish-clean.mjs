@@ -1,12 +1,12 @@
 /**
  * prepublish-clean.mjs
- * Version: 2.0.0
+ * Version: 2.1.0
  *
  * Dependency-free replacement for:
- *   npx shx rm -rf node_modules/* node_modules/.[!.]* node_modules/..?* package-lock.json npm-shrinkwrap.json
+ *   npx shx rm -rf node_modules/* node_modules/.[!.]* node_modules/..?* bun.lock package-lock.json npm-shrinkwrap.json
  *
  * Empties the contents of node_modules (including dotfiles) while keeping the directory,
- * then removes the lock files.
+ * then removes the lock files (bun.lock, package-lock.json and npm-shrinkwrap.json).
  *
  * With `--workspaces`, it first cleans the root directory and then cleans every
  * workspace listed in the root package.json `workspaces` array. Simple workspace
@@ -26,7 +26,7 @@
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
-const scriptVersion = '2.0.0';
+const scriptVersion = '2.1.0';
 
 /**
  * Builds the help text.
@@ -93,6 +93,7 @@ const clean = (dir, dryRun) => {
   }
 
   // Fully remove the lock files.
+  rm(dir, 'bun.lock', dryRun);
   rm(dir, 'package-lock.json', dryRun);
   rm(dir, 'npm-shrinkwrap.json', dryRun);
 };

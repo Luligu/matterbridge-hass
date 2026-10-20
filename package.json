@@ -114,8 +114,8 @@
     "format:check": "oxfmt --check",
     "reset": "npm run deepClean && npm run softReset",
     "softReset": "npm install --no-fund --no-audit && npm prune --no-fund --no-audit && npm link --no-fund --no-audit matterbridge && npm run build && npm run typecheck",
-    "checkDependencies": "npx --yes --package npm-check-updates ncu",
-    "updateDependencies": "npx --yes --package npm-check-updates ncu -u && npm run softReset",
+    "checkDependencies": "npx --yes --package npm-check-updates@latest ncu",
+    "updateDependencies": "npx --yes --package npm-check-updates@latest ncu -u && npm run softReset",
     "runMeBeforePublish": "npm run cleanBuild && npm run format && npm run lint && npm run build && npm run typecheck && npm run test:coverage",
     "prepublishOnly": "npm run cleanBuildProduction && npm pkg delete devDependencies scripts automator && node scripts/prepublish-clean.mjs && npm install --no-fund --no-audit --omit=dev && npm shrinkwrap --omit=dev"
   },
@@ -128,8 +128,8 @@
     "@types/node": "26.6.5",
     "@types/ws": "8.18.2",
     "@vitest/coverage-v8": "5.0.5",
-    "oxfmt": "0.73.0",
-    "oxlint": "1.88.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
     "oxlint-tsgolint": "7.0.2004",
     "typescript": "7.0.2",
     "vitest": "5.0.5"
