@@ -190,7 +190,7 @@ describe('Matterbridge ' + NAME, () => {
 
   beforeAll(async () => {
     // Create the test environment
-    await createTestEnvironment();
+    await createTestEnvironment('warn');
     // Create the server node and aggregator
     await createServerNode(MATTER_PORT);
   });
