@@ -275,7 +275,6 @@ export function addControlEntity(
   // Configure the remote.
   if (domain === 'remote') {
     platform.log.debug(`= remote device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db}`);
-    mutableDevice.addOnOff(endpointName, true);
   }
 
   // Configure the media_player.

@@ -17,7 +17,7 @@ import {
   waterValve,
   windowCovering,
 } from 'matterbridge';
-import { LevelControl } from 'matterbridge/matter/clusters';
+import { LevelControl, OnOff } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from '../src/control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from '../src/converters.js';
@@ -351,7 +351,8 @@ describe('addControlEntity', () => {
     const ep = addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
 
     expect(ep).toBe(e.entity_id);
-    expect(md.addOnOff).toHaveBeenCalledWith(e.entity_id, true);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, OnOff.id);
+    expect(md.addOnOff).not.toHaveBeenCalled();
   });
 
   it('configures media players with playback and keypad support', () => {

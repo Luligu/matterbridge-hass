@@ -30,6 +30,7 @@ import {
   CarbonDioxideConcentrationMeasurement,
   CarbonMonoxideConcentrationMeasurement,
   ColorControl,
+  Descriptor,
   DoorLock,
   ElectricalEnergyMeasurement,
   ElectricalPowerMeasurement,
@@ -190,7 +191,7 @@ describe('Matterbridge ' + NAME, () => {
 
   beforeAll(async () => {
     // Create the test environment
-    await createTestEnvironment('warn');
+    await createTestEnvironment();
     // Create the server node and aggregator
     await createServerNode(MATTER_PORT);
   });
@@ -956,6 +957,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(child1.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(child2.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    // The two OnOffPlugInUnit siblings get a Common Number tag labeled with the friendly name (Matter 1.6.1)
+    expect(child1.getAttribute(Descriptor.id, 'tagList')).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Switch 1' }]);
+    expect(child2.getAttribute(Descriptor.id, 'tagList')).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Switch 2' }]);
 
     vi.clearAllMocks();
     await haPlatform.onConfigure();
@@ -2191,6 +2195,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(device.getAttribute(SmokeCoAlarm.id, 'smokeState')).toBe(SmokeCoAlarm.ExpressedState.Normal);
+    // No battery entity: create() adds a battery PowerSource with unknown level (Matter 1.6.1)
+    expect(device.getAttribute(PowerSource.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
+    expect(device.getAttribute(PowerSource.id, 'batPercentRemaining')).toBeNull();
     expect(device.getAttribute(SmokeCoAlarm.id, 'coState')).toBe(undefined);
     expect(addClusterServerSmokeAlarmSmokeCoAlarmSpy).toHaveBeenCalledWith(smokeDeviceEntity.entity_id, SmokeCoAlarm.ExpressedState.Normal);
 

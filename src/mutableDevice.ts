@@ -48,6 +48,8 @@ import {
   onOffLightSwitch,
   onOffPlugInUnit,
   type PlatformMatterbridge,
+  powerSource,
+  smokeCoAlarm,
 } from 'matterbridge';
 import {
   MatterbridgeKeypadInputServer,
@@ -78,7 +80,7 @@ import {
   Thermostat,
   ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
-import { type ClusterId, getClusterNameById, type Semtag, VendorId } from 'matterbridge/matter/types';
+import { type ClusterId, getClusterNameById, Namespace, type Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
 
 interface ClusterServerObj {
@@ -988,6 +990,12 @@ export class MutableDevice {
    * @returns {MatterbridgeEndpoint} The main MatterbridgeEndpoint.
    */
   create(remap: boolean = false): MatterbridgeEndpoint {
+    // Matter 1.6.1 requires a PowerSource device type in a SmokeCoAlarm device: add a battery one with unknown level when missing
+    const deviceTypes = new Set(Array.from(this.mutableDevices.values()).flatMap((device) => device.deviceTypes));
+    if (deviceTypes.has(smokeCoAlarm) && !deviceTypes.has(powerSource)) {
+      this.addDeviceTypes('', powerSource);
+      this.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, null);
+    }
     // Remove duplicates and superset device types on all endpoints
     this.removeDuplicatedAndSupersetDeviceTypes();
     // With remap add all required cluster server to the child endpoints
@@ -1057,12 +1065,38 @@ export class MutableDevice {
         }
       }
     }
+    this.addSiblingTagLists();
     this.createMainEndpoint();
     this.createChildEndpoints();
     for (const [endpoint] of this.mutableDevices) {
       this.createClusters(endpoint);
     }
     return this.getEndpoint();
+  }
+
+  private addSiblingTagLists(): this {
+    // Matter 1.6.1 requires a tagList on sibling child endpoints with the same device type: add a Common Number tag labeled with the friendly name
+    const children = Array.from(this.mutableDevices.entries())
+      .filter(([endpoint]) => endpoint !== '')
+      .map(([_endpoint, device]) => device);
+    for (const device of children.filter((child) => child.tagList.length === 0)) {
+      const deviceType = device.deviceTypes.find((type) => children.some((sibling) => sibling !== device && sibling.deviceTypes.some((t) => t.code === type.code)));
+      if (!deviceType) continue;
+      // Skip the Common Number tags already used by the siblings with the same device type, explicit or generated
+      const used = new Set(
+        children
+          .filter((sibling) => sibling.deviceTypes.some((t) => t.code === deviceType.code))
+          .flatMap((sibling) => sibling.tagList)
+          .filter((tag) => tag.namespaceId === Namespace.CommonNumber)
+          .map((tag) => tag.tag),
+      );
+      let number = 1;
+      while (used.has(number)) number++;
+      // The Common Number namespace has only the tags 0 to 30
+      if (number > 30) continue;
+      device.tagList.push({ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: number, label: device.friendlyName.slice(0, 64) });
+    }
+    return this;
   }
 
   private removeDuplicatedAndSupersetDeviceTypes(): this {
