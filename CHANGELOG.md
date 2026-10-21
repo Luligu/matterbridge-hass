@@ -32,7 +32,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Breaking changes
 
-- [matterbridge]: Require matterbridge v.3.10.10 with matter v.1.6.0.
+- [matterbridge]: Require matterbridge v.3.11.0 with matter v.1.6.1.
 
 ### Added
 
