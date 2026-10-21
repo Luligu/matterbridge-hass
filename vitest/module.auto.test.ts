@@ -128,7 +128,7 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.10.10',
+    matterbridgeVersion: '3.11.0',
     log,
     addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       await addDevice(aggregator, device, 1, 1, 1, 0);
