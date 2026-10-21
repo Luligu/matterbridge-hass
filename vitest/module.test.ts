@@ -189,7 +189,7 @@ describe('HassPlatform', () => {
 
   beforeAll(async () => {
     // Create the test environment
-    await createTestEnvironment('warn');
+    await createTestEnvironment();
     // Create the server node and aggregator
     await createServerNode(MATTER_PORT);
   });
