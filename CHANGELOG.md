@@ -75,8 +75,9 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [vacuum]: Add a `Vacuum Max` clean mode and the `Auto` tag to `Vacuum`: Matter 1.6.1 requires 2 to 255 RVC clean modes.
 - [remote]: Keep the `Lighting` feature of OnOff on remote entities: Matter 1.6.1 requires it on OnOffPlugInUnit.
-- [smoke]: Add a battery PowerSource with unknown level to Smoke CO Alarm devices without one: Matter 1.6.1 requires a PowerSource device type.
+- [smoke]: Add a battery PowerSource with unknown level to every Smoke CO Alarm endpoint: Matter 1.6.1 requires a PowerSource device type in its composition.
 - [device]: Add a Common Number tag, labeled with the friendly name, to sibling child endpoints with the same device type: Matter 1.6.1 requires a tagList on them.
+- [light]: Remove the ExtendedColorLight device type from color temperature only lights that report `hs_color`, `rgb_color` or `xy_color`: Matter 1.6.1 requires the XY feature on it.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

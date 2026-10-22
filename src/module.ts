@@ -746,7 +746,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
               const domain = entity.entity_id.split('.')[0];
               if (domain !== 'vacuum' && mutableDevice.has(entity.entity_id)) {
-                this.log.warn(`Device ${dn}${device.name}${wr} has more entities with enabled server RVC. Please filter out or unselect all other entities.`);
+                this.log.warn(`Device "${CYAN}${device.name}${wr}" has more entities with enabled server RVC. Please filter out or unselect all other entities.`);
               }
             }
           }

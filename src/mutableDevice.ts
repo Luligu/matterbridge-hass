@@ -48,8 +48,6 @@ import {
   onOffLightSwitch,
   onOffPlugInUnit,
   type PlatformMatterbridge,
-  powerSource,
-  smokeCoAlarm,
 } from 'matterbridge';
 import {
   MatterbridgeKeypadInputServer,
@@ -990,12 +988,6 @@ export class MutableDevice {
    * @returns {MatterbridgeEndpoint} The main MatterbridgeEndpoint.
    */
   create(remap: boolean = false): MatterbridgeEndpoint {
-    // Matter 1.6.1 requires a PowerSource device type in a SmokeCoAlarm device: add a battery one with unknown level when missing
-    const deviceTypes = new Set(Array.from(this.mutableDevices.values()).flatMap((device) => device.deviceTypes));
-    if (deviceTypes.has(smokeCoAlarm) && !deviceTypes.has(powerSource)) {
-      this.addDeviceTypes('', powerSource);
-      this.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, null);
-    }
     // Remove duplicates and superset device types on all endpoints
     this.removeDuplicatedAndSupersetDeviceTypes();
     // With remap add all required cluster server to the child endpoints

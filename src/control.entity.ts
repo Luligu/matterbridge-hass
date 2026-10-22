@@ -25,7 +25,7 @@
 /* oxlint-disable typescript/restrict-template-expressions */
 
 import { colorTemperatureLight, dimmableLight, extendedColorLight, type MatterbridgeEndpoint, type PrimitiveTypes } from 'matterbridge';
-import { CYAN, db, debugStringify } from 'matterbridge/logger';
+import { CYAN, db, debugStringify, nf, wr } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
 import { LevelControl } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
@@ -109,11 +109,11 @@ export function addControlEntity(
   if (state.state === 'unavailable') {
     const cachedState = platform.stateCache.get(entity.entity_id);
     if (cachedState) {
-      platform.log.info(`Entity ${CYAN}${entity.entity_id}${db} is unavailable, using cached state and attributes`);
+      platform.log.info(`Entity ${CYAN}${entity.entity_id}${nf} is unavailable, using cached state and attributes`);
       // oxlint-disable-next-line no-param-reassign
       state = cachedState;
     } else {
-      platform.log.warn(`Entity ${CYAN}${entity.entity_id}${db} is unavailable and no cached state found`);
+      platform.log.warn(`Entity ${CYAN}${entity.entity_id}${wr} is unavailable and no cached state found`);
     }
   }
   // Add device type and clusterIds for supported domain of the current entity.
@@ -168,6 +168,9 @@ export function addControlEntity(
     if (isValidArray(state.attributes['supported_color_modes']) && !state.attributes['supported_color_modes'].includes(ColorMode.XY) && !state.attributes['supported_color_modes'].includes(ColorMode.HS) && !state.attributes['supported_color_modes'].includes(ColorMode.RGB) &&
       !state.attributes['supported_color_modes'].includes(ColorMode.RGBW) && !state.attributes['supported_color_modes'].includes(ColorMode.RGBWW) && state.attributes['supported_color_modes'].includes(ColorMode.COLOR_TEMP)
     ) {
+      // Home Assistant reports hs_color, rgb_color and xy_color also on color_temp only lights: keep only the ColorTemperatureLight device type.
+      const device = mutableDevice.get(endpointName);
+      device.deviceTypes = device.deviceTypes.filter((deviceType) => deviceType.code !== extendedColorLight.code);
       mutableDevice.addClusterServerColorTemperatureColorControl(endpointName, minMireds, maxMireds);
     } else {
       mutableDevice.addClusterServerColorControl(endpointName, minMireds, maxMireds);

@@ -2195,7 +2195,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(device.getAttribute(SmokeCoAlarm.id, 'smokeState')).toBe(SmokeCoAlarm.ExpressedState.Normal);
-    // No battery entity: create() adds a battery PowerSource with unknown level (Matter 1.6.1)
+    // No battery entity: the SmokeCoAlarm endpoint gets a battery PowerSource with unknown level (Matter 1.6.1)
     expect(device.getAttribute(PowerSource.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
     expect(device.getAttribute(PowerSource.id, 'batPercentRemaining')).toBeNull();
     expect(device.getAttribute(SmokeCoAlarm.id, 'coState')).toBe(undefined);
