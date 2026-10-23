@@ -30,6 +30,7 @@ import {
   CarbonDioxideConcentrationMeasurement,
   CarbonMonoxideConcentrationMeasurement,
   ColorControl,
+  Descriptor,
   DoorLock,
   ElectricalEnergyMeasurement,
   ElectricalPowerMeasurement,
@@ -56,9 +57,23 @@ import {
   TotalVolatileOrganicCompoundsConcentrationMeasurement,
   ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
+import { flushAsync } from 'matterbridge/test-utils';
 import {
-  flushAsync,
+  getMoveToColorRequest,
+  getMoveToColorTemperatureRequest,
+  getMoveToHueAndSaturationRequest,
+  getMoveToHueRequest,
+  getMoveToLevelRequest,
+  getMoveToSaturationRequest,
+} from 'matterbridge/test-utils/matter';
+import {
   HOMEDIR,
+  addDevice,
+  aggregator,
+  createServerNode,
+  createTestEnvironment,
+  destroyTestEnvironment,
+  flushServerNode,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -66,26 +81,12 @@ import {
   loggerInfoSpy,
   loggerLogSpy,
   loggerWarnSpy,
+  server,
   setDebug,
   setupTest,
-} from 'matterbridge/vitest-utils';
-import {
-  addDevice,
-  aggregator,
-  createServerNode,
-  createTestEnvironment,
-  destroyTestEnvironment,
-  flushServerNode,
-  getMoveToColorRequest,
-  getMoveToColorTemperatureRequest,
-  getMoveToHueAndSaturationRequest,
-  getMoveToHueRequest,
-  getMoveToLevelRequest,
-  getMoveToSaturationRequest,
-  server,
   startServerNode,
   stopServerNode,
-} from 'matterbridge/vitest-utils/matter';
+} from 'matterbridge/test-utils/vitest';
 
 import { miredsToKelvin } from '../src/converters.js';
 import { ColorMode, type HassConfig, type HassContext, type HassDevice, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
@@ -175,10 +176,10 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.10.6',
+    matterbridgeVersion: '3.11.0',
     log,
     addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await addDevice(aggregator, device, 1, 0);
+      await addDevice(aggregator, device, 1, 1, 1, 0);
     }),
     removeBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {}),
     removeAllBridgedEndpoints: vi.fn(async (pluginName: string) => {}),
@@ -956,6 +957,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(child1.getAttribute(OnOff.id, 'onOff')).toBe(false);
     expect(child2.getAttribute(OnOff.id, 'onOff')).toBe(false);
+    // The two OnOffPlugInUnit siblings get a Common Number tag labeled with the friendly name (Matter 1.6.1)
+    expect(child1.getAttribute(Descriptor.id, 'tagList')).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Switch 1' }]);
+    expect(child2.getAttribute(Descriptor.id, 'tagList')).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Switch 2' }]);
 
     vi.clearAllMocks();
     await haPlatform.onConfigure();
@@ -2191,6 +2195,9 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(device.getAttribute(SmokeCoAlarm.id, 'smokeState')).toBe(SmokeCoAlarm.ExpressedState.Normal);
+    // No battery entity: the SmokeCoAlarm endpoint gets a battery PowerSource with unknown level (Matter 1.6.1)
+    expect(device.getAttribute(PowerSource.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
+    expect(device.getAttribute(PowerSource.id, 'batPercentRemaining')).toBeNull();
     expect(device.getAttribute(SmokeCoAlarm.id, 'coState')).toBe(undefined);
     expect(addClusterServerSmokeAlarmSmokeCoAlarmSpy).toHaveBeenCalledWith(smokeDeviceEntity.entity_id, SmokeCoAlarm.ExpressedState.Normal);
 

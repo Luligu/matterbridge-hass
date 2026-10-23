@@ -28,6 +28,60 @@ If you like this project and find it useful, please consider giving it a star on
 
 > WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
 
+## [1.6.0] - 2026-10-23
+
+### Breaking changes
+
+- [matterbridge]: Require matterbridge v.3.11.0 with matter v.1.6.1.
+- [node]: Drop Node.js 20 support, matching matterbridge v.3.11.0. Supported versions are Node.js 22.13, 24 and 26.
+
+### Added
+
+- [devcontainer]: Add [`Dev Container`](.devcontainer/README.md) v.2.2.0 with dual Node and Bun runtime support.
+- [agents]: Add a [`shared setup`](.agents/README.md) for all agents: OpenAI Codex, Claude Code, GitHub Copilot and Google Gemini / Antigravity.
+- [agents]: Add [`commit message instructions`](.github/commit-message-instructions.md) v.1.0.0 for the VS Code Copilot "Generate Commit Message" button (Conventional Commits).
+- [agents]: Add the Copilot `Matterbridge` custom agent (`.github/agents/matterbridge.agent.md`) that works without subagents.
+
+### Changed
+
+- [test]: Migrate tests from `matterbridge/vitest-utils` to the unified `matterbridge/test-utils`.
+- [test]: Pass the new `ticks` and `microTurns` arguments to `addDevice()` and `deleteDevice()`.
+- [styleguide]: Update [`STYLEGUIDE.md`](STYLEGUIDE.md) to v.1.1.0: align it with the lint and format config and add the Commit Messages and Changelog sections.
+- [agents]: Update the shared agent setup: `AGENTS.md`, `CLAUDE.md` and `.github/copilot-instructions.md` to v.1.0.7, `GEMINI.md` to v.1.0.1 and `.agents/README.md` to v.1.0.4.
+- [agents]: Update the `testing` rules to v.1.0.7, the `matterbridge` rules to v.1.0.3 and the `verify-agent-context` skill to v.1.0.5.
+- [agents]: Update `.claude/settings.json` to v.1.0.9, `.antigravity/settings.json` to v.1.0.6 (allow read-only Git commands) and `.codex/rules/default.rules` to v.1.0.7.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.16: configure commit message instructions, exclude templates from Vitest discovery and refine terminal command approvals.
+- [vscode]: Add Bundle, Minify, Obfuscate, Pack and Docker install tasks to `.vscode/tasks.json`.
+- [gitignore]: Update `.gitignore` to v.1.0.5: ignore `tmp/`, `.DS_Store` and Windows `Zone.Identifier` files.
+- [lint]: Update `.oxlintrc.json` and `.oxfmtrc.json` to v.1.2.0: align shared ignore patterns.
+- [vitest]: Replace `vite.config.ts` with `vitest.config.ts` v.2.0.9 and update test and coverage exclusions.
+- [scripts]: Update `scripts/clean.mjs` and `scripts/deep-clean.mjs` to v.2.0.0: log removed paths, add dry-run support and expose importable entry points.
+- [scripts]: Update release, download, Git status, Git sync, prepublish, pruning, workflow cleanup and version helpers to v.2.0.0 with CLI previews and importable entry points.
+- [scripts]: Update `scripts/deep-clean.mjs` and `scripts/prepublish-clean.mjs` to v.2.1.0: also remove `tmp/` and `bun.lock`.
+- [package]: Remove the `softReset:bun` script.
+- [package]: Run `checkDependencies` and `updateDependencies` with `npx npm-check-updates@latest`.
+- [package]: Upgrade package.
+- [package]: Bump `node-ansi-logger` to v.3.3.1.
+- [package]: Bump `node-persist-manager` to v.2.1.1.
+- [package]: Bump `oxfmt` to v.0.74.0.
+- [package]: Bump `oxlint` to v.1.89.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2004.
+- [package]: Bump `vitest` to v.5.0.5.
+- [package]: Bump `@vitest/coverage-v8` to v.5.0.5.
+- [package]: Bump `@types/node` to v.26.6.5.
+- [package]: Bump `ws` to v.8.22.0.
+- [package]: Bump `@types/ws` to v.8.18.2.
+
+### Fixed
+
+- [vacuum]: Add a `Vacuum Max` clean mode and the `Auto` tag to `Vacuum`: Matter 1.6.1 requires 2 to 255 RVC clean modes.
+- [remote]: Keep the `Lighting` feature of OnOff on remote entities: Matter 1.6.1 requires it on OnOffPlugInUnit.
+- [smoke]: Add a battery PowerSource with unknown level to every Smoke CO Alarm endpoint: Matter 1.6.1 requires a PowerSource device type in its composition.
+- [device]: Add a Common Number tag, labeled with the friendly name, to sibling child endpoints with the same device type: Matter 1.6.1 requires a tagList on them.
+- [light]: Remove the ExtendedColorLight device type from color temperature only lights that report `hs_color`, `rgb_color` or `xy_color`: Matter 1.6.1 requires the XY feature on it.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.5.0] - 2026-08-28
 
 ### Breaking changes

@@ -23,10 +23,13 @@ import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEnd
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
 import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
 import { EndpointNumber } from 'matterbridge/matter/types';
-import { wait } from 'matterbridge/utils';
+import { flushAsync } from 'matterbridge/test-utils';
 import {
-  flushAsync,
   HOMEDIR,
+  createServerNode,
+  createTestEnvironment,
+  destroyTestEnvironment,
+  flushServerNode,
   log,
   loggerDebugSpy,
   loggerErrorSpy,
@@ -36,8 +39,8 @@ import {
   loggerWarnSpy,
   setDebug,
   setupTest,
-} from 'matterbridge/vitest-utils';
-import { createServerNode, createTestEnvironment, destroyTestEnvironment, flushServerNode } from 'matterbridge/vitest-utils/matter';
+} from 'matterbridge/test-utils/vitest';
+import { wait } from 'matterbridge/utils';
 
 import { type HassArea, type HassConfig, type HassDevice, type HassEntity, type HassLabel, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
@@ -91,6 +94,25 @@ const { default: initializePlugin, HomeAssistantPlatform } = await import('../sr
 // Setup the test environment
 await setupTest(NAME, false);
 
+/**
+ * Executes the `on` command handler with a faked `setTimeout`, so the 500 ms revert of momentary entities runs inside the test.
+ *
+ * @param {MatterbridgeEndpoint} device - The endpoint to send the command to.
+ * @param {boolean} reverts - Whether the entity reverts to off after the command.
+ */
+async function executeOnCommand(device: MatterbridgeEndpoint, reverts: boolean): Promise<void> {
+  vi.useFakeTimers({ toFake: ['setTimeout'] });
+  try {
+    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    expect(vi.getTimerCount()).toBe(reverts ? 1 : 0);
+    setAttributeMatterbridgeEndpointSpy.mockClear();
+    vi.runOnlyPendingTimers();
+  } finally {
+    vi.useRealTimers();
+  }
+  expect(setAttributeMatterbridgeEndpointSpy.mock.calls.map(([, attribute, value]) => [attribute, value])).toEqual(reverts ? [['onOff', false]] : []);
+}
+
 describe('HassPlatform', () => {
   let haPlatform: HomeAssistantPlatformType;
 
@@ -111,7 +133,7 @@ describe('HassPlatform', () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.10.6',
+    matterbridgeVersion: '3.11.0',
     log,
     addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
       console.log(`Mocked Matterbridge.addBridgedEndpoint: ${pluginName} ${device.name}`);
@@ -255,7 +277,7 @@ describe('HassPlatform', () => {
   });
 
   it('should not initialize platform with wrong version', () => {
-    expect(() => new HomeAssistantPlatform({ ...matterbridge, matterbridgeVersion: '3.8.0' }, log, mockConfig)).toThrow('This plugin requires Matterbridge version >= "3.10.6".');
+    expect(() => new HomeAssistantPlatform({ ...matterbridge, matterbridgeVersion: '3.8.0' }, log, mockConfig)).toThrow('This plugin requires Matterbridge version >= "3.11.0".');
   });
 
   it('should validate with white and black list', () => {
@@ -443,6 +465,17 @@ describe('HassPlatform', () => {
     );
     expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}moveToLevelWithOnOff${rs}${wr} not supported`));
     expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
+
+    // Light off and minLevel undefined => fallback to minLevel 1
+    vi.clearAllMocks();
+    const getAttribute = child3.getAttribute.bind(child3);
+    const getAttributeSpy = vi
+      .spyOn(child3, 'getAttribute')
+      .mockImplementation(((cluster: any, attribute: string, log?: any) =>
+        attribute === 'onOff' ? false : attribute === 'minLevel' ? undefined : getAttribute(cluster, attribute, log)) as any);
+    await haPlatform.commandHandler({ endpoint: child3, request: { level: 100 }, cluster: 'levelControl', attributes: {} }, 'light.light_light_3', 'moveToLevelWithOnOff');
+    expect(callServiceSpy).toHaveBeenCalledWith('light', 'turn_on', 'light.light_light_3', expect.objectContaining({ brightness: 100 }));
+    getAttributeSpy.mockRestore();
 
     vi.clearAllMocks();
     await haPlatform.commandHandler(
@@ -983,7 +1016,7 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await executeOnCommand(device, true);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     vi.clearAllMocks();
@@ -1032,7 +1065,7 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await executeOnCommand(device, true);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     vi.clearAllMocks();
@@ -1077,7 +1110,7 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await executeOnCommand(device, true);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     vi.clearAllMocks();
@@ -1122,7 +1155,7 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await executeOnCommand(device, false);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     vi.clearAllMocks();
@@ -1167,7 +1200,7 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await executeOnCommand(device, true);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     vi.clearAllMocks();
@@ -1212,7 +1245,7 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await executeOnCommand(device, true);
 
     vi.clearAllMocks();
     await haPlatform.onConfigure();
@@ -1257,7 +1290,7 @@ describe('HassPlatform', () => {
     expect(device).toBeDefined();
     if (!device) return;
     expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
-    await device.executeCommandHandler('on', {}, 'onOff', {} as any, device);
+    await executeOnCommand(device, false);
     await device.executeCommandHandler('off', {}, 'onOff', {} as any, device);
 
     vi.clearAllMocks();
@@ -2151,7 +2184,7 @@ describe('HassPlatform', () => {
     expect(child).toBeDefined();
     if (!child) return;
     */
-    await mbdevice.executeCommandHandler('on', {}, 'onOff', {} as any, mbdevice);
+    await executeOnCommand(mbdevice, false);
     await mbdevice.executeCommandHandler('off', {}, 'onOff', {} as any, mbdevice);
   });
 

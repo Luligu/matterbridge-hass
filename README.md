@@ -403,37 +403,70 @@ See also the [Style Guide](./STYLEGUIDE.md) for JSDoc, naming, and logging conve
 - **Much faster builds** — tsgo compiles the project in a fraction of the time required by the standard `tsc` build.
 - **Editor support** — use the VS Code extensions for tsgo and oxc to get the same experience in the editor.
 
-## Copilot instructions
+## Shared agent instructions
+
+All coding agents read the same guidance. [AGENTS.md](./AGENTS.md) and [.agents/](./.agents/) are the **single source of truth**; everything under `.github/`, `.claude/`, `.codex/` and `.antigravity/` are pointers and mirrors. Edit `.agents/` (or `AGENTS.md`), never the copies. See [.agents/README.md](./.agents/README.md) for the full layout.
+
+| File                                            | Notes                                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `AGENTS.md`                                     | Main project instructions — shared by every agent                                                            |
+| `.agents/README.md`                             | Layout and versioning of the shared instructions                                                             |
+| `.agents/rules/testing.instructions.md`         | Testing standards for unit tests                                                                             |
+| `.agents/rules/matterbridge.instructions.md`    | Creating endpoints and using the single-class devices                                                        |
+| `.agents/rules/plugin-frontend.instructions.md` | Serving a plugin's own frontend SPA and REST API                                                             |
+| `.agents/rules/chip-tests.instructions.md`      | The CHIP conformance test harness                                                                            |
+| `.agents/skills/verify-agent-context/SKILL.md`  | Verify the agent loaded this context — `$verify-agent-context` (Codex), `/verify-agent-context` (all others) |
+
+Content lives only in `.agents/`. The per-agent folders exist because each tool discovers rules and skills from its own hardcoded location, so they hold stubs that point back here — except where the tool reads `.agents/` natively.
+
+| Tool                               | Instructions                                    | Rules                                                 | Skills                                              |
+| ---------------------------------- | ----------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------- |
+| Codex                              | `AGENTS.md` — read natively                     | `.agents/rules/` — linked from `AGENTS.md`, on demand | `.agents/skills/` — native, `$verify-agent-context` |
+| Copilot (VS Code and coding agent) | `.github/copilot-instructions.md` → `AGENTS.md` | stubs in `.github/instructions/` — `applyTo` globs    | stub in `.github/skills/` — `/verify-agent-context` |
+| Claude Code                        | `CLAUDE.md` imports `AGENTS.md`                 | stubs in `.claude/rules/` — `paths` globs             | stub in `.claude/skills/` — `/verify-agent-context` |
+| Gemini / Antigravity               | `GEMINI.md` imports `AGENTS.md`                 | `.agents/rules/` — on demand                          | `.agents/skills/` — native, `/verify-agent-context` |
+
+### Copilot instructions
 
 | File                                                                   | Notes                                                                              |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `.github/copilot-instructions.md`                                      | Main project instructions — always loaded                                          |
+| `.github/copilot-instructions.md`                                      | Pointer to AGENTS.md — always loaded                                               |
 | `.github/instructions/chip-tests/chip-tests.instructions.md`           | CHIP conformance test harness — scoped to CHIP test files                          |
 | `.github/instructions/matterbridge/matterbridge.instructions.md`       | Matterbridge endpoint guide — dedicated Copilot instruction file                   |
 | `.github/instructions/plugin-frontend/plugin-frontend.instructions.md` | Plugin frontend SPA and custom REST API guide — scoped to frontend and plugin code |
-| `.github/instructions/testing/unit-tests.instructions.md`              | Testing standards — scoped to `**/*.test.ts`                                       |
+| `.github/instructions/testing/testing.instructions.md`                 | Testing standards — scoped to `**/*.test.ts`                                       |
+| `.github/skills/verify-agent-context/SKILL.md`                         | Skill invocable as `/verify-agent-context`                                         |
 
-## Claude instructions
+### Claude instructions
 
 | File                                                            | Notes                                                                              |
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `CLAUDE.md`                                                     | Main project instructions — always loaded                                          |
+| `CLAUDE.md`                                                     | Pointer to AGENTS.md — always loaded                                               |
+| `.claude/settings.json`                                         | Claude permissions: allow, ask and deny rules                                      |
 | `.claude/rules/chip-tests/chip-tests.instructions.md`           | CHIP conformance test harness — scoped to CHIP test files                          |
 | `.claude/rules/matterbridge/matterbridge.instructions.md`       | Matterbridge endpoint guide — loaded for all contexts                              |
 | `.claude/rules/plugin-frontend/plugin-frontend.instructions.md` | Plugin frontend SPA and custom REST API guide — scoped to frontend and plugin code |
-| `.claude/rules/testing/unit-tests.instructions.md`              | Testing standards — scoped to `**/*.test.ts`                                       |
+| `.claude/rules/testing/testing.instructions.md`                 | Testing standards — scoped to `**/*.test.ts`                                       |
+| `.claude/skills/verify-agent-context/SKILL.md`                  | Skill invocable as `/verify-agent-context`                                         |
 
-## Codex/Agents instructions
+### Codex instructions
 
-| File                         | Notes                                             |
-| ---------------------------- | ------------------------------------------------- |
-| `AGENTS.md`                  | Main project instructions                         |
-| `.agents/chip-tests.md`      | CHIP conformance test harness                     |
-| `.agents/matterbridge.md`    | Matterbridge endpoint guide                       |
-| `.agents/plugin-frontend.md` | Plugin frontend SPA and custom REST API guide     |
-| `.agents/testing.md`         | Testing and validation expectations               |
-| `.codex/config.toml`         | Codex project permissions, approvals, and profile |
-| `.codex/rules/default.rules` | Codex command allow, prompt, and deny rules       |
+| File                         | Notes                                                             |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `AGENTS.md`                  | Main project instructions — read directly, no pointer file needed |
+| `.codex/config.toml`         | Codex project permissions, approvals, and profile                 |
+| `.codex/rules/default.rules` | Codex command allow, prompt, and deny rules                       |
+
+Codex reads the shared rules and skills from `.agents/` directly; the skill is invoked as `$verify-agent-context`.
+
+### Gemini / Antigravity instructions
+
+| File                         | Notes                                                 |
+| ---------------------------- | ----------------------------------------------------- |
+| `GEMINI.md`                  | Pointer to AGENTS.md — always loaded                  |
+| `.antigravity/settings.json` | Sandboxing and permissions: allow, ask and deny rules |
+
+The shared rules under `.agents/rules/` apply on demand for the relevant tasks, and `.agents/skills/` is discovered automatically as `/verify-agent-context`.
 
 ## Development guide
 

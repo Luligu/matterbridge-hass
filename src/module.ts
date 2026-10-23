@@ -198,9 +198,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     super(matterbridge, log, config);
 
     // Verify that Matterbridge is the correct version
-    if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.10.6')) {
+    if (typeof this.verifyMatterbridgeVersion !== 'function' || !this.verifyMatterbridgeVersion('3.11.0')) {
       throw new Error(
-        `This plugin requires Matterbridge version >= "3.10.6". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend.`,
+        `This plugin requires Matterbridge version >= "3.11.0". Please update Matterbridge from ${this.matterbridge.matterbridgeVersion} to the latest version in the frontend.`,
       );
     }
 
@@ -746,7 +746,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
             for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
               const domain = entity.entity_id.split('.')[0];
               if (domain !== 'vacuum' && mutableDevice.has(entity.entity_id)) {
-                this.log.warn(`Device ${dn}${device.name}${wr} has more entities with enabled server RVC. Please filter out or unselect all other entities.`);
+                this.log.warn(`Device "${CYAN}${device.name}${wr}" has more entities with enabled server RVC. Please filter out or unselect all other entities.`);
               }
             }
           }

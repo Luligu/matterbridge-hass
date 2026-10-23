@@ -17,7 +17,7 @@ import {
   waterValve,
   windowCovering,
 } from 'matterbridge';
-import { LevelControl } from 'matterbridge/matter/clusters';
+import { LevelControl, OnOff } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from '../src/control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from '../src/converters.js';
@@ -43,7 +43,7 @@ function createMockMutableDevice(): MutableDevice {
       return this;
     }),
     setFriendlyName: vi.fn(),
-    get: vi.fn((ep: string) => ({ deviceTypes: ensure(ep).deviceTypes })),
+    get: vi.fn((ep: string) => ensure(ep)),
     addClusterServerColorTemperatureColorControl: vi.fn(),
     addClusterServerColorControl: vi.fn(),
     addClusterServerAutoModeThermostat: vi.fn(),
@@ -111,6 +111,23 @@ describe('addControlEntity', () => {
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, colorTemperatureLight);
+    expect(md.addClusterServerColorTemperatureColorControl).toHaveBeenCalled();
+    expect(md.addClusterServerColorControl).not.toHaveBeenCalled();
+  });
+
+  it('light color temperature path removes extended color when color_temp only mode reports hs, rgb and xy colors', () => {
+    const [md, e, s] = make('light', 'ctcolors', {
+      brightness: 120,
+      supported_color_modes: ['color_temp'],
+      color_temp_kelvin: 4000,
+      hs_color: [27.2, 52.4],
+      rgb_color: [255, 180, 121],
+      xy_color: [0.47, 0.38],
+    });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, extendedColorLight);
+    expect(md.get(e.entity_id).deviceTypes).toContain(colorTemperatureLight);
+    expect(md.get(e.entity_id).deviceTypes).not.toContain(extendedColorLight);
     expect(md.addClusterServerColorTemperatureColorControl).toHaveBeenCalled();
     expect(md.addClusterServerColorControl).not.toHaveBeenCalled();
   });
@@ -351,7 +368,8 @@ describe('addControlEntity', () => {
     const ep = addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
 
     expect(ep).toBe(e.entity_id);
-    expect(md.addOnOff).toHaveBeenCalledWith(e.entity_id, true);
+    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, OnOff.id);
+    expect(md.addOnOff).not.toHaveBeenCalled();
   });
 
   it('configures media players with playback and keypad support', () => {

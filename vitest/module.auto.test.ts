@@ -23,20 +23,9 @@ import path from 'node:path';
 import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
 import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
 import { VendorId } from 'matterbridge/matter/types';
+import { flushAsync } from 'matterbridge/test-utils';
 import {
-  flushAsync,
   HOMEDIR,
-  log,
-  loggerDebugSpy,
-  loggerErrorSpy,
-  loggerFatalSpy,
-  loggerInfoSpy,
-  loggerNoticeSpy,
-  loggerWarnSpy,
-  setDebug,
-  setupTest,
-} from 'matterbridge/vitest-utils';
-import {
   addDevice,
   aggregator,
   createServerNode,
@@ -44,10 +33,19 @@ import {
   deleteDevice,
   destroyTestEnvironment,
   flushServerNode,
+  log,
+  loggerDebugSpy,
+  loggerErrorSpy,
+  loggerFatalSpy,
+  loggerInfoSpy,
+  loggerNoticeSpy,
+  loggerWarnSpy,
   server,
+  setDebug,
+  setupTest,
   startServerNode,
   stopServerNode,
-} from 'matterbridge/vitest-utils/matter';
+} from 'matterbridge/test-utils/vitest';
 
 import { createUniqueId, generateArea, generateDevice, generateEntity, generateLabel, generateState, getDomain, getEntityName, getName } from '../src/helpers.js';
 import { type HassConfig, type HassContext, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
@@ -130,17 +128,17 @@ describe('Matterbridge ' + NAME, () => {
       osRelease: 'xx.xx.xx.xx.xx.xx',
       nodeVersion: '22.1.10',
     },
-    matterbridgeVersion: '3.10.6',
+    matterbridgeVersion: '3.11.0',
     log,
     addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await addDevice(aggregator, device, 1, 0);
+      await addDevice(aggregator, device, 1, 1, 1, 0);
     }),
     removeBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
-      await deleteDevice(aggregator, device, 1, 0);
+      await deleteDevice(aggregator, device, 1, 1, 1, 0);
     }),
     removeAllBridgedEndpoints: vi.fn(async (pluginName: string) => {
       for (const device of aggregator.parts) {
-        await deleteDevice(aggregator, device, 1, 0);
+        await deleteDevice(aggregator, device, 1, 1, 1, 0);
       }
     }),
     addVirtualEndpoint: vi.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
@@ -148,7 +146,7 @@ describe('Matterbridge ' + NAME, () => {
       const device = new MatterbridgeEndpoint([mountedOnOffControl, onOffPlugInUnit], { id: name.replaceAll(' ', '') + ':' + type })
         .createDefaultBridgedDeviceBasicInformationClusterServer(name, createUniqueId(), VendorId(0xfff1), 'Matterbridge', 'Matterbridge Virtual Device')
         .addRequiredClusterServers();
-      await addDevice(aggregator, device, 1, 0);
+      await addDevice(aggregator, device, 1, 1, 1, 0);
     }),
   } as any;
 

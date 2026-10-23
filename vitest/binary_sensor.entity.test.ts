@@ -63,6 +63,9 @@ function createMockMutableDevice(): MutableDevice & {
       coAlarmDefaults[endpoint ?? ''] = value;
       return this;
     },
+    addClusterServerBatteryPowerSource: vi.fn(function (this: unknown) {
+      return this;
+    }),
   } as any;
 }
 
@@ -205,6 +208,8 @@ describe('addBinarySensorEntity', () => {
     const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.deviceTypes[ep][0]).toBe(smokeCoAlarm.code);
     expect(md.smokeAlarmDefaults[ep]).toBe(SmokeCoAlarm.AlarmState.Critical);
+    expect(md.deviceTypes[ep]).toContain(powerSource.code);
+    expect(md.addClusterServerBatteryPowerSource).toHaveBeenCalledWith(ep, PowerSource.BatChargeLevel.Ok, null);
   });
 
   it('adds smokeCoAlarm with smoke feature (smoke) off => Normal', () => {
@@ -222,6 +227,8 @@ describe('addBinarySensorEntity', () => {
     const ep = addBinarySensorEntity(mockPlatform, md, entity, state) as string;
     expect(md.deviceTypes[ep][0]).toBe(smokeCoAlarm.code);
     expect(md.coAlarmDefaults[ep]).toBe(SmokeCoAlarm.AlarmState.Normal);
+    expect(md.deviceTypes[ep]).toContain(powerSource.code);
+    expect(md.addClusterServerBatteryPowerSource).toHaveBeenCalledWith(ep, PowerSource.BatChargeLevel.Ok, null);
   });
 
   it('adds smokeCoAlarm with CO feature (carbon_monoxide) on => Critical', () => {
