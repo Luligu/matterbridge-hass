@@ -33,6 +33,7 @@ If you like this project and find it useful, please consider giving it a star on
 ### Breaking changes
 
 - [matterbridge]: Require matterbridge v.3.11.0 with matter v.1.6.1.
+- [node]: Drop Node.js 20 support, matching matterbridge v.3.11.0. Supported versions are Node.js 22.13, 24 and 26.
 
 ### Added
 
