@@ -21,9 +21,9 @@
  * limitations under the License.
  */
 
-import { contactSensor, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
+import { contactSensor, powerSource, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
-import { BooleanState, SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { BooleanState, PowerSource, SmokeCoAlarm } from 'matterbridge/matter/clusters';
 import { getClusterNameById } from 'matterbridge/matter/types';
 import { isValidString } from 'matterbridge/utils';
 
@@ -102,6 +102,13 @@ export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDe
       if (state.attributes.device_class === 'carbon_monoxide' && hassDomainBinarySensor.deviceType.code === smokeCoAlarm.code) {
         platform.log.debug(`= smokeCoAlarm CoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.state}${db}`);
         mutableDevice.addClusterServerCoAlarmSmokeCoAlarm(endpointName, state.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+      }
+
+      // Matter 1.6.1 requires a PowerSource device type in the SmokeCoAlarm composition: add a battery one with unknown level.
+      if (hassDomainBinarySensor.deviceType.code === smokeCoAlarm.code) {
+        platform.log.debug(`= smokeCoAlarm PowerSource device ${CYAN}${entity.entity_id}${db} battery with unknown level`);
+        mutableDevice.addDeviceTypes(endpointName, powerSource);
+        mutableDevice.addClusterServerBatteryPowerSource(endpointName, PowerSource.BatChargeLevel.Ok, null);
       }
     });
   return endpointName;

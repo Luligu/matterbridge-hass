@@ -74,6 +74,9 @@ import { MutableDevice } from '../src/mutableDevice.js';
 
 const subscribeAttributeMatterbridgeEndpointSpy = vi.spyOn(MatterbridgeEndpoint.prototype, 'subscribeAttribute');
 
+// The light and plug-in unit device types require the Lighting feature of OnOff (Matter 1.6.1)
+const OnOffLightingServer = OnOffServer.with(OnOff.Feature.Lighting);
+
 // Setup the test environment
 await setupTest(NAME, false);
 
@@ -172,6 +175,7 @@ describe('MutableDevice', () => {
     });
     expect(() => (mutableDevice as any).createClusters('two')).toThrow();
 
+    (mutableDevice as any).createClusters(''); // Attach the collected clusters as create() does
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -205,6 +209,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
     mutableDevice.logMutableDevice();
 
+    (mutableDevice as any).createClusters(''); // Attach the collected clusters as create() does
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -235,6 +240,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
     mutableDevice.logMutableDevice();
 
+    (mutableDevice as any).createClusters(''); // Attach the collected clusters as create() does
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -265,6 +271,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('uniqueId');
     mutableDevice.logMutableDevice();
 
+    (mutableDevice as any).createClusters(''); // Attach the collected clusters as create() does
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -680,8 +687,8 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: false }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: false }),
     });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(13);
@@ -709,6 +716,8 @@ describe('MutableDevice', () => {
       'colorControl',
     ]);
 
+    // The switch device types require their client clusters (Matter 1.6.1)
+    device.addRequiredClusterClients();
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -730,6 +739,8 @@ describe('MutableDevice', () => {
     expect(device.deviceTypes.get(onOffLightSwitch.code)).toBeDefined();
     expect(device.getAllClusterServerNames()).toEqual(['descriptor', 'matterbridge', 'bridgedDeviceBasicInformation', 'powerSource', 'onOff', 'identify']);
 
+    // The switch device types require their client clusters (Matter 1.6.1)
+    device.addRequiredClusterClients();
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -901,8 +912,8 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: false }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: false }),
     });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(11);
@@ -927,6 +938,8 @@ describe('MutableDevice', () => {
     expect(device.hasClusterServer(LevelControl.id)).toBeTruthy();
     expect(device.hasClusterServer(ColorControl.id)).toBeTruthy();
 
+    // The switch device types require their client clusters (Matter 1.6.1)
+    device.addRequiredClusterClients();
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -942,8 +955,8 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: false }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: false }),
     });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(10);
@@ -968,6 +981,8 @@ describe('MutableDevice', () => {
     expect(device.hasClusterServer(LevelControl.id)).toBeTruthy();
     expect(device.hasClusterServer(ColorControl.id)).toBeTruthy();
 
+    // The switch device types require their client clusters (Matter 1.6.1)
+    device.addRequiredClusterClients();
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -983,8 +998,8 @@ describe('MutableDevice', () => {
     mutableDevice.addClusterServerIds('', PowerSource.id, OnOff.id);
     mutableDevice.addClusterServerObjs('', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: false }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: false }),
     });
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(10);
@@ -1007,6 +1022,8 @@ describe('MutableDevice', () => {
     expect(device.hasClusterServer(LevelControl.id)).toBeTruthy();
     expect(device.hasClusterServer(ColorControl.id)).toBeTruthy();
 
+    // The switch device types require their client clusters (Matter 1.6.1)
+    device.addRequiredClusterClients();
     await addDevice(aggregator, device);
     mutableDevice.destroy();
   });
@@ -1038,8 +1055,8 @@ describe('MutableDevice', () => {
       'child1',
       {
         id: OnOff.id,
-        type: OnOffServer,
-        options: optionsFor(OnOffServer, { onOff: false }),
+        type: OnOffLightingServer,
+        options: optionsFor(OnOffLightingServer, { onOff: false }),
       },
       {
         id: LevelControl.id,
@@ -1061,8 +1078,8 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('child2', onOffPlugInUnit);
     mutableDevice.addClusterServerObjs('child2', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: false }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: false }),
     });
     mutableDevice.addTagLists('child2', {
       mfgCode: null,
@@ -1092,6 +1109,8 @@ describe('MutableDevice', () => {
     mutableDevice.setLogLevel(LogLevel.NONE);
     for (const endpoint of mutableDevice.getEndpoints().values()) expect(endpoint.log.logLevel).toBe(LogLevel.NONE);
 
+    // The switch device types require their client clusters (Matter 1.6.1)
+    mutableDevice.getEndpoint('child1').addRequiredClusterClients();
     await addDevice(aggregator, device);
 
     expect(mutableDevice.get().deviceTypes).toHaveLength(3);
@@ -1125,7 +1144,7 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get('child1').clusterServersObjs).toHaveLength(2);
     expect(mutableDevice.get('child1').commandHandlers).toHaveLength(1);
     expect(mutableDevice.get('child1').subscribeHandlers).toHaveLength(1);
-    expect(Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported)).toEqual(['descriptor', 'matterbridge', 'onOff', 'levelControl', 'identify']);
+    expect(Object.keys(mutableDevice.getEndpoint('child1').behaviors.supported)).toEqual(['descriptor', 'matterbridge', 'onOff', 'levelControl', 'identify', 'binding']);
 
     expect(mutableDevice.get('child2').deviceTypes).toHaveLength(1);
     expect(mutableDevice.get('child2').tagList).toHaveLength(1);
@@ -1180,8 +1199,8 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('child1', onOffLight);
     mutableDevice.addClusterServerObjs('child1', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: false }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: false }),
     });
 
     mutableDevice.setFriendlyName('child2', 'Child 2');
@@ -1295,6 +1314,9 @@ describe('MutableDevice', () => {
     expect(Array.from(mutableDevice.getRemappedEndpoints())).toEqual(['humidity', 'pressure']);
     expect(mutableDevice.getSplitEndpoints().size).toBe(2);
     expect(Array.from(mutableDevice.getSplitEndpoints())).toEqual(['temperature', 'temperature out']);
+    // The two temperatureSensor siblings get a Common Number tag labeled with the friendly name (Matter 1.6.1)
+    expect(mutableDevice.get('temperature').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Temperature Sensor' }]);
+    expect(mutableDevice.get('temperature out').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Temperature Out Sensor' }]);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['BridgedNode', 'PowerSource', 'HumiditySensor', 'PressureSensor']);
@@ -1327,6 +1349,83 @@ describe('MutableDevice', () => {
     // setDebug(false);
   });
 
+  test('should add a tagList only to untagged sibling child endpoints with the same device type', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Sibling TagList Device');
+    mutableDevice.addDeviceTypes('', bridgedNode);
+
+    mutableDevice.addDeviceTypes('tagged', temperatureSensor);
+    mutableDevice.addClusterServerIds('tagged', TemperatureMeasurement.id);
+    mutableDevice.setFriendlyName('tagged', 'Tagged Sensor');
+    mutableDevice.addTagLists('tagged', { mfgCode: null, namespaceId: 0x07, tag: 9, label: 'Tagged' });
+
+    mutableDevice.addDeviceTypes('long', temperatureSensor);
+    mutableDevice.addClusterServerIds('long', TemperatureMeasurement.id);
+    mutableDevice.setFriendlyName('long', 'L'.repeat(70));
+
+    mutableDevice.addDeviceTypes('short', temperatureSensor);
+    mutableDevice.addClusterServerIds('short', TemperatureMeasurement.id);
+    mutableDevice.setFriendlyName('short', 'Short Sensor');
+
+    device = mutableDevice.create();
+    expect(device).toBeDefined();
+
+    // The explicit tagList is kept, the untagged siblings get a Common Number tag with the friendly name cut to 64 characters
+    expect(mutableDevice.get('tagged').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 9, label: 'Tagged' }]);
+    expect(mutableDevice.get('long').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'L'.repeat(64) }]);
+    expect(mutableDevice.get('short').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Short Sensor' }]);
+
+    expect(await addDevice(aggregator, device)).toBe(true);
+    expect(mutableDevice.getEndpoint('long').getAttribute(Descriptor.id, 'tagList')).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'L'.repeat(64) }]);
+    mutableDevice.destroy();
+  });
+
+  test('should not reuse a Common Number tag already used by a sibling child endpoint', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Sibling TagList Collision Device');
+    mutableDevice.addDeviceTypes('', bridgedNode);
+
+    mutableDevice.addDeviceTypes('first', temperatureSensor);
+    mutableDevice.addClusterServerIds('first', TemperatureMeasurement.id);
+    mutableDevice.setFriendlyName('first', 'Temperature');
+    mutableDevice.addTagLists('first', { mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Temperature' });
+
+    mutableDevice.addDeviceTypes('second', temperatureSensor);
+    mutableDevice.addClusterServerIds('second', TemperatureMeasurement.id);
+    mutableDevice.setFriendlyName('second', 'Temperature');
+
+    device = mutableDevice.create();
+    expect(device).toBeDefined();
+
+    // Common Number 1 is taken by the explicit tag of the first sibling, so the second gets 2
+    expect(mutableDevice.get('first').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Temperature' }]);
+    expect(mutableDevice.get('second').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Temperature' }]);
+
+    expect(await addDevice(aggregator, device)).toBe(true);
+    mutableDevice.destroy();
+  });
+
+  test('should skip the tagList when all the Common Number tags are used by the siblings', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Sibling TagList Exhausted Device');
+    mutableDevice.addDeviceTypes('', bridgedNode);
+
+    mutableDevice.addDeviceTypes('full', temperatureSensor);
+    mutableDevice.addClusterServerIds('full', TemperatureMeasurement.id);
+    mutableDevice.setFriendlyName('full', 'Full');
+    for (let tag = 1; tag <= 30; tag++) mutableDevice.addTagLists('full', { mfgCode: null, namespaceId: 0x07, tag, label: null });
+
+    mutableDevice.addDeviceTypes('untagged', temperatureSensor);
+    mutableDevice.addClusterServerIds('untagged', TemperatureMeasurement.id);
+    mutableDevice.setFriendlyName('untagged', 'Untagged');
+
+    device = mutableDevice.create();
+    expect(device).toBeDefined();
+
+    // Common Number 1 to 30 are taken, so no tag is added
+    expect(mutableDevice.get('full').tagList).toHaveLength(30);
+    expect(mutableDevice.get('untagged').tagList).toEqual([]);
+
+    mutableDevice.destroy();
+  });
+
   test('should NOT remap child endpoint when duplicate device types exist in main', async () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'No Remap Duplicate Device Types');
 
@@ -1335,8 +1434,8 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('child1', onOffLight);
     mutableDevice.addClusterServerObjs('child1', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: true }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: true }),
     });
     mutableDevice.setFriendlyName('child1', 'Child 1');
 
@@ -1404,16 +1503,16 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('', bridgedNode);
     mutableDevice.addClusterServerObjs('', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: false }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: false }),
     });
 
     mutableDevice.setFriendlyName('child1', 'Child 1');
     mutableDevice.addDeviceTypes('child1', powerSource);
     mutableDevice.addClusterServerObjs('child1', {
       id: OnOff.id,
-      type: OnOffServer,
-      options: optionsFor(OnOffServer, { onOff: true }),
+      type: OnOffLightingServer,
+      options: optionsFor(OnOffLightingServer, { onOff: true }),
     });
 
     expect(mutableDevice.size()).toBe(2);
