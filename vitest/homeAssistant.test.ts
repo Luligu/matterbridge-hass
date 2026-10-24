@@ -19,8 +19,8 @@ import https from 'node:https';
 import path from 'node:path';
 
 import { CYAN, db, er, LogLevel } from 'matterbridge/logger';
+import { loggerLogSpy, setDebug, setupTest } from 'matterbridge/test-utils/vitest';
 import { wait } from 'matterbridge/utils';
-import { loggerLogSpy, setDebug, setupTest } from 'matterbridge/vitest-utils';
 import { WebSocket, WebSocketServer } from 'ws';
 
 import {

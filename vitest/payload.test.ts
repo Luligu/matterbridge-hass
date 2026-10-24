@@ -9,7 +9,7 @@ const NAME = 'Payload';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { HOMEDIR, setupTest } from 'matterbridge/vitest-utils';
+import { HOMEDIR, setupTest } from 'matterbridge/test-utils/vitest';
 
 import type { HassArea, HassDevice, HassEntity, HassLabel, HassServices, HassState, HomeAssistant } from '../src/homeAssistant.js';
 import { savePayload } from '../src/payload.js';
