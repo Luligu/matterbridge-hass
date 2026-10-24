@@ -56,6 +56,7 @@
     "node": ">=22.13.0 <23.0.0 || >=24.0.0 <25.0.0 || >=26.0.0 <27.0.0"
   },
   "files": [
+    "apps/frontend/build",
     "bin",
     "dist",
     "npm-shrinkwrap.json",
@@ -96,8 +97,8 @@
     "disable": "matterbridge --disable .",
     "link": "npm link --no-fund --no-audit matterbridge",
     "unlink": "npm unlink matterbridge",
-    "build": "tsc --project tsconfig.build.json",
-    "buildProduction": "tsc --project tsconfig.build.production.json",
+    "build": "tsc --project tsconfig.build.json && node scripts/build-frontend.mjs",
+    "buildProduction": "tsc --project tsconfig.build.production.json && node scripts/build-frontend.mjs",
     "clean": "node scripts/clean.mjs",
     "cleanBuild": "npm run clean && npm run build",
     "cleanBuildProduction": "npm run clean && npm run buildProduction",
