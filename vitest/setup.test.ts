@@ -11,7 +11,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { BroadcastChannel } from 'node:worker_threads';
 
-import { setupTest } from 'matterbridge/vitest-utils';
+import { setupTest } from 'matterbridge/test-utils/vitest';
 import { WebSocketServer } from 'ws';
 
 import type { HassArea, HassDevice, HassEntity, HassLabel, HassState, HomeAssistant } from '../src/homeAssistant.js';
