@@ -150,8 +150,11 @@ These domains are supported also like device entities and split entities.
 | binary_sensor | smoke                                | smokeCoAlarm        |
 | binary_sensor | carbon_monoxide                      | smokeCoAlarm        |
 | binary_sensor | battery                              | powerSource         |
+| binary_sensor | battery_charging (2)                 | powerSource         |
 
 (1) - A binary_sensor without a device class is exposed like a generic contactSensor.
+
+(2) - Sets the PowerSource charge state (charging / not charging) of the device battery.
 
 ## Supported events:
 

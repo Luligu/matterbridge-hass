@@ -412,6 +412,19 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
+  it('should addClusterServerPowerSource with rechargeable battery', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device rechargeable power source');
+    mutableDevice.addDeviceTypes('', bridgedNode, contactSensor);
+    mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, true);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+    expect(mutableDevice.get().clusterServersObjs[0].options).toMatchObject({ batChargeState: PowerSource.BatChargeState.Unknown, batFunctionalWhileCharging: true });
+
+    mutableDevice.destroy();
+  });
+
   it('should addClusterServerSmokeAlarmSmokeCoAlarm', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device smoke alarm');
     mutableDevice.addDeviceTypes('', bridgedNode, smokeCoAlarm);

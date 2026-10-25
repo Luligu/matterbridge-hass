@@ -30,6 +30,10 @@ If you like this project and find it useful, please consider giving it a star on
 
 ## [1.6.1] - Dev branch
 
+### Added
+
+- [binary_sensor]: Map a `binary_sensor` with device class `battery_charging` to the PowerSource `batChargeState` attribute (rechargeable battery feature).
+
 ### Fixed
 
 - [updates]: Normalize dotted endpoint names when routing updates to mapped child endpoints.
