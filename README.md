@@ -338,7 +338,7 @@ In addition to this well known bugs, the rvc must be a single device, it cannot 
 
 Many robots can also mop, but Home Assistant has no standard attribute for it: integrations usually expose the clean mode as a `select` entity (i.e. `select.robot_mode` with the options `Sweep`, `Sweep And Mop`, `Mop`).
 
-Enter the vacuum entity id (i.e. `vacuum.robot`) in the first field and the select entity id in the second field. The options of the select become the Matter clean modes of the vacuum (2 to 255 options): options containing `mop` get the Mop tag, options containing `sweep` or `vacuum` (or without `mop`) get the Vacuum tag. Changing the clean mode from the controller selects the option in Home Assistant, and changing the select in Home Assistant updates the clean mode. The select entity doesn't need to be exposed.
+Enter the vacuum entity id (i.e. `vacuum.robot`) in the first field and the select entity id in the second field. The options of the select become the Matter clean modes of the vacuum (2 to 255 options): options containing `mop` get the Mop tag, options containing `sweep` or `vac` (or without `mop`) get the Vacuum tag. Changing the clean mode from the controller selects the option in Home Assistant, and changing the select in Home Assistant updates the clean mode. The select entity doesn't need to be exposed.
 
 ### Discard Hidden Entities
 

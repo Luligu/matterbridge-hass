@@ -360,6 +360,20 @@ describe('addControlEntity', () => {
     addControlEntity(platform, md2, e, s, commandHandler, subscribeHandler as any);
     expect(md2.addVacuum).toHaveBeenCalledWith(e.entity_id, expect.any(Array), 1);
 
+    // Home Assistant core option keys (i.e. Roborock cleaning_mode)
+    hassStates.set('select.robby_mode', { state: 'vacuum', attributes: { options: ['vacuum', 'vac_and_mop', 'mop'] } });
+    const [md4] = make('vacuum', 'robby', { activity: 'idle' });
+    addControlEntity(platform, md4, e, s, commandHandler, subscribeHandler as any);
+    expect(md4.addVacuum).toHaveBeenCalledWith(
+      e.entity_id,
+      [
+        { label: 'vacuum', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }] },
+        { label: 'vac_and_mop', mode: 2, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }, { value: RvcCleanMode.ModeTag.Mop }] },
+        { label: 'mop', mode: 3, modeTags: [{ value: RvcCleanMode.ModeTag.Mop }] },
+      ],
+      1,
+    );
+
     // A select with less than 2 options keeps the default clean modes
     hassStates.set('select.robby_mode', { state: 'Sweep', attributes: { options: ['Sweep'] } });
     const [md3] = make('vacuum', 'robby', { activity: 'idle' });

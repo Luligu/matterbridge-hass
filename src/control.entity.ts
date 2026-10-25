@@ -265,7 +265,7 @@ export function addControlEntity(
       platform.log.debug(`= vacuum device ${CYAN}${entity.entity_id}${db} clean modes from ${CYAN}${cleanModeSelect}${db}: ${CYAN}${cleanModeOptions}${db}`);
       const cleanModes = cleanModeOptions.map((option: string, index: number) => {
         const mop = option.toLowerCase().includes('mop');
-        const vacuum = !mop || /sweep|vacuum/i.test(option);
+        const vacuum = !mop || /sweep|vac/i.test(option);
         const modeTags = [...(vacuum ? [{ value: RvcCleanMode.ModeTag.Vacuum }] : []), ...(mop ? [{ value: RvcCleanMode.ModeTag.Mop }] : [])];
         return { label: option.slice(0, 64), mode: index + 1, modeTags };
       });
