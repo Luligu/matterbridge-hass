@@ -22,7 +22,16 @@ import { ColorControl, LevelControl, OnOff } from 'matterbridge/matter/clusters'
 import { addControlEntity } from '../src/control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from '../src/converters.js';
 import { generateEntity, generateState } from '../src/helpers.js';
-import { type HassConfig, type HassEntity, type HassState, HomeAssistant, MediaPlayerEntityFeature, MediaPlayerService, UnitOfTemperature } from '../src/homeAssistant.js';
+import {
+  type HassConfig,
+  type HassEntity,
+  type HassState,
+  HomeAssistant,
+  MediaPlayerEntityFeature,
+  MediaPlayerService,
+  UnitOfTemperature,
+  VacuumEntityFeature,
+} from '../src/homeAssistant.js';
 import type { MutableDevice } from '../src/mutableDevice.js';
 
 function createMockMutableDevice(): MutableDevice {
@@ -279,6 +288,31 @@ describe('addControlEntity', () => {
     // @ts-expect-error chainable return
     const vacuumCalls = md.addDeviceTypes.mock.calls.filter((c: any[]) => c[1] === roboticVacuumCleaner);
     expect(vacuumCalls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('vacuum maps Identify to vacuum.locate when LOCATE is supported', async () => {
+    const callService = vi.fn(async () => {});
+    const platform = { ...mockPlatform, ha: { callService } };
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.LOCATE + VacuumEntityFeature.START });
+    addControlEntity(platform, md, e, s, commandHandler, subscribeHandler as any);
+    // @ts-expect-error mock calls
+    const identifyCall = md.addCommandHandler.mock.calls.find((c: any[]) => c[1] === 'Identify.identify');
+    expect(identifyCall).toBeDefined();
+    identifyCall[2]();
+    expect(callService).toHaveBeenCalledWith('vacuum', 'locate', e.entity_id);
+
+    // Log the error if the service call fails
+    callService.mockRejectedValueOnce(new Error('Locate failed'));
+    identifyCall[2]();
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining('Failed to call locate service'));
+  });
+
+  it('vacuum does not map Identify when LOCATE is not supported', () => {
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.START });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    // @ts-expect-error mock calls
+    expect(md.addCommandHandler.mock.calls.find((c: any[]) => c[1] === 'Identify.identify')).toBeUndefined();
   });
 
   it('valve mapping', () => {

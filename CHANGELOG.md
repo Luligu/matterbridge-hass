@@ -33,6 +33,7 @@ If you like this project and find it useful, please consider giving it a star on
 ### Added
 
 - [binary_sensor]: Map a `binary_sensor` with device class `battery_charging` to the PowerSource `batChargeState` attribute (rechargeable battery feature). Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/254).
+- [vacuum]: Map the Identify command to the `vacuum.locate` service when the vacuum supports the `locate` feature.
 
 ### Fixed
 
