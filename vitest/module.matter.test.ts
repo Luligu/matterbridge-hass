@@ -928,6 +928,85 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
   });
 
+  it.each(['battery', 'battery_charging'])('should update battery voltage when the voltage entity precedes the %s entity', async (deviceClass) => {
+    const batteryDevice = {
+      id: 'd80898f83188759ed7329e922f00ee7c',
+      name: 'Battery Voltage Device',
+    } as unknown as HassDevice;
+    const voltageEntity = {
+      entity_id: 'sensor.battery_voltage',
+      device_id: batteryDevice.id,
+    } as unknown as HassEntity;
+    const batteryEntity = {
+      entity_id: deviceClass === 'battery' ? 'sensor.battery' : 'binary_sensor.battery_charging',
+      device_id: batteryDevice.id,
+    } as unknown as HassEntity;
+    const temperatureEntity = {
+      entity_id: 'sensor.temperature',
+      device_id: batteryDevice.id,
+    } as unknown as HassEntity;
+    const voltageState = {
+      entity_id: voltageEntity.entity_id,
+      state: '3.7',
+      attributes: { state_class: 'measurement', device_class: 'voltage', unit_of_measurement: 'V' },
+    } as unknown as HassState;
+    const batteryState = {
+      entity_id: batteryEntity.entity_id,
+      state: deviceClass === 'battery' ? '50' : 'on',
+      attributes: { state_class: 'measurement', device_class: deviceClass },
+    } as unknown as HassState;
+    const temperatureState = {
+      entity_id: temperatureEntity.entity_id,
+      state: '20',
+      attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
+    for (const entity of [voltageEntity, batteryEntity, temperatureEntity]) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of [voltageState, batteryState, temperatureState]) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    try {
+      await haPlatform.onStart('Test reason');
+      const endpoint = haPlatform.matterbridgeDevices.get(batteryDevice.id);
+      expect(endpoint).toBeDefined();
+      await haPlatform.onConfigure();
+      expect(endpoint?.getAttribute(PowerSource.id, 'batVoltage')).toBe(3700);
+
+      await haPlatform.updateHandler(batteryDevice.id, voltageEntity.entity_id, voltageState, { ...voltageState, state: '3.8' });
+      expect(endpoint?.getAttribute(PowerSource.id, 'batVoltage')).toBe(3800);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('should ignore a battery device class outside sensor domains', async () => {
+    const batteryDevice = { id: 'd80898f83188759ed7329e922f00ee7c', name: 'Non Battery Device' } as unknown as HassDevice;
+    const unrelatedEntity = { entity_id: 'update.battery', device_id: batteryDevice.id } as unknown as HassEntity;
+    const temperatureEntity = { entity_id: 'sensor.temperature', device_id: batteryDevice.id } as unknown as HassEntity;
+    const unrelatedState = {
+      entity_id: unrelatedEntity.entity_id,
+      state: 'off',
+      attributes: { device_class: 'battery' },
+    } as unknown as HassState;
+    const temperatureState = {
+      entity_id: temperatureEntity.entity_id,
+      state: '20',
+      attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
+    for (const entity of [unrelatedEntity, temperatureEntity]) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of [unrelatedState, temperatureState]) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    try {
+      await haPlatform.onStart('Test reason');
+      expect(haPlatform.matterbridgeDevices.has(batteryDevice.id)).toBe(true);
+      expect(addClusterServerBatteryPowerSourceSpy).not.toHaveBeenCalled();
+    } finally {
+      await cleanup();
+    }
+  });
+
   it('should call onStart and register a double Switch device', async () => {
     const switchDevice = {
       area_id: null,
