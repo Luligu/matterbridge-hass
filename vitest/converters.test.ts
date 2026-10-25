@@ -7,7 +7,7 @@
 /* oxlint-disable vitest/no-conditional-expect */
 
 import { airQualitySensor, electricalSensor, powerSource, pressureSensor } from 'matterbridge';
-import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters';
+import { AirQuality, FanControl, PowerSource, Thermostat } from 'matterbridge/matter/clusters';
 
 import {
   clamp,
@@ -329,6 +329,11 @@ describe('HassPlatform converters', () => {
       if (converter.domain === 'binary_sensor') {
         expect(converter.converter('on')).not.toBe(null);
         expect(converter.converter('off')).not.toBe(null);
+      }
+      if (converter.withDeviceClass === 'battery_charging') {
+        expect(converter.converter('on')).toBe(PowerSource.BatChargeState.IsCharging);
+        expect(converter.converter('off')).toBe(PowerSource.BatChargeState.IsNotCharging);
+        expect(converter.converter('unavailable')).toBe(PowerSource.BatChargeState.Unknown);
       }
     });
   });

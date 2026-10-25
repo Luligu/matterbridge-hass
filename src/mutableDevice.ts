@@ -465,8 +465,25 @@ export class MutableDevice {
     return this;
   }
 
-  addClusterServerBatteryPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null): this {
+  addClusterServerBatteryPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null, rechargeable = false): this {
     const device = this.initializeEndpoint(endpoint);
+    if (rechargeable) {
+      device.clusterServersObjs.push(
+        getClusterServerObj(PowerSource.id, PowerSourceServer.with(PowerSource.Feature.Battery, PowerSource.Feature.Rechargeable), {
+          status: PowerSource.PowerSourceStatus.Active,
+          order: 0,
+          description: 'Primary battery',
+          batReplacementNeeded: false,
+          batReplaceability: PowerSource.BatReplaceability.Unspecified,
+          batVoltage: null,
+          batPercentRemaining,
+          batChargeLevel,
+          batChargeState: PowerSource.BatChargeState.Unknown,
+          batFunctionalWhileCharging: true,
+        }),
+      );
+      return this;
+    }
     device.clusterServersObjs.push(
       getClusterServerObj(PowerSource.id, PowerSourceServer.with(PowerSource.Feature.Battery), {
         status: PowerSource.PowerSourceStatus.Active,
