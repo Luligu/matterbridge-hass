@@ -3,7 +3,7 @@
  * @description This file contains the class HomeAssistantPlatform.
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.8.0
+ * @version 1.8.1
  * @license Apache-2.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
@@ -1276,10 +1276,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState): Promise<void> {
-    /* v8 ignore next cause an entity without a device_id is always registered under its own entityId, so the deviceId fallback is never taken */
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
-      /* v8 ignore next */
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found: skipping it`);
       return;
     }
@@ -1289,11 +1287,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (mappedEndpoint === '') {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice;
-      } /* v8 ignore start cause the AirQuality and PowerEnergy are now remapped to main so this branch is never taken */ else if (mappedEndpoint) {
+      } else if (mappedEndpoint) {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
-        endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint);
+        endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint.replaceAll('.', ''));
       }
-      /* v8 ignore stop */
     }
     if (!endpoint) {
       this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found: skipping it`);

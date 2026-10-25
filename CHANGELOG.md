@@ -30,6 +30,10 @@ If you like this project and find it useful, please consider giving it a star on
 
 ## [1.6.1] - Dev branch
 
+### Fixed
+
+- [updates]: Normalize dotted endpoint names when routing updates to mapped child endpoints.
+
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.6.0] - 2026-10-23
