@@ -37,7 +37,6 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Fixed
 
-- [vacuum]: Skip the locate sound when an Identify command stops identification.
 - [sensor]: Route battery voltage updates correctly regardless of battery or charging entity order.
 - [battery]: Restrict battery detection to sensor and binary_sensor entities.
 - [light]: Restore dimming and color discovery for unavailable lights without cached state. Thanks starship666 (https://github.com/Luligu/matterbridge-hass/issues/245).
