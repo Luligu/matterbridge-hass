@@ -89,7 +89,17 @@ import {
 } from 'matterbridge/test-utils/vitest';
 
 import { miredsToKelvin } from '../src/converters.js';
-import { ColorMode, type HassConfig, type HassContext, type HassDevice, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
+import {
+  ColorMode,
+  type HassConfig,
+  type HassContext,
+  type HassDevice,
+  type HassEntity,
+  type HassServices,
+  type HassState,
+  HomeAssistant,
+  VacuumEntityFeature,
+} from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
 import { MutableDevice } from '../src/mutableDevice.js';
 
@@ -1381,7 +1391,7 @@ describe('Matterbridge ' + NAME, () => {
     const vacuumState = {
       entity_id: vacuumEntity.entity_id,
       state: 'docked',
-      attributes: { friendly_name: 'Vacuum' },
+      attributes: { friendly_name: 'Vacuum', supported_features: VacuumEntityFeature.LOCATE },
     } as unknown as HassState;
 
     const sensorEntity = {
@@ -1428,7 +1438,7 @@ describe('Matterbridge ' + NAME, () => {
       `Creating endpoint ${CYAN}${vacuumEntity.entity_id}${db} for device ${idn}${vacuumDevice.name}${rs}${db} id ${CYAN}${vacuumDevice.id}${db}...`,
     );
     expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`has more entities with enabled server RVC`));
-    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(4);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(5);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
 
     // The implementation has RvcRunMode currentMode 1 = Idle 2 = Cleaning
@@ -1498,6 +1508,15 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2); // GoHome no longer forces RvcRunMode back to Idle: currentMode stays Cleaning
     expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger); // GoHome now transitions through SeekingCharger instead of jumping straight to Docked
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 5 });
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'locate', vacuumEntity.entity_id);
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 0 });
+    expect(callServiceSpy).not.toHaveBeenCalled();
+    expect(device.getAttribute('Identify', 'identifyTime')).toBe(0);
 
     // setDebug(false);
     haPlatform.config.enableServerRvc = false;
