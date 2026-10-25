@@ -89,7 +89,7 @@ Pair Matterbridge to your controller.
 
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
 
-If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service.
+If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
 
 These domains are supported also like individual and split entities.
 

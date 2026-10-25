@@ -298,12 +298,19 @@ describe('addControlEntity', () => {
     // @ts-expect-error mock calls
     const identifyCall = md.addCommandHandler.mock.calls.find((c: any[]) => c[1] === 'Identify.identify');
     expect(identifyCall).toBeDefined();
-    identifyCall[2]();
+    identifyCall[2]({ request: { identifyTime: 5 } });
     expect(callService).toHaveBeenCalledWith('vacuum', 'locate', e.entity_id);
+
+    callService.mockClear();
+    identifyCall[2]({ request: { identifyTime: 0 } });
+    expect(callService).not.toHaveBeenCalled();
+
+    identifyCall[2]({ request: {} });
+    expect(callService).not.toHaveBeenCalled();
 
     // Log the error if the service call fails
     callService.mockRejectedValueOnce(new Error('Locate failed'));
-    identifyCall[2]();
+    identifyCall[2]({ request: { identifyTime: 5 } });
     await new Promise((resolve) => setImmediate(resolve));
     expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining('Failed to call locate service'));
   });

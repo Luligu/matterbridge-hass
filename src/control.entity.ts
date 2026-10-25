@@ -3,7 +3,7 @@
  * @description This file contains the addControlEntity function.
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.1.2
+ * @version 1.1.3
  * @license Apache-2.0
  *
  * Copyright 2025, 2026, 2027 Luca Liguori.
@@ -262,7 +262,9 @@ export function addControlEntity(
     // oxlint-disable-next-line no-bitwise
     if (state.attributes['supported_features'] && state.attributes['supported_features'] & VacuumEntityFeature.LOCATE) {
       platform.log.debug(`- command: ${CYAN}Identify.identify${db} => ${CYAN}vacuum.locate${db}`);
-      mutableDevice.addCommandHandler(entity.entity_id, 'Identify.identify', () => {
+      mutableDevice.addCommandHandler(entity.entity_id, 'Identify.identify', (data) => {
+        // A zero IdentifyTime stops identification without playing another locate sound.
+        if (!('identifyTime' in data.request) || data.request.identifyTime <= 0) return;
         platform.ha.callService('vacuum', 'locate', entity.entity_id).catch((error: unknown) => {
           platform.log.error(`Failed to call locate service for ${CYAN}${entity.entity_id}${db}: ${error}`);
         });

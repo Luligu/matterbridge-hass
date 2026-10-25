@@ -1513,6 +1513,11 @@ describe('Matterbridge ' + NAME, () => {
     await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 5 });
     expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'locate', vacuumEntity.entity_id);
 
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 0 });
+    expect(callServiceSpy).not.toHaveBeenCalled();
+    expect(device.getAttribute('Identify', 'identifyTime')).toBe(0);
+
     // setDebug(false);
     haPlatform.config.enableServerRvc = false;
 
