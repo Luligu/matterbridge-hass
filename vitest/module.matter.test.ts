@@ -50,6 +50,7 @@ import {
   RadonConcentrationMeasurement,
   RelativeHumidityMeasurement,
   RvcOperationalState,
+  RvcCleanMode,
   RvcRunMode,
   SmokeCoAlarm,
   TemperatureMeasurement,
@@ -1520,6 +1521,97 @@ describe('Matterbridge ' + NAME, () => {
 
     // setDebug(false);
     haPlatform.config.enableServerRvc = false;
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a Vacuum device with clean modes from a select entity', async () => {
+    haPlatform.config.enableServerRvc = true;
+    haPlatform.config.vacuumCleanModeSelect = { 'vacuum.mop_vacuum': 'select.mop_vacuum_mode' };
+    const vacuumDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e97df00ee6b',
+      labels: [],
+      name: 'Mop Vacuum',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const vacuumEntity = {
+      area_id: null,
+      device_id: vacuumDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'vacuum.mop_vacuum',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ab',
+      labels: [],
+      name: null,
+      original_name: 'Mop Vacuum',
+    } as unknown as HassEntity;
+
+    const vacuumState = {
+      entity_id: vacuumEntity.entity_id,
+      state: 'docked',
+      attributes: { friendly_name: 'Mop Vacuum' },
+    } as unknown as HassState;
+
+    // The select entity is not part of any exposed device
+    const selectState = {
+      entity_id: 'select.mop_vacuum_mode',
+      state: 'Sweep And Mop',
+      attributes: { friendly_name: 'Mop Vacuum Mode', options: ['Sweep', 'Sweep And Mop', 'Mop'] },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(vacuumDevice.id, vacuumDevice);
+    haPlatform.ha.hassEntities.set(vacuumEntity.entity_id, vacuumEntity);
+    haPlatform.ha.hassStates.set(vacuumState.entity_id, vacuumState);
+    haPlatform.ha.hassStates.set(selectState.entity_id, selectState);
+
+    await haPlatform.onStart('Test reason');
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    device = haPlatform.matterbridgeDevices.get(vacuumDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    const vacuumEndpoint = device.getChildEndpointById('vacuummop_vacuum') ?? device;
+    expect(vacuumEndpoint.getAttribute(RvcCleanMode.id, 'supportedModes')).toEqual([
+      { label: 'Sweep', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }] },
+      { label: 'Sweep And Mop', mode: 2, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }, { value: RvcCleanMode.ModeTag.Mop }] },
+      { label: 'Mop', mode: 3, modeTags: [{ value: RvcCleanMode.ModeTag.Mop }] },
+    ]);
+    expect(vacuumEndpoint.getAttribute(RvcCleanMode.id, 'currentMode')).toBe(2);
+
+    // A clean mode change from the controller selects the option and doesn't start the vacuum
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(vacuumEndpoint, 'RvcCleanMode', 'changeToMode', { newMode: 3 });
+    expect(callServiceSpy).toHaveBeenCalledWith('select', 'select_option', selectState.entity_id, { option: 'Mop' });
+    expect(callServiceSpy).not.toHaveBeenCalledWith('vacuum', 'start', vacuumEntity.entity_id, undefined);
+    expect(vacuumEndpoint.getAttribute(RvcCleanMode.id, 'currentMode')).toBe(3);
+
+    // A change of the select in Home Assistant updates the clean mode
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(null, selectState.entity_id, selectState, { ...selectState, state: 'Sweep' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(RvcCleanMode, 'currentMode', 1, expect.anything());
+    expect(vacuumEndpoint.getAttribute(RvcCleanMode.id, 'currentMode')).toBe(1);
+
+    // An unknown option is ignored
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(null, selectState.entity_id, selectState, { ...selectState, state: 'unknown' });
+    await haPlatform.updateHandler(null, selectState.entity_id, selectState, { ...selectState, attributes: {} } as unknown as HassState);
+    expect(setAttributeSpy).not.toHaveBeenCalledWith(RvcCleanMode, 'currentMode', expect.anything(), expect.anything());
+
+    haPlatform.config.enableServerRvc = false;
+    haPlatform.config.vacuumCleanModeSelect = {};
+
+    // A select of a vacuum that is not registered is ignored
+    vi.clearAllMocks();
+    haPlatform.config.vacuumCleanModeSelect = { 'vacuum.missing': selectState.entity_id };
+    await haPlatform.updateHandler(null, selectState.entity_id, selectState, { ...selectState, state: 'Mop' });
+    expect(setAttributeSpy).not.toHaveBeenCalledWith(RvcCleanMode, 'currentMode', expect.anything(), expect.anything());
+    haPlatform.config.vacuumCleanModeSelect = {};
+    haPlatform.ha.hassStates.delete(selectState.entity_id);
 
     // Clean the test environment
     await cleanup();

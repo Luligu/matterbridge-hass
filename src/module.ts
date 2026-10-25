@@ -40,7 +40,7 @@ import {
 } from 'matterbridge';
 import { type AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, type LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource } from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource, RvcCleanMode } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { deepEqual, fireAndForget, getErrorMessage, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
@@ -104,6 +104,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   postfix: string;
   airQualityRegex: string;
   enableServerRvc: boolean;
+  vacuumCleanModeSelect: Record<string, string>;
   discardHiddenEntities: boolean;
   virtualControlLabel: string;
 }
@@ -240,6 +241,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
       this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
       this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
+      this.config.vacuumCleanModeSelect = isValidObject(this.config.vacuumCleanModeSelect, 1) ? this.config.vacuumCleanModeSelect : {};
       this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
       this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
       this.config.debug ??= false;
@@ -1288,6 +1290,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState): Promise<void> {
+    // Update the RvcCleanMode of the vacuum whose clean mode is driven by this select entity.
+    const cleanModeVacuumId = Object.keys(this.config.vacuumCleanModeSelect).find((vacuumId) => this.config.vacuumCleanModeSelect[vacuumId] === entityId);
+    if (cleanModeVacuumId) {
+      const vacuumDevice = this.matterbridgeDevices.get(cleanModeVacuumId) ?? this.matterbridgeDevices.get(this.ha.hassEntities.get(cleanModeVacuumId)?.device_id ?? '');
+      const vacuumEndpoint = vacuumDevice?.getChildEndpointById(cleanModeVacuumId.replaceAll('.', '')) ?? vacuumDevice;
+      const cleanMode = new_state.attributes['options']?.indexOf(new_state.state) ?? -1;
+      if (vacuumEndpoint?.hasClusterServer(RvcCleanMode) && cleanMode >= 0) await vacuumEndpoint.setAttribute(RvcCleanMode, 'currentMode', cleanMode + 1, vacuumEndpoint.log);
+    }
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found: skipping it`);

@@ -217,6 +217,15 @@
       "type": "boolean",
       "default": true
     },
+    "vacuumCleanModeSelect": {
+      "title": "Vacuum Clean Mode Select",
+      "description": "Drive the clean mode of a vacuum with a select entity. Enter in the first field the vacuum entity id (i.e. vacuum.robot) and in the second field the select entity id that sets its clean mode (i.e. select.robot_mode). The options of the select become the Matter clean modes: options containing 'mop' get the Mop tag, options containing 'sweep' or 'vacuum' (or without 'mop') get the Vacuum tag.",
+      "type": "object",
+      "additionalProperties": {
+        "description": "The select entity id that sets the clean mode of this vacuum.",
+        "type": "string"
+      }
+    },
     "discardHiddenEntities": {
       "title": "Discard Hidden Entities",
       "description": "Discard entities with 'hidden' attribute set to true. This will prevent the plugin from exposing entities that are hidden in Home Assistant.",

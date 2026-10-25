@@ -27,7 +27,7 @@
 import { colorTemperatureLight, dimmableLight, extendedColorLight, type MatterbridgeEndpoint, type PrimitiveTypes } from 'matterbridge';
 import { CYAN, db, debugStringify, nf, wr } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { ColorControl, LevelControl } from 'matterbridge/matter/clusters';
+import { ColorControl, LevelControl, RvcCleanMode } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
@@ -257,7 +257,30 @@ export function addControlEntity(
     platform.log.debug(
       `# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`,
     );
-    mutableDevice.addVacuum(endpointName);
+    // Use the options of the configured select entity as clean modes.
+    const cleanModeSelect = platform.config.vacuumCleanModeSelect?.[entity.entity_id];
+    const cleanModeState = cleanModeSelect ? platform.ha.hassStates.get(cleanModeSelect) : undefined;
+    const cleanModeOptions = cleanModeState?.attributes['options'];
+    if (cleanModeSelect && cleanModeState && isValidArray(cleanModeOptions, 2, 255)) {
+      platform.log.debug(`= vacuum device ${CYAN}${entity.entity_id}${db} clean modes from ${CYAN}${cleanModeSelect}${db}: ${CYAN}${cleanModeOptions}${db}`);
+      const cleanModes = cleanModeOptions.map((option: string, index: number) => {
+        const mop = option.toLowerCase().includes('mop');
+        const vacuum = !mop || /sweep|vacuum/i.test(option);
+        const modeTags = [...(vacuum ? [{ value: RvcCleanMode.ModeTag.Vacuum }] : []), ...(mop ? [{ value: RvcCleanMode.ModeTag.Mop }] : [])];
+        return { label: option.slice(0, 64), mode: index + 1, modeTags };
+      });
+      const cleanMode = cleanModeOptions.indexOf(cleanModeState.state) + 1;
+      mutableDevice.addVacuum(endpointName, cleanModes, cleanMode > 0 ? cleanMode : 1);
+      mutableDevice.addCommandHandler(entity.entity_id, 'RvcCleanMode.changeToMode', (data) => {
+        const option = 'newMode' in data.request ? cleanModeOptions[data.request.newMode - 1] : undefined;
+        if (!option) return;
+        platform.ha.callService(getDomain(cleanModeSelect), 'select_option', cleanModeSelect, { option }).catch((error: unknown) => {
+          platform.log.error(`Failed to call select_option service for ${CYAN}${cleanModeSelect}${db} with option ${CYAN}${option}${db}: ${error}`);
+        });
+      });
+    } else {
+      mutableDevice.addVacuum(endpointName);
+    }
     // Map the Identify command to the vacuum.locate service if the vacuum supports it.
     // oxlint-disable-next-line no-bitwise
     if (state.attributes['supported_features'] && state.attributes['supported_features'] & VacuumEntityFeature.LOCATE) {

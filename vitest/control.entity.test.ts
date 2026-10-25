@@ -17,7 +17,7 @@ import {
   waterValve,
   windowCovering,
 } from 'matterbridge';
-import { ColorControl, LevelControl, OnOff } from 'matterbridge/matter/clusters';
+import { ColorControl, LevelControl, OnOff, RvcCleanMode } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from '../src/control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from '../src/converters.js';
@@ -320,6 +320,51 @@ describe('addControlEntity', () => {
     addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
     // @ts-expect-error mock calls
     expect(md.addCommandHandler.mock.calls.find((c: any[]) => c[1] === 'Identify.identify')).toBeUndefined();
+  });
+
+  it('vacuum uses the options of the configured select entity as clean modes', async () => {
+    const callService = vi.fn(async () => {});
+    const hassStates = new Map([['select.robby_mode', { state: 'Mop', attributes: { options: ['Sweep', 'Sweep And Mop', 'Mop'] } }]]);
+    const platform = { ...mockPlatform, config: { vacuumCleanModeSelect: { 'vacuum.robby': 'select.robby_mode' } }, ha: { callService, hassStates } };
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle' });
+    addControlEntity(platform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addVacuum).toHaveBeenCalledWith(
+      e.entity_id,
+      [
+        { label: 'Sweep', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }] },
+        { label: 'Sweep And Mop', mode: 2, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }, { value: RvcCleanMode.ModeTag.Mop }] },
+        { label: 'Mop', mode: 3, modeTags: [{ value: RvcCleanMode.ModeTag.Mop }] },
+      ],
+      3,
+    );
+    // @ts-expect-error mock calls
+    const changeToMode = md.addCommandHandler.mock.calls.find((c: any[]) => c[1] === 'RvcCleanMode.changeToMode')[2];
+    changeToMode({ request: { newMode: 2 } });
+    expect(callService).toHaveBeenCalledWith('select', 'select_option', 'select.robby_mode', { option: 'Sweep And Mop' });
+
+    // Unsupported modes and requests are ignored
+    callService.mockClear();
+    changeToMode({ request: { newMode: 9 } });
+    changeToMode({ request: {} });
+    expect(callService).not.toHaveBeenCalled();
+
+    // Log the error if the service call fails
+    callService.mockRejectedValueOnce(new Error('Select failed'));
+    changeToMode({ request: { newMode: 1 } });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining('Failed to call select_option service'));
+
+    // Unknown current option defaults to the first clean mode
+    hassStates.set('select.robby_mode', { state: 'unknown', attributes: { options: ['Sweep', 'Mop'] } });
+    const [md2] = make('vacuum', 'robby', { activity: 'idle' });
+    addControlEntity(platform, md2, e, s, commandHandler, subscribeHandler as any);
+    expect(md2.addVacuum).toHaveBeenCalledWith(e.entity_id, expect.any(Array), 1);
+
+    // A select with less than 2 options keeps the default clean modes
+    hassStates.set('select.robby_mode', { state: 'Sweep', attributes: { options: ['Sweep'] } });
+    const [md3] = make('vacuum', 'robby', { activity: 'idle' });
+    addControlEntity(platform, md3, e, s, commandHandler, subscribeHandler as any);
+    expect(md3.addVacuum).toHaveBeenCalledWith(e.entity_id);
   });
 
   it('valve mapping', () => {
