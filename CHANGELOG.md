@@ -32,7 +32,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Fixed
 
-- [updates]: Normalize dotted endpoint names when routing updates to mapped child endpoints.
+- [light]: Restore dimming and color discovery for unavailable lights without cached state. Thanks starship666 (https://github.com/Luligu/matterbridge-hass/issues/245).
+- [updates]: Normalize dotted endpoint names when routing updates to mapped child endpoints. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/issues/250).
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

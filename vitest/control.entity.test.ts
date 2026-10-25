@@ -17,7 +17,7 @@ import {
   waterValve,
   windowCovering,
 } from 'matterbridge';
-import { LevelControl, OnOff } from 'matterbridge/matter/clusters';
+import { ColorControl, LevelControl, OnOff } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from '../src/control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from '../src/converters.js';
@@ -191,31 +191,61 @@ describe('addControlEntity', () => {
     expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'Cached Light');
   });
 
-  it('logs a warning when an unavailable light has no cached state', () => {
-    const md = createMockMutableDevice();
-    const ha = new HomeAssistant('ws://localhost:8123', 'token');
-    const e = generateEntity(ha, 'No Cache', 'light');
-    const state = generateState(ha, e, 'unavailable', {
-      supported_features: 44,
-      supported_color_modes: ['brightness'],
-      friendly_name: 'No Cache Light',
+  it.each([['brightness'], ['color_temp'], ['hs'], ['xy'], ['rgb'], ['rgbw'], ['rgbww'], ['color_temp', 'hs']])(
+    'should discover dimming and color capabilities when an unavailable light supports %j and has no cached state',
+    (...supportedColorModes: string[]) => {
+      const md = createMockMutableDevice();
+      const ha = new HomeAssistant('ws://localhost:8123', 'token');
+      const e = generateEntity(ha, 'No Cache', 'light');
+      const state = generateState(ha, e, 'unavailable', {
+        supported_features: 44,
+        supported_color_modes: supportedColorModes,
+        min_color_temp_kelvin: 2500,
+        max_color_temp_kelvin: 6500,
+        friendly_name: 'No Cache Light',
+      });
+      const platform = {
+        ...mockPlatform,
+        stateCache: {
+          // oxlint-disable-next-line unicorn/no-useless-undefined
+          get: vi.fn().mockReturnValue(undefined),
+        },
+      };
+
+      addControlEntity(platform, md, e, state, commandHandler, subscribeHandler as any);
+
+      expect(platform.stateCache.get).toHaveBeenCalledWith(e.entity_id);
+      expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('is unavailable and no cached state found'));
+      expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
+      expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
+      expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.id);
+      expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'No Cache Light');
+      const isBrightnessOnly = supportedColorModes.includes('brightness');
+      const isTemperatureOnly = supportedColorModes.length === 1 && supportedColorModes.includes('color_temp');
+      const expectedColorTypes = isBrightnessOnly ? [] : [isTemperatureOnly ? colorTemperatureLight : extendedColorLight];
+      expect(md.get(e.entity_id).deviceTypes).toEqual([onOffLight, dimmableLight, ...expectedColorTypes]);
+      expect(vi.mocked(md.addClusterServerIds).mock.calls).toEqual([
+        [e.entity_id, OnOff.id],
+        [e.entity_id, LevelControl.id],
+        ...(isBrightnessOnly ? [] : [[e.entity_id, ColorControl.id]]),
+      ]);
+      expect(vi.mocked(md.addClusterServerColorTemperatureColorControl).mock.calls).toEqual(isTemperatureOnly ? [[e.entity_id, 153, 400]] : []);
+      expect(vi.mocked(md.addClusterServerColorControl).mock.calls).toEqual(!isBrightnessOnly && !isTemperatureOnly ? [[e.entity_id, 153, 400]] : []);
+    },
+  );
+
+  it('should omit dimming when a light only supports on/off', () => {
+    const [md, e, s] = make('light', 'onoff', {
+      supported_features: 0,
+      supported_color_modes: ['onoff'],
     });
-    const platform = {
-      ...mockPlatform,
-      stateCache: {
-        // oxlint-disable-next-line unicorn/no-useless-undefined
-        get: vi.fn().mockReturnValue(undefined),
-      },
-    };
 
-    addControlEntity(platform, md, e, state, commandHandler, subscribeHandler as any);
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler);
 
-    expect(platform.stateCache.get).toHaveBeenCalledWith(e.entity_id);
-    expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('is unavailable and no cached state found'));
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
-    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
-    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.id);
-    expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'No Cache Light');
+    expect(md.addDeviceTypes).not.toHaveBeenCalledWith(e.entity_id, dimmableLight);
+    expect(md.addClusterServerIds).not.toHaveBeenCalledWith(e.entity_id, LevelControl.id);
+    expect(md.addClusterServerIds).not.toHaveBeenCalledWith(e.entity_id, ColorControl.id);
   });
 
   it('thermostat auto/heat/cool branches', () => {

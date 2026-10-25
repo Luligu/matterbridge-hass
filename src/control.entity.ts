@@ -3,7 +3,7 @@
  * @description This file contains the addControlEntity function.
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.1.0
+ * @version 1.1.2
  * @license Apache-2.0
  *
  * Copyright 2025, 2026, 2027 Luca Liguori.
@@ -27,7 +27,7 @@
 import { colorTemperatureLight, dimmableLight, extendedColorLight, type MatterbridgeEndpoint, type PrimitiveTypes } from 'matterbridge';
 import { CYAN, db, debugStringify, nf, wr } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { LevelControl } from 'matterbridge/matter/clusters';
+import { ColorControl, LevelControl } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
@@ -147,14 +147,28 @@ export function addControlEntity(
 
   // Real values will be updated by the configure with the Home Assistant states. Here we need the features and fixed attributes to be set.
 
-  // Configure the Light cluster default values and features for dimmable lights when they are unavailable and only supported_color_modes and supported_features attributes are present.
+  // Configure dimming from supported modes when current attributes are unavailable. Color modes also imply brightness support.
   // oxfmt-ignore
-  if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) && state.attributes.supported_color_modes.includes(ColorMode.BRIGHTNESS)) {
+  if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) &&
+    state.attributes.supported_color_modes.some((mode) => [ColorMode.BRIGHTNESS, ColorMode.COLOR_TEMP, ColorMode.HS, ColorMode.XY, ColorMode.RGB, ColorMode.RGBW, ColorMode.RGBWW].includes(mode))) {
     platform.log.debug(`+ attribute device ${CYAN}${dimmableLight.name}${db} cluster ${CYAN}${LevelControl.name}${db}`);
     platform.log.debug(`= levelControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db}`);
     platform.log.debug(`# levelControl device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(LightEntityFeature, state.attributes.supported_features)}${db}`);
     mutableDevice.addDeviceTypes(endpointName, dimmableLight);
     mutableDevice.addClusterServerIds(endpointName, LevelControl.id);
+  }
+
+  // Discover color support from capabilities when current color attributes are unavailable.
+  if (domain === 'light' && isValidArray(state.attributes?.supported_color_modes)) {
+    if (state.attributes.supported_color_modes.some((mode) => [ColorMode.HS, ColorMode.XY, ColorMode.RGB, ColorMode.RGBW, ColorMode.RGBWW].includes(mode))) {
+      platform.log.debug(`+ attribute device ${CYAN}${extendedColorLight.name}${db} cluster ${CYAN}${ColorControl.name}${db}`);
+      mutableDevice.addDeviceTypes(endpointName, extendedColorLight);
+      mutableDevice.addClusterServerIds(endpointName, ColorControl.id);
+    } else if (state.attributes.supported_color_modes.includes(ColorMode.COLOR_TEMP)) {
+      platform.log.debug(`+ attribute device ${CYAN}${colorTemperatureLight.name}${db} cluster ${CYAN}${ColorControl.name}${db}`);
+      mutableDevice.addDeviceTypes(endpointName, colorTemperatureLight);
+      mutableDevice.addClusterServerIds(endpointName, ColorControl.id);
+    }
   }
 
   // Configure the ColorControl cluster default values and features.
