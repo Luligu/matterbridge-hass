@@ -243,6 +243,8 @@ Filter devices and individual entities by area. If enabled, only devices, indivi
 
 Filter devices and individual entities by label. If enabled, only devices, individual entities, and split entities with the selected label will be exposed. If disabled, all devices, individual entities, and split entities will be exposed. A device is also exposed if it has any entities that satisfy the filters.
 
+Duplicate-name warnings apply only to export candidates after filtering. Excluded devices, such as network trackers sharing a name with a control device, do not cause duplicate-name warnings.
+
 ### Whitelist
 
 If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name or the device/entity id.

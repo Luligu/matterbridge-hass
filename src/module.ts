@@ -3,7 +3,7 @@
  * @description This file contains the class HomeAssistantPlatform.
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.8.0
+ * @version 1.8.1
  * @license Apache-2.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
@@ -445,12 +445,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
-      // If the entity has an already registered name, we skip it.
-      if (this.hasDeviceName(entityName)) {
-        this.duplicatedEntities++;
-        this.log.warn(`Individual entity "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
-        continue;
-      }
       // Apply area and label filters before the select and validation
       if (!satisfiesAreaFilter(this, entity)) {
         this.filteredEntities++;
@@ -475,6 +469,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) {
         this.unselectedEntities++;
+        continue;
+      }
+      // If the entity has an already registered name, we skip it.
+      if (this.hasDeviceName(entityName)) {
+        this.duplicatedEntities++;
+        this.log.warn(`Individual entity "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
@@ -573,12 +573,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Skip the devices without entities
       if (Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length === 0) {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
-        continue;
-      }
-      // If the device has an already registered name, we skip it.
-      if (this.hasDeviceName(deviceName)) {
-        this.duplicatedDevices++;
-        this.log.warn(`Device "${CYAN}${deviceName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
         continue;
       }
       // Apply area and label filters before the select and validation
@@ -740,6 +734,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Register the device if we have found supported domains and entities
       if (mutableDevice.size() > 1) {
+        // Only exportable devices can collide; filtered or unsupported entities must not produce duplicate warnings.
+        if (this.hasDeviceName(deviceName)) {
+          this.duplicatedDevices++;
+          this.log.warn(`Device "${CYAN}${deviceName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
+          for (const entity of this.ha.hassEntities.values()) {
+            if (entity.device_id === device.id) this.endpointNames.delete(entity.entity_id);
+          }
+          await this.clearDeviceSelect(device.id);
+          mutableDevice.destroy();
+          continue;
+        }
         try {
           if (this.config.enableServerRvc && hasRvc) {
             this.log.debug(`Checking server RVC for device ${dn}${device.name}${db} with enabled server RVC...`);
@@ -816,14 +821,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
       }
-      // If the entity has an already registered name, we skip it.
-      if (this.hasDeviceName(entityName)) {
-        this.duplicatedEntities++;
-        this.log.warn(
-          `Split entity ${CYAN}${entity.entity_id}${wr} name "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant.`,
-        );
-        continue;
-      }
       // Apply area and label filters before the select and validation
       const device = entity.device_id && this.ha.hassDevices.get(entity.device_id);
       if (!device) {
@@ -854,6 +851,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.setSelectEntity(entityName, entity.entity_id, 'hub');
       if (!this.validateDevice([entityName, entity.entity_id, entity.id], true)) {
         this.unselectedEntities++;
+        continue;
+      }
+      // If the entity has an already registered name, we skip it.
+      if (this.hasDeviceName(entityName)) {
+        this.duplicatedEntities++;
+        this.log.warn(
+          `Split entity ${CYAN}${entity.entity_id}${wr} name "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant.`,
+        );
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
