@@ -304,22 +304,29 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
   });
 
-  it('should warn and discard the second device when both same-name devices are exportable', async () => {
+  it.each([
+    ['switch', true],
+    ['sensor', true],
+    ['sensor', false],
+  ] as const)('should preserve exported selectors when a rejected %s has the same device name: %s', async (domain, sameDeviceName) => {
     const first = generateDevice(haPlatform.ha, 'Shared export');
     const firstEntity = generateEntity(haPlatform.ha, 'First switch', 'switch', first, null, [], 'off');
-    const second = generateDevice(haPlatform.ha, 'Shared export');
-    const secondEntity = generateEntity(haPlatform.ha, 'Second switch', 'switch', second, null, [], 'off');
+    const second = generateDevice(haPlatform.ha, sameDeviceName ? 'Shared export' : 'Other device');
+    const secondEntity = generateEntity(haPlatform.ha, 'Second entity', domain, second, null, [], 'off');
+    secondEntity.original_name = firstEntity.original_name;
 
     await haPlatform.onStart('Duplicate-name regression');
 
-    expect(haPlatform.duplicatedDevices).toBe(1);
-    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining('already exists as a registered device'));
+    expect(haPlatform.duplicatedDevices).toBe(domain === 'switch' ? 1 : 0);
+    expect(loggerWarnSpy).toHaveBeenCalledTimes(domain === 'switch' ? 1 : 0);
     expect(loggerErrorSpy).not.toHaveBeenCalled();
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.has(first.id)).toBe(true);
     expect(haPlatform.matterbridgeDevices.has(second.id)).toBe(false);
     expect(haPlatform.endpointNames.has(firstEntity.entity_id)).toBe(true);
     expect(haPlatform.endpointNames.has(secondEntity.entity_id)).toBe(false);
+    expect(haPlatform.getSelectEntity('First switch')?.description).toBe(firstEntity.entity_id);
+    expect(haPlatform.getSelectDevice(second.id)).toBeUndefined();
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
   });
 
@@ -358,6 +365,8 @@ describe('Matterbridge ' + NAME, () => {
     expect(haPlatform.matterbridgeDevices.has(second.entity_id)).toBe(false);
     expect(haPlatform.endpointNames.has(first.entity_id)).toBe(true);
     expect(haPlatform.endpointNames.has(second.entity_id)).toBe(false);
+    expect(haPlatform.getSelectEntity('Shared export')?.description).toBe(first.entity_id);
+    expect(haPlatform.getSelectDevice(second.id)).toBeUndefined();
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
   });
 

@@ -32,7 +32,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Fixed
 
-- [discovery]: Check duplicate names after export filtering so excluded devices and entities do not trigger misleading warnings.
+- [discovery]: Ignore excluded devices and entities when checking duplicate names; preserve selector entries for existing exports.
 
 ## [1.6.0] - 2026-10-23
 

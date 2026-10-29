@@ -211,6 +211,8 @@ I suggest to always use the filters by Area and Label or the whiteList adding ea
 
 If any device or entity creates issues put it in the blackList.
 
+Only devices and entities selected for export are checked for duplicate names. Filtered devices and unsupported entities, such as network trackers, do not trigger these warnings.
+
 ### Host
 
 Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). Use the IP only if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selfsigned certificates you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificates you don't need ca certificate and rejectUnauthorized should be selected.
@@ -242,8 +244,6 @@ Filter devices and individual entities by area. If enabled, only devices, indivi
 ### Filter By Label
 
 Filter devices and individual entities by label. If enabled, only devices, individual entities, and split entities with the selected label will be exposed. If disabled, all devices, individual entities, and split entities will be exposed. A device is also exposed if it has any entities that satisfy the filters.
-
-Duplicate-name warnings apply only to export candidates after filtering. Excluded devices, such as network trackers sharing a name with a control device, do not cause duplicate-name warnings.
 
 ### Whitelist
 
