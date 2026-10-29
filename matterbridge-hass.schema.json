@@ -194,6 +194,13 @@
       "enum": ["Merge", "Matter"],
       "default": "Merge"
     },
+    "namePrefix": {
+      "title": "Name Prefix",
+      "description": "Prefix the names exported to Matter without renaming them in Home Assistant. None preserves existing names. Area adds the entity or device area (i.e. Hallway Light), so devices with the same name in different areas can all be exposed. Names still duplicated are skipped. Changing this value, an area name or the area of a device changes the exported names: you will lose the configuration of the affected devices in your controller and you may need to pair again the controller.",
+      "type": "string",
+      "enum": ["None", "Area"],
+      "default": "None"
+    },
     "namePostfix": {
       "title": "Name Postfix",
       "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",

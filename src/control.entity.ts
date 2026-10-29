@@ -3,7 +3,7 @@
  * @description This file contains the addControlEntity function.
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.1.3
+ * @version 1.1.4
  * @license Apache-2.0
  *
  * Copyright 2025, 2026, 2027 Luca Liguori.
@@ -42,7 +42,7 @@ import {
   roundTo,
   temp,
 } from './converters.js';
-import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
+import { entityHasLabel, getDomain, getEntityName, getPrefixedName } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -286,11 +286,17 @@ export function addControlEntity(
     platform.log.debug(`= select device ${CYAN}${entity.entity_id}${db} options: ${CYAN}${state.attributes['options']}${db}`);
     mutableDevice.addSelect(endpointName, getEntityName(platform, entity) ?? 'Select an option', state.attributes['options']);
     if (entityHasLabel(platform, entity, platform.config.virtualControlLabel)) {
-      state.attributes['options']?.forEach((option: string) => {
+      const options: string[] = state.attributes['options'];
+      // Matterbridge builds the virtual device ID from the first 32 characters of the name, so the area is shortened once to fit the longest option.
+      const longestOption = Math.max(...options.map((option) => option.replaceAll('.', '').length));
+      const prefixedName = getPrefixedName(platform, String(getEntityName(platform, entity)), entity, 31 - longestOption);
+      options.forEach((option) => {
         platform.log.debug(`***Add select device ${CYAN}${entity.entity_id}${db} virtual control: ${CYAN}${option}${db}`);
+        // matter.js rejects dots in endpoint IDs.
+        const virtualName = `${prefixedName} ${option}`.replaceAll('.', '');
         void platform
           // oxlint-disable-next-line typescript/require-await
-          .registerVirtualDevice(`${getEntityName(platform, entity)} ${option}`, 'mounted_switch', async () => {
+          .registerVirtualDevice(virtualName, 'mounted_switch', async () => {
             platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error: unknown) => {
               platform.log.error(`Failed to call select_option service for ${CYAN}${entity.entity_id}${db} with option ${CYAN}${option}${db}: ${error}`);
             });
@@ -328,20 +334,24 @@ export function addControlEntity(
         { feature: MediaPlayerEntityFeature.PREVIOUS_TRACK, service: MediaPlayerService.MEDIA_PREVIOUS_TRACK, controlName: 'Previous Track' },
         { feature: MediaPlayerEntityFeature.NEXT_TRACK, service: MediaPlayerService.MEDIA_NEXT_TRACK, controlName: 'Next Track' },
       ];
-      featuresServices.forEach(({ feature, service, controlName }) => {
-        // oxlint-disable-next-line no-bitwise
-        if (state.attributes['supported_features'] && state.attributes['supported_features'] & feature) {
-          platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
-          void platform
-            // oxlint-disable-next-line typescript/require-await
-            .registerVirtualDevice(`${controlName} ${getEntityName(platform, entity)}`, 'mounted_switch', async () => {
-              platform.ha.callService('media_player', service, entity.entity_id).catch((error: unknown) => {
-                platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
-              });
-            })
-            // oxlint-disable-next-line no-empty-function
-            .catch(/* v8 ignore next */ () => {});
-        }
+      // oxlint-disable-next-line no-bitwise
+      const supportedServices = featuresServices.filter(({ feature }) => state.attributes['supported_features'] && state.attributes['supported_features'] & feature);
+      // Matterbridge builds the virtual device ID from the first 32 characters of the name, so the area is shortened once to fit the longest supported control name.
+      const longestControlName = Math.max(...supportedServices.map(({ controlName }) => controlName.length));
+      const prefixedName = getPrefixedName(platform, String(getEntityName(platform, entity)), entity, 31 - longestControlName);
+      supportedServices.forEach(({ service, controlName }) => {
+        platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
+        // matter.js rejects dots in endpoint IDs.
+        const virtualName = `${controlName} ${prefixedName}`.replaceAll('.', '');
+        void platform
+          // oxlint-disable-next-line typescript/require-await
+          .registerVirtualDevice(virtualName, 'mounted_switch', async () => {
+            platform.ha.callService('media_player', service, entity.entity_id).catch((error: unknown) => {
+              platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
+            });
+          })
+          // oxlint-disable-next-line no-empty-function
+          .catch(/* v8 ignore next */ () => {});
       });
     }
   }

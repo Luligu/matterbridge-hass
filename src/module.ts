@@ -3,7 +3,7 @@
  * @description This file contains the class HomeAssistantPlatform.
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.8.1
+ * @version 1.8.2
  * @license Apache-2.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
@@ -60,7 +60,18 @@ import {
 } from './converters.js';
 import { addEventEntity } from './event.entity.js';
 import { addHelperEntity } from './helper.entity.js';
-import { getDomain, getEntityName, isDeviceEntity, isDisabled, isHidden, isIndividualEntity, isSplitEntity, satisfiesAreaFilter, satisfiesLabelFilter } from './helpers.js';
+import {
+  getDomain,
+  getEntityName,
+  getPrefixedName,
+  isDeviceEntity,
+  isDisabled,
+  isHidden,
+  isIndividualEntity,
+  isSplitEntity,
+  satisfiesAreaFilter,
+  satisfiesLabelFilter,
+} from './helpers.js';
 import {
   type DeviceId,
   type EntityId,
@@ -100,6 +111,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   splitByLabel: string;
   splitNameStrategy: 'Entity name' | 'Friendly name';
   controllerStrategy: 'Merge' | 'Matter';
+  namePrefix: 'None' | 'Area';
   namePostfix: string;
   postfix: string;
   airQualityRegex: string;
@@ -236,6 +248,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           : 'Entity name';
       this.config.controllerStrategy =
         isValidString(this.config.controllerStrategy, 5) && ['Merge', 'Matter'].includes(this.config.controllerStrategy) ? this.config.controllerStrategy : 'Merge';
+      this.config.namePrefix = isValidString(this.config.namePrefix, 4) && ['None', 'Area'].includes(this.config.namePrefix) ? this.config.namePrefix : 'None';
       this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
       this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
       this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
@@ -446,9 +459,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity has an already registered name, we skip it.
-      if (this.hasDeviceName(entityName)) {
+      const matterName = this.getMatterName(entityName, entity);
+      if (this.hasDeviceName(matterName)) {
         this.duplicatedEntities++;
-        this.log.warn(`Individual entity "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(
+          `Individual entity "${CYAN}${entityName}${wr}" already exists as a registered device${this.getMatterNameSuffix(entityName, matterName)}. Please change the name in Home Assistant`,
+        );
         continue;
       }
       // Apply area and label filters before the select and validation
@@ -478,10 +494,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (entityName.length > 32) {
+      if (matterName.length > 32) {
         this.longNameEntities++;
         this.log.warn(
-          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Individual entity "${CYAN}${matterName}${wr}" has a name that exceeds Matter’s 32-character limit (${matterName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -489,7 +505,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
       const mutableDevice = new MutableDevice(
         this.matterbridge,
-        entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        matterName,
         isValidString(this.config.postfix, 1, 3) ? entity.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : entity.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
@@ -576,9 +592,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the device has an already registered name, we skip it.
-      if (this.hasDeviceName(deviceName)) {
+      const matterName = this.getMatterName(deviceName, device);
+      if (this.hasDeviceName(matterName)) {
         this.duplicatedDevices++;
-        this.log.warn(`Device "${CYAN}${deviceName}${wr}" already exists as a registered device. Please change the name in Home Assistant`);
+        this.log.warn(
+          `Device "${CYAN}${deviceName}${wr}" already exists as a registered device${this.getMatterNameSuffix(deviceName, matterName)}. Please change the name in Home Assistant`,
+        );
         continue;
       }
       // Apply area and label filters before the select and validation
@@ -600,10 +619,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (deviceName.length > 32) {
+      if (matterName.length > 32) {
         this.longNameDevices++;
         this.log.warn(
-          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-character limit (${deviceName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Device "${CYAN}${matterName}${wr}" has a name that exceeds Matter’s 32-character limit (${matterName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -638,7 +657,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Create a Mutable device
       const mutableDevice = new MutableDevice(
         this.matterbridge,
-        deviceName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        matterName,
         isValidString(this.config.postfix, 1, 3) ? device.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : device.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
@@ -829,10 +848,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity has an already registered name, we skip it.
-      if (this.hasDeviceName(entityName)) {
+      const matterName = this.getMatterName(entityName, entity);
+      if (this.hasDeviceName(matterName)) {
         this.duplicatedEntities++;
         this.log.warn(
-          `Split entity ${CYAN}${entity.entity_id}${wr} name "${CYAN}${entityName}${wr}" already exists as a registered device. Please change the name in Home Assistant.`,
+          `Split entity ${CYAN}${entity.entity_id}${wr} name "${CYAN}${entityName}${wr}" already exists as a registered device${this.getMatterNameSuffix(entityName, matterName)}. Please change the name in Home Assistant.`,
         );
         continue;
       }
@@ -869,10 +889,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (entityName.length > 32) {
+      if (matterName.length > 32) {
         this.longNameEntities++;
         this.log.warn(
-          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${entityName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Split entity "${CYAN}${matterName}${wr}" has a name that exceeds Matter’s 32-character limit (${matterName.length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -880,7 +900,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Creating device for split entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
       const mutableDevice = new MutableDevice(
         this.matterbridge,
-        entityName + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : ''),
+        matterName,
         isValidString(this.config.postfix, 1, 3) ? entity.id.slice(0, 32 - this.config.postfix.length) + this.config.postfix : entity.id.slice(0, 32),
         0xfff1,
         'HomeAssistant',
@@ -1477,6 +1497,28 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Returns the name exported to Matter: the Home Assistant name with the name prefix and the name postfix, when set.
+   *
+   * @param {string} name - The Home Assistant name.
+   * @param {HassDevice | HassEntity} item - The device or entity to name.
+   * @returns {string} The name exported to Matter.
+   */
+  private getMatterName(name: string, item: HassDevice | HassEntity): string {
+    return getPrefixedName(this, name, item) + (isValidString(this.config.namePostfix, 1, 3) ? ' ' + this.config.namePostfix : '');
+  }
+
+  /**
+   * Returns the duplicated name warning suffix naming the name exported to Matter, when it differs from the Home Assistant name.
+   *
+   * @param {string} name - The Home Assistant name.
+   * @param {string} matterName - The name exported to Matter.
+   * @returns {string} The suffix, or an empty string when the names are the same.
+   */
+  private getMatterNameSuffix(name: string, matterName: string): string {
+    return name === matterName ? '' : ` with the Matter name "${CYAN}${matterName}${wr}"`;
   }
 
   /**

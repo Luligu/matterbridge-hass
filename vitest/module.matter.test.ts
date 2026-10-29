@@ -3695,7 +3695,7 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+      expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name} Tst${wr}" has a name that exceeds Matter’s 32-character limit`),
     );
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining(`Split entity "${CYAN}sensor.wrong_entity_id${wr}" set in splitEntities not found in Home Assistant. Please check your configuration.`),

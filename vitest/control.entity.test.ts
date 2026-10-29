@@ -487,6 +487,69 @@ describe('addControlEntity', () => {
     expect(callService).toHaveBeenCalledWith('media_player', MediaPlayerService.VOLUME_UP, e.entity_id);
   });
 
+  // Platform with the Virtual Controls label, the given name prefix, areas (id: name) and entities.
+  const virtualControlPlatform = (namePrefix: string, areas: Record<string, string>, ...entities: (readonly [HassEntity, HassState])[]): any => ({
+    ...mockPlatform,
+    config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls', namePrefix },
+    ha: {
+      callService: vi.fn<() => Promise<void>>().mockResolvedValue(),
+      hassAreas: new Map(Object.entries(areas).map(([area_id, name]) => [area_id, { area_id, name }])),
+      hassLabels: new Map([['virtual-controls', { label_id: 'virtual-controls', name: 'Virtual Controls' }]]),
+      hassStates: new Map(entities.map(([entity, state]) => [entity.entity_id, state])),
+    },
+    registerVirtualDevice: vi.fn<(name: string, deviceType: string, callback: VirtualDeviceCallback) => Promise<void>>().mockResolvedValue(),
+  });
+
+  it('prefixes labeled virtual control names with the area, without dots, when the Area name prefix is set', () => {
+    const [md, e, s] = make('media_player', 'tv', { friendly_name: 'TV', supported_features: MediaPlayerEntityFeature.TURN_ON });
+    const [smd, se, ss] = make('input_select', 'mode', { friendly_name: 'Mode', options: ['Eco'] });
+    const platform = virtualControlPlatform('Area', { hallway: '1. Floor' }, [e, s], [se, ss]);
+
+    addControlEntity(platform, md, { ...e, area_id: 'hallway', labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+    addControlEntity(platform, smd, { ...se, area_id: 'hallway', labels: ['virtual-controls'] }, ss, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Turn ON 1 Floor TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, '1 Floor Mode Eco', 'mounted_switch', expect.any(Function));
+  });
+
+  it('shortens the area of labeled select virtual control names once per entity to whole words within 32 characters', () => {
+    const [md, e, s] = make('input_select', 'mode', { friendly_name: 'Mode', options: ['Away Day', 'Away Night'] });
+    const platform = virtualControlPlatform('Area', { downstairs: 'Downstairs Living Room' }, [e, s]);
+
+    addControlEntity(platform, md, { ...e, area_id: 'downstairs', labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Downstairs Mode Away Day', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, 'Downstairs Mode Away Night', 'mounted_switch', expect.any(Function));
+  });
+
+  it('shortens the area of labeled media player virtual control names once per entity to fit its supported controls', () => {
+    const [md, e, s] = make('media_player', 'tv', { friendly_name: 'TV', supported_features: MediaPlayerEntityFeature.TURN_ON });
+    // oxlint-disable-next-line no-bitwise
+    const [pmd, pe, ps] = make('media_player', 'player', { friendly_name: 'TV', supported_features: MediaPlayerEntityFeature.TURN_ON | MediaPlayerEntityFeature.PREVIOUS_TRACK });
+    const platform = virtualControlPlatform('Area', { bedroom: 'Downstairs Bedroom' }, [e, s], [pe, ps]);
+
+    addControlEntity(platform, md, { ...e, area_id: 'bedroom', labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+    addControlEntity(platform, pmd, { ...pe, area_id: 'bedroom', labels: ['virtual-controls'] }, ps, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Turn ON Downstairs Bedroom TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, 'Turn ON Downstairs TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(3, 'Previous Track Downstairs TV', 'mounted_switch', expect.any(Function));
+  });
+
+  it('removes the dots from labeled virtual control names but not from the selected option', async () => {
+    const [md, e, s] = make('media_player', 'tv', { friendly_name: 'Mr. TV', supported_features: MediaPlayerEntityFeature.TURN_ON });
+    const [smd, se, ss] = make('input_select', 'speed', { friendly_name: 'Speed', options: ['1.5x'] });
+    const platform = virtualControlPlatform('None', {}, [e, s], [se, ss]);
+
+    addControlEntity(platform, md, { ...e, labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+    addControlEntity(platform, smd, { ...se, labels: ['virtual-controls'] }, ss, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Turn ON Mr TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, 'Speed 15x', 'mounted_switch', expect.any(Function));
+    await platform.registerVirtualDevice.mock.calls[1][2]();
+    expect(platform.ha.callService).toHaveBeenCalledWith('input_select', 'select_option', se.entity_id, { option: '1.5x' });
+  });
+
   it('logs an error when a labeled media player virtual control service call fails', async () => {
     const [md, e, s] = make('media_player', 'tv', {
       friendly_name: 'Living Room TV',

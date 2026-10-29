@@ -37,6 +37,7 @@ Features:
 - It is possible to select from a list the entities to include in the device entity black list.
 - It is possible to pickup from a list the split entities or to select them adding a label.
 - It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
+- It is possible to prefix the Matter device name with the area, to expose devices and entities with the same name in different areas.
 - Support **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
 - Support **transition time**.
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
@@ -315,6 +316,20 @@ Strategy used for split entity names. "Entity name": use the entity name (i.e. C
 
 Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not strictly compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
 
+### Name Prefix
+
+Prefix the names exported to Matter, so devices and entities with the same name in Home Assistant (i.e. a Light in each room) can all be exposed. This applies to devices, individual entities, split entities and their virtual controls. Home Assistant names are not changed, and filters and selection lists keep using the Home Assistant names and IDs.
+
+- `None` is the default and preserves existing names.
+- `Area` adds the Home Assistant area name: a device named `Light` in `Hallway` becomes `Hallway Light`. Entities use their own area when assigned, otherwise their device's area. Names without an area, or that already start with the area name (i.e. `Hallway Light` in `Hallway`), are not prefixed.
+
+Notes:
+
+- The prefix counts toward Matter's 32-character name limit: longer names are truncated by Matterbridge and a warning is logged.
+- Names that are still duplicated (i.e. two `Light` devices in the same area) are skipped with a warning, as without a prefix: change one of them in Home Assistant.
+- Virtual controls get the area before the entity name (i.e. `Turn ON Hallway TV` and `Hallway Mode Eco`). The area is shortened to the whole words that fit with the longest control or option of the entity, so the control and option names stay visible and all the controls of an entity share the same name. Shortened names can then be the same (i.e. a `TV` in `Downstairs Bedroom 1` and in `Downstairs Bedroom 2`): Matterbridge skips the second one with an error.
+- Changing this value, renaming an area or moving a device to another area changes the exported names: you will lose the configuration of the affected devices in your controller, and you may need to pair the controller again.
+
 ### Air Quality Regex
 
 Custom regex pattern to match air quality sensors that don't follow the standard Air Quality entity sensor.
@@ -360,6 +375,8 @@ Supported virtual control domains:
 | input_select |                |                      | name + all options    |
 
 Use this option to create simple voice-friendly switches like `Play TV`, `Pause TV`, or `Turn ON TV` for media_player domain: with Siri you can simply say `Hey Siri Play TV`.
+
+Dots are removed from the virtual control names, since matter.js doesn't allow them in endpoint IDs. Virtual controls with the same name (i.e. two `TV` entities) are skipped by Matterbridge with an error.
 
 Example:
 

@@ -15,6 +15,7 @@ import {
   getDomain,
   getEntityName,
   getName,
+  getPrefixedName,
   isDeviceEntity,
   isDisabled,
   isHidden,
@@ -828,5 +829,65 @@ describe('HassPlatform helpers', () => {
     expect(getEntityName(createPlatform(1, state), entity)).toBeNull();
 
     expect(getEntityName({ config: { splitNameStrategy: 'Entity name' }, ha: {} } as unknown as HomeAssistantPlatform, entity)).toBeNull();
+  });
+});
+
+describe('Name prefixes', () => {
+  let platform: HomeAssistantPlatform;
+  let device: HassDevice;
+
+  beforeEach(() => {
+    platform = { config: { namePrefix: 'Area' }, ha: createHomeAssistant() } as unknown as HomeAssistantPlatform;
+    device = { id: 'hallway-light', name: 'Light', area_id: 'hallway' } as HassDevice;
+    platform.ha.hassDevices.set(device.id, device);
+    platform.ha.hassAreas.set('hallway', { area_id: 'hallway', name: 'Hallway' } as HassArea);
+    platform.ha.hassAreas.set('kitchen', { area_id: 'kitchen', name: 'Kitchen' } as HassArea);
+  });
+
+  it('should preserve names when prefixes are disabled', () => {
+    platform.config.namePrefix = 'None';
+    expect(getPrefixedName(platform, 'Light', device)).toBe('Light');
+    delete (platform.config as Partial<typeof platform.config>).namePrefix;
+    expect(getPrefixedName(platform, 'Light', device)).toBe('Light');
+  });
+
+  it('should prefix a device with its area', () => {
+    expect(getPrefixedName(platform, 'Light', device)).toBe('Hallway Light');
+  });
+
+  it('should shorten the area to whole words or drop it when the prefixed name exceeds the maximum length', () => {
+    platform.ha.hassAreas.set('hallway', { area_id: 'hallway', name: 'Upper Hallway' } as HassArea);
+    expect(getPrefixedName(platform, 'Light', device, 19)).toBe('Upper Hallway Light');
+    expect(getPrefixedName(platform, 'Light', device, 18)).toBe('Upper Light');
+    expect(getPrefixedName(platform, 'Light', device, 11)).toBe('Upper Light');
+    expect(getPrefixedName(platform, 'Light', device, 10)).toBe('Light');
+    expect(getPrefixedName(platform, 'Light', device, 3)).toBe('Light');
+    platform.ha.hassAreas.set('hallway', { area_id: 'hallway', name: '1. Office' } as HassArea);
+    expect(getPrefixedName(platform, 'Smart TV', device, 17)).toBe('1. Office Smart TV');
+  });
+
+  it('should not prefix a name when the area is missing', () => {
+    expect(getPrefixedName(platform, 'Light', { ...device, area_id: null })).toBe('Light');
+    expect(getPrefixedName(platform, 'Light', { ...device, area_id: 'unknown' })).toBe('Light');
+    platform.ha.hassAreas.set('hallway', { name: '   ' } as HassArea);
+    expect(getPrefixedName(platform, 'Light', device)).toBe('Light');
+  });
+
+  it('should not prefix a name when it already starts with the area name', () => {
+    expect(getPrefixedName(platform, 'Hallway Light', device)).toBe('Hallway Light');
+    expect(getPrefixedName(platform, 'hallway light', device)).toBe('hallway light');
+    expect(getPrefixedName(platform, 'Hallway', device)).toBe('Hallway');
+    expect(getPrefixedName(platform, 'Hallways Light', device)).toBe('Hallway Hallways Light');
+    platform.ha.hassAreas.set('hallway', { area_id: 'hallway', name: 'Downstairs Living Room' } as HassArea);
+    expect(getPrefixedName(platform, 'Downstairs TV', device, 24)).toBe('Downstairs TV');
+  });
+
+  it('should prefer an entity area and otherwise inherit its device area', () => {
+    const entity = { id: 'brightness', device_id: device.id, area_id: null } as HassEntity;
+    expect(getPrefixedName(platform, 'Brightness', entity)).toBe('Hallway Brightness');
+    entity.area_id = 'kitchen';
+    expect(getPrefixedName(platform, 'Brightness', entity)).toBe('Kitchen Brightness');
+    entity.device_id = null;
+    expect(getPrefixedName(platform, 'Brightness', entity)).toBe('Kitchen Brightness');
   });
 });

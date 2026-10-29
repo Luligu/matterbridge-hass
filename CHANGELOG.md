@@ -34,6 +34,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [binary_sensor]: Map a `binary_sensor` with device class `battery_charging` to the PowerSource `batChargeState` attribute (rechargeable battery feature). Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/254).
 - [vacuum]: Map the Identify command to the `vacuum.locate` service when the vacuum supports the `locate` feature. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/255).
+- [names]: Add the Name Prefix setting (None and Area) to prefix the names exported to Matter, so devices and entities with the same name in different areas can be exposed without renaming them in Home Assistant.
 
 ### Fixed
 
@@ -41,6 +42,8 @@ If you like this project and find it useful, please consider giving it a star on
 - [battery]: Restrict battery detection to sensor and binary_sensor entities.
 - [light]: Restore dimming and color discovery for unavailable lights without cached state. Thanks starship666 (https://github.com/Luligu/matterbridge-hass/issues/245).
 - [updates]: Normalize dotted endpoint names when routing updates to mapped child endpoints. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/issues/250).
+- [names]: Use the name exported to Matter, with the name postfix, in the duplicated and long name checks, so duplicated names are skipped with a warning instead of failing the registration.
+- [Virtual Control]: Remove the dots from the virtual control names, since matter.js doesn't allow them in endpoint IDs and the virtual controls were not created.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
