@@ -15,6 +15,7 @@
   "entityWhiteList": [],
   "entityBlackList": [],
   "deviceEntityBlackList": {},
+  "nodeLabels": {},
   "splitEntities": [],
   "splitByLabel": "",
   "splitNameStrategy": "Entity name",

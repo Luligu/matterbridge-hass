@@ -32,6 +32,9 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
+- [config]: Apply node label updates immediately through onConfigChanged.
+- [config]: Add the nodeLabels object with a per-device name setting to the schema, default config and configuration type.
+- [config]: Apply valid 1–32 character node labels for each newly registered device and all devices during onConfigure, log changes at INFO level and warn and skip invalid names or missing devices.
 - [binary_sensor]: Map a `binary_sensor` with device class `battery_charging` to the PowerSource `batChargeState` attribute (rechargeable battery feature). Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/254).
 - [vacuum]: Map the Identify command to the `vacuum.locate` service when the vacuum supports the `locate` feature. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/255).
 

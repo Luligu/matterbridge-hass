@@ -260,6 +260,10 @@ If the blackList is defined the devices, the individual and split entities inclu
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
 
+### Node Labels
+
+Configure the device name (`nodeLabel`) shown by the controller for each exposed device, like renaming the device in the controller UI. Select the device and enter a `name` between 1 and 32 characters. Changes are applied on startup and immediately when the plugin configuration is saved.
+
 ### Domain Whitelist
 
 Only entities whose domain is listed here will be exposed. Leave this list empty to expose all domains. Enter the domain name (i.e. switch, light, sensor).

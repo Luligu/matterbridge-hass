@@ -96,6 +96,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   entityWhiteList: string[];
   entityBlackList: string[];
   deviceEntityBlackList: Record<string, string[]>;
+  nodeLabels: Record<string, { name?: string }>;
   splitEntities: string[];
   splitByLabel: string;
   splitNameStrategy: 'Entity name' | 'Friendly name';
@@ -228,6 +229,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.entityWhiteList = isValidArray(this.config.entityWhiteList, 1) ? this.config.entityWhiteList : [];
       this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
       this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
+      this.config.nodeLabels = isValidObject(this.config.nodeLabels, 1) ? this.config.nodeLabels : {};
       this.config.splitEntities = isValidArray(this.config.splitEntities, 1) ? this.config.splitEntities : [];
       this.config.splitByLabel = isValidString(this.config.splitByLabel) ? this.config.splitByLabel : '';
       this.config.splitNameStrategy =
@@ -530,6 +532,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
+          await this.configureNodeLabels(mutableDevice.getEndpoint());
           /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
@@ -766,6 +769,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.create(this.config.controllerStrategy === 'Merge');
           mutableDevice.logMutableDevice();
           await this.registerDevice(mutableDevice.getEndpoint());
+          await this.configureNodeLabels(mutableDevice.getEndpoint());
           /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
@@ -920,6 +924,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
+          await this.configureNodeLabels(mutableDevice.getEndpoint());
           /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
@@ -951,6 +956,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   override async onConfigure(): Promise<void> {
     await super.onConfigure();
     this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}...`);
+    await this.configureNodeLabels();
     try {
       for (const state of Array.from(this.ha.hassStates.values())) {
         // Skip states without entity
@@ -1013,6 +1019,39 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         child.log.logLevel = logLevel;
       }
     }
+  }
+
+  /**
+   * Apply configured node labels and log changes or invalid entries.
+   * @param {MatterbridgeEndpoint} [device] Device to update; when omitted, process all configured devices.
+   * @returns {Promise<void>} Resolves after processing all configured labels.
+   */
+  private async configureNodeLabels(device?: MatterbridgeEndpoint): Promise<void> {
+    for (const [key, { name }] of Object.entries(this.config.nodeLabels)) {
+      if (device && device.deviceName !== key) continue;
+      if (!isValidString(name, 1, 32)) {
+        this.log.warn(`Invalid node label for "${key}": name must be a string between 1 and 32 characters`);
+        continue;
+      }
+      const target = device ?? this.getDeviceByName(key);
+      if (!target) {
+        this.log.warn(`Device "${key}" not found while configuring node label`);
+        continue;
+      }
+      await target.setAttribute(BridgedDeviceBasicInformation, 'nodeLabel', name, this.log);
+      this.log.info(`Set node label for "${key}" to "${name}"`);
+    }
+  }
+
+  /**
+   * Apply node labels after the plugin configuration changes.
+   * @param {HomeAssistantPlatformConfig} _config Updated configuration already assigned by Matterbridge.
+   * @returns {Promise<void>} Resolves after configured node labels are processed.
+   */
+  override async onConfigChanged(_config: HomeAssistantPlatformConfig): Promise<void> {
+    this.log.info(`Changing configuration for platform ${idn}${this.config.name}${rs}${nf}...`);
+    this.config.nodeLabels ??= {};
+    await this.configureNodeLabels();
   }
 
   override async onShutdown(reason?: string): Promise<void> {

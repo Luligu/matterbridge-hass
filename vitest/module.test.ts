@@ -2802,6 +2802,7 @@ describe('HassPlatform', () => {
 
     const mbDevice = haPlatform.matterbridgeDevices.get('38fc72694c39502223744fbb8bfcdef0');
     expect(mbDevice).toBeDefined();
+    if (!mbDevice) return;
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${motionSensorDevice.name}${rs}${nf} id ${CYAN}${motionSensorDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${motionSensorDevice.name}${db}...`);
@@ -2842,6 +2843,11 @@ describe('HassPlatform', () => {
   it('should register a button device from ha', async () => {
     expect(haPlatform).toBeDefined();
 
+    haPlatform.config.nodeLabels = {
+      [buttonDevice.name]: { name: 'Startup label' },
+      'Other device': { name: 'Other label' },
+      'Invalid device': { name: '' },
+    };
     haPlatform.ha.hassDevices.set(buttonDevice.id, buttonDevice as unknown as HassDevice);
     haPlatform.ha.hassEntities.set(buttonEntity.entity_id, buttonEntity as unknown as HassEntity);
     haPlatform.ha.hassStates.set(buttonEntityState.entity_id, buttonEntityState as unknown as HassState);
@@ -2854,6 +2860,9 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${buttonDevice.name}${rs}${nf} id ${CYAN}${buttonDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${buttonDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation, 'nodeLabel', 'Startup label', haPlatform.log);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Set node label for "${buttonDevice.name}" to "Startup label"`);
+    expect(loggerWarnSpy).not.toHaveBeenCalledWith('Device "Other device" not found while configuring node label');
 
     buttonEntityState.attributes.event_type = 'single';
     await haPlatform.updateHandler(buttonDevice.id, buttonEntity.entity_id, buttonEntityState as unknown as HassState, buttonEntityState as unknown as HassState);
@@ -2906,6 +2915,27 @@ describe('HassPlatform', () => {
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(`Error configuring platform ${idn}${mockConfig.name}${rs}${er}: Test error`);
+  });
+
+  it('should configure node labels on onConfigure and onConfigChanged', async () => {
+    await haPlatform.onConfigure();
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation, 'nodeLabel', 'Startup label', haPlatform.log);
+    expect(loggerWarnSpy).toHaveBeenCalledWith('Device "Other device" not found while configuring node label');
+    expect(loggerWarnSpy).toHaveBeenCalledWith('Invalid node label for "Invalid device": name must be a string between 1 and 32 characters');
+
+    vi.clearAllMocks();
+    haPlatform.config.nodeLabels = {
+      [buttonDevice.name]: { name: 'Updated label' },
+    };
+    await haPlatform.onConfigChanged(haPlatform.config);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Changing configuration for platform ${idn}${mockConfig.name}${rs}${nf}...`);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(BridgedDeviceBasicInformation, 'nodeLabel', 'Updated label', haPlatform.log);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Set node label for "${buttonDevice.name}" to "Updated label"`);
+
+    vi.clearAllMocks();
+    Reflect.deleteProperty(haPlatform.config, 'nodeLabels');
+    await haPlatform.onConfigChanged(haPlatform.config);
+    expect(haPlatform.config.nodeLabels).toEqual({});
   });
 
   it('should call onChangeLoggerLevel and log a partial message', async () => {
