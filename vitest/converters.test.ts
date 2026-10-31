@@ -7,7 +7,7 @@
 /* oxlint-disable vitest/no-conditional-expect */
 
 import { airQualitySensor, electricalSensor, powerSource, pressureSensor } from 'matterbridge';
-import { AirQuality, FanControl, Thermostat } from 'matterbridge/matter/clusters';
+import { AirQuality, FanControl, PowerSource, Thermostat } from 'matterbridge/matter/clusters';
 
 import {
   clamp,
@@ -171,16 +171,16 @@ describe('HassPlatform converters', () => {
       }
       if (converter.domain === 'light' && converter.with === 'hs_color') {
         converter.converter([0, 0], {
-          attributes: { color_mode: 'hs' },
+          attributes: { color_mode: ColorMode.HS },
         } as HassState);
         converter.converter([0, 0], {
-          attributes: { color_mode: 'rgb' },
+          attributes: { color_mode: ColorMode.RGB },
         } as HassState);
         converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'xy_color') {
         converter.converter([0, 0], {
-          attributes: { color_mode: 'xy' },
+          attributes: { color_mode: ColorMode.XY },
         } as HassState);
         converter.converter(undefined, {} as HassState);
       }
@@ -329,6 +329,11 @@ describe('HassPlatform converters', () => {
       if (converter.domain === 'binary_sensor') {
         expect(converter.converter('on')).not.toBe(null);
         expect(converter.converter('off')).not.toBe(null);
+      }
+      if (converter.withDeviceClass === 'battery_charging') {
+        expect(converter.converter('on')).toBe(PowerSource.BatChargeState.IsCharging);
+        expect(converter.converter('off')).toBe(PowerSource.BatChargeState.IsNotCharging);
+        expect(converter.converter('unavailable')).toBe(PowerSource.BatChargeState.Unknown);
       }
     });
   });

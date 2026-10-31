@@ -1,4 +1,4 @@
-# Matterbridge Agents Instructions (v.1.0.7)
+# Matterbridge Agents Instructions (v.1.0.8)
 
 ## Style And Formatting
 
@@ -28,6 +28,11 @@
 ## Documentation
 
 - When behavior changes, update the relevant tests and documentation.
+
+## Git Commits
+
+- Do not manually add a `Signed-off-by:` trailer to commit messages. VS Code’s Git interface adds it through `git.alwaysSignOff`; when committing through a terminal, always use `git commit -s`.
+- Never write a personal email address or any sensitive data into commit messages, trailers, or any generated text.
 
 ## Additional Agent Guidance
 

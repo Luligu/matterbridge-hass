@@ -89,7 +89,17 @@ import {
 } from 'matterbridge/test-utils/vitest';
 
 import { miredsToKelvin } from '../src/converters.js';
-import { ColorMode, type HassConfig, type HassContext, type HassDevice, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
+import {
+  ColorMode,
+  type HassConfig,
+  type HassContext,
+  type HassDevice,
+  type HassEntity,
+  type HassServices,
+  type HassState,
+  HomeAssistant,
+  VacuumEntityFeature,
+} from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
 import { MutableDevice } from '../src/mutableDevice.js';
 
@@ -266,8 +276,8 @@ describe('Matterbridge ' + NAME, () => {
       mockMatterbridge.removeAllBridgedEndpoints,
       mockMatterbridge.addVirtualEndpoint,
     );
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Initializing platform: ${CYAN}${haPlatform.config.name}${nf} version: ${CYAN}${haPlatform.config.version}${rs}`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Initialized platform: ${CYAN}${haPlatform.config.name}${nf} version: ${CYAN}${haPlatform.config.version}${rs}`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Initializing platform ${haPlatform.config.name}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${haPlatform.config.name} initialized successfully`);
   });
 
   it('should call onStart', async () => {
@@ -277,8 +287,8 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassServices = {}; // Simulate a Home Assistant services
 
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 
@@ -321,7 +331,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(airQualitySensorDevice.id)).toBeDefined();
@@ -379,7 +389,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id)).toBeDefined();
@@ -465,7 +475,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(airQualitySensorEnumDevice.id)).toBeDefined();
@@ -635,7 +645,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(electricalSensorDevice.id)).toBeDefined();
@@ -773,7 +783,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(batteryDevice.id)).toBeDefined();
@@ -785,7 +795,7 @@ describe('Matterbridge ' + NAME, () => {
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(device.getAttribute(PowerSource.id, 'batChargeLevel')).toBe(PowerSource.BatChargeLevel.Ok);
     expect(device.getAttribute(PowerSource.id, 'batPercentRemaining')).toBe(200);
-    expect(addClusterServerBatteryPowerSourceSpy).toHaveBeenCalledWith('', PowerSource.BatChargeLevel.Ok, 200);
+    expect(addClusterServerBatteryPowerSourceSpy).toHaveBeenCalledWith('', PowerSource.BatChargeLevel.Ok, 200, false);
 
     vi.clearAllMocks();
     await haPlatform.onConfigure();
@@ -815,6 +825,196 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
 
     // setDebug(false);
+  });
+
+  it('should call onStart and register a PowerSource device with a battery charging entity', async () => {
+    const batteryDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd80898f83188759ed7329e922f00ee7c',
+      labels: [],
+      name: 'Rechargeable Battery Device',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const batteryLevelEntity = {
+      area_id: null,
+      device_id: batteryDevice.id,
+      disabled_by: null,
+      entity_category: null,
+      entity_id: 'sensor.battery',
+      has_entity_name: true,
+      id: '0b25a337c543edefb1d310444ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Battery Level Sensor',
+    } as unknown as HassEntity;
+
+    const batteryTemperatureEntity = {
+      area_id: null,
+      device_id: batteryDevice.id,
+      disabled_by: null,
+      entity_category: null,
+      entity_id: 'sensor.temperature',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310444ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Battery Temperature Sensor',
+    } as unknown as HassEntity;
+
+    const batteryChargingEntity = {
+      area_id: null,
+      device_id: batteryDevice.id,
+      disabled_by: null,
+      entity_category: null,
+      entity_id: 'binary_sensor.battery_charging',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310444ad2b0ad',
+      labels: [],
+      name: null,
+      original_name: 'Battery Charging Sensor',
+    } as unknown as HassEntity;
+
+    const batteryLevelEntityState = {
+      entity_id: batteryLevelEntity.entity_id,
+      state: 50,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'battery',
+        friendly_name: 'Battery Percentage Sensor',
+      },
+    } as unknown as HassState;
+
+    const batteryTemperatureEntityState = {
+      entity_id: batteryTemperatureEntity.entity_id,
+      state: 28.4,
+      attributes: {
+        state_class: 'measurement',
+        device_class: 'temperature',
+        friendly_name: 'Battery Temperature Sensor',
+      },
+    } as unknown as HassState;
+
+    const batteryChargingEntityState = {
+      entity_id: batteryChargingEntity.entity_id,
+      state: 'on', // On means charging, Off means not charging
+      attributes: {
+        device_class: 'battery_charging',
+        friendly_name: 'Battery Charging Sensor',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
+    haPlatform.ha.hassEntities.set(batteryLevelEntity.entity_id, batteryLevelEntity);
+    haPlatform.ha.hassEntities.set(batteryChargingEntity.entity_id, batteryChargingEntity);
+    haPlatform.ha.hassEntities.set(batteryTemperatureEntity.entity_id, batteryTemperatureEntity);
+    haPlatform.ha.hassStates.set(batteryTemperatureEntityState.entity_id, batteryTemperatureEntityState);
+    haPlatform.ha.hassStates.set(batteryLevelEntityState.entity_id, batteryLevelEntityState);
+    haPlatform.ha.hassStates.set(batteryChargingEntityState.entity_id, batteryChargingEntityState);
+
+    await haPlatform.onStart('Test reason');
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(batteryDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(addClusterServerBatteryPowerSourceSpy).toHaveBeenCalledWith('', PowerSource.BatChargeLevel.Ok, 200, true);
+    expect(device.getAttribute(PowerSource.id, 'batChargeState')).toBe(PowerSource.BatChargeState.Unknown);
+    expect(device.getAttribute(PowerSource.id, 'batFunctionalWhileCharging')).toBe(true);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batChargeState', PowerSource.BatChargeState.IsCharging, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batPercentRemaining', 100, expect.anything());
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(batteryDevice.id, batteryChargingEntityState.entity_id, batteryChargingEntityState, { ...batteryChargingEntityState, state: 'off' });
+    expect(setAttributeSpy).toHaveBeenCalledWith(PowerSource.id, 'batChargeState', PowerSource.BatChargeState.IsNotCharging, expect.anything());
+    expect(device.getAttribute(PowerSource.id, 'batChargeState')).toBe(PowerSource.BatChargeState.IsNotCharging);
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it.each(['battery', 'battery_charging'])('should update battery voltage when the voltage entity precedes the %s entity', async (deviceClass) => {
+    const batteryDevice = {
+      id: 'd80898f83188759ed7329e922f00ee7c',
+      name: 'Battery Voltage Device',
+    } as unknown as HassDevice;
+    const voltageEntity = {
+      entity_id: 'sensor.battery_voltage',
+      device_id: batteryDevice.id,
+    } as unknown as HassEntity;
+    const batteryEntity = {
+      entity_id: deviceClass === 'battery' ? 'sensor.battery' : 'binary_sensor.battery_charging',
+      device_id: batteryDevice.id,
+    } as unknown as HassEntity;
+    const temperatureEntity = {
+      entity_id: 'sensor.temperature',
+      device_id: batteryDevice.id,
+    } as unknown as HassEntity;
+    const voltageState = {
+      entity_id: voltageEntity.entity_id,
+      state: '3.7',
+      attributes: { state_class: 'measurement', device_class: 'voltage', unit_of_measurement: 'V' },
+    } as unknown as HassState;
+    const batteryState = {
+      entity_id: batteryEntity.entity_id,
+      state: deviceClass === 'battery' ? '50' : 'on',
+      attributes: { state_class: 'measurement', device_class: deviceClass },
+    } as unknown as HassState;
+    const temperatureState = {
+      entity_id: temperatureEntity.entity_id,
+      state: '20',
+      attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
+    for (const entity of [voltageEntity, batteryEntity, temperatureEntity]) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of [voltageState, batteryState, temperatureState]) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    try {
+      await haPlatform.onStart('Test reason');
+      const endpoint = haPlatform.matterbridgeDevices.get(batteryDevice.id);
+      expect(endpoint).toBeDefined();
+      await haPlatform.onConfigure();
+      expect(endpoint?.getAttribute(PowerSource.id, 'batVoltage')).toBe(3700);
+
+      await haPlatform.updateHandler(batteryDevice.id, voltageEntity.entity_id, voltageState, { ...voltageState, state: '3.8' });
+      expect(endpoint?.getAttribute(PowerSource.id, 'batVoltage')).toBe(3800);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it('should ignore a battery device class outside sensor domains', async () => {
+    const batteryDevice = { id: 'd80898f83188759ed7329e922f00ee7c', name: 'Non Battery Device' } as unknown as HassDevice;
+    const unrelatedEntity = { entity_id: 'update.battery', device_id: batteryDevice.id } as unknown as HassEntity;
+    const temperatureEntity = { entity_id: 'sensor.temperature', device_id: batteryDevice.id } as unknown as HassEntity;
+    const unrelatedState = {
+      entity_id: unrelatedEntity.entity_id,
+      state: 'off',
+      attributes: { device_class: 'battery' },
+    } as unknown as HassState;
+    const temperatureState = {
+      entity_id: temperatureEntity.entity_id,
+      state: '20',
+      attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(batteryDevice.id, batteryDevice);
+    for (const entity of [unrelatedEntity, temperatureEntity]) haPlatform.ha.hassEntities.set(entity.entity_id, entity);
+    for (const state of [unrelatedState, temperatureState]) haPlatform.ha.hassStates.set(state.entity_id, state);
+
+    try {
+      await haPlatform.onStart('Test reason');
+      expect(haPlatform.matterbridgeDevices.has(batteryDevice.id)).toBe(true);
+      expect(addClusterServerBatteryPowerSourceSpy).not.toHaveBeenCalled();
+    } finally {
+      await cleanup();
+    }
   });
 
   it('should call onStart and register a double Switch device', async () => {
@@ -930,7 +1130,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(switchDevice.id)).toBeDefined();
@@ -1042,7 +1242,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(switchDevice.id)).toBeDefined();
@@ -1118,7 +1318,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(valveDevice.id)).toBeDefined();
@@ -1191,7 +1391,7 @@ describe('Matterbridge ' + NAME, () => {
     const vacuumState = {
       entity_id: vacuumEntity.entity_id,
       state: 'docked',
-      attributes: { friendly_name: 'Vacuum' },
+      attributes: { friendly_name: 'Vacuum', supported_features: VacuumEntityFeature.LOCATE },
     } as unknown as HassState;
 
     const sensorEntity = {
@@ -1223,7 +1423,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(vacuumDevice.id)).toBeDefined();
@@ -1238,7 +1438,7 @@ describe('Matterbridge ' + NAME, () => {
       `Creating endpoint ${CYAN}${vacuumEntity.entity_id}${db} for device ${idn}${vacuumDevice.name}${rs}${db} id ${CYAN}${vacuumDevice.id}${db}...`,
     );
     expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`has more entities with enabled server RVC`));
-    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(4);
+    expect(addCommandHandlerSpy).toHaveBeenCalledTimes(5);
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
 
     // The implementation has RvcRunMode currentMode 1 = Idle 2 = Cleaning
@@ -1309,6 +1509,15 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger); // GoHome now transitions through SeekingCharger instead of jumping straight to Docked
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
 
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 5 });
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'locate', vacuumEntity.entity_id);
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 0 });
+    expect(callServiceSpy).not.toHaveBeenCalled();
+    expect(device.getAttribute('Identify', 'identifyTime')).toBe(0);
+
     // setDebug(false);
     haPlatform.config.enableServerRvc = false;
 
@@ -1366,7 +1575,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightDevice.id)).toBeDefined();
@@ -1460,7 +1669,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightDevice.id)).toBeDefined();
@@ -1527,7 +1736,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(fanDevice.id)).toBeDefined();
@@ -1637,7 +1846,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(fanDevice.id)).toBeDefined();
@@ -1796,7 +2005,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(climateDevice.id)).toBeDefined();
@@ -1918,7 +2127,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(contactDevice.id)).toBeDefined();
@@ -1984,7 +2193,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(contactDevice.id)).toBeDefined();
@@ -2050,7 +2259,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(leakDevice.id)).toBeDefined();
@@ -2119,7 +2328,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(presenceDevice.id)).toBeDefined();
@@ -2185,7 +2394,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(smokeDevice.id)).toBeDefined();
@@ -2258,7 +2467,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(coDevice.id)).toBeDefined();
@@ -2315,7 +2524,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(contactEntity.entity_id)).toBeDefined();
@@ -2374,7 +2583,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(temperatureEntity.entity_id)).toBeDefined();
@@ -2431,7 +2640,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(aqiEntity.entity_id)).toBeDefined();
@@ -2490,7 +2699,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(switchEntity.entity_id)).toBeDefined();
@@ -2564,7 +2773,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
@@ -2640,7 +2849,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
@@ -2789,7 +2998,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
@@ -2909,7 +3118,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
@@ -3048,7 +3257,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(lightState.entity_id, lightState);
 
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
     expect(haPlatform.matterbridgeDevices.get(lightEntity.entity_id)).toBeDefined();
@@ -3294,7 +3503,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
@@ -3333,7 +3542,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
@@ -3380,7 +3589,7 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.splitEntities = [];
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
@@ -3429,7 +3638,7 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.splitEntities = [];
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
@@ -3479,7 +3688,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.config.postfix = 'Tst';
     haPlatform.config.splitEntities = [sensorEntity.entity_id, 'sensor.wrong_entity_id'];
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
@@ -3536,7 +3745,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.config.postfix = 'Tst';
     haPlatform.config.splitEntities = [lightEntity.entity_id, 'sensor.wrong_entity_id'];
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
@@ -3609,7 +3818,7 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.splitEntities = [sensorEntity.entity_id];
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
@@ -3646,7 +3855,7 @@ describe('Matterbridge ' + NAME, () => {
     // setDebug(true);
     await haPlatform.onStart('Test reason');
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
@@ -3735,7 +3944,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(haPlatform.config.splitEntities.length);
     expect(haPlatform.matterbridgeDevices.size).toBe(haPlatform.config.splitEntities.length);
     expect(aggregator.parts.size).toBe(haPlatform.config.splitEntities.length);
@@ -3927,7 +4136,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onStart('Test reason');
     await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(haPlatform.config.splitEntities.length);
     expect(haPlatform.matterbridgeDevices.size).toBe(haPlatform.config.splitEntities.length);
     expect(aggregator.parts.size).toBe(haPlatform.config.splitEntities.length);
@@ -4048,13 +4257,13 @@ describe('Matterbridge ' + NAME, () => {
 
   it('should call onConfigure', async () => {
     await haPlatform.onConfigure();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${mockConfig.name}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} configured successfully`);
   });
 
   it('should call onShutdown with reason', async () => {
     await haPlatform.onShutdown('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Home Assistant connection closed`);
   });
 

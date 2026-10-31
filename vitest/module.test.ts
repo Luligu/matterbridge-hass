@@ -21,7 +21,7 @@ import path from 'node:path';
 
 import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEndpoint, onOffPlugInUnit, windowCovering } from 'matterbridge';
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
-import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
+import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, OnOff, WindowCovering } from 'matterbridge/matter/clusters';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -236,15 +236,15 @@ describe('HassPlatform', () => {
   it('should return an instance of HomeAssistantPlatform', async () => {
     haPlatform = initializePlugin(matterbridge, log, mockConfig);
     expect(haPlatform).toBeInstanceOf(HomeAssistantPlatform);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initializing platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initialized platform: ${CYAN}${mockConfig.name}${nf} version: ${CYAN}${mockConfig.version}${rs}`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Initializing platform ${mockConfig.name}...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Platform ${mockConfig.name} initialized successfully`);
   });
 
   it('should shutdown the platform', async () => {
     expect(haPlatform).toBeInstanceOf(HomeAssistantPlatform);
     await haPlatform.onShutdown('Unit test shutdown');
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Unit test shutdown`);
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shut down platform ${idn}${mockConfig.name}${rs}${nf} completed`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Shutting down platform ${mockConfig.name} with reason: Unit test shutdown...`);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Platform ${mockConfig.name} shut down successfully`);
   });
 
   it('should not initialize platform with config name', () => {
@@ -607,6 +607,34 @@ describe('HassPlatform', () => {
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
   });
 
+  it('should skip missing devices and log only mapped entities using the entity ID when the device ID is null', async () => {
+    const state = { entity_id: 'switch.missing', state: 'off', attributes: {} } as HassState;
+
+    await haPlatform.updateHandler(null, state.entity_id, state, state);
+    expect(loggerDebugSpy).not.toHaveBeenCalled();
+
+    haPlatform.endpointNames.set(state.entity_id, '');
+    await haPlatform.updateHandler(null, state.entity_id, state, state);
+    expect(loggerDebugSpy).toHaveBeenCalledExactlyOnceWith('Update handler: Matterbridge device switch.missing for switch.missing not found: skipping it');
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalled();
+  });
+
+  it('should update the mapped child when the mapped endpoint name contains dots', async () => {
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'mappedOutlet' }, true);
+    const child = device.addChildDeviceTypeWithClusterServer('switch.plug', [onOffPlugInUnit], [], { number: EndpointNumber(1) });
+    child.number = EndpointNumber(1);
+    haPlatform.matterbridgeDevices.set('mappedOutlet', device);
+    haPlatform.endpointNames.set('switch.alias', 'switch.plug');
+    const oldState = { entity_id: 'switch.alias', state: 'off', attributes: {} } as HassState;
+
+    expect(child.id).toBe('switchplug');
+
+    await haPlatform.updateHandler('mappedOutlet', 'switch.alias', oldState, { ...oldState, state: 'on' });
+
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledExactlyOnceWith(OnOff.id, 'onOff', true, device.log);
+    expect(setAttributeMatterbridgeEndpointSpy.mock.contexts[0]).toBe(child);
+  });
+
   it('should fail calling onStart with reason', async () => {
     connectSpy.mockImplementationOnce(async () => {
       console.log(`Mocked connect failure`);
@@ -614,15 +642,15 @@ describe('HassPlatform', () => {
     });
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(`Error connecting to Home Assistant at ${CYAN}http://homeassistant.local:8123${nf}: Connection failed`);
   });
 
   it('should call onStart with reason', async () => {
     expect(haPlatform).toBeDefined();
     await haPlatform.onStart('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Started platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
     expect(savePayloadMock).toHaveBeenCalled();
     expect(writeReportMock).toHaveBeenCalled();
   });
@@ -732,7 +760,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
 
@@ -751,7 +779,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart();
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: no reason provided...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(25);
 
@@ -779,7 +807,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart();
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: no reason provided...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
@@ -809,7 +837,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart();
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: `);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: no reason provided...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`doesn't have the label`));
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
@@ -835,7 +863,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(haPlatform.matterbridgeDevices.size).toBe(1);
 
     mockConfig.whiteList = [];
@@ -998,7 +1026,7 @@ describe('HassPlatform', () => {
     haPlatform.config.namePostfix = '';
     haPlatform.config.postfix = '';
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}scene${nf} name ${CYAN}turn_off_all_lights${nf}`,
     );
@@ -1023,10 +1051,10 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`configured successfully`));
 
     await haPlatform.onChangeLoggerLevel(LogLevel.DEBUG);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Logger level changed to ${LogLevel.DEBUG}`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Changing logger level of platform ${mockConfig.name} to ${LogLevel.DEBUG}...`));
     expect(haPlatform.matterbridgeDevices.size).toBeGreaterThan(0);
   });
 
@@ -1047,7 +1075,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}script${nf} name ${CYAN}increase_brightness${nf}`,
     );
@@ -1072,7 +1100,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`configured successfully`));
   });
 
   it('should register an Automation entity', async () => {
@@ -1092,7 +1120,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}automation${nf} name ${CYAN}turn_off_all_switches${nf}`,
     );
@@ -1117,7 +1145,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`configured successfully`));
   });
 
   it('should register an input_boolean helper entity', async () => {
@@ -1137,7 +1165,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}input_boolean${nf} name ${CYAN}boolean_helper${nf}`,
     );
@@ -1162,7 +1190,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`configured successfully`));
   });
 
   it('should register an input_button helper entity', async () => {
@@ -1182,7 +1210,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}input_button${nf} name ${CYAN}button_helper${nf}`,
     );
@@ -1207,7 +1235,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`configured successfully`));
   });
 
   it('should register a button individual entity', async () => {
@@ -1229,7 +1257,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device for individual entity ${idn}${entity.name}${rs}${nf} domain ${CYAN}button${nf} name ${CYAN}restart_router${nf}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -1251,7 +1279,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).not.toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`configured successfully`));
   });
 
   it('should register a Switch template entity', async () => {
@@ -1272,7 +1300,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for individual entity ${idn}${entity.original_name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}my_template_switch${nf}`,
     );
@@ -1297,7 +1325,7 @@ describe('HassPlatform', () => {
     await haPlatform.onConfigure();
     expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configuring platform`));
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${entity.entity_id}${db}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`Configured platform`));
+    expect(loggerInfoSpy).toHaveBeenCalledWith(expect.stringContaining(`configured successfully`));
   });
 
   it('should not register a Switch template entity if create fails', async () => {
@@ -1323,7 +1351,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for individual entity ${idn}${entity.name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}my_template_switch${nf}`,
     );
@@ -1455,7 +1483,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`Failed to register device ${dn}${device.name}${er}: Jest test`));
@@ -1698,7 +1726,7 @@ describe('HassPlatform', () => {
 
     // await setDebug(false);
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -1755,7 +1783,7 @@ describe('HassPlatform', () => {
     // await setDebug(true);
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Creating endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
@@ -1792,7 +1820,7 @@ describe('HassPlatform', () => {
     // await setDebug(true);
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Creating endpoint ${CYAN}${entity.entity_id}${db} for device ${idn}${device.name}${rs}${db} id ${CYAN}${device.id}${db}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
@@ -1829,7 +1857,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device for split entity ${idn}${entity.name}${rs}${nf} domain ${CYAN}scene${nf} name ${CYAN}turn_off_all_lights${nf}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${entity.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -1876,7 +1904,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for split entity ${idn}${switchEntity.original_name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}single_entity${nf}`,
     );
@@ -1925,7 +1953,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for split entity ${idn}${switchState.attributes.friendly_name}${rs}${nf} domain ${CYAN}switch${nf} name ${CYAN}single_entity${nf}`,
     );
@@ -1976,7 +2004,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for split entity ${idn}${buttonState.attributes.friendly_name}${rs}${nf} domain ${CYAN}button${nf} name ${CYAN}single_entity${nf}`,
     );
@@ -2029,7 +2057,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(matterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
 
     haPlatform.config.splitEntities = [];
@@ -2087,7 +2115,7 @@ describe('HassPlatform', () => {
 
     // setDebug(false);
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for split entity ${idn}${switchEntity.original_name}${rs}${nf} domain ${CYAN}${switchEntity.entity_id.split('.')[0]}${nf} name ${CYAN}${switchEntity.entity_id.split('.')[1]}${nf}`,
     );
@@ -2139,7 +2167,7 @@ describe('HassPlatform', () => {
 
     // setDebug(false);
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(
       `Creating device for split entity ${idn}${sensorEntity.original_name}${rs}${nf} domain ${CYAN}sensor${nf} name ${CYAN}single_entity${nf}`,
     );
@@ -2162,7 +2190,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2203,7 +2231,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2233,7 +2261,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2263,7 +2291,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2293,7 +2321,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2323,7 +2351,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2353,7 +2381,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2383,7 +2411,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2413,7 +2441,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2445,7 +2473,7 @@ describe('HassPlatform', () => {
 
     const mbDevice = haPlatform.matterbridgeDevices.get('1adb7198570f7bf0662d99618def644e');
     expect(mbDevice).toBeDefined();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`- subscribe: ${CYAN}FanControl${db}:${CYAN}fanMode${db}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
@@ -2500,7 +2528,7 @@ describe('HassPlatform', () => {
 
     const mbDevice = haPlatform.matterbridgeDevices.get('3898c5aa5d1c14b05406b7007d8d347f');
     expect(mbDevice).toBeDefined();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat${db}:${CYAN}systemMode${db}`);
     // expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, expect.stringContaining(`Subscribed endpoint`));
@@ -2533,7 +2561,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     // expect(loggerDebugSpy).toHaveBeenCalledWith(`- subscribe: ${CYAN}Thermostat (Heat)${db}:${CYAN}systemMode${db} check ${CYAN}true${db}`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
@@ -2566,7 +2594,7 @@ describe('HassPlatform', () => {
 
     const mbDevice = haPlatform.matterbridgeDevices.get('b684c54436937eea8bfd0884cf4b4547');
     expect(mbDevice).toBeDefined();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2603,7 +2631,7 @@ describe('HassPlatform', () => {
     const mbDevice = haPlatform.matterbridgeDevices.get('426162cdc13e45802d5a132299630d21');
     // console.error(haPlatform.matterbridgeDevices.keys());
     expect(mbDevice).toBeDefined();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2630,7 +2658,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${switchDevice.name}${rs}${nf} id ${CYAN}${switchDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${switchDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2643,7 +2671,7 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(switchDeviceEntity.entity_id, switchDeviceEntity as unknown as HassEntity);
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     // expect(loggerDebugSpy).toHaveBeenCalledWith(`Lookup device ${CYAN}${switchDevice.name}${db} entity ${CYAN}${switchDeviceEntity.entity_id}${db}: state not found`);
     expect(loggerDebugSpy).not.toHaveBeenCalledWith(`Registering device ${dn}${switchDevice.name}${db}...`);
   });
@@ -2657,7 +2685,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${autoDevice.name}${rs}${nf} id ${CYAN}${autoDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${autoDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2672,7 +2700,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${heatDevice.name}${rs}${nf} id ${CYAN}${heatDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${heatDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2687,7 +2715,7 @@ describe('HassPlatform', () => {
 
     await haPlatform.onStart('Test reason');
 
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${coolDevice.name}${rs}${nf} id ${CYAN}${coolDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${coolDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2704,7 +2732,7 @@ describe('HassPlatform', () => {
 
     const mbDevice = haPlatform.matterbridgeDevices.get('38ff72694f19502223744fbb8bfcdef9');
     expect(mbDevice).toBeDefined();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${contactSensorDevice.name}${rs}${nf} id ${CYAN}${contactSensorDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${contactSensorDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2774,7 +2802,7 @@ describe('HassPlatform', () => {
 
     const mbDevice = haPlatform.matterbridgeDevices.get('38fc72694c39502223744fbb8bfcdef0');
     expect(mbDevice).toBeDefined();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${motionSensorDevice.name}${rs}${nf} id ${CYAN}${motionSensorDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${motionSensorDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2822,7 +2850,7 @@ describe('HassPlatform', () => {
 
     const mbDevice = haPlatform.matterbridgeDevices.get(buttonDevice.id);
     expect(mbDevice).toBeDefined();
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Creating device ${idn}${buttonDevice.name}${rs}${nf} id ${CYAN}${buttonDevice.id}${nf}...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${buttonDevice.name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
@@ -2856,8 +2884,8 @@ describe('HassPlatform', () => {
 
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configured platform ${idn}${mockConfig.name}${rs}${nf}`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${mockConfig.name}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} configured successfully`);
     expect(loggerDebugSpy).not.toHaveBeenCalledWith(expect.stringContaining(`Configuring state`));
   });
 
@@ -2876,13 +2904,13 @@ describe('HassPlatform', () => {
     haPlatform.endpointNames.set(motionSensorOccupancyEntity.entity_id, motionSensorOccupancyEntity.entity_id);
     await haPlatform.onConfigure();
     // await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for async updateHandler operations to complete
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${idn}${mockConfig.name}${rs}${nf}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Configuring platform ${mockConfig.name}...`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(`Error configuring platform ${idn}${mockConfig.name}${rs}${er}: Test error`);
   });
 
   it('should call onChangeLoggerLevel and log a partial message', async () => {
     await haPlatform.onChangeLoggerLevel(LogLevel.DEBUG);
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Logger level changed to ${LogLevel.DEBUG}`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Changing logger level of platform ${mockConfig.name} to ${LogLevel.DEBUG}...`);
     expect(haPlatform.log.logLevel).toBe(LogLevel.DEBUG);
     expect(haPlatform.ha.log.logLevel).toBe(LogLevel.DEBUG);
     expect(haPlatform.stateCache.log.logLevel).toBe(LogLevel.DEBUG);
@@ -2890,7 +2918,7 @@ describe('HassPlatform', () => {
 
   it('should call onShutdown with reason', async () => {
     await haPlatform.onShutdown('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Home Assistant connection closed`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Saving cached states to storage...`);
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Cleared all cached states from memory`);
@@ -2903,15 +2931,15 @@ describe('HassPlatform', () => {
     });
 
     await haPlatform.onShutdown('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${mockConfig.name} with reason: Test reason...`);
     expect(loggerErrorSpy).toHaveBeenCalledWith(`Error closing Home Assistant connection: Test reason`);
     expect(matterbridge.removeAllBridgedEndpoints).not.toHaveBeenCalled();
   });
 
   it('should call onShutdown and unregister', async () => {
     mockConfig.unregisterOnShutdown = true;
-    await haPlatform.onShutdown('Test reason');
-    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${idn}${mockConfig.name}${rs}${nf}: Test reason`);
+    await haPlatform.onShutdown();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${mockConfig.name} with reason: no reason provided...`);
     expect(matterbridge.removeAllBridgedEndpoints).toHaveBeenCalled();
   });
 });

@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
 [![npm downloads](https://img.shields.io/npm/dt/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
 [![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge/latest?label=docker%20version)](https://hub.docker.com/r/luligu/matterbridge)
-[![Docker Pulls](https://img.shields.io/docker/pulls/luligu/matterbridge?label=docker%20pulls)](https://hub.docker.com/r/luligu/matterbridge)
+[![Docker Pulls](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Luligu/b21088ab9c9f2b119b42c33f0fef218d/raw/docker.json)](https://hub.docker.com/r/luligu/matterbridge)
 ![Node.js CI](https://github.com/Luligu/matterbridge-hass/actions/workflows/build.yml/badge.svg)
 ![CodeQL](https://github.com/Luligu/matterbridge-hass/actions/workflows/codeql.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Luligu/matterbridge-hass/branch/main/graph/badge.svg)](https://codecov.io/gh/Luligu/matterbridge-hass)
@@ -24,9 +24,46 @@ If you like this project and find it useful, please consider giving it a star on
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
-## Possible issue upgrading the plugin
+---
 
-> WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
+## [1.6.1] - 2026-10-31
+
+### Added
+
+- [binary_sensor]: Map a `binary_sensor` with device class `battery_charging` to the PowerSource `batChargeState` attribute (rechargeable battery feature). Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/254).
+- [vacuum]: Map the Identify command to the `vacuum.locate` service when the vacuum supports the `locate` feature. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/255).
+- [agents]: Add `SHARED-AGENTS.md` documenting the shared agent instruction setup.
+- [toolchain]: Add `TOOLCHAIN.md` v.1.0.1 documenting the repository toolchain.
+
+### Changed
+
+- [package]: Remove the `bun`, `buntest` and `native` automator settings.
+- [platform]: Uniform the constructor, onStart, onConfigure, onShutdown and onChangeLoggerLevel log messages.
+- [agents]: Update `AGENTS.md` to v.1.0.8: document commit sign-off and sensitive data rules.
+- [agents]: Update `.github/commit-message-instructions.md` to v.1.0.1: let Git add the sign-off trailer.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.17: enable automatic commit sign-off.
+- [docs]: Update `CODE_OF_CONDUCT.md` to v.1.0.0 and `CONTRIBUTING.md` to v.1.0.1.
+- [scripts]: Update `scripts/downloads.mjs` to v.2.2.0: query explicit dates and mark unpublished download counts as pending.
+- [agents]: Update the mirrored plugin frontend rules to v.1.0.2: document base paths and trailing slashes for Home Assistant Ingress.
+- [codex]: Update `.codex/config.toml` to v.1.0.6: clarify the default workspace permissions and opt-in profiles.
+- [vscode]: Update `.vscode/tasks.json`: pack local sources and download Docker installer scripts before running them.
+- [scripts]: Update `scripts/git-sync-dev.mjs` to v.2.1.0: guard against overwriting remote dev commits.
+- [scripts]: Update `scripts/prepublish-clean.mjs` to v.2.2.0: remove development fields from `package.json`, preserving indentation and line endings.
+- [package]: Delegate development-field removal in `prepublishOnly` to `scripts/prepublish-clean.mjs`.
+- [package]: Bump `@types/node` to v.26.6.6.
+- [package]: Bump `oxfmt` to v.0.75.0.
+- [package]: Bump `oxlint` to v.1.90.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2005.
+- [package]: Bump `ws` to v.8.22.1.
+
+### Fixed
+
+- [sensor]: Route battery voltage updates correctly regardless of battery or charging entity order.
+- [battery]: Restrict battery detection to sensor and binary_sensor entities.
+- [light]: Restore dimming and color discovery for unavailable lights without cached state. Thanks starship666 (https://github.com/Luligu/matterbridge-hass/issues/245).
+- [updates]: Normalize dotted endpoint names when routing updates to mapped child endpoints. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/issues/250).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.6.0] - 2026-10-23
 

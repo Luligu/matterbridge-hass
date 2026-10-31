@@ -3,7 +3,7 @@
  * @description This file contains the class HomeAssistantPlatform.
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.8.0
+ * @version 1.8.1
  * @license Apache-2.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
@@ -204,7 +204,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
     }
 
-    this.log.info(`Initializing platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
+    this.log.info(`Initializing platform ${this.config.name}...`);
 
     if (!isValidString(config.host, 1) || !isValidString(config.token, 1)) {
       setImmediate(() => {
@@ -366,11 +366,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       fireAndForget(this.updateHandler(deviceId, entityId, old_state, new_state), this.log, 'updateHandler');
     });
 
-    this.log.info(`Initialized platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
+    this.log.info(`Platform ${this.config.name} initialized successfully`);
   }
 
   override async onStart(reason?: string): Promise<void> {
-    this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
+    this.log.info(`Starting platform ${this.config.name} with reason: ${reason ?? 'no reason provided'}...`);
 
     // Create the plugin directory inside the Matterbridge plugin directory
     await fs.promises.mkdir(path.join(this.matterbridge.matterbridgePluginDirectory, 'matterbridge-hass'), { recursive: true });
@@ -515,7 +515,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'button') addButtonEntity(this, mutableDevice, entity, hassState);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
-        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, hassState.attributes['device_class'] === 'battery_charging');
       }
 
       if (entity.platform === 'template' || entity.platform === 'group') {
@@ -610,13 +610,25 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
+      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id);
       let battery = false;
-      for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
+      let rechargeable = false;
+      for (const entity of deviceEntities) {
+        const domain = getDomain(entity.entity_id);
         const state = this.ha.hassStates.get(entity.entity_id);
-        if (state?.attributes['device_class'] === 'battery') {
+        if ((domain === 'sensor' || domain === 'binary_sensor') && state?.attributes['device_class'] === 'battery') {
           this.log.debug(`Device ${CYAN}${device.name}${db} has a battery entity: ${CYAN}${entity.entity_id}${db}`);
           battery = true;
         }
+        if (domain === 'binary_sensor' && state?.attributes['device_class'] === 'battery_charging') {
+          this.log.debug(`Device ${CYAN}${device.name}${db} has a battery charging entity: ${CYAN}${entity.entity_id}${db}`);
+          battery = true;
+          rechargeable = true;
+        }
+      }
+      // Classify voltage entities after the battery status of the whole device is known.
+      for (const entity of deviceEntities) {
+        const state = this.ha.hassStates.get(entity.entity_id);
         if (battery && state?.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage') {
           this.log.debug(`Device ${CYAN}${device.name}${db} has a battery voltage entity: ${CYAN}${entity.entity_id}${db}`);
           this.batteryVoltageEntities.add(entity.entity_id);
@@ -637,7 +649,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.addDeviceTypes('', bridgedNode);
       if (battery) {
         mutableDevice.addDeviceTypes('', powerSource);
-        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200); // Add PowerSource with battery feature
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, rechargeable); // Add PowerSource with battery feature
       }
       mutableDevice.setComposedType('Hass Device');
       mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${device.id}`);
@@ -894,7 +906,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'button') addButtonEntity(this, mutableDevice, entity, hassState);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
-        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, hassState.attributes['device_class'] === 'battery_charging');
       }
       mutableDevice.setComposedType('Hass Split');
       mutableDevice.setConfigUrl(
@@ -933,12 +945,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
     }
 
-    this.log.info(`Started platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
+    this.log.info(`Platform ${this.config.name} started successfully`);
   }
 
   override async onConfigure(): Promise<void> {
     await super.onConfigure();
-    this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}...`);
+    this.log.info(`Configuring platform ${this.config.name}...`);
     try {
       for (const state of Array.from(this.ha.hassStates.values())) {
         // Skip states without entity
@@ -954,7 +966,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Configuring state of entity ${CYAN}${state.entity_id}${db}...`);
         await this.updateHandler(entity.device_id, entity.entity_id, state, state);
       }
-      this.log.info(`Configured platform ${idn}${this.config.name}${rs}${nf}`);
+      this.log.info(`Platform ${this.config.name} configured successfully`);
     } catch (error) {
       this.log.error(`Error configuring platform ${idn}${this.config.name}${rs}${er}: ${getErrorMessage(error)}`);
     }
@@ -991,7 +1003,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   // oxlint-disable-next-line typescript/require-await
   override async onChangeLoggerLevel(logLevel: LogLevel): Promise<void> {
-    this.log.info(`Logger level changed to ${logLevel}`);
+    this.log.info(`Changing logger level of platform ${this.config.name} to ${logLevel}...`);
     this.log.logLevel = logLevel;
     this.ha.log.logLevel = logLevel;
     this.stateCache.log.logLevel = logLevel;
@@ -1001,6 +1013,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         child.log.logLevel = logLevel;
       }
     }
+    this.log.info(`Platform ${this.config.name} logger level changed successfully to ${logLevel}`);
   }
 
   override async onShutdown(reason?: string): Promise<void> {
@@ -1008,7 +1021,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     /* v8 ignore next cause if the platform is ready then the context is defined */
     if (this.context) await this.stateCache.save(this.context);
     await super.onShutdown(reason);
-    this.log.info(`Shutting down platform ${idn}${this.config.name}${rs}${nf}: ${reason}`);
+    this.log.info(`Shutting down platform ${this.config.name} with reason: ${reason ?? 'no reason provided'}...`);
 
     try {
       await this.ha?.close();
@@ -1026,7 +1039,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.offUpdatedEntities.clear();
     this.endpointNames.clear();
     this.batteryVoltageEntities.clear();
-    this.log.info(`Shut down platform ${idn}${this.config.name}${rs}${nf} completed`);
+    this.log.info(`Platform ${this.config.name} shut down successfully`);
   }
 
   /**
@@ -1276,10 +1289,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState): Promise<void> {
-    /* v8 ignore next cause an entity without a device_id is always registered under its own entityId, so the deviceId fallback is never taken */
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
-      /* v8 ignore next */
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found: skipping it`);
       return;
     }
@@ -1289,11 +1300,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (mappedEndpoint === '') {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice;
-      } /* v8 ignore start cause the AirQuality and PowerEnergy are now remapped to main so this branch is never taken */ else if (mappedEndpoint) {
+      } else if (mappedEndpoint) {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
-        endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint);
+        endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint.replaceAll('.', ''));
       }
-      /* v8 ignore stop */
     }
     if (!endpoint) {
       this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found: skipping it`);
