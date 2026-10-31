@@ -216,6 +216,8 @@ I suggest to always use the filters by Area and Label or the whiteList adding ea
 
 If any device or entity creates issues put it in the blackList.
 
+Only devices and entities selected for export are checked for duplicate names. Filtered devices and unsupported entities, such as network trackers, do not trigger these warnings.
+
 ### Host
 
 Your Home Assistance address (eg. ws://homeassistant.local:8123 or ws://IP-ADDRESS:8123). Use the IP only if it is stable. It is also possible to use ssl websocket (i.e. wss://). If you use selfsigned certificates you need to provide either the ca certificate or to unselect rejectUnauthorized. With normal certificates you don't need ca certificate and rejectUnauthorized should be selected.

@@ -262,6 +262,114 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassServices = {}; // Simulate Home Assistant services
   });
 
+  it.each([
+    ['label', false],
+    ['label', true],
+    ['area', false],
+    ['area', true],
+    ['blacklist', false],
+    ['blacklist', true],
+    ['unsupported domain', false],
+    ['unsupported domain', true],
+    ['blacklisted domain', false],
+    ['blacklisted domain', true],
+  ] as const)('should ignore same-name network devices excluded by %s when tracker comes first: %s', async (filter, trackerFirst) => {
+    const label = generateLabel(haPlatform.ha, 'Export');
+    const area = generateArea(haPlatform.ha, 'Export area');
+    const shutter = generateDevice(haPlatform.ha, 'Shared shutter', area.area_id, [label.label_id]);
+    const cover = generateEntity(haPlatform.ha, 'Shutter control', 'cover', shutter, null, [label.label_id], 'open', { supported_features: 15 });
+    const tracker = generateDevice(haPlatform.ha, 'Shared shutter');
+    const trackerEntity = generateEntity(haPlatform.ha, 'Network tracker', filter === 'blacklisted domain' ? 'switch' : 'device_tracker', tracker, null, [], 'home');
+    if (filter === 'label') haPlatform.config.filterByLabel = label.name;
+    if (filter === 'area') haPlatform.config.filterByArea = area.name;
+    if (filter === 'blacklist') haPlatform.config.blackList = [tracker.id];
+    if (filter === 'blacklisted domain') haPlatform.config.entityBlackList = ['switch'];
+    if (trackerFirst) {
+      haPlatform.ha.hassDevices.clear();
+      haPlatform.ha.hassDevices.set(tracker.id, tracker);
+      haPlatform.ha.hassDevices.set(shutter.id, shutter);
+    }
+
+    await haPlatform.onStart('Duplicate-name regression');
+
+    expect(haPlatform.duplicatedDevices).toBe(0);
+    expect(haPlatform.duplicatedEntities).toBe(0);
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(shutter.id)?.deviceName).toBe('Shared shutter');
+    expect(haPlatform.matterbridgeDevices.has(tracker.id)).toBe(false);
+    expect(haPlatform.endpointNames.has(cover.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.has(trackerEntity.entity_id)).toBe(false);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['switch', true],
+    ['sensor', true],
+    ['sensor', false],
+  ] as const)('should preserve exported selectors when a rejected %s has the same device name: %s', async (domain, sameDeviceName) => {
+    const first = generateDevice(haPlatform.ha, 'Shared export');
+    const firstEntity = generateEntity(haPlatform.ha, 'First switch', 'switch', first, null, [], 'off');
+    const second = generateDevice(haPlatform.ha, sameDeviceName ? 'Shared export' : 'Other device');
+    const secondEntity = generateEntity(haPlatform.ha, 'Second entity', domain, second, null, [], 'off');
+    secondEntity.original_name = firstEntity.original_name;
+
+    await haPlatform.onStart('Duplicate-name regression');
+
+    expect(haPlatform.duplicatedDevices).toBe(domain === 'switch' ? 1 : 0);
+    expect(loggerWarnSpy).toHaveBeenCalledTimes(domain === 'switch' ? 1 : 0);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(first.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(second.id)).toBe(false);
+    expect(haPlatform.endpointNames.has(firstEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.has(secondEntity.entity_id)).toBe(false);
+    expect(haPlatform.getSelectEntity('First switch')?.description).toBe(firstEntity.entity_id);
+    expect(haPlatform.getSelectDevice(second.id)).toBeUndefined();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['individual', 'label'],
+    ['individual', 'area'],
+    ['individual', 'whitelist'],
+    ['individual', 'domain'],
+    ['individual', 'none'],
+    ['split', 'label'],
+    ['split', 'area'],
+    ['split', 'whitelist'],
+    ['split', 'domain'],
+    ['split', 'none'],
+  ] as const)('should check %s entity duplicate names after %s filtering', async (kind, filter) => {
+    const label = generateLabel(haPlatform.ha, 'Export');
+    const area = generateArea(haPlatform.ha, 'Export area');
+    const first = generateEntity(haPlatform.ha, 'Shared export', 'scene', null, area.area_id, [label.label_id], 'unknown');
+    const device = kind === 'split' ? generateDevice(haPlatform.ha, 'Split device') : null;
+    const second = generateEntity(haPlatform.ha, 'Other entity', 'script', device, null, [], 'off');
+    second.name = 'Shared export';
+    if (kind === 'split') haPlatform.config.splitEntities = [second.entity_id];
+    if (filter === 'label') haPlatform.config.filterByLabel = label.name;
+    if (filter === 'area') haPlatform.config.filterByArea = area.name;
+    if (filter === 'whitelist') haPlatform.config.whiteList = [first.entity_id];
+    if (filter === 'domain') haPlatform.config.entityBlackList = ['script'];
+
+    await haPlatform.onStart('Duplicate-name regression');
+
+    expect(haPlatform.duplicatedEntities).toBe(filter === 'none' ? 1 : 0);
+    expect(haPlatform.duplicatedDevices).toBe(0);
+    expect(loggerWarnSpy).toHaveBeenCalledTimes(filter === 'none' ? 1 : 0);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(second.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.has(first.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.has(second.entity_id)).toBe(false);
+    expect(haPlatform.getSelectEntity('Shared export')?.description).toBe(first.entity_id);
+    expect(haPlatform.getSelectDevice(second.id)).toBeUndefined();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+  });
+
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {
     // await setDebug(true);
     const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', null, null, [], 'unknown');
