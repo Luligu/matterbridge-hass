@@ -37,6 +37,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Changed
 
+- [platform]: Uniform the constructor, onStart, onConfigure, onShutdown and onChangeLoggerLevel log messages.
 - [agents]: Update `AGENTS.md` to v.1.0.8: document commit sign-off and sensitive data rules.
 - [agents]: Update `.github/commit-message-instructions.md` to v.1.0.1: let Git add the sign-off trailer.
 - [vscode]: Update `.vscode/settings.json` to v.1.0.17: enable automatic commit sign-off.
