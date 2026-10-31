@@ -56,6 +56,7 @@ import {
   TemperatureMeasurement,
   ValveConfigurationAndControl,
 } from 'matterbridge/matter/clusters';
+import { Namespace } from 'matterbridge/matter/types';
 import {
   HOMEDIR,
   addDevice,
@@ -169,7 +170,7 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('two', temperatureSensor);
     mutableDevice.addTagLists('two', {
       mfgCode: null,
-      namespaceId: 1,
+      namespaceId: Namespace.CommonClosure,
       tag: 1,
       label: 'Test',
     });
@@ -280,7 +281,7 @@ describe('MutableDevice', () => {
     const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device tagList');
     mutableDevice.addTagLists('', {
       mfgCode: null,
-      namespaceId: 1,
+      namespaceId: Namespace.CommonClosure,
       tag: 1,
       label: 'Test',
     });
@@ -408,6 +409,19 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addClusterServerPowerSource with rechargeable battery', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device rechargeable power source');
+    mutableDevice.addDeviceTypes('', bridgedNode, contactSensor);
+    mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, true);
+
+    expect(mutableDevice.get()).toBeDefined();
+    expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+    expect(mutableDevice.get().clusterServersObjs[0].options).toMatchObject({ batChargeState: PowerSource.BatChargeState.Unknown, batFunctionalWhileCharging: true });
 
     mutableDevice.destroy();
   });
@@ -1083,7 +1097,7 @@ describe('MutableDevice', () => {
     });
     mutableDevice.addTagLists('child2', {
       mfgCode: null,
-      namespaceId: 1,
+      namespaceId: Namespace.CommonClosure,
       tag: 1,
       label: 'Test',
     });
@@ -1315,8 +1329,8 @@ describe('MutableDevice', () => {
     expect(mutableDevice.getSplitEndpoints().size).toBe(2);
     expect(Array.from(mutableDevice.getSplitEndpoints())).toEqual(['temperature', 'temperature out']);
     // The two temperatureSensor siblings get a Common Number tag labeled with the friendly name (Matter 1.6.1)
-    expect(mutableDevice.get('temperature').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Temperature Sensor' }]);
-    expect(mutableDevice.get('temperature out').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Temperature Out Sensor' }]);
+    expect(mutableDevice.get('temperature').tagList).toEqual([{ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 1, label: 'Temperature Sensor' }]);
+    expect(mutableDevice.get('temperature out').tagList).toEqual([{ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 2, label: 'Temperature Out Sensor' }]);
 
     // Verify main endpoint
     expect(Array.from(device.deviceTypes.values()).map((d) => d.name)).toEqual(['BridgedNode', 'PowerSource', 'HumiditySensor', 'PressureSensor']);
@@ -1356,7 +1370,7 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('tagged', temperatureSensor);
     mutableDevice.addClusterServerIds('tagged', TemperatureMeasurement.id);
     mutableDevice.setFriendlyName('tagged', 'Tagged Sensor');
-    mutableDevice.addTagLists('tagged', { mfgCode: null, namespaceId: 0x07, tag: 9, label: 'Tagged' });
+    mutableDevice.addTagLists('tagged', { mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 9, label: 'Tagged' });
 
     mutableDevice.addDeviceTypes('long', temperatureSensor);
     mutableDevice.addClusterServerIds('long', TemperatureMeasurement.id);
@@ -1370,12 +1384,14 @@ describe('MutableDevice', () => {
     expect(device).toBeDefined();
 
     // The explicit tagList is kept, the untagged siblings get a Common Number tag with the friendly name cut to 64 characters
-    expect(mutableDevice.get('tagged').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 9, label: 'Tagged' }]);
-    expect(mutableDevice.get('long').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'L'.repeat(64) }]);
-    expect(mutableDevice.get('short').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Short Sensor' }]);
+    expect(mutableDevice.get('tagged').tagList).toEqual([{ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 9, label: 'Tagged' }]);
+    expect(mutableDevice.get('long').tagList).toEqual([{ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 1, label: 'L'.repeat(64) }]);
+    expect(mutableDevice.get('short').tagList).toEqual([{ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 2, label: 'Short Sensor' }]);
 
     expect(await addDevice(aggregator, device)).toBe(true);
-    expect(mutableDevice.getEndpoint('long').getAttribute(Descriptor.id, 'tagList')).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'L'.repeat(64) }]);
+    expect(mutableDevice.getEndpoint('long').getAttribute(Descriptor.id, 'tagList')).toEqual([
+      { mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 1, label: 'L'.repeat(64) },
+    ]);
     mutableDevice.destroy();
   });
 
@@ -1386,7 +1402,7 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('first', temperatureSensor);
     mutableDevice.addClusterServerIds('first', TemperatureMeasurement.id);
     mutableDevice.setFriendlyName('first', 'Temperature');
-    mutableDevice.addTagLists('first', { mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Temperature' });
+    mutableDevice.addTagLists('first', { mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 1, label: 'Temperature' });
 
     mutableDevice.addDeviceTypes('second', temperatureSensor);
     mutableDevice.addClusterServerIds('second', TemperatureMeasurement.id);
@@ -1396,8 +1412,8 @@ describe('MutableDevice', () => {
     expect(device).toBeDefined();
 
     // Common Number 1 is taken by the explicit tag of the first sibling, so the second gets 2
-    expect(mutableDevice.get('first').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 1, label: 'Temperature' }]);
-    expect(mutableDevice.get('second').tagList).toEqual([{ mfgCode: null, namespaceId: 0x07, tag: 2, label: 'Temperature' }]);
+    expect(mutableDevice.get('first').tagList).toEqual([{ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 1, label: 'Temperature' }]);
+    expect(mutableDevice.get('second').tagList).toEqual([{ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: 2, label: 'Temperature' }]);
 
     expect(await addDevice(aggregator, device)).toBe(true);
     mutableDevice.destroy();
@@ -1410,7 +1426,7 @@ describe('MutableDevice', () => {
     mutableDevice.addDeviceTypes('full', temperatureSensor);
     mutableDevice.addClusterServerIds('full', TemperatureMeasurement.id);
     mutableDevice.setFriendlyName('full', 'Full');
-    for (let tag = 1; tag <= 30; tag++) mutableDevice.addTagLists('full', { mfgCode: null, namespaceId: 0x07, tag, label: null });
+    for (let tag = 1; tag <= 30; tag++) mutableDevice.addTagLists('full', { mfgCode: null, namespaceId: Namespace.CommonNumber, tag, label: null });
 
     mutableDevice.addDeviceTypes('untagged', temperatureSensor);
     mutableDevice.addClusterServerIds('untagged', TemperatureMeasurement.id);
