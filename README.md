@@ -89,6 +89,8 @@ Pair Matterbridge to your controller.
 
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
 
+If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
+
 These domains are supported also like individual and split entities.
 
 ## Supported individual entities:
@@ -150,8 +152,11 @@ These domains are supported also like device entities and split entities.
 | binary_sensor | smoke                                | smokeCoAlarm        |
 | binary_sensor | carbon_monoxide                      | smokeCoAlarm        |
 | binary_sensor | battery                              | powerSource         |
+| binary_sensor | battery_charging (2)                 | powerSource         |
 
 (1) - A binary_sensor without a device class is exposed like a generic contactSensor.
+
+(2) - Sets the PowerSource charge state (charging / not charging) of the device battery.
 
 ## Supported events:
 
@@ -254,6 +259,10 @@ If the blackList is defined the devices, the individual and split entities inclu
 ### Device Entity Blacklist
 
 List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
+
+### Node Labels
+
+Configure the device name (`nodeLabel`) shown by the controller for each exposed device, like renaming the device in the controller UI. Select the device and enter a `name` between 1 and 32 characters. Changes are applied on startup and immediately when the plugin configuration is saved.
 
 ### Domain Whitelist
 

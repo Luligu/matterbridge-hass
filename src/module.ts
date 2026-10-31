@@ -3,7 +3,7 @@
  * @description This file contains the class HomeAssistantPlatform.
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.8.0
+ * @version 1.8.1
  * @license Apache-2.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
@@ -96,6 +96,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   entityWhiteList: string[];
   entityBlackList: string[];
   deviceEntityBlackList: Record<string, string[]>;
+  nodeLabels: Record<string, { name?: string }>;
   splitEntities: string[];
   splitByLabel: string;
   splitNameStrategy: 'Entity name' | 'Friendly name';
@@ -228,6 +229,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.entityWhiteList = isValidArray(this.config.entityWhiteList, 1) ? this.config.entityWhiteList : [];
       this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
       this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
+      this.config.nodeLabels = isValidObject(this.config.nodeLabels, 1) ? this.config.nodeLabels : {};
       this.config.splitEntities = isValidArray(this.config.splitEntities, 1) ? this.config.splitEntities : [];
       this.config.splitByLabel = isValidString(this.config.splitByLabel) ? this.config.splitByLabel : '';
       this.config.splitNameStrategy =
@@ -515,7 +517,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'button') addButtonEntity(this, mutableDevice, entity, hassState);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
-        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, hassState.attributes['device_class'] === 'battery_charging');
       }
 
       if (entity.platform === 'template' || entity.platform === 'group') {
@@ -530,6 +532,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
+          await this.configureNodeLabels(mutableDevice.getEndpoint());
           /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
@@ -610,13 +613,25 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
+      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id);
       let battery = false;
-      for (const entity of Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id)) {
+      let rechargeable = false;
+      for (const entity of deviceEntities) {
+        const domain = getDomain(entity.entity_id);
         const state = this.ha.hassStates.get(entity.entity_id);
-        if (state?.attributes['device_class'] === 'battery') {
+        if ((domain === 'sensor' || domain === 'binary_sensor') && state?.attributes['device_class'] === 'battery') {
           this.log.debug(`Device ${CYAN}${device.name}${db} has a battery entity: ${CYAN}${entity.entity_id}${db}`);
           battery = true;
         }
+        if (domain === 'binary_sensor' && state?.attributes['device_class'] === 'battery_charging') {
+          this.log.debug(`Device ${CYAN}${device.name}${db} has a battery charging entity: ${CYAN}${entity.entity_id}${db}`);
+          battery = true;
+          rechargeable = true;
+        }
+      }
+      // Classify voltage entities after the battery status of the whole device is known.
+      for (const entity of deviceEntities) {
+        const state = this.ha.hassStates.get(entity.entity_id);
         if (battery && state?.attributes['state_class'] === 'measurement' && state.attributes['device_class'] === 'voltage') {
           this.log.debug(`Device ${CYAN}${device.name}${db} has a battery voltage entity: ${CYAN}${entity.entity_id}${db}`);
           this.batteryVoltageEntities.add(entity.entity_id);
@@ -637,7 +652,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       mutableDevice.addDeviceTypes('', bridgedNode);
       if (battery) {
         mutableDevice.addDeviceTypes('', powerSource);
-        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200); // Add PowerSource with battery feature
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, rechargeable); // Add PowerSource with battery feature
       }
       mutableDevice.setComposedType('Hass Device');
       mutableDevice.setConfigUrl(`${(this.config.host as string | undefined)?.replace('ws://', 'http://').replace('wss://', 'https://')}/config/devices/device/${device.id}`);
@@ -754,6 +769,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.create(this.config.controllerStrategy === 'Merge');
           mutableDevice.logMutableDevice();
           await this.registerDevice(mutableDevice.getEndpoint());
+          await this.configureNodeLabels(mutableDevice.getEndpoint());
           /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(device.id, mutableDevice.getEndpoint());
@@ -894,7 +910,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'button') addButtonEntity(this, mutableDevice, entity, hassState);
       // Add PowerSource with battery feature if the entity is a battery
       if (mutableDevice.get().deviceTypes.includes(powerSource)) {
-        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200);
+        mutableDevice.addClusterServerBatteryPowerSource('', PowerSource.BatChargeLevel.Ok, 200, hassState.attributes['device_class'] === 'battery_charging');
       }
       mutableDevice.setComposedType('Hass Split');
       mutableDevice.setConfigUrl(
@@ -908,6 +924,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           mutableDevice.logMutableDevice();
           this.log.debug(`Registering device ${dn}${entityName}${db}...`);
           await this.registerDevice(mutableDevice.getEndpoint());
+          await this.configureNodeLabels(mutableDevice.getEndpoint());
           /* v8 ignore next cause is not testable */
           if (!this.dryRun && !mutableDevice.getEndpoint().owner) throw new Error(`Endpoint not created`);
           this.matterbridgeDevices.set(entity.entity_id, mutableDevice.getEndpoint());
@@ -939,6 +956,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   override async onConfigure(): Promise<void> {
     await super.onConfigure();
     this.log.info(`Configuring platform ${idn}${this.config.name}${rs}${nf}...`);
+    await this.configureNodeLabels();
     try {
       for (const state of Array.from(this.ha.hassStates.values())) {
         // Skip states without entity
@@ -1001,6 +1019,39 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         child.log.logLevel = logLevel;
       }
     }
+  }
+
+  /**
+   * Apply configured node labels and log changes or invalid entries.
+   * @param {MatterbridgeEndpoint} [device] Device to update; when omitted, process all configured devices.
+   * @returns {Promise<void>} Resolves after processing all configured labels.
+   */
+  private async configureNodeLabels(device?: MatterbridgeEndpoint): Promise<void> {
+    for (const [key, { name }] of Object.entries(this.config.nodeLabels)) {
+      if (device && device.deviceName !== key) continue;
+      if (!isValidString(name, 1, 32)) {
+        this.log.warn(`Invalid node label for "${key}": name must be a string between 1 and 32 characters`);
+        continue;
+      }
+      const target = device ?? this.getDeviceByName(key);
+      if (!target) {
+        this.log.warn(`Device "${key}" not found while configuring node label`);
+        continue;
+      }
+      await target.setAttribute(BridgedDeviceBasicInformation, 'nodeLabel', name, this.log);
+      this.log.info(`Set node label for "${key}" to "${name}"`);
+    }
+  }
+
+  /**
+   * Apply node labels after the plugin configuration changes.
+   * @param {HomeAssistantPlatformConfig} _config Updated configuration already assigned by Matterbridge.
+   * @returns {Promise<void>} Resolves after configured node labels are processed.
+   */
+  override async onConfigChanged(_config: HomeAssistantPlatformConfig): Promise<void> {
+    this.log.info(`Changing configuration for platform ${idn}${this.config.name}${rs}${nf}...`);
+    this.config.nodeLabels ??= {};
+    await this.configureNodeLabels();
   }
 
   override async onShutdown(reason?: string): Promise<void> {
@@ -1276,10 +1327,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   async updateHandler(deviceId: string | null, entityId: string, old_state: HassState, new_state: HassState): Promise<void> {
-    /* v8 ignore next cause an entity without a device_id is always registered under its own entityId, so the deviceId fallback is never taken */
     const matterbridgeDevice = this.matterbridgeDevices.has(entityId) ? this.matterbridgeDevices.get(entityId) : this.matterbridgeDevices.get(deviceId ?? entityId);
     if (!matterbridgeDevice) {
-      /* v8 ignore next */
       if (this.endpointNames.get(entityId) !== undefined) this.log.debug(`Update handler: Matterbridge device ${deviceId ?? entityId} for ${entityId} not found: skipping it`);
       return;
     }
@@ -1289,11 +1338,10 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (mappedEndpoint === '') {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
         endpoint = matterbridgeDevice;
-      } /* v8 ignore start cause the AirQuality and PowerEnergy are now remapped to main so this branch is never taken */ else if (mappedEndpoint) {
+      } else if (mappedEndpoint) {
         this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} mapped to endpoint '${mappedEndpoint}'`);
-        endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint);
+        endpoint = matterbridgeDevice.getChildEndpointById(mappedEndpoint.replaceAll('.', ''));
       }
-      /* v8 ignore stop */
     }
     if (!endpoint) {
       this.log.debug(`Update handler: Endpoint ${entityId} for ${deviceId} not found: skipping it`);
