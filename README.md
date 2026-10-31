@@ -40,7 +40,7 @@ Features:
 - Support **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
 - Support **transition time**.
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
-- Jest test coverage = 100%.
+- Vitest test coverage = 100%.
 
 ## How to use filters and select
 
@@ -73,7 +73,7 @@ Pair Matterbridge to your controller.
 | Domain       | Supported states                           | Supported attributes                                                                    |
 | ------------ | ------------------------------------------ | --------------------------------------------------------------------------------------- |
 | switch       | on, off                                    |                                                                                         |
-| light        | on, off                                    | brightness, color_mode, color_temp, hs_color, xy_color                                  |
+| light        | on, off                                    | brightness, color_mode, color_temp_kelvin, hs_color, xy_color                           |
 | lock         | locked, locking, unlocking, unlocked       |                                                                                         |
 | fan          | on, off                                    | percentage, preset_mode (1), direction, oscillating                                     |
 | cover        | open, closed, opening, closing             | current_position                                                                        |
@@ -104,7 +104,7 @@ These domains are supported also like individual and split entities.
 | input_button  | Helpers     |
 | input_select  | Helpers     |
 
-These individual entities are exposed as on/off outlets. When the outlet is turned on, it triggers the associated entity. After triggering, the outlet automatically switches back to the off state. The helper of domain input_boolean maintains the on/off state.
+The `automation`, `scene`, `script`, `input_boolean`, and `input_button` entities are exposed as on/off outlets. Turning an outlet on triggers the associated entity, then it automatically switches off again, except for `input_boolean`, which maintains its on/off state. The `input_select` domain is exposed using Matter ModeSelect, with its options available as modes. If the entity has the configured virtual control label, each option also gets a virtual switch.
 
 These domains are supported also like device entities and split entities.
 
@@ -230,7 +230,7 @@ Fully qualified path to the SSL ca certificate file. This is only needed if you 
 
 ### Reject Unauthorized
 
-Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates without providing the ca certificate.
+Set to `true` to verify the Home Assistant server certificate. For a self-signed certificate or private CA, also provide the CA certificate through `certificatePath`. Set to `false` to disable certificate verification; this accepts untrusted certificates without a CA certificate.
 
 ### Reconnect Timeout
 
@@ -392,89 +392,46 @@ So, if your `Samsung TV` only supports `TURN_ON`, `TURN_OFF` and `VOLUME_STEP`, 
 
 Should be enabled only if you want to debug some issue using the log.
 
-## Style guide
-
-See also the [Style Guide](./STYLEGUIDE.md) for JSDoc, naming, and logging conventions used in this repository.
-
-## Repository toolchain
-
-> **Note:** This repository uses a new toolchain. It replaces the traditional TypeScript / ESLint / Prettier / Jest stack with a faster and lighter setup.
-
-- **No `typescript 6.x` package** — replaced by [TypeScript Native 7.x](https://github.com/microsoft/typescript-go).
-- **No ESLint, no Prettier** — replaced by the [oxc](https://oxc.rs) stack: [oxlint](https://oxc.rs/docs/guide/usage/linter.html) for linting and [oxfmt](https://oxc.rs/docs/guide/usage/formatter.html) for formatting.
-- **No Jest** — replaced by [Vitest](https://vitest.dev), which is much faster and natively supports ESM without extra configuration.
-- **Far fewer development dependencies** — the number of installed packages drops from **~600** to **~75**. A clean install is much faster.
-- **Much faster linting and formatting** — oxlint and oxfmt run in a fraction of the time required by the ESLint / Prettier pipeline.
-- **Much faster builds** — tsgo compiles the project in a fraction of the time required by the standard `tsc` build.
-- **Editor support** — use the VS Code extensions for tsgo and oxc to get the same experience in the editor.
-
-## Shared agent instructions
-
-All coding agents read the same guidance. [AGENTS.md](./AGENTS.md) and [.agents/](./.agents/) are the **single source of truth**; everything under `.github/`, `.claude/`, `.codex/` and `.antigravity/` are pointers and mirrors. Edit `.agents/` (or `AGENTS.md`), never the copies. See [.agents/README.md](./.agents/README.md) for the full layout.
-
-| File                                            | Notes                                                                                                        |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `AGENTS.md`                                     | Main project instructions — shared by every agent                                                            |
-| `.agents/README.md`                             | Layout and versioning of the shared instructions                                                             |
-| `.agents/rules/testing.instructions.md`         | Testing standards for unit tests                                                                             |
-| `.agents/rules/matterbridge.instructions.md`    | Creating endpoints and using the single-class devices                                                        |
-| `.agents/rules/plugin-frontend.instructions.md` | Serving a plugin's own frontend SPA and REST API                                                             |
-| `.agents/rules/chip-tests.instructions.md`      | The CHIP conformance test harness                                                                            |
-| `.agents/skills/verify-agent-context/SKILL.md`  | Verify the agent loaded this context — `$verify-agent-context` (Codex), `/verify-agent-context` (all others) |
-
-Content lives only in `.agents/`. The per-agent folders exist because each tool discovers rules and skills from its own hardcoded location, so they hold stubs that point back here — except where the tool reads `.agents/` natively.
-
-| Tool                               | Instructions                                    | Rules                                                 | Skills                                              |
-| ---------------------------------- | ----------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------- |
-| Codex                              | `AGENTS.md` — read natively                     | `.agents/rules/` — linked from `AGENTS.md`, on demand | `.agents/skills/` — native, `$verify-agent-context` |
-| Copilot (VS Code and coding agent) | `.github/copilot-instructions.md` → `AGENTS.md` | stubs in `.github/instructions/` — `applyTo` globs    | stub in `.github/skills/` — `/verify-agent-context` |
-| Claude Code                        | `CLAUDE.md` imports `AGENTS.md`                 | stubs in `.claude/rules/` — `paths` globs             | stub in `.claude/skills/` — `/verify-agent-context` |
-| Gemini / Antigravity               | `GEMINI.md` imports `AGENTS.md`                 | `.agents/rules/` — on demand                          | `.agents/skills/` — native, `/verify-agent-context` |
-
-### Copilot instructions
-
-| File                                                                   | Notes                                                                              |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `.github/copilot-instructions.md`                                      | Pointer to AGENTS.md — always loaded                                               |
-| `.github/instructions/chip-tests/chip-tests.instructions.md`           | CHIP conformance test harness — scoped to CHIP test files                          |
-| `.github/instructions/matterbridge/matterbridge.instructions.md`       | Matterbridge endpoint guide — dedicated Copilot instruction file                   |
-| `.github/instructions/plugin-frontend/plugin-frontend.instructions.md` | Plugin frontend SPA and custom REST API guide — scoped to frontend and plugin code |
-| `.github/instructions/testing/testing.instructions.md`                 | Testing standards — scoped to `**/*.test.ts`                                       |
-| `.github/skills/verify-agent-context/SKILL.md`                         | Skill invocable as `/verify-agent-context`                                         |
-
-### Claude instructions
-
-| File                                                            | Notes                                                                              |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `CLAUDE.md`                                                     | Pointer to AGENTS.md — always loaded                                               |
-| `.claude/settings.json`                                         | Claude permissions: allow, ask and deny rules                                      |
-| `.claude/rules/chip-tests/chip-tests.instructions.md`           | CHIP conformance test harness — scoped to CHIP test files                          |
-| `.claude/rules/matterbridge/matterbridge.instructions.md`       | Matterbridge endpoint guide — loaded for all contexts                              |
-| `.claude/rules/plugin-frontend/plugin-frontend.instructions.md` | Plugin frontend SPA and custom REST API guide — scoped to frontend and plugin code |
-| `.claude/rules/testing/testing.instructions.md`                 | Testing standards — scoped to `**/*.test.ts`                                       |
-| `.claude/skills/verify-agent-context/SKILL.md`                  | Skill invocable as `/verify-agent-context`                                         |
-
-### Codex instructions
-
-| File                         | Notes                                                             |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `AGENTS.md`                  | Main project instructions — read directly, no pointer file needed |
-| `.codex/config.toml`         | Codex project permissions, approvals, and profile                 |
-| `.codex/rules/default.rules` | Codex command allow, prompt, and deny rules                       |
-
-Codex reads the shared rules and skills from `.agents/` directly; the skill is invoked as `$verify-agent-context`.
-
-### Gemini / Antigravity instructions
-
-| File                         | Notes                                                 |
-| ---------------------------- | ----------------------------------------------------- |
-| `GEMINI.md`                  | Pointer to AGENTS.md — always loaded                  |
-| `.antigravity/settings.json` | Sandboxing and permissions: allow, ask and deny rules |
-
-The shared rules under `.agents/rules/` apply on demand for the relevant tasks, and `.agents/skills/` is discovered automatically as `/verify-agent-context`.
-
 ## Development guide
 
 Refer to the Matterbridge [Development guide](https://matterbridge.io/README-DEV.html) for other guidelines.
 
----
+## Repository toolchain
+
+See [TOOLCHAIN.md](./TOOLCHAIN.md) for compilers, linting, formatting, testing, and editor support.
+
+## Shared agent instructions
+
+See [SHARED-AGENTS.md](./SHARED-AGENTS.md) for shared guidance, rules, skills, and configuration for coding agents.
+
+See [.agents/README.md](./.agents/README.md) for the shared instructions layout and versioning.
+
+## Shared dev container support
+
+See [.devcontainer/README.md](./.devcontainer/README.md) for the shared development container setup and usage.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for contribution guidelines.
+
+## Style guide
+
+See [STYLEGUIDE.md](./STYLEGUIDE.md) for code style, naming, documentation, and testing conventions.
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for release history and notable changes.
+
+## Issues and feature requests
+
+Report bugs and suggest improvements on [GitHub Issues](https://github.com/Luligu/matterbridge-hass/issues).
+
+## License
+
+Licensed under the [Apache License 2.0](./LICENSE).
+
+## Support the project
+
+If you find this project useful, please consider giving it a star on GitHub and sponsoring it. Your support helps maintain and improve the project.
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/luligugithub)

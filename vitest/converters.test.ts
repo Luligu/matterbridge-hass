@@ -171,16 +171,16 @@ describe('HassPlatform converters', () => {
       }
       if (converter.domain === 'light' && converter.with === 'hs_color') {
         converter.converter([0, 0], {
-          attributes: { color_mode: 'hs' },
+          attributes: { color_mode: ColorMode.HS },
         } as HassState);
         converter.converter([0, 0], {
-          attributes: { color_mode: 'rgb' },
+          attributes: { color_mode: ColorMode.RGB },
         } as HassState);
         converter.converter(undefined, {} as HassState);
       }
       if (converter.domain === 'light' && converter.with === 'xy_color') {
         converter.converter([0, 0], {
-          attributes: { color_mode: 'xy' },
+          attributes: { color_mode: ColorMode.XY },
         } as HassState);
         converter.converter(undefined, {} as HassState);
       }
