@@ -21,7 +21,7 @@ import path from 'node:path';
 
 import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEndpoint, onOffPlugInUnit, windowCovering } from 'matterbridge';
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
-import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, WindowCovering } from 'matterbridge/matter/clusters';
+import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, OnOff, WindowCovering } from 'matterbridge/matter/clusters';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -605,6 +605,34 @@ describe('HassPlatform', () => {
 
     haPlatform.matterbridgeDevices.delete('dimmableDoubleOutlet');
     expect(haPlatform.matterbridgeDevices.size).toBe(0);
+  });
+
+  it('should skip missing devices and log only mapped entities using the entity ID when the device ID is null', async () => {
+    const state = { entity_id: 'switch.missing', state: 'off', attributes: {} } as HassState;
+
+    await haPlatform.updateHandler(null, state.entity_id, state, state);
+    expect(loggerDebugSpy).not.toHaveBeenCalled();
+
+    haPlatform.endpointNames.set(state.entity_id, '');
+    await haPlatform.updateHandler(null, state.entity_id, state, state);
+    expect(loggerDebugSpy).toHaveBeenCalledExactlyOnceWith('Update handler: Matterbridge device switch.missing for switch.missing not found: skipping it');
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalled();
+  });
+
+  it('should update the mapped child when the mapped endpoint name contains dots', async () => {
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'mappedOutlet' }, true);
+    const child = device.addChildDeviceTypeWithClusterServer('switch.plug', [onOffPlugInUnit], [], { number: EndpointNumber(1) });
+    child.number = EndpointNumber(1);
+    haPlatform.matterbridgeDevices.set('mappedOutlet', device);
+    haPlatform.endpointNames.set('switch.alias', 'switch.plug');
+    const oldState = { entity_id: 'switch.alias', state: 'off', attributes: {} } as HassState;
+
+    expect(child.id).toBe('switchplug');
+
+    await haPlatform.updateHandler('mappedOutlet', 'switch.alias', oldState, { ...oldState, state: 'on' });
+
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledExactlyOnceWith(OnOff.id, 'onOff', true, device.log);
+    expect(setAttributeMatterbridgeEndpointSpy.mock.contexts[0]).toBe(child);
   });
 
   it('should fail calling onStart with reason', async () => {

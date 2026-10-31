@@ -3,7 +3,7 @@
  * @description This file contains the addControlEntity function.
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.1.0
+ * @version 1.1.4
  * @license Apache-2.0
  *
  * Copyright 2025, 2026, 2027 Luca Liguori.
@@ -27,7 +27,7 @@
 import { colorTemperatureLight, dimmableLight, extendedColorLight, type MatterbridgeEndpoint, type PrimitiveTypes } from 'matterbridge';
 import { CYAN, db, debugStringify, nf, wr } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { LevelControl } from 'matterbridge/matter/clusters';
+import { ColorControl, LevelControl } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
@@ -42,7 +42,7 @@ import {
   roundTo,
   temp,
 } from './converters.js';
-import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
+import { entityHasLabel, getDomain, getEntityName, getPrefixedName } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -147,14 +147,28 @@ export function addControlEntity(
 
   // Real values will be updated by the configure with the Home Assistant states. Here we need the features and fixed attributes to be set.
 
-  // Configure the Light cluster default values and features for dimmable lights when they are unavailable and only supported_color_modes and supported_features attributes are present.
+  // Configure dimming from supported modes when current attributes are unavailable. Color modes also imply brightness support.
   // oxfmt-ignore
-  if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) && state.attributes.supported_color_modes.includes(ColorMode.BRIGHTNESS)) {
+  if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) &&
+    state.attributes.supported_color_modes.some((mode) => [ColorMode.BRIGHTNESS, ColorMode.COLOR_TEMP, ColorMode.HS, ColorMode.XY, ColorMode.RGB, ColorMode.RGBW, ColorMode.RGBWW].includes(mode))) {
     platform.log.debug(`+ attribute device ${CYAN}${dimmableLight.name}${db} cluster ${CYAN}${LevelControl.name}${db}`);
     platform.log.debug(`= levelControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db}`);
     platform.log.debug(`# levelControl device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(LightEntityFeature, state.attributes.supported_features)}${db}`);
     mutableDevice.addDeviceTypes(endpointName, dimmableLight);
     mutableDevice.addClusterServerIds(endpointName, LevelControl.id);
+  }
+
+  // Discover color support from capabilities when current color attributes are unavailable.
+  if (domain === 'light' && isValidArray(state.attributes?.supported_color_modes)) {
+    if (state.attributes.supported_color_modes.some((mode) => [ColorMode.HS, ColorMode.XY, ColorMode.RGB, ColorMode.RGBW, ColorMode.RGBWW].includes(mode))) {
+      platform.log.debug(`+ attribute device ${CYAN}${extendedColorLight.name}${db} cluster ${CYAN}${ColorControl.name}${db}`);
+      mutableDevice.addDeviceTypes(endpointName, extendedColorLight);
+      mutableDevice.addClusterServerIds(endpointName, ColorControl.id);
+    } else if (state.attributes.supported_color_modes.includes(ColorMode.COLOR_TEMP)) {
+      platform.log.debug(`+ attribute device ${CYAN}${colorTemperatureLight.name}${db} cluster ${CYAN}${ColorControl.name}${db}`);
+      mutableDevice.addDeviceTypes(endpointName, colorTemperatureLight);
+      mutableDevice.addClusterServerIds(endpointName, ColorControl.id);
+    }
   }
 
   // Configure the ColorControl cluster default values and features.
@@ -244,6 +258,18 @@ export function addControlEntity(
       `# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`,
     );
     mutableDevice.addVacuum(endpointName);
+    // Map the Identify command to the vacuum.locate service if the vacuum supports it.
+    // oxlint-disable-next-line no-bitwise
+    if (state.attributes['supported_features'] && state.attributes['supported_features'] & VacuumEntityFeature.LOCATE) {
+      platform.log.debug(`- command: ${CYAN}Identify.identify${db} => ${CYAN}vacuum.locate${db}`);
+      mutableDevice.addCommandHandler(entity.entity_id, 'Identify.identify', (data) => {
+        // A zero IdentifyTime stops identification without playing another locate sound.
+        if (!('identifyTime' in data.request) || data.request.identifyTime <= 0) return;
+        platform.ha.callService('vacuum', 'locate', entity.entity_id).catch((error: unknown) => {
+          platform.log.error(`Failed to call locate service for ${CYAN}${entity.entity_id}${db}: ${error}`);
+        });
+      });
+    }
   }
 
   // Configure the valve.
@@ -260,11 +286,17 @@ export function addControlEntity(
     platform.log.debug(`= select device ${CYAN}${entity.entity_id}${db} options: ${CYAN}${state.attributes['options']}${db}`);
     mutableDevice.addSelect(endpointName, getEntityName(platform, entity) ?? 'Select an option', state.attributes['options']);
     if (entityHasLabel(platform, entity, platform.config.virtualControlLabel)) {
-      state.attributes['options']?.forEach((option: string) => {
+      const options: string[] = state.attributes['options'];
+      // Matterbridge builds the virtual device ID from the first 32 characters of the name, so the area is shortened once to fit the longest option.
+      const longestOption = Math.max(...options.map((option) => option.replaceAll('.', '').length));
+      const prefixedName = getPrefixedName(platform, String(getEntityName(platform, entity)), entity, 31 - longestOption);
+      options.forEach((option) => {
         platform.log.debug(`***Add select device ${CYAN}${entity.entity_id}${db} virtual control: ${CYAN}${option}${db}`);
+        // matter.js rejects dots in endpoint IDs.
+        const virtualName = `${prefixedName} ${option}`.replaceAll('.', '');
         void platform
           // oxlint-disable-next-line typescript/require-await
-          .registerVirtualDevice(`${getEntityName(platform, entity)} ${option}`, 'mounted_switch', async () => {
+          .registerVirtualDevice(virtualName, 'mounted_switch', async () => {
             platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error: unknown) => {
               platform.log.error(`Failed to call select_option service for ${CYAN}${entity.entity_id}${db} with option ${CYAN}${option}${db}: ${error}`);
             });
@@ -302,20 +334,24 @@ export function addControlEntity(
         { feature: MediaPlayerEntityFeature.PREVIOUS_TRACK, service: MediaPlayerService.MEDIA_PREVIOUS_TRACK, controlName: 'Previous Track' },
         { feature: MediaPlayerEntityFeature.NEXT_TRACK, service: MediaPlayerService.MEDIA_NEXT_TRACK, controlName: 'Next Track' },
       ];
-      featuresServices.forEach(({ feature, service, controlName }) => {
-        // oxlint-disable-next-line no-bitwise
-        if (state.attributes['supported_features'] && state.attributes['supported_features'] & feature) {
-          platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
-          void platform
-            // oxlint-disable-next-line typescript/require-await
-            .registerVirtualDevice(`${controlName} ${getEntityName(platform, entity)}`, 'mounted_switch', async () => {
-              platform.ha.callService('media_player', service, entity.entity_id).catch((error: unknown) => {
-                platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
-              });
-            })
-            // oxlint-disable-next-line no-empty-function
-            .catch(/* v8 ignore next */ () => {});
-        }
+      // oxlint-disable-next-line no-bitwise
+      const supportedServices = featuresServices.filter(({ feature }) => state.attributes['supported_features'] && state.attributes['supported_features'] & feature);
+      // Matterbridge builds the virtual device ID from the first 32 characters of the name, so the area is shortened once to fit the longest supported control name.
+      const longestControlName = Math.max(...supportedServices.map(({ controlName }) => controlName.length));
+      const prefixedName = getPrefixedName(platform, String(getEntityName(platform, entity)), entity, 31 - longestControlName);
+      supportedServices.forEach(({ service, controlName }) => {
+        platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
+        // matter.js rejects dots in endpoint IDs.
+        const virtualName = `${controlName} ${prefixedName}`.replaceAll('.', '');
+        void platform
+          // oxlint-disable-next-line typescript/require-await
+          .registerVirtualDevice(virtualName, 'mounted_switch', async () => {
+            platform.ha.callService('media_player', service, entity.entity_id).catch((error: unknown) => {
+              platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
+            });
+          })
+          // oxlint-disable-next-line no-empty-function
+          .catch(/* v8 ignore next */ () => {});
       });
     }
   }

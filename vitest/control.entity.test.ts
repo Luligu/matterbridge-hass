@@ -17,12 +17,21 @@ import {
   waterValve,
   windowCovering,
 } from 'matterbridge';
-import { LevelControl, OnOff } from 'matterbridge/matter/clusters';
+import { ColorControl, LevelControl, OnOff } from 'matterbridge/matter/clusters';
 
 import { addControlEntity } from '../src/control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from '../src/converters.js';
 import { generateEntity, generateState } from '../src/helpers.js';
-import { type HassConfig, type HassEntity, type HassState, HomeAssistant, MediaPlayerEntityFeature, MediaPlayerService, UnitOfTemperature } from '../src/homeAssistant.js';
+import {
+  type HassConfig,
+  type HassEntity,
+  type HassState,
+  HomeAssistant,
+  MediaPlayerEntityFeature,
+  MediaPlayerService,
+  UnitOfTemperature,
+  VacuumEntityFeature,
+} from '../src/homeAssistant.js';
 import type { MutableDevice } from '../src/mutableDevice.js';
 
 function createMockMutableDevice(): MutableDevice {
@@ -191,31 +200,61 @@ describe('addControlEntity', () => {
     expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'Cached Light');
   });
 
-  it('logs a warning when an unavailable light has no cached state', () => {
-    const md = createMockMutableDevice();
-    const ha = new HomeAssistant('ws://localhost:8123', 'token');
-    const e = generateEntity(ha, 'No Cache', 'light');
-    const state = generateState(ha, e, 'unavailable', {
-      supported_features: 44,
-      supported_color_modes: ['brightness'],
-      friendly_name: 'No Cache Light',
+  it.each([['brightness'], ['color_temp'], ['hs'], ['xy'], ['rgb'], ['rgbw'], ['rgbww'], ['color_temp', 'hs']])(
+    'should discover dimming and color capabilities when an unavailable light supports %j and has no cached state',
+    (...supportedColorModes: string[]) => {
+      const md = createMockMutableDevice();
+      const ha = new HomeAssistant('ws://localhost:8123', 'token');
+      const e = generateEntity(ha, 'No Cache', 'light');
+      const state = generateState(ha, e, 'unavailable', {
+        supported_features: 44,
+        supported_color_modes: supportedColorModes,
+        min_color_temp_kelvin: 2500,
+        max_color_temp_kelvin: 6500,
+        friendly_name: 'No Cache Light',
+      });
+      const platform = {
+        ...mockPlatform,
+        stateCache: {
+          // oxlint-disable-next-line unicorn/no-useless-undefined
+          get: vi.fn().mockReturnValue(undefined),
+        },
+      };
+
+      addControlEntity(platform, md, e, state, commandHandler, subscribeHandler as any);
+
+      expect(platform.stateCache.get).toHaveBeenCalledWith(e.entity_id);
+      expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('is unavailable and no cached state found'));
+      expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
+      expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
+      expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.id);
+      expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'No Cache Light');
+      const isBrightnessOnly = supportedColorModes.includes('brightness');
+      const isTemperatureOnly = supportedColorModes.length === 1 && supportedColorModes.includes('color_temp');
+      const expectedColorTypes = isBrightnessOnly ? [] : [isTemperatureOnly ? colorTemperatureLight : extendedColorLight];
+      expect(md.get(e.entity_id).deviceTypes).toEqual([onOffLight, dimmableLight, ...expectedColorTypes]);
+      expect(vi.mocked(md.addClusterServerIds).mock.calls).toEqual([
+        [e.entity_id, OnOff.id],
+        [e.entity_id, LevelControl.id],
+        ...(isBrightnessOnly ? [] : [[e.entity_id, ColorControl.id]]),
+      ]);
+      expect(vi.mocked(md.addClusterServerColorTemperatureColorControl).mock.calls).toEqual(isTemperatureOnly ? [[e.entity_id, 153, 400]] : []);
+      expect(vi.mocked(md.addClusterServerColorControl).mock.calls).toEqual(!isBrightnessOnly && !isTemperatureOnly ? [[e.entity_id, 153, 400]] : []);
+    },
+  );
+
+  it('should omit dimming when a light only supports on/off', () => {
+    const [md, e, s] = make('light', 'onoff', {
+      supported_features: 0,
+      supported_color_modes: ['onoff'],
     });
-    const platform = {
-      ...mockPlatform,
-      stateCache: {
-        // oxlint-disable-next-line unicorn/no-useless-undefined
-        get: vi.fn().mockReturnValue(undefined),
-      },
-    };
 
-    addControlEntity(platform, md, e, state, commandHandler, subscribeHandler as any);
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler);
 
-    expect(platform.stateCache.get).toHaveBeenCalledWith(e.entity_id);
-    expect(mockLog.warn).toHaveBeenCalledWith(expect.stringContaining('is unavailable and no cached state found'));
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, onOffLight);
-    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, dimmableLight);
-    expect(md.addClusterServerIds).toHaveBeenCalledWith(e.entity_id, LevelControl.id);
-    expect(md.setFriendlyName).toHaveBeenCalledWith(e.entity_id, 'No Cache Light');
+    expect(md.addDeviceTypes).not.toHaveBeenCalledWith(e.entity_id, dimmableLight);
+    expect(md.addClusterServerIds).not.toHaveBeenCalledWith(e.entity_id, LevelControl.id);
+    expect(md.addClusterServerIds).not.toHaveBeenCalledWith(e.entity_id, ColorControl.id);
   });
 
   it('thermostat auto/heat/cool branches', () => {
@@ -249,6 +288,38 @@ describe('addControlEntity', () => {
     // @ts-expect-error chainable return
     const vacuumCalls = md.addDeviceTypes.mock.calls.filter((c: any[]) => c[1] === roboticVacuumCleaner);
     expect(vacuumCalls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('vacuum maps Identify to vacuum.locate when LOCATE is supported', async () => {
+    const callService = vi.fn(async () => {});
+    const platform = { ...mockPlatform, ha: { callService } };
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.LOCATE + VacuumEntityFeature.START });
+    addControlEntity(platform, md, e, s, commandHandler, subscribeHandler as any);
+    // @ts-expect-error mock calls
+    const identifyCall = md.addCommandHandler.mock.calls.find((c: any[]) => c[1] === 'Identify.identify');
+    expect(identifyCall).toBeDefined();
+    identifyCall[2]({ request: { identifyTime: 5 } });
+    expect(callService).toHaveBeenCalledWith('vacuum', 'locate', e.entity_id);
+
+    callService.mockClear();
+    identifyCall[2]({ request: { identifyTime: 0 } });
+    expect(callService).not.toHaveBeenCalled();
+
+    identifyCall[2]({ request: {} });
+    expect(callService).not.toHaveBeenCalled();
+
+    // Log the error if the service call fails
+    callService.mockRejectedValueOnce(new Error('Locate failed'));
+    identifyCall[2]({ request: { identifyTime: 5 } });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(mockLog.error).toHaveBeenCalledWith(expect.stringContaining('Failed to call locate service'));
+  });
+
+  it('vacuum does not map Identify when LOCATE is not supported', () => {
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.START });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    // @ts-expect-error mock calls
+    expect(md.addCommandHandler.mock.calls.find((c: any[]) => c[1] === 'Identify.identify')).toBeUndefined();
   });
 
   it('valve mapping', () => {
@@ -414,6 +485,69 @@ describe('addControlEntity', () => {
     await volumeUpCallback();
 
     expect(callService).toHaveBeenCalledWith('media_player', MediaPlayerService.VOLUME_UP, e.entity_id);
+  });
+
+  // Platform with the Virtual Controls label, the given name prefix, areas (id: name) and entities.
+  const virtualControlPlatform = (namePrefix: string, areas: Record<string, string>, ...entities: (readonly [HassEntity, HassState])[]): any => ({
+    ...mockPlatform,
+    config: { splitNameStrategy: 'Friendly name', virtualControlLabel: 'Virtual Controls', namePrefix },
+    ha: {
+      callService: vi.fn<() => Promise<void>>().mockResolvedValue(),
+      hassAreas: new Map(Object.entries(areas).map(([area_id, name]) => [area_id, { area_id, name }])),
+      hassLabels: new Map([['virtual-controls', { label_id: 'virtual-controls', name: 'Virtual Controls' }]]),
+      hassStates: new Map(entities.map(([entity, state]) => [entity.entity_id, state])),
+    },
+    registerVirtualDevice: vi.fn<(name: string, deviceType: string, callback: VirtualDeviceCallback) => Promise<void>>().mockResolvedValue(),
+  });
+
+  it('prefixes labeled virtual control names with the area, without dots, when the Area name prefix is set', () => {
+    const [md, e, s] = make('media_player', 'tv', { friendly_name: 'TV', supported_features: MediaPlayerEntityFeature.TURN_ON });
+    const [smd, se, ss] = make('input_select', 'mode', { friendly_name: 'Mode', options: ['Eco'] });
+    const platform = virtualControlPlatform('Area', { hallway: '1. Floor' }, [e, s], [se, ss]);
+
+    addControlEntity(platform, md, { ...e, area_id: 'hallway', labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+    addControlEntity(platform, smd, { ...se, area_id: 'hallway', labels: ['virtual-controls'] }, ss, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Turn ON 1 Floor TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, '1 Floor Mode Eco', 'mounted_switch', expect.any(Function));
+  });
+
+  it('shortens the area of labeled select virtual control names once per entity to whole words within 32 characters', () => {
+    const [md, e, s] = make('input_select', 'mode', { friendly_name: 'Mode', options: ['Away Day', 'Away Night'] });
+    const platform = virtualControlPlatform('Area', { downstairs: 'Downstairs Living Room' }, [e, s]);
+
+    addControlEntity(platform, md, { ...e, area_id: 'downstairs', labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Downstairs Mode Away Day', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, 'Downstairs Mode Away Night', 'mounted_switch', expect.any(Function));
+  });
+
+  it('shortens the area of labeled media player virtual control names once per entity to fit its supported controls', () => {
+    const [md, e, s] = make('media_player', 'tv', { friendly_name: 'TV', supported_features: MediaPlayerEntityFeature.TURN_ON });
+    // oxlint-disable-next-line no-bitwise
+    const [pmd, pe, ps] = make('media_player', 'player', { friendly_name: 'TV', supported_features: MediaPlayerEntityFeature.TURN_ON | MediaPlayerEntityFeature.PREVIOUS_TRACK });
+    const platform = virtualControlPlatform('Area', { bedroom: 'Downstairs Bedroom' }, [e, s], [pe, ps]);
+
+    addControlEntity(platform, md, { ...e, area_id: 'bedroom', labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+    addControlEntity(platform, pmd, { ...pe, area_id: 'bedroom', labels: ['virtual-controls'] }, ps, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Turn ON Downstairs Bedroom TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, 'Turn ON Downstairs TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(3, 'Previous Track Downstairs TV', 'mounted_switch', expect.any(Function));
+  });
+
+  it('removes the dots from labeled virtual control names but not from the selected option', async () => {
+    const [md, e, s] = make('media_player', 'tv', { friendly_name: 'Mr. TV', supported_features: MediaPlayerEntityFeature.TURN_ON });
+    const [smd, se, ss] = make('input_select', 'speed', { friendly_name: 'Speed', options: ['1.5x'] });
+    const platform = virtualControlPlatform('None', {}, [e, s], [se, ss]);
+
+    addControlEntity(platform, md, { ...e, labels: ['virtual-controls'] }, s, commandHandler, subscribeHandler as any);
+    addControlEntity(platform, smd, { ...se, labels: ['virtual-controls'] }, ss, commandHandler, subscribeHandler as any);
+
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(1, 'Turn ON Mr TV', 'mounted_switch', expect.any(Function));
+    expect(platform.registerVirtualDevice).toHaveBeenNthCalledWith(2, 'Speed 15x', 'mounted_switch', expect.any(Function));
+    await platform.registerVirtualDevice.mock.calls[1][2]();
+    expect(platform.ha.callService).toHaveBeenCalledWith('input_select', 'select_option', se.entity_id, { option: '1.5x' });
   });
 
   it('logs an error when a labeled media player virtual control service call fails', async () => {

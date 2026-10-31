@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
-import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
+import { CYAN, db, dn, idn, LogLevel, nf, rs, wr } from 'matterbridge/logger';
 import { VendorId } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -231,6 +231,7 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.splitByLabel = '';
     mockConfig.splitNameStrategy = 'Entity name';
     mockConfig.controllerStrategy = 'Merge';
+    mockConfig.namePrefix = 'None';
     mockConfig.namePostfix = '';
     mockConfig.postfix = '';
     mockConfig.airQualityRegex = '';
@@ -260,6 +261,74 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
     haPlatform.ha.hassConfig = {} as HassConfig; // Simulate Home Assistant configuration
     haPlatform.ha.hassServices = {}; // Simulate Home Assistant services
+  });
+
+  it('should register duplicate device and entity names when they are in different areas with the Area prefix strategy', async () => {
+    haPlatform.config.namePrefix = 'Area';
+    haPlatform.config.whiteList = ['Light'];
+    const hallway = generateArea(haPlatform.ha, 'Hallway');
+    const kitchen = generateArea(haPlatform.ha, 'Kitchen');
+    const office = generateArea(haPlatform.ha, 'Office');
+    const garage = generateArea(haPlatform.ha, 'Garage');
+    const first = generateDevice(haPlatform.ha, 'Light', hallway.area_id);
+    const second = generateDevice(haPlatform.ha, 'Light', kitchen.area_id);
+    const firstEntity = generateEntity(haPlatform.ha, 'Power', 'switch', first, null, [], 'off');
+    const secondEntity = generateEntity(haPlatform.ha, 'Power', 'switch', second, null, [], 'off');
+    const individual = generateEntity(haPlatform.ha, 'Light', 'switch', null, office.area_id, [], 'off');
+    const splitDevice = generateDevice(haPlatform.ha, 'Dimmer', garage.area_id);
+    const split = generateEntity(haPlatform.ha, 'Light', 'switch', splitDevice, null, [], 'off');
+    haPlatform.config.splitEntities = [split.entity_id];
+
+    await haPlatform.onStart('Test prefixes');
+
+    const endpoints = Array.from(haPlatform.matterbridgeDevices.values());
+    expect(endpoints.map((endpoint) => endpoint.deviceName)).toEqual(['Office Light', 'Hallway Light', 'Kitchen Light', 'Garage Light']);
+    expect(new Set(endpoints.map((endpoint) => endpoint.id)).size).toBe(4);
+    expect(haPlatform.duplicatedDevices).toBe(0);
+    expect(haPlatform.duplicatedEntities).toBe(0);
+    expect(haPlatform.failedDevices).toBe(0);
+    expect(haPlatform.failedEntities).toBe(0);
+    expect(haPlatform.endpointNames.has(firstEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.has(secondEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(individual.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(split.entity_id)).toBe(true);
+  });
+
+  it('should skip a duplicated name when the devices are in the same area with the Area prefix strategy and the name postfix', async () => {
+    haPlatform.config.namePrefix = 'Area';
+    haPlatform.config.namePostfix = 'HA';
+    haPlatform.config.whiteList = ['Light'];
+    const hallway = generateArea(haPlatform.ha, 'Hallway');
+    const first = generateDevice(haPlatform.ha, 'Light', hallway.area_id);
+    const second = generateDevice(haPlatform.ha, 'Light', hallway.area_id);
+    generateEntity(haPlatform.ha, 'Power', 'switch', first, null, [], 'off');
+    generateEntity(haPlatform.ha, 'Power', 'switch', second, null, [], 'off');
+
+    await haPlatform.onStart('Test same area duplicates');
+
+    expect(haPlatform.matterbridgeDevices.get(first.id)?.deviceName).toBe('Hallway Light HA');
+    expect(haPlatform.matterbridgeDevices.has(second.id)).toBe(false);
+    expect(haPlatform.duplicatedDevices).toBe(1);
+    expect(haPlatform.failedDevices).toBe(0);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      `Device "${CYAN}Light${wr}" already exists as a registered device with the Matter name "${CYAN}Hallway Light HA${wr}". Please change the name in Home Assistant`,
+    );
+  });
+
+  it('should skip a duplicated name when the name postfix is set', async () => {
+    haPlatform.config.namePostfix = 'HA';
+    haPlatform.config.whiteList = ['Light'];
+    const first = generateDevice(haPlatform.ha, 'Light', null);
+    const second = generateDevice(haPlatform.ha, 'Light', null);
+    generateEntity(haPlatform.ha, 'Power', 'switch', first, null, [], 'off');
+    generateEntity(haPlatform.ha, 'Power', 'switch', second, null, [], 'off');
+
+    await haPlatform.onStart('Test postfix duplicates');
+
+    expect(haPlatform.matterbridgeDevices.get(first.id)?.deviceName).toBe('Light HA');
+    expect(haPlatform.matterbridgeDevices.has(second.id)).toBe(false);
+    expect(haPlatform.duplicatedDevices).toBe(1);
+    expect(haPlatform.failedDevices).toBe(0);
   });
 
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {

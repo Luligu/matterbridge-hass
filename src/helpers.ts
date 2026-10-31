@@ -3,7 +3,7 @@
  * @description This file contains helper functions for the Home Assistant platform.
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.0.0
+ * @version 1.0.1
  * @license Apache-2.0
  *
  * Copyright 2026, 2027, 2028 Luca Liguori.
@@ -319,6 +319,31 @@ export function getEntityName(platform: HomeAssistantPlatform, entity: HassEntit
   return platform.config.splitNameStrategy === 'Friendly name'
     ? (state.attributes?.friendly_name ?? entity.name ?? entity.original_name ?? null)
     : (entity.name ?? entity.original_name ?? state.attributes?.friendly_name ?? null);
+}
+
+/**
+ * Returns the name prefixed with its Home Assistant area when the Area name prefix is set.
+ *
+ * Edge cases:
+ *  - Entities use their own area, otherwise their device's area.
+ *  - With maxLength, the area is shortened to the whole words that fit, not counting dots, or dropped when none fit.
+ *  - No area, or a name that already starts with the (shortened) area name, leaves the name unchanged.
+ *
+ * @param {HomeAssistantPlatform} platform - The platform with the configuration and the Home Assistant areas and devices.
+ * @param {string} name - The Home Assistant name.
+ * @param {HassDevice | HassEntity} item - The device or entity to name.
+ * @param {number} [maxLength] - The maximum length of the prefixed name, in characters (default no limit).
+ * @returns {string} The prefixed name, or the name unchanged when no prefix applies.
+ */
+export function getPrefixedName(platform: HomeAssistantPlatform, name: string, item: HassDevice | HassEntity, maxLength: number = Infinity): string {
+  if (platform.config.namePrefix !== 'Area') return name;
+  const device = 'device_id' in item && item.device_id ? platform.ha.hassDevices.get(item.device_id) : undefined;
+  let prefix = platform.ha.hassAreas.get(item.area_id ?? device?.area_id ?? '')?.name.trim() ?? '';
+  // Drop the last word of the area until the name fits. Dots don't count, since they are removed from the virtual control names.
+  while (prefix && `${prefix} ${name}`.replaceAll('.', '').length > maxLength) {
+    prefix = prefix.slice(0, Math.max(0, prefix.lastIndexOf(' '))).trimEnd();
+  }
+  return prefix && !`${name} `.toLowerCase().startsWith(`${prefix} `.toLowerCase()) ? `${prefix} ${name}` : name;
 }
 
 /**
