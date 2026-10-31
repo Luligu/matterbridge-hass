@@ -27,6 +27,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import {
   bridgedNode,
@@ -134,6 +135,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
   /** Home Assistant subscription ID */
   haSubscriptionId: number | null = null;
+
+  /** Cancels initialization when its connection is replaced or the platform stops. */
+  private initializationController?: AbortController;
+
+  private shuttingDown = false;
 
   /** State cache instance */
   stateCache = new StateCache();
@@ -255,39 +261,19 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.ha.log.logLevel = this.log.logLevel;
 
     this.ha.on('connected', (ha_version: HomeAssistantPrimitive) => {
+      if (this.shuttingDown) return;
       // oxlint-disable-next-line typescript/no-base-to-string typescript/restrict-template-expressions
       this.log.notice(`Connected to Home Assistant ${ha_version}`);
 
-      this.log.info(`Fetching data from Home Assistant...`);
-
-      void this.ha
-        .fetchData()
-        // oxlint-disable-next-line promise/always-return
-        .then(() => {
-          this.log.info(`Fetched data from Home Assistant successfully`);
-          // Subscribe when the data is fetched to avoid missing events during the fetch.
-          this.log.info(`Subscribing to Home Assistant events...`);
-          // oxlint-disable-next-line promise/no-nesting
-          void this.ha
-            .subscribe()
-            // oxlint-disable-next-line promise/always-return
-            .then((id) => {
-              this.haSubscriptionId = id;
-              this.log.info(`Subscribed to Home Assistant events successfully with id ${this.haSubscriptionId}`);
-            })
-            .catch((error: unknown) => {
-              this.log.error(`Error subscribing to Home Assistant events: ${getErrorMessage(error)}`);
-            });
-          if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
-          if (this.isConfigured) this.wssSendRestartRequired();
-          // Subscribed
-        })
-        .catch((error: unknown) => {
-          this.log.error(`Error fetching data from Home Assistant: ${getErrorMessage(error)}`);
-        });
+      this.initializationController?.abort();
+      const controller = new AbortController();
+      this.initializationController = controller;
+      this.haSubscriptionId = null;
+      void this.initializeConnection(controller);
     });
 
     this.ha.on('disconnected', () => {
+      this.initializationController?.abort();
       this.log.warn('Disconnected from Home Assistant');
       this.haSubscriptionId = null;
       /* v8 ignore next */
@@ -369,7 +355,56 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.log.info(`Initialized platform: ${CYAN}${this.config.name}${nf} version: ${CYAN}${this.config.version}${rs}`);
   }
 
+  /**
+   * Fetch a complete snapshot before subscribing. Retry transient fetch failures on the
+   * authenticated connection, within the existing startup readiness timeout.
+   *
+   * @param {AbortController} controller - Cancellation for this connection's initialization.
+   * @returns {Promise<void>} Resolves after initialization succeeds, fails, or is cancelled.
+   */
+  private async initializeConnection(controller: AbortController): Promise<void> {
+    const { signal } = controller;
+    const timeout = setTimeout(() => {
+      this.log.error('Home Assistant initialization timed out');
+      controller.abort();
+    }, 105_000).unref();
+    let stage = 'fetching data from';
+    try {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        signal.throwIfAborted();
+        this.log.info('Fetching data from Home Assistant...');
+        try {
+          await this.ha.fetchData(signal);
+          break;
+        } catch (error) {
+          signal.throwIfAborted();
+          if (attempt === 3) throw error;
+          this.log.warn(`Home Assistant initial fetch failed (attempt ${attempt}/3): ${getErrorMessage(error)}. Retrying in 2 seconds...`);
+          await delay(2000, undefined, { signal });
+        }
+      }
+      signal.throwIfAborted();
+      this.log.info('Fetched data from Home Assistant successfully');
+      stage = 'subscribing to';
+      this.log.info('Subscribing to Home Assistant events...');
+      // Do not retry an ambiguous subscription timeout: the server may have accepted it.
+      const id = await this.ha.subscribe();
+      signal.throwIfAborted();
+      this.haSubscriptionId = id;
+      this.log.info(`Subscribed to Home Assistant events successfully with id ${id}`);
+      if (this.isConfigured) this.wssSendSnackbarMessage('Reconnected to Home Assistant', 5, 'success');
+      if (this.isConfigured) this.wssSendRestartRequired();
+    } catch (error) {
+      if (!signal.aborted) {
+        this.log.error(`Error ${stage} Home Assistant${stage === 'subscribing to' ? ' events' : ''}: ${getErrorMessage(error)}`);
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   override async onStart(reason?: string): Promise<void> {
+    this.shuttingDown = false;
     this.log.info(`Starting platform ${idn}${this.config.name}${rs}${nf}: ${reason ?? ''}`);
 
     // Create the plugin directory inside the Matterbridge plugin directory
@@ -389,7 +424,13 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       );
       return this.ha.connected && this.ha.hassConfig !== null && this.ha.hassServices !== null && this.haSubscriptionId !== null;
     };
-    await waiter('Home Assistant connected', check, true, 110000, 1000); // Wait for 110 seconds with 1 second interval and throw error if not connected
+    // Wait for 110 seconds with 1 second interval and fail closed on timeout.
+    try {
+      await waiter('Home Assistant connected', check, true, 110000, 1000);
+    } catch (error) {
+      this.initializationController?.abort();
+      throw error;
+    }
 
     // Save devices, entities, states, config and services to a local file without awaiting
     // oxfmt-ignore
@@ -1004,6 +1045,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   override async onShutdown(reason?: string): Promise<void> {
+    this.shuttingDown = true;
+    this.initializationController?.abort();
+    this.haSubscriptionId = null;
     // Save the state cache to restore it at the next startup.
     /* v8 ignore next cause if the platform is ready then the context is defined */
     if (this.context) await this.stateCache.save(this.context);
@@ -1229,7 +1273,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.debug(`Subscribe handler: Endpoint ${entity.entity_id} for device ${entity.device_id} not found: skipping it`);
       return;
     }
-    if (context && !context.fabric) {
+    if (context && (!('fabric' in context) || !context.fabric)) {
       endpoint.log.debug(
         `Subscribed attribute ${hk}${getClusterNameById(hassSubscribe.clusterId)}${db}:${hk}${hassSubscribe.attribute}${db} ` +
           `on endpoint ${or}${endpoint?.maybeId}${db}:${or}${endpoint?.maybeNumber}${db} changed for an offline update: skipping it`,

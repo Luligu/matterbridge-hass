@@ -340,6 +340,7 @@
         "--maxWorkers=100%",
         "--coverage.include=src/homeAssistant.ts",
         "homeAssistant.test.ts",
+        "homeAssistant.initialization.test.ts",
         "homeAssistant.real.test.ts"
       ],
       "group": { "kind": "test", "isDefault": false },

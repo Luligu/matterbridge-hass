@@ -25,6 +25,7 @@
 
 import { EventEmitter } from 'node:events';
 import { readFileSync } from 'node:fs';
+import { setTimeout as delay } from 'node:timers/promises';
 
 import { AnsiLogger, CYAN, db, debugStringify, er, LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
 import { getErrorMessage, hasParameter } from 'matterbridge/utils';
@@ -1648,13 +1649,24 @@ export class HomeAssistant extends EventEmitter {
    * - states
    * - areas
    * - labels
+   *
+   * @param {AbortSignal} [signal] - Cancels initialization for a disconnected or stopped client.
+   * @returns {Promise<void>} Resolves with a complete snapshot, or rejects on failure.
    */
-  async fetchData(): Promise<void> {
+  async fetchData(signal?: AbortSignal): Promise<void> {
     try {
+      signal?.throwIfAborted();
+      // Check both sides of each request so an old connection cannot publish late data.
+      const fetch = async (type: string): Promise<unknown> => {
+        signal?.throwIfAborted();
+        const result: unknown = await this.fetch(type);
+        signal?.throwIfAborted();
+        return result;
+      };
       this.log.debug('Fetching initial data from Home Assistant...');
 
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      this.hassConfig = (await this.fetch('get_config')) as HassConfig;
+      this.hassConfig = (await fetch('get_config')) as HassConfig;
       HomeAssistant.hassConfig = this.hassConfig;
       this.log.debug('Received config.');
       this.emit('config', this.hassConfig);
@@ -1664,51 +1676,62 @@ export class HomeAssistant extends EventEmitter {
       while (this.hassConfig.state !== 'RUNNING' && retries <= 100) {
         this.log.debug(`State is ${CYAN}${this.hassConfig.state}${db}. Waiting (${retries}/100) for Home Assistant to be RUNNING...`);
         retries += 1;
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await delay(1000, undefined, { signal });
         // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-        this.hassConfig = (await this.fetch('get_config')) as HassConfig;
+        this.hassConfig = (await fetch('get_config')) as HassConfig;
         HomeAssistant.hassConfig = this.hassConfig;
         this.emit('config', this.hassConfig);
       }
 
+      if (this.hassConfig.state !== 'RUNNING') throw new Error('Home Assistant did not reach RUNNING');
+
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      this.hassServices = (await this.fetch('get_services')) as HassServices;
+      const services = (await fetch('get_services')) as HassServices;
       this.log.debug('Received services.');
-      this.emit('services', this.hassServices);
 
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      const devices = (await this.fetch('config/device_registry/list')) as HassDevice[];
-      devices.forEach((device: HassDevice) => this.hassDevices.set(device.id, device));
+      const devices = (await fetch('config/device_registry/list')) as HassDevice[];
       this.log.debug(`Received ${devices.length} devices.`);
-      this.emit('devices', devices);
 
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      const entities = (await this.fetch('config/entity_registry/list')) as HassEntity[];
-      entities.forEach((entity: HassEntity) => this.hassEntities.set(entity.entity_id, entity));
+      const entities = (await fetch('config/entity_registry/list')) as HassEntity[];
       this.log.debug(`Received ${entities.length} entities.`);
-      this.emit('entities', entities);
 
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      const states = (await this.fetch('get_states')) as HassState[];
-      states.forEach((state: HassState) => this.hassStates.set(state.entity_id, state));
+      const states = (await fetch('get_states')) as HassState[];
       this.log.debug(`Received ${states.length} states.`);
-      this.emit('states', states);
 
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      const areas = (await this.fetch('config/area_registry/list')) as HassArea[];
-      areas.forEach((area: HassArea) => this.hassAreas.set(area.area_id, area));
+      const areas = (await fetch('config/area_registry/list')) as HassArea[];
       this.log.debug(`Received ${areas.length} areas.`);
-      this.emit('areas', areas);
 
       // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-      const labels = (await this.fetch('config/label_registry/list')) as HassLabel[];
-      labels.forEach((label: HassLabel) => this.hassLabels.set(label.label_id, label));
+      const labels = (await fetch('config/label_registry/list')) as HassLabel[];
       this.log.debug(`Received ${labels.length} labels.`);
+
+      // Publish registries only after every request succeeds; retries replace stale entries.
+      this.hassServices = services;
+      this.hassDevices.clear();
+      devices.forEach((device) => this.hassDevices.set(device.id, device));
+      this.hassEntities.clear();
+      entities.forEach((entity) => this.hassEntities.set(entity.entity_id, entity));
+      this.hassStates.clear();
+      states.forEach((state) => this.hassStates.set(state.entity_id, state));
+      this.hassAreas.clear();
+      areas.forEach((area) => this.hassAreas.set(area.area_id, area));
+      this.hassLabels.clear();
+      labels.forEach((label) => this.hassLabels.set(label.label_id, label));
+      this.emit('services', services);
+      this.emit('devices', devices);
+      this.emit('entities', entities);
+      this.emit('states', states);
+      this.emit('areas', areas);
       this.emit('labels', labels);
 
       this.log.debug('Initial data fetched successfully.');
     } catch (error) {
-      this.log.error(`Error fetching initial data: ${getErrorMessage(error)}`);
+      if (!signal?.aborted) this.log.error(`Error fetching initial data: ${getErrorMessage(error)}`);
+      throw error;
     }
   }
 

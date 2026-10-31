@@ -690,7 +690,7 @@ describe('HomeAssistant', () => {
     vi.spyOn(homeAssistant, 'fetch').mockImplementationOnce(async () => {
       return Promise.reject(new Error('Failed to fetch data'));
     });
-    await homeAssistant.fetchData();
+    await expect(homeAssistant.fetchData()).rejects.toThrow('Failed to fetch data');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Failed to fetch data');
   });
@@ -1340,7 +1340,7 @@ describe('HomeAssistant with ssl', () => {
     vi.spyOn(homeAssistant, 'fetch').mockImplementationOnce(async () => {
       return Promise.reject(new Error('Failed to fetch data'));
     });
-    await homeAssistant.fetchData();
+    await expect(homeAssistant.fetchData()).rejects.toThrow('Failed to fetch data');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, 'Fetching initial data from Home Assistant...');
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.ERROR, 'Error fetching initial data: Failed to fetch data');
   });
