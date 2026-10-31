@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -58,6 +58,7 @@
   "files": [
     "bin",
     "dist",
+    "apps/frontend/build",
     "npm-shrinkwrap.json",
     "CHANGELOG.md",
     "*.config.json",
@@ -84,7 +85,8 @@
       "git": [
         "TODO.md",
         "ts_homeassistant.json",
-        "certificates/serverToken"
+        "certificates/serverToken",
+        "!apps/frontend/build/"
       ]
     }
   },

@@ -187,6 +187,25 @@ See the complete guidelines on [Matterbridge](https://matterbridge.io) for more 
 
 Just open the frontend, select the matterbridge-hass plugin and click on install. If you are using Matterbridge with `Docker`, all plugins are already loaded in the container so you just need to select the matterbridge-hass plugin and add it. If you are using Matterbridge with the `Matterbridge Home Assistant Application` (formerly known as add-on), you need to install the matterbridge-hass plugin.
 
+## Plugin page (setup and device picker)
+
+The plugin ships its own page. Open it from the Matterbridge home page with the **Open the plugin frontend** button in the plugin row.
+
+- **First setup**: when the token is missing, the page starts a short wizard. It finds Home Assistant (this computer first, then the network), shows how to create a long-lived access token with a link to the Home Assistant security page, checks the token and saves host and token.
+- **Device picker**: a table of all the Home Assistant devices and individual entities with their status (Synced, Not synced, Not supported). Filter by status, area, label, integration and type, tick the devices to sync and untick single functions of a device. Domain rules (only include / never include) are at the bottom of the filters.
+- **Same config as the expert form**: the page reads and writes `whiteList`, `blackList`, `deviceEntityBlackList`, `entityWhiteList` (Domain Whitelist) and `entityBlackList` (Domain Blacklist). Changes made in the config form show up on the page and the other settings are never changed by the page.
+- The tick box of each row shows if it is synced to Matter. Not supported rows are greyed out and can't be ticked.
+- Each device is analyzed against what Matter can show. A device that is not synced yet starts with only its main functions ticked: the controls (lights and covers before switches, switches before selects), or for a sensor its detector (motion, door...), events or measurements, plus its own battery. Extras stay unticked: voltage, power and energy readings, config and diagnostic entities, maintenance and settings (restart, identify, LED, child lock, effect, power-on behavior...) and entities added by helper integrations like Battery Notes. Synced devices keep their current functions.
+- A device with only maintenance or settings functions, or only battery information, is shown as Not supported with the reason (if it is already synced it stays, with a hint to remove it).
+- **Start fresh** unticks everything (and on save removes the old lists, the area and label filters and the split entities) so you can pick from scratch. The Home Assistant address and token stay.
+- When saving with nothing ticked, or after Start fresh, the page asks to confirm (Save anyway or Cancel). An empty whitelist exposes everything.
+- If the saved address or token stops working, the page starts the wizard again from the welcome page.
+- The search for Home Assistant checks the Matterbridge computer first (recommended), then the saved address, `homeassistant.local` and every address of the local network, on ports 8123 and 80. Results are shown with their IP address and the saved one is tagged.
+- After saving, **Restart Matterbridge now** restarts Matterbridge from the page. While Matterbridge restarts the page shows a waiting screen and comes back by itself.
+- Tip shown in the wizard: pick your devices, save and restart before pairing Matterbridge with your controller, so the controller gets only the chosen devices in one go.
+- Inside the Matterbridge window on a computer the page offers to open in its own browser tab. You can bookmark `http://<matterbridge-ip>:8283/plugins/matterbridge-hass/`. Through Home Assistant (Matterbridge app/add-on, ingress) a new tab can't use the Home Assistant login of that window: on a computer the page offers the direct Matterbridge address (port 8283 on the same host) when it answers, otherwise it opens in the window. On phones it opens in the window.
+- After saving, restart Matterbridge to apply the changes.
+
 ## How to use it
 
 There are 2 different source of Matter devices coming from matterbridge-hass plugin:
