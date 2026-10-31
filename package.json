@@ -65,12 +65,9 @@
   ],
   "automator": {
     "node": true,
-    "bun": false,
     "plugin": true,
     "jest": false,
     "vitest": true,
-    "buntest": false,
-    "native": true,
     "git": false,
     "version": false,
     "publish": false,
