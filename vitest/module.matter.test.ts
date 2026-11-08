@@ -99,6 +99,7 @@ import {
   type HassServices,
   type HassState,
   HomeAssistant,
+  HVACAction,
   VacuumEntityFeature,
 } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
@@ -2449,6 +2450,84 @@ describe('Matterbridge ' + NAME, () => {
 
     // Clean the test environment
     await cleanup();
+  });
+
+  it('should update systemMode when individual climate entities switch to auto', async () => {
+    haPlatform.ha.hassEntities.set(climateEntity.entity_id, climateEntity);
+    haPlatform.ha.hassStates.set(climateState.entity_id, climateState);
+    haPlatform.ha.hassEntities.set(climateHeatAutoEntity.entity_id, climateHeatAutoEntity);
+    haPlatform.ha.hassStates.set(climateHeatAutoState.entity_id, climateHeatAutoState);
+    haPlatform.ha.hassEntities.set(climateCoolEntity.entity_id, climateCoolEntity);
+    haPlatform.ha.hassStates.set(climateCoolState.entity_id, climateCoolState);
+    haPlatform.ha.hassEntities.set(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolEntity);
+    haPlatform.ha.hassStates.set(climateHeatAndCoolState.entity_id, climateHeatAndCoolState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(4);
+    expect(haPlatform.matterbridgeDevices.size).toBe(4);
+    await haPlatform.onConfigure();
+
+    // AutoMode (heat_cool): off => Off, auto => Auto
+    device = haPlatform.matterbridgeDevices.get(climateEntity.entity_id) as MatterbridgeEndpoint;
+    await haPlatform.updateHandler(climateEntity.entity_id, climateState.entity_id, climateState, { ...climateState, state: 'off' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    await haPlatform.updateHandler(climateEntity.entity_id, climateState.entity_id, climateState, { ...climateState, state: 'auto' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Auto);
+
+    // Heating only (#247 [off, auto, heat]): starts in off, auto => Heat (before the fix systemMode stayed Off)
+    device = haPlatform.matterbridgeDevices.get(climateHeatAutoEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    await haPlatform.updateHandler(climateHeatAutoEntity.entity_id, climateHeatAutoState.entity_id, climateHeatAutoState, { ...climateHeatAutoState, state: 'auto' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
+    expect(device.getAttribute(Thermostat.id, 'occupiedHeatingSetpoint')).toBe(2100);
+
+    // Cooling only: off => Off, auto => Cool
+    device = haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id) as MatterbridgeEndpoint;
+    await haPlatform.updateHandler(climateCoolEntity.entity_id, climateCoolState.entity_id, climateCoolState, { ...climateCoolState, state: 'off' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    await haPlatform.updateHandler(climateCoolEntity.entity_id, climateCoolState.entity_id, climateCoolState, { ...climateCoolState, state: 'auto' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+
+    // Heating and cooling without heat_cool: starts in off (systemMode Off)
+    device = haPlatform.matterbridgeDevices.get(climateHeatAndCoolEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    // auto, idle, no current_temperature => unchanged (Off)
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.IDLE, current_temperature: null },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    // auto, idle, target 21 >= current 19 => Heat
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.IDLE },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
+    // auto, cooling => Cool
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.COOLING },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+    // auto, idle => unchanged (Cool)
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.IDLE },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+
+    // The systemMode changes are local: Home Assistant is never asked to leave 'auto'
+    expect(callServiceSpy).not.toHaveBeenCalledWith('climate', 'set_hvac_mode', expect.anything(), expect.anything());
+
+    // Clean the test environment
+    await cleanup();
+
+    // setDebug(false);
   });
 
   it('should call onStart and register a binary_sensor without device_class', async () => {
@@ -5231,6 +5310,46 @@ const climateCoolState = {
     hvac_modes: ['off', 'cool'],
     temperature: 20,
     current_temperature: 18,
+    min_temp: 5,
+    max_temp: 35,
+  },
+} as unknown as HassState;
+
+// Heating only with a schedule (issue #247)
+const climateHeatAutoEntity = {
+  device_id: null,
+  entity_id: 'climate.climate_heat_auto',
+  id: 'climate-heat-auto-entity-id',
+  name: 'Single Entity Climate Heat Auto',
+} as unknown as HassEntity;
+const climateHeatAutoState = {
+  entity_id: climateHeatAutoEntity.entity_id,
+  state: 'off',
+  attributes: {
+    friendly_name: climateHeatAutoEntity.name,
+    hvac_modes: ['off', 'auto', 'heat'],
+    temperature: 21,
+    current_temperature: 19,
+    min_temp: 5,
+    max_temp: 35,
+  },
+} as unknown as HassState;
+
+// Heating and cooling without heat_cool
+const climateHeatAndCoolEntity = {
+  device_id: null,
+  entity_id: 'climate.climate_heat_and_cool',
+  id: 'climate-heat-and-cool-entity-id',
+  name: 'Single Entity Climate Heat And Cool',
+} as unknown as HassEntity;
+const climateHeatAndCoolState = {
+  entity_id: climateHeatAndCoolEntity.entity_id,
+  state: 'off',
+  attributes: {
+    friendly_name: climateHeatAndCoolEntity.name,
+    hvac_modes: ['off', 'auto', 'heat', 'cool'],
+    temperature: 21,
+    current_temperature: 19,
     min_temp: 5,
     max_temp: 35,
   },

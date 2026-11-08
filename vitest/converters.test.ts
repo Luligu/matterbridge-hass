@@ -11,6 +11,7 @@ import { AirQuality, FanControl, PowerSource, Thermostat } from 'matterbridge/ma
 
 import {
   clamp,
+  convertHAClimateAutoToMatter,
   convertHAFanPresetModeToMatter,
   convertHAFanPresetModesToMatter,
   convertHAXYToMatter,
@@ -615,6 +616,61 @@ describe('HassPlatform converters', () => {
     it('should return Off for an invalid string length', () => {
       expect(convertHAFanPresetModeToMatter('' as any)).toBe(FanControl.FanMode.Off);
       expect(convertHAFanPresetModeToMatter('x' as any)).toBe(FanControl.FanMode.Off);
+    });
+  });
+
+  describe('convertHAClimateAutoToMatter', () => {
+    it('should return Auto when the endpoint has the AutoMode feature', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: true, heating: true, cooling: true }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Auto);
+    });
+
+    it('should return Heat when the endpoint is heating only', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: false }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Heat);
+    });
+
+    it('should return Cool when the endpoint is cooling only', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: false, cooling: true }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Cool);
+    });
+
+    it('should return undefined when the endpoint has neither heating nor cooling', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: false, cooling: false }, Thermostat.SystemMode.Off, state)).toBeUndefined();
+    });
+
+    it('should follow hvac_action when the endpoint is heating and cooling without AutoMode', () => {
+      const heating = { state: 'auto', attributes: { hvac_action: 'heating' } } as unknown as HassState;
+      const cooling = { state: 'auto', attributes: { hvac_action: 'cooling' } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Cool, heating)).toBe(Thermostat.SystemMode.Heat);
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Heat, cooling)).toBe(Thermostat.SystemMode.Cool);
+    });
+
+    it('should return undefined when idle and the current systemMode is Heat or Cool', () => {
+      const state = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 18, current_temperature: 22 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Heat, state)).toBeUndefined();
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Cool, state)).toBeUndefined();
+    });
+
+    it('should return Heat when idle, the current systemMode is Off and the target is not below the current temperature', () => {
+      const above = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 21, current_temperature: 19 } } as unknown as HassState;
+      const equal = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 21, current_temperature: 21 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, above)).toBe(Thermostat.SystemMode.Heat);
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, equal)).toBe(Thermostat.SystemMode.Heat);
+    });
+
+    it('should return Cool when idle, the current systemMode is Off or unknown and the target is below the current temperature', () => {
+      const state = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 20, current_temperature: 23 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Cool);
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, undefined, state)).toBe(Thermostat.SystemMode.Cool);
+    });
+
+    it('should return undefined when the current systemMode is Off and a temperature is missing', () => {
+      const noCurrent = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 21 } } as unknown as HassState;
+      const noTarget = { state: 'auto', attributes: { hvac_action: 'idle', current_temperature: 19 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, noCurrent)).toBeUndefined();
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, noTarget)).toBeUndefined();
     });
   });
 });

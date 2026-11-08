@@ -67,6 +67,7 @@ If you like this project and find it useful, please consider giving it a star on
 ### Fixed
 
 - [cover]: Report the open and closed position of covers without `current_position` (i.e. garage doors) (https://github.com/Luligu/matterbridge-hass/issues/244).
+- [climate]: Update the Thermostat `systemMode` when a climate entity switches to `auto`, so controllers no longer show a stale `off` on heating-only or cooling-only thermostats. Thanks pandinus (https://github.com/Luligu/matterbridge-hass/issues/247).
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

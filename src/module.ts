@@ -40,7 +40,7 @@ import {
 } from 'matterbridge';
 import { type AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, type LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource, WindowCovering } from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource, Thermostat, WindowCovering } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { deepEqual, fireAndForget, getErrorMessage, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
@@ -49,6 +49,7 @@ import { addButtonEntity } from './button.entity.js';
 import { addControlEntity } from './control.entity.js';
 import {
   clamp,
+  convertHAClimateAutoToMatter,
   convertMatterXYToHA,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
@@ -1443,6 +1444,21 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           if (coverTilt && !coverLift && !isValidNumber(new_state.attributes['current_tilt_position'], 0, 100)) {
             await endpoint.setAttribute(WindowCovering, 'currentPositionTiltPercent100ths', position, endpoint.log);
             await endpoint.setAttribute(WindowCovering, 'targetPositionTiltPercent100ths', position, endpoint.log);
+          }
+        }
+        // Climate in 'auto' (the device follows its own schedule or logic): the table row has no value because systemMode depends on the thermostat features (#247).
+        if (domain === 'climate' && new_state.state === 'auto' && endpoint.hasClusterServer(Thermostat)) {
+          // Detect the features the Thermostat cluster was created with from their feature specific attributes.
+          const features = {
+            autoMode: endpoint.hasAttributeServer(Thermostat, 'thermostatRunningMode'),
+            heating: endpoint.hasAttributeServer(Thermostat, 'occupiedHeatingSetpoint'),
+            cooling: endpoint.hasAttributeServer(Thermostat, 'occupiedCoolingSetpoint'),
+          };
+          const systemMode = convertHAClimateAutoToMatter(features, endpoint.getAttribute(Thermostat, 'systemMode', endpoint.log), new_state);
+          // Undefined means leave systemMode unchanged. This is a local update, so subscribeHandler skips it and set_hvac_mode is not called (the device stays in 'auto').
+          if (systemMode !== undefined) {
+            endpoint.log.debug(`*Update state climate auto for cluster Thermostat attribute systemMode value ${CYAN}${systemMode}${db}`);
+            await endpoint.setAttribute(Thermostat, 'systemMode', systemMode, endpoint.log);
           }
         }
       } else {
