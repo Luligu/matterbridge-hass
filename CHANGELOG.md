@@ -30,6 +30,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
+- [homeassistant]: Add core speed feature, standard speed enum, and closed state and supported speed attributes.
 - [agents]: Add support for Bionic / LM Studio local agents.
 
 ### Changed
