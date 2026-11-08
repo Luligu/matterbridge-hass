@@ -15,6 +15,7 @@ import {
   getDomain,
   getEntityName,
   getName,
+  getPostfixedName,
   isDeviceEntity,
   isDisabled,
   isHidden,
@@ -828,5 +829,11 @@ describe('HassPlatform helpers', () => {
     expect(getEntityName(createPlatform(1, state), entity)).toBeNull();
 
     expect(getEntityName({ config: { splitNameStrategy: 'Entity name' }, ha: {} } as unknown as HomeAssistantPlatform, entity)).toBeNull();
+  });
+
+  it('should return the name with the namePostfix when valid', () => {
+    expect(getPostfixedName({ config: { namePostfix: '' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light');
+    expect(getPostfixedName({ config: { namePostfix: 'HA' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light HA');
+    expect(getPostfixedName({ config: { namePostfix: 'HASS' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light');
   });
 });

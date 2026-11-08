@@ -322,6 +322,17 @@ export function getEntityName(platform: HomeAssistantPlatform, entity: HassEntit
 }
 
 /**
+ * Returns the device name with the configured namePostfix, as it is registered in Matterbridge.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {string} name - The device or entity name.
+ * @returns {string} - The name with ' <namePostfix>' appended when namePostfix is valid.
+ */
+export function getPostfixedName(platform: HomeAssistantPlatform, name: string): string {
+  return name + (isValidString(platform.config.namePostfix, 1, 3) ? ' ' + platform.config.namePostfix : '');
+}
+
+/**
  * Creates a unique identifier.
  *
  * @returns {string} - A 32-character hexadecimal string.
