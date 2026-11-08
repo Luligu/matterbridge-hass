@@ -28,6 +28,10 @@ If you like this project and find it useful, please consider giving it a star on
 
 ## [1.6.2] - Dev branch
 
+### Added
+
+- [agents]: Add support for Bionic / LM Studio local agents.
+
 ### Changed
 
 - [package]: Bump `ws` to v.8.22.2.
