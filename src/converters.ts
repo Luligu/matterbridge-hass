@@ -92,7 +92,7 @@ import {
 import type { ClusterId } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { ColorMode, type HassState, type HassStateFanAttributes, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
+import { ColorMode, CoverEntityFeature, type HassState, type HassStateFanAttributes, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 
 /**
  * Returns the names of enabled bit-flag features for any numeric enum.
@@ -114,6 +114,23 @@ export function getFeatureNames<T extends Record<string, number | string>>(featu
       .filter(([_, value]) => typeof value === 'number' && (supported_features & value) !== 0)
       .map(([key]) => key)
   );
+}
+
+/**
+ * Detects the lift and tilt capabilities of a Home Assistant cover from its supported features and position attributes.
+ *
+ * @param {HassState['attributes']} attributes - The attributes of the cover state.
+ * @returns {{ lift: boolean; tilt: boolean }} The detected capabilities. A cover with no detectable capability is reported as lift only.
+ */
+export function getCoverCapabilities(attributes: HassState['attributes']): { lift: boolean; tilt: boolean } {
+  const features = isValidNumber(attributes.supported_features) ? attributes.supported_features : 0;
+  const liftFeatures = CoverEntityFeature.OPEN + CoverEntityFeature.CLOSE + CoverEntityFeature.SET_POSITION + CoverEntityFeature.STOP;
+  const tiltFeatures = CoverEntityFeature.OPEN_TILT + CoverEntityFeature.CLOSE_TILT + CoverEntityFeature.STOP_TILT + CoverEntityFeature.SET_TILT_POSITION;
+  // oxlint-disable-next-line no-bitwise
+  const lift = (features & liftFeatures) !== 0 || isValidNumber(attributes.current_position);
+  // oxlint-disable-next-line no-bitwise
+  const tilt = (features & tiltFeatures) !== 0 || isValidNumber(attributes.current_tilt_position);
+  return { lift: lift || !tilt, tilt };
 }
 
 /**
@@ -477,9 +494,12 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     // oxlint-disable-next-line typescript/no-unnecessary-boolean-literal-compare
     { domain: 'fan', with: 'oscillating', clusterId: FanControl.id, attribute: 'rockSetting', converter: (value: boolean) => (isValidBoolean(value) ? value === true ? { rockLeftRight: false, rockUpDown: false, rockRound: true } : { rockLeftRight: false, rockUpDown: false, rockRound: false } : null) },
 
-    // Matter WindowCovering: 0 = open 10000 = closed
+    // Matter WindowCovering lift and tilt: 0 = fully open 10000 = fully closed
+    // Hass cover current_position and current_tilt_position: 0 = fully closed 100 = fully open
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
+    { domain: 'cover', with: 'current_tilt_position', clusterId: WindowCovering.id, attribute: 'currentPositionTiltPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
+    { domain: 'cover', with: 'current_tilt_position', clusterId: WindowCovering.id, attribute: 'targetPositionTiltPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
 
     { domain: 'climate', with: 'temperature',         clusterId: Thermostat.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.state === HVACMode.HEAT || (state.state === HVACMode.AUTO && state.attributes?.hvac_modes?.includes(HVACMode.HEAT))) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
     { domain: 'climate', with: 'temperature',         clusterId: Thermostat.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.state === HVACMode.COOL || (state.state === HVACMode.AUTO && state.attributes?.hvac_modes?.includes(HVACMode.COOL))) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
@@ -610,6 +630,7 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'downOrClose',             domain: 'cover', service: 'close_cover' },
     { command: 'stopMotion',              domain: 'cover', service: 'stop_cover' },
     { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
+    { command: 'goToTiltPercentage',      domain: 'cover', service: 'set_cover_tilt_position', converter: (request) => { return { tilt_position: Math.round(100 - request.tiltPercent100thsValue / 100) } } },
 
     { command: 'open',                    domain: 'valve', service: 'set_valve_position', converter: (request) => { return { position: Math.round(request.targetLevel) } } },
     { command: 'close',                   domain: 'valve', service: 'close_valve' },

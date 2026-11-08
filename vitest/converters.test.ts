@@ -15,6 +15,7 @@ import {
   convertHAFanPresetModesToMatter,
   convertHAXYToMatter,
   convertMatterXYToHA,
+  getCoverCapabilities,
   getFeatureNames,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
@@ -54,6 +55,17 @@ function createSelectState(options: string[]): HassState {
 }
 
 describe('HassPlatform converters', () => {
+  it('should detect the cover lift and tilt capabilities', () => {
+    expect(getCoverCapabilities({} as HassState['attributes'])).toEqual({ lift: true, tilt: false });
+    expect(getCoverCapabilities({ supported_features: 3 } as HassState['attributes'])).toEqual({ lift: true, tilt: false });
+    expect(getCoverCapabilities({ supported_features: 15, current_position: 50 } as HassState['attributes'])).toEqual({ lift: true, tilt: false });
+    expect(getCoverCapabilities({ supported_features: 240 } as HassState['attributes'])).toEqual({ lift: false, tilt: true });
+    expect(getCoverCapabilities({ supported_features: 207 } as HassState['attributes'])).toEqual({ lift: true, tilt: true });
+    expect(getCoverCapabilities({ supported_features: 255 } as HassState['attributes'])).toEqual({ lift: true, tilt: true });
+    expect(getCoverCapabilities({ current_tilt_position: 50 } as HassState['attributes'])).toEqual({ lift: false, tilt: true });
+    expect(getCoverCapabilities({ current_position: 10, current_tilt_position: 50 } as HassState['attributes'])).toEqual({ lift: true, tilt: true });
+  });
+
   it('should return the feature names for supported features', () => {
     expect(getFeatureNames(FanEntityFeature, 0)).toEqual([]);
     // oxlint-disable-next-line unicorn/no-useless-undefined
@@ -206,10 +218,11 @@ describe('HassPlatform converters', () => {
         converter.converter(false, {} as HassState);
         converter.converter('wrong', {} as HassState);
       }
-      if (converter.domain === 'cover' && converter.with === 'current_position') {
+      if (converter.domain === 'cover' && (converter.with === 'current_position' || converter.with === 'current_tilt_position')) {
         expect(converter.converter(0, {} as HassState)).toBe(10000);
         expect(converter.converter(100, {} as HassState)).toBe(0);
         expect(converter.converter(-1, {} as HassState)).toBe(null);
+        expect(converter.converter(undefined, {} as HassState)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.with === 'temperature') {
         expect(converter.converter(20, { state: HVACMode.AUTO, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
@@ -349,6 +362,11 @@ describe('HassPlatform converters', () => {
       }
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
         expect(converter.converter({ liftPercent100thsValue: 0 }, {})).toEqual({ position: 100 });
+      }
+      if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_tilt_position') {
+        expect(converter.converter({ tiltPercent100thsValue: 10000 }, {})).toEqual({ tilt_position: 0 });
+        expect(converter.converter({ tiltPercent100thsValue: 3000 }, {})).toEqual({ tilt_position: 70 });
+        expect(converter.converter({ tiltPercent100thsValue: 0 }, {})).toEqual({ tilt_position: 100 });
       }
       if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
         expect(converter.converter({ targetLevel: 100 }, {})).toEqual({ position: 100 });
