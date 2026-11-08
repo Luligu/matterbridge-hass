@@ -40,7 +40,7 @@ import {
 } from 'matterbridge';
 import { type AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, type LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource } from 'matterbridge/matter/clusters';
+import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource, WindowCovering } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { deepEqual, fireAndForget, getErrorMessage, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
@@ -1088,6 +1088,26 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           await this.ha.callService(hassCommand.domain, 'open_cover', entityId);
           return;
         }
+        // Same for goToTiltPercentage: 10000 closes and 0 opens the tilt. This allows to support also covers not supporting the set_cover_tilt_position service.
+        if (command === 'goToTiltPercentage' && data.request.tiltPercent100thsValue === 10000) {
+          await this.ha.callService(hassCommand.domain, 'close_cover_tilt', entityId);
+          return;
+        } else if (command === 'goToTiltPercentage' && data.request.tiltPercent100thsValue === 0) {
+          await this.ha.callService(hassCommand.domain, 'open_cover_tilt', entityId);
+          return;
+        }
+        // Tilt only covers use the tilt services for open, close and stop.
+        const hasLift = data.endpoint.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths');
+        const hasTilt = data.endpoint.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths');
+        if (hasTilt && !hasLift && ['upOrOpen', 'downOrClose', 'stopMotion'].includes(command)) {
+          const tiltService = command === 'upOrOpen' ? 'open_cover_tilt' : command === 'downOrClose' ? 'close_cover_tilt' : 'stop_cover_tilt';
+          await this.ha.callService(hassCommand.domain, tiltService, entityId);
+          return;
+        }
+        // Lift and tilt covers: stopMotion also stops the tilt when it is moving (target tilt position different from the current one).
+        if (hasTilt && hasLift && command === 'stopMotion' && data.attributes['targetPositionTiltPercent100ths'] !== data.attributes['currentPositionTiltPercent100ths']) {
+          await this.ha.callService(hassCommand.domain, 'stop_cover_tilt', entityId);
+        }
       }
       if (domain === 'light') {
         // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
@@ -1400,12 +1420,29 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     } else {
       // Update the state of the device
       const hassUpdateState = hassUpdateStateConverter.filter((updateState) => updateState.domain === domain && updateState.state === new_state.state);
+      const coverLift = domain === 'cover' && endpoint.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths');
+      const coverTilt = domain === 'cover' && endpoint.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths');
       if (hassUpdateState.length > 0) {
         for (const update of hassUpdateState) {
           /* v8 ignore else */
           if (update.clusterId !== undefined) {
-            endpoint.log.debug(`*Update state for cluster ${getClusterNameById(update.clusterId)} attribute ${update.attribute} value ${CYAN}${update.value}${db}`);
-            await endpoint.setAttribute(update.clusterId, update.attribute, update.value, matterbridgeDevice.log);
+            let value = update.value;
+            // Tilt only covers have no lift field in operationalStatus: the movement goes to the tilt field.
+            if (domain === 'cover' && update.attribute === 'operationalStatus' && coverTilt && !coverLift) value = { global: update.value.global, tilt: update.value.lift };
+            endpoint.log.debug(`*Update state for cluster ${getClusterNameById(update.clusterId)} attribute ${update.attribute} value ${CYAN}${value}${db}`);
+            await endpoint.setAttribute(update.clusterId, update.attribute, value, matterbridgeDevice.log);
+          }
+        }
+        // Covers without a position attribute (i.e. garage doors supporting only open and close): derive the position from the state (0 = open 10000 = closed).
+        if (domain === 'cover' && (new_state.state === 'open' || new_state.state === 'closed')) {
+          const position = new_state.state === 'closed' ? 10000 : 0;
+          if (coverLift && !isValidNumber(new_state.attributes['current_position'], 0, 100)) {
+            await endpoint.setAttribute(WindowCovering, 'currentPositionLiftPercent100ths', position, endpoint.log);
+            await endpoint.setAttribute(WindowCovering, 'targetPositionLiftPercent100ths', position, endpoint.log);
+          }
+          if (coverTilt && !coverLift && !isValidNumber(new_state.attributes['current_tilt_position'], 0, 100)) {
+            await endpoint.setAttribute(WindowCovering, 'currentPositionTiltPercent100ths', position, endpoint.log);
+            await endpoint.setAttribute(WindowCovering, 'targetPositionTiltPercent100ths', position, endpoint.log);
           }
         }
       } else {

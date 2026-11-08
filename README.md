@@ -76,7 +76,7 @@ Pair Matterbridge to your controller.
 | light        | on, off                                    | brightness, color_mode, color_temp_kelvin, hs_color, xy_color                           |
 | lock         | locked, locking, unlocking, unlocked       |                                                                                         |
 | fan          | on, off                                    | percentage, preset_mode (1), direction, oscillating                                     |
-| cover        | open, closed, opening, closing             | current_position                                                                        |
+| cover (3)    | open, closed, opening, closing             | current_position, current_tilt_position                                                 |
 | climate      | off, heat, cool, heat_cool, auto           | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
 | valve        | open, closed, opening, closing             | current_position                                                                        |
 | vacuum (2)   | idle, cleaning, paused, docked, returning  |                                                                                         |
@@ -88,6 +88,8 @@ Pair Matterbridge to your controller.
 (1) - Supported preset_modes: auto, low, medium, high.
 
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
+
+(3) - Covers supporting tilt are exposed with the Matter Tilt feature (lift and tilt, or tilt only). Covers without `current_position` (i.e. garage doors) report fully open or fully closed from their state.
 
 If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
 

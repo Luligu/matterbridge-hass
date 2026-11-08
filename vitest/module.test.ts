@@ -635,6 +635,148 @@ describe('HassPlatform', () => {
     expect(setAttributeMatterbridgeEndpointSpy.mock.contexts[0]).toBe(child);
   });
 
+  it('should derive the cover position from the state when the cover has no position attribute', async () => {
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'garageDoor' }, true);
+    const child = device.addChildDeviceType('cover.garage_door', [windowCovering], { number: EndpointNumber(1) }).createDefaultWindowCoveringClusterServer();
+    haPlatform.matterbridgeDevices.set('garageDoor', device);
+    const openState = {
+      entity_id: 'cover.garage_door',
+      state: 'open',
+      attributes: { device_class: 'garage', supported_features: 3, friendly_name: 'Garage Door' },
+    } as unknown as HassState;
+    const closedState = { ...openState, state: 'closed' };
+
+    // Closed without current_position => fully closed
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', openState, closedState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 10000, child.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionLiftPercent100ths', 10000, child.log);
+
+    // Open without current_position => fully open
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', closedState, openState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 0, child.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionLiftPercent100ths', 0, child.log);
+
+    // Moving states don't derive any position
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', openState, { ...openState, state: 'closing' });
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(expect.anything(), 'currentPositionLiftPercent100ths', expect.anything(), expect.anything());
+
+    // Position aware covers keep the reported position
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', openState, {
+      ...openState,
+      attributes: { ...openState.attributes, supported_features: 15, current_position: 40 },
+    } as unknown as HassState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 6000, child.log);
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 0, child.log);
+
+    haPlatform.matterbridgeDevices.delete('garageDoor');
+  });
+
+  it('should control and update the tilt when the cover supports tilt', async () => {
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'tiltCovers' }, true);
+    const tiltOnly = device.addChildDeviceType('cover.tilt_only', [windowCovering], { number: EndpointNumber(1) }).createDefaultTiltWindowCoveringClusterServer();
+    const liftTilt = device.addChildDeviceType('cover.venetian', [windowCovering], { number: EndpointNumber(2) }).createDefaultLiftTiltWindowCoveringClusterServer();
+    haPlatform.matterbridgeDevices.set('tiltCovers', device);
+
+    // Tilt only cover: open, close and stop use the tilt services
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: tiltOnly, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.tilt_only', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'open_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: tiltOnly, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.tilt_only', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'close_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: tiltOnly, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.tilt_only', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'stop_cover_tilt', 'cover.tilt_only');
+
+    // goToTiltPercentage: 0 opens, 10000 closes, the other values set the tilt position
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: tiltOnly, request: { tiltPercent100thsValue: 0 }, cluster: 'windowCovering', attributes: {} },
+      'cover.tilt_only',
+      'goToTiltPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'open_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: tiltOnly, request: { tiltPercent100thsValue: 10000 }, cluster: 'windowCovering', attributes: {} },
+      'cover.tilt_only',
+      'goToTiltPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'close_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: liftTilt, request: { tiltPercent100thsValue: 3000 }, cluster: 'windowCovering', attributes: {} },
+      'cover.venetian',
+      'goToTiltPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'set_cover_tilt_position', 'cover.venetian', { tilt_position: 70 });
+
+    // Lift and tilt cover: open uses the lift service, stop also stops the tilt only when the tilt is moving
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: liftTilt, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.venetian', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledTimes(1);
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'open_cover', 'cover.venetian', undefined);
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: liftTilt, request: {}, cluster: 'windowCovering', attributes: { targetPositionTiltPercent100ths: 3000, currentPositionTiltPercent100ths: 5000 } },
+      'cover.venetian',
+      'stopMotion',
+    );
+    expect(callServiceSpy).toHaveBeenCalledTimes(2);
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'stop_cover_tilt', 'cover.venetian');
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'stop_cover', 'cover.venetian', undefined);
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: liftTilt, request: {}, cluster: 'windowCovering', attributes: { targetPositionTiltPercent100ths: 5000, currentPositionTiltPercent100ths: 5000 } },
+      'cover.venetian',
+      'stopMotion',
+    );
+    expect(callServiceSpy).toHaveBeenCalledTimes(1);
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'stop_cover', 'cover.venetian', undefined);
+
+    // Tilt only cover update: the movement goes to the tilt field and the tilt position is converted
+    const tiltState = { entity_id: 'cover.tilt_only', state: 'opening', attributes: { supported_features: 240, current_tilt_position: 30 } } as unknown as HassState;
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.tilt_only', tiltState, tiltState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(
+      WindowCovering.id,
+      'operationalStatus',
+      { global: WindowCovering.MovementStatus.Opening, tilt: WindowCovering.MovementStatus.Opening },
+      device.log,
+    );
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 7000, tiltOnly.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'targetPositionTiltPercent100ths', 7000, tiltOnly.log);
+
+    // Tilt only cover closed without current_tilt_position => tilt fully closed
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.tilt_only', tiltState, { ...tiltState, state: 'closed', attributes: { supported_features: 240 } } as unknown as HassState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionTiltPercent100ths', 10000, tiltOnly.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionTiltPercent100ths', 10000, tiltOnly.log);
+
+    // Lift and tilt cover update: both positions are converted and the tilt is not derived from the state
+    const venetianState = {
+      entity_id: 'cover.venetian',
+      state: 'closed',
+      attributes: { supported_features: 255, current_position: 0, current_tilt_position: 50 },
+    } as unknown as HassState;
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.venetian', venetianState, venetianState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 10000, liftTilt.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 5000, liftTilt.log);
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.venetian', venetianState, {
+      ...venetianState,
+      attributes: { supported_features: 255, current_position: 0 },
+    } as unknown as HassState);
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(expect.anything(), 'currentPositionTiltPercent100ths', expect.anything(), expect.anything());
+
+    haPlatform.matterbridgeDevices.delete('tiltCovers');
+  });
+
   it('should fail calling onStart with reason', async () => {
     connectSpy.mockImplementationOnce(async () => {
       console.log(`Mocked connect failure`);

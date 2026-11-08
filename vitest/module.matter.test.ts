@@ -56,6 +56,7 @@ import {
   Thermostat,
   TotalVolatileOrganicCompoundsConcentrationMeasurement,
   ValveConfigurationAndControl,
+  WindowCovering,
 } from 'matterbridge/matter/clusters';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -1358,6 +1359,365 @@ describe('Matterbridge ' + NAME, () => {
     await invokeBehaviorCommand(device, 'ValveConfigurationAndControl', 'close');
     // The new server update with timer so the expectation is removed: expect(device.getAttribute(ValveConfigurationAndControl.id, 'currentState')).toBe(ValveConfigurationAndControl.ValveState.Closed);
     expect(callServiceSpy).toHaveBeenCalledWith(valveEntity.entity_id.split('.')[0], 'close_valve', valveEntity.entity_id, undefined);
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a lift Cover device', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+      labels: [],
+      name: 'Roller Shutter',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.roller_shutter',
+      has_entity_name: true,
+      id: '1a2b3c4d5e6f708192a3b4c5d6e7f801',
+      labels: [],
+      name: null,
+      original_name: 'Roller Shutter',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'open',
+      attributes: { current_position: 100, supported_features: 15, friendly_name: 'Roller Shutter' }, // OPEN | CLOSE | SET_POSITION | STOP
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(true);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(false);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 0, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'targetPositionLiftPercent100ths', 0, expect.anything());
+
+    vi.clearAllMocks();
+    const closingState = { ...coverState, state: 'closing', attributes: { ...coverState.attributes, current_position: 25 } };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, closingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Closing,
+      lift: WindowCovering.MovementStatus.Closing,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(7500);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, closingState, {
+      ...coverState,
+      state: 'closed',
+      attributes: { ...coverState.attributes, current_position: 0 },
+    });
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Stopped,
+      lift: WindowCovering.MovementStatus.Stopped,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(10000);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToLiftPercentage', { liftPercent100thsValue: 3000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_position', coverEntity.entity_id, { position: 70 });
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a lift and tilt Cover device', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'b2c3d4e5f60718293a4b5c6d7e8f90a1',
+      labels: [],
+      name: 'Venetian Blind',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.venetian_blind',
+      has_entity_name: true,
+      id: '2b3c4d5e6f708192a3b4c5d6e7f8011a',
+      labels: [],
+      name: null,
+      original_name: 'Venetian Blind',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'open',
+      attributes: { current_position: 100, current_tilt_position: 50, supported_features: 255, friendly_name: 'Venetian Blind' }, // OPEN | CLOSE | SET_POSITION | STOP | OPEN_TILT | CLOSE_TILT | STOP_TILT | SET_TILT_POSITION
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(true);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(true);
+    expect(device.getAttribute(WindowCovering.id, 'type')).toBe(WindowCovering.WindowCoveringType.TiltBlindLift);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 0, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 5000, expect.anything());
+
+    vi.clearAllMocks();
+    const closingState = { ...coverState, state: 'closing', attributes: { ...coverState.attributes, current_position: 40, current_tilt_position: 20 } };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, closingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Closing,
+      lift: WindowCovering.MovementStatus.Closing,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(6000);
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(8000);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, closingState, {
+      ...coverState,
+      state: 'closed',
+      attributes: { ...coverState.attributes, current_position: 0, current_tilt_position: 0 },
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(10000);
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(10000);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToLiftPercentage', { liftPercent100thsValue: 3000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_position', coverEntity.entity_id, { position: 70 });
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 2500 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_tilt_position', coverEntity.entity_id, { tilt_position: 75 });
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 0 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 10000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover_tilt', coverEntity.entity_id);
+
+    // The tilt is moving (target different from current) so stopMotion stops also the tilt
+    await device.setAttribute(WindowCovering.id, 'targetPositionTiltPercent100ths', 2000);
+    await device.setAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths', 5000);
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover_tilt', coverEntity.entity_id);
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover', coverEntity.entity_id, undefined);
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a tilt Cover device', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'c3d4e5f60718293a4b5c6d7e8f90a1b2',
+      labels: [],
+      name: 'Tilt Blind',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.tilt_blind',
+      has_entity_name: true,
+      id: '3c4d5e6f708192a3b4c5d6e7f8011a2b',
+      labels: [],
+      name: null,
+      original_name: 'Tilt Blind',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'open',
+      attributes: { current_tilt_position: 30, supported_features: 240, friendly_name: 'Tilt Blind' }, // OPEN_TILT | CLOSE_TILT | STOP_TILT | SET_TILT_POSITION
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(false);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(true);
+    expect(device.getAttribute(WindowCovering.id, 'type')).toBe(WindowCovering.WindowCoveringType.TiltBlindTiltOnly);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 7000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'targetPositionTiltPercent100ths', 7000, expect.anything());
+
+    vi.clearAllMocks();
+    const openingState = { ...coverState, state: 'opening', attributes: { ...coverState.attributes, current_tilt_position: 60 } };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, openingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({ global: WindowCovering.MovementStatus.Opening, tilt: WindowCovering.MovementStatus.Opening });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(4000);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, openingState, {
+      ...coverState,
+      state: 'closed',
+      attributes: { ...coverState.attributes, current_tilt_position: 0 },
+    });
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({ global: WindowCovering.MovementStatus.Stopped, tilt: WindowCovering.MovementStatus.Stopped });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(10000);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 4000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_tilt_position', coverEntity.entity_id, { tilt_position: 60 });
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a Cover device without position', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd4e5f60718293a4b5c6d7e8f90a1b2c3',
+      labels: [],
+      name: 'Garage Door',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.garage_door',
+      has_entity_name: true,
+      id: '4d5e6f708192a3b4c5d6e7f8011a2b3c',
+      labels: [],
+      name: null,
+      original_name: 'Garage Door',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'closed',
+      attributes: { device_class: 'garage', supported_features: 3, friendly_name: 'Garage Door' }, // OPEN | CLOSE
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(true);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(false);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 10000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionLiftPercent100ths', 10000, expect.anything());
+
+    vi.clearAllMocks();
+    const openingState = { ...coverState, state: 'opening' };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, openingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Opening,
+      lift: WindowCovering.MovementStatus.Opening,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(10000);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, openingState, { ...coverState, state: 'open' });
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Stopped,
+      lift: WindowCovering.MovementStatus.Stopped,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(0);
+    expect(device.getAttribute(WindowCovering.id, 'targetPositionLiftPercent100ths')).toBe(0);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover', coverEntity.entity_id, undefined);
 
     // Clean the test environment
     await cleanup();

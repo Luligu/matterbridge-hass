@@ -32,6 +32,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [homeassistant]: Add core speed feature, standard speed enum, and closed state and supported speed attributes.
 - [agents]: Add support for Bionic / LM Studio local agents.
+- [cover]: Add tilt support for covers. Venetian blinds with lift and tilt now show both the position and the slat angle in your Matter controller, and tilt-only covers (e.g. SwitchBot Blind Tilt) can open, close, stop and set the slat angle. Thanks gastonmuijtjens, chrispylizard and peppi911 (https://github.com/Luligu/matterbridge-hass/issues/138).
 
 ### Changed
 
@@ -62,6 +63,10 @@ If you like this project and find it useful, please consider giving it a star on
 - [agents]: Update `AGENTS.md` to v.1.0.12.
 - [config]: Update `SHARED-AGENTS.md`.
 - [config]: Update `vitest.config.ts` to v.2.0.9.
+
+### Fixed
+
+- [cover]: Report the open and closed position of covers without `current_position` (i.e. garage doors) (https://github.com/Luligu/matterbridge-hass/issues/244).
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
