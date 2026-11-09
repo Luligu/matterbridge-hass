@@ -26,10 +26,11 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
-## [1.6.2] - Dev branch
+## [1.7.0] - Dev branch
 
 ### Added
 
+- [onboarding]: On first installation, prompt users to configure the Home Assistant host and token with an error log and snackbar; skip initialization, start, and configure while either is missing.
 - [agents]: Add support for Bionic / LM Studio local agents.
 - [cover]: Add core speed feature, standard speed enum, and closed state and supported speed attributes.
 - [cover]: Add tilt support for covers. Venetian blinds with lift and tilt now show both the position and the slat angle in your Matter controller, and tilt-only covers (e.g. SwitchBot Blind Tilt) can open, close, stop and set the slat angle. Thanks gastonmuijtjens, chrispylizard and peppi911 (https://github.com/Luligu/matterbridge-hass/issues/138).
@@ -43,13 +44,13 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Bump `oxlint-tsgolint` to v.7.0.2006.
 - [package]: Bump `vitest` to v.5.1.0.
 - [agents]: Update `.agents/README.md` to v.1.0.6.
-- [agents]: Update `.agents/rules/chip-tests.instructions.md`, `.claude/rules/chip-tests/chip-tests.instructions.md` and `.github/instructions/chip-tests/chip-tests.instructions.md` to v.1.0.1.
-- [agents]: Update `.agents/rules/matterbridge.instructions.md`, `.claude/rules/matterbridge/matterbridge.instructions.md` and `.github/instructions/matterbridge/matterbridge.instructions.md` to v.1.0.4.
-- [agents]: Update `.agents/rules/plugin-frontend.instructions.md`, `.claude/rules/plugin-frontend/plugin-frontend.instructions.md` and `.github/instructions/plugin-frontend/plugin-frontend.instructions.md` to v.1.0.3.
-- [agents]: Update `.agents/rules/testing.instructions.md`, `.claude/rules/testing/testing.instructions.md` and `.github/instructions/testing/testing.instructions.md` to v.1.0.8.
-- [agents]: Update `.agents/skills/verify-agent-context/SKILL.md`, `.claude/skills/verify-agent-context/SKILL.md` and `.github/skills/verify-agent-context/SKILL.md` to v.1.0.6.
+- [agents]: Update `.agents/rules/chip-tests.instructions.md` to v.1.0.1.
+- [agents]: Update `.agents/rules/matterbridge.instructions.md` to v.1.0.4.
+- [agents]: Update `.agents/rules/plugin-frontend.instructions.md` to v.1.0.3.
+- [agents]: Update `.agents/rules/testing.instructions.md` to v.1.0.8.
+- [agents]: Update `.agents/skills/verify-agent-context/SKILL.md` to v.1.0.6.
 - [agents]: Update `.antigravity/settings.json` to v.1.0.6.
-- [agents]: Update `.claude/settings.json` to v.1.0.10.
+- [agents]: Update `.claude/settings.json` to v.1.0.11.
 - [codex]: Update `.codex/config.toml` to v.1.0.7.
 - [codex]: Update `.codex/rules/default.rules` to v.1.0.7.
 - [workflows]: Update `.github/workflows/build.yml` to v.2.0.8.
@@ -61,13 +62,16 @@ If you like this project and find it useful, please consider giving it a star on
 - [config]: Update `.oxlintrc.json` to v.1.2.0.
 - [vscode]: Update `.vscode/settings.json` to v.1.0.18.
 - [agents]: Update `AGENTS.md` to v.1.0.12.
-- [config]: Update `SHARED-AGENTS.md`.
+- [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
 - [config]: Update `vitest.config.ts` to v.2.0.9.
 
 ### Fixed
 
-- [discovery]: Check duplicate names after the area, label and domain filtering. Thanks gmdfalk (https://github.com/Luligu/matterbridge-hass/pull/258).
+- [discovery]: Check duplicate names after the area, label, domain, whiteList and blackList filtering. Thanks gmdfalk (https://github.com/Luligu/matterbridge-hass/pull/258).
 - [discovery]: Detect duplicate names when `namePostfix` is set.
+- [discovery]: Keep the select entity of the registered device when an individual or split entity with the same name is discarded.
+- [discovery]: Set the select devices with the `postfix` serial and the `namePostfix` name, so the frontend no longer shows each device twice when they are set.
+- [discovery]: When `namePostfix` or `postfix` is set, `whiteList`, `blackList` and `deviceEntityBlackList` must use the postfixed names and ids.
 - [cover]: Report the open and closed position of covers without `current_position` (i.e. garage doors). Thanks ok2sh (https://github.com/Luligu/matterbridge-hass/issues/244).
 - [climate]: Update the Thermostat `systemMode` when a climate entity switches to `auto`, so controllers no longer show a stale `off` on heating-only or cooling-only thermostats. Thanks pandinus (https://github.com/Luligu/matterbridge-hass/issues/247).
 
