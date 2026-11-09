@@ -3,7 +3,7 @@
  * @description This file contains the class HomeAssistantPlatform.
  * @author Luca Liguori
  * @created 2024-09-13
- * @version 1.8.2
+ * @version 1.8.3
  * @license Apache-2.0
  *
  * Copyright 2024, 2025, 2026 Luca Liguori.
@@ -107,6 +107,8 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   blackList: string[];
   entityWhiteList: string[];
   entityBlackList: string[];
+  categoryWhiteList: string[];
+  categoryBlackList: string[];
   deviceEntityBlackList: Record<string, string[]>;
   splitEntities: string[];
   splitByLabel: string;
@@ -239,6 +241,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.config.blackList = isValidArray(this.config.blackList, 1) ? this.config.blackList : [];
       this.config.entityWhiteList = isValidArray(this.config.entityWhiteList, 1) ? this.config.entityWhiteList : [];
       this.config.entityBlackList = isValidArray(this.config.entityBlackList, 1) ? this.config.entityBlackList : [];
+      this.config.categoryWhiteList = isValidArray(this.config.categoryWhiteList, 1) ? this.config.categoryWhiteList : [];
+      this.config.categoryBlackList = isValidArray(this.config.categoryBlackList, 1) ? this.config.categoryBlackList : [];
       this.config.deviceEntityBlackList = isValidObject(this.config.deviceEntityBlackList, 1) ? this.config.deviceEntityBlackList : {};
       this.config.splitEntities = isValidArray(this.config.splitEntities, 1) ? this.config.splitEntities : [];
       this.config.splitByLabel = isValidString(this.config.splitByLabel) ? this.config.splitByLabel : '';
@@ -622,7 +626,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
-      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id);
+      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id && this.validateEntity(deviceName, e.entity_id, false));
       let battery = false;
       let rechargeable = false;
       for (const entity of deviceEntities) {
@@ -1514,7 +1518,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   }
 
   /**
-   * Validates if an entity is allowed based on the entity blacklist, the entity whitelist and device entity blacklist configurations.
+   * Validates if an entity is allowed by the domain, category and device entity lists.
    *
    * @param {string} deviceName - The device to which the entity belongs.
    * @param {string} entity_id - The entity_id to validate.
@@ -1522,6 +1526,15 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * @returns {boolean} - Returns true if the entity is allowed, false otherwise.
    */
   override validateEntity(deviceName: string, entity_id: string, log: boolean = true): boolean {
+    const category = this.ha.hassEntities.get(entity_id)?.entity_category ?? 'none';
+    if (isValidArray(this.config.categoryBlackList, 1) && this.config.categoryBlackList.includes(category)) {
+      if (log) this.log.info(`Skipping entity ${CYAN}${entity_id}${nf} because in categoryBlackList`);
+      return false;
+    }
+    if (isValidArray(this.config.categoryWhiteList, 1) && !this.config.categoryWhiteList.includes(category)) {
+      if (log) this.log.info(`Skipping entity ${CYAN}${entity_id}${nf} because not in categoryWhiteList`);
+      return false;
+    }
     if (isValidArray(this.config.entityBlackList, 1) && this.config.entityBlackList.find((e) => e === getDomain(entity_id))) {
       /* v8 ignore next */
       if (log) this.log.info(`Skipping entity ${CYAN}${entity_id}${nf} because in entityBlackList`);

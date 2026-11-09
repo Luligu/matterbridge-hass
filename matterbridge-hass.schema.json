@@ -164,6 +164,26 @@
       },
       "uniqueItems": true
     },
+    "categoryWhiteList": {
+      "title": "Category Whitelist",
+      "description": "Only entities whose Home Assistant entity_category is listed here will be exposed. Use config, diagnostic or none for entities without a category. Leave empty to allow all categories. Other filters still apply and the category blacklist takes precedence.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["config", "diagnostic", "none"]
+      },
+      "uniqueItems": true
+    },
+    "categoryBlackList": {
+      "title": "Category Blacklist",
+      "description": "Entities whose Home Assistant entity_category is listed here will be excluded. Use config, diagnostic or none for entities without a category. Leave empty to exclude no categories. Applies to device entities, individual entities and split entities.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["config", "diagnostic", "none"]
+      },
+      "uniqueItems": true
+    },
     "splitEntities": {
       "title": "Split Entities (DEPRECATED: use Split By Label)",
       "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock). Split entities must satisfy the filters (if any) and the whiteList (if any).",

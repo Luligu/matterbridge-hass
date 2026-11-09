@@ -42,6 +42,7 @@ import {
 } from 'matterbridge/test-utils/vitest';
 import { wait } from 'matterbridge/utils';
 
+import { generateEntity } from '../src/helpers.js';
 import { type HassArea, type HassConfig, type HassDevice, type HassEntity, type HassLabel, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
 import { MutableDevice } from '../src/mutableDevice.js';
@@ -353,6 +354,69 @@ describe('HassPlatform', () => {
     haPlatform.config.entityWhiteList = [];
     haPlatform.config.entityBlackList = [];
     haPlatform.config.deviceEntityBlackList = {};
+  });
+
+  describe('entity category filters', () => {
+    beforeEach(() => {
+      haPlatform.config.categoryWhiteList = [];
+      haPlatform.config.categoryBlackList = [];
+      haPlatform.config.entityWhiteList = [];
+      haPlatform.config.entityBlackList = [];
+      haPlatform.config.deviceEntityBlackList = {};
+    });
+
+    afterEach(() => {
+      haPlatform.config.categoryWhiteList = [];
+      haPlatform.config.categoryBlackList = [];
+      haPlatform.config.entityWhiteList = [];
+      haPlatform.config.entityBlackList = [];
+      haPlatform.config.deviceEntityBlackList = {};
+    });
+
+    it.each([
+      { name: 'config', category: 'config', allowNone: false, allowWithoutDiagnostic: true },
+      { name: 'diagnostic', category: 'diagnostic', allowNone: false, allowWithoutDiagnostic: false },
+      { name: 'null', category: null, allowNone: true, allowWithoutDiagnostic: true },
+      { name: 'missing registry entry', category: undefined, allowNone: true, allowWithoutDiagnostic: true },
+    ])('should apply category lists when the category is $name', ({ category, allowNone, allowWithoutDiagnostic }) => {
+      const entity = generateEntity(haPlatform.ha, 'Category sensor', 'sensor');
+      if (category === undefined) haPlatform.ha.hassEntities.delete(entity.entity_id);
+      else entity.entity_category = category;
+
+      expect(haPlatform.validateEntity('Device', entity.entity_id)).toBe(true);
+      haPlatform.config.categoryWhiteList = ['none'];
+      expect(haPlatform.validateEntity('Device', entity.entity_id)).toBe(allowNone);
+      haPlatform.config.categoryWhiteList = [];
+      haPlatform.config.categoryBlackList = ['diagnostic'];
+      expect(haPlatform.validateEntity('Device', entity.entity_id)).toBe(allowWithoutDiagnostic);
+      haPlatform.config.categoryWhiteList = ['none', 'config', 'diagnostic'];
+      expect(haPlatform.validateEntity('Device', entity.entity_id)).toBe(allowWithoutDiagnostic);
+    });
+
+    it.each(['none', 'domain whitelist', 'domain blacklist', 'device blacklist'] as const)('should retain other entity filters when applying %s', (filter) => {
+      const entity = generateEntity(haPlatform.ha, 'Diagnostic sensor', 'sensor');
+      entity.entity_category = 'diagnostic';
+      haPlatform.config.categoryWhiteList = ['diagnostic'];
+      haPlatform.config.entityWhiteList = filter === 'domain whitelist' ? ['switch'] : ['sensor'];
+      haPlatform.config.entityBlackList = filter === 'domain blacklist' ? ['sensor'] : [];
+      haPlatform.config.deviceEntityBlackList = filter === 'device blacklist' ? { Device: [entity.entity_id] } : {};
+
+      expect(haPlatform.validateEntity('Device', entity.entity_id, false)).toBe(filter === 'none');
+      expect(loggerInfoSpy).not.toHaveBeenCalled();
+    });
+
+    it.each(['categoryWhiteList', 'categoryBlackList'] as const)('should respect the logging flag when rejected by %s', (filter) => {
+      const entity = generateEntity(haPlatform.ha, 'Diagnostic sensor', 'sensor');
+      entity.entity_category = 'diagnostic';
+      haPlatform.config[filter] = filter === 'categoryWhiteList' ? ['none'] : ['diagnostic'];
+
+      expect(haPlatform.validateEntity('Device', entity.entity_id, false)).toBe(false);
+      expect(loggerInfoSpy).not.toHaveBeenCalled();
+      expect(haPlatform.validateEntity('Device', entity.entity_id)).toBe(false);
+      expect(loggerInfoSpy).toHaveBeenCalledExactlyOnceWith(
+        `Skipping entity ${CYAN}${entity.entity_id}${nf} because ${filter === 'categoryWhiteList' ? 'not in' : 'in'} ${filter}`,
+      );
+    });
   });
 
   it('should set areas', () => {

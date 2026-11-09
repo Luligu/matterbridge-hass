@@ -30,6 +30,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Added
 
+- [filters]: Add entity category whitelists and blacklists for `config`, `diagnostic` and uncategorized entities.
 - [agents]: Add support for Bionic / LM Studio local agents.
 - [cover]: Add core speed feature, standard speed enum, and closed state and supported speed attributes.
 - [cover]: Add tilt support for covers. Venetian blinds with lift and tilt now show both the position and the slat angle in your Matter controller, and tilt-only covers (e.g. SwitchBot Blind Tilt) can open, close, stop and set the slat angle. Thanks gastonmuijtjens, chrispylizard and peppi911 (https://github.com/Luligu/matterbridge-hass/issues/138).

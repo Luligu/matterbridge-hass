@@ -270,6 +270,29 @@ Only entities whose domain is listed here will be exposed. Leave this list empty
 
 Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains. Enter the domain name (i.e. automation, scene, button).
 
+### Category Whitelist and Blacklist
+
+Filter entities by their [Home Assistant entity category](https://contributors.home-assistant.io/glossary/entity-category/) using `categoryWhiteList` and `categoryBlackList`:
+
+- `config`: entities that change a device's configuration.
+- `diagnostic`: entities that report information about a device.
+- `none`: entities without a category, typically the main controls and sensors.
+
+An empty whitelist allows all categories; an empty blacklist excludes none. If both lists contain a category, the blacklist takes precedence. These lists apply to device entities, individual entities and split entities, together with the other filters.
+
+Battery metadata is derived only from entities allowed by the domain, category and device entity lists.
+
+For example, to exclude configuration and diagnostic entities, set:
+
+```json
+{
+  "categoryWhiteList": [],
+  "categoryBlackList": ["config", "diagnostic"]
+}
+```
+
+Save the configuration and restart the plugin to apply the filters.
+
 ### Split Entities
 
 > DEPRECATED: use `Split By Label`

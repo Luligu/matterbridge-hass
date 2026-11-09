@@ -22,6 +22,7 @@ import path from 'node:path';
 
 import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
 import { CYAN, db, dn, idn, LogLevel, nf, rs, wr } from 'matterbridge/logger';
+import { PowerSource } from 'matterbridge/matter/clusters';
 import { VendorId } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -226,6 +227,8 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.blackList = [];
     mockConfig.entityWhiteList = [];
     mockConfig.entityBlackList = [];
+    mockConfig.categoryWhiteList = [];
+    mockConfig.categoryBlackList = [];
     mockConfig.deviceEntityBlackList = {};
     mockConfig.splitEntities = [];
     mockConfig.splitByLabel = '';
@@ -260,6 +263,45 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
     haPlatform.ha.hassConfig = {} as HassConfig; // Simulate Home Assistant configuration
     haPlatform.ha.hassServices = {}; // Simulate Home Assistant services
+  });
+
+  it.each(['individual', 'device', 'split'] as const)('should filter categories when discovering %s entities', async (kind) => {
+    const device = kind === 'individual' ? null : generateDevice(haPlatform.ha, 'Category device');
+    const allowed = generateEntity(haPlatform.ha, 'Allowed switch', 'switch', device, null, [], 'off');
+    const excluded = generateEntity(haPlatform.ha, 'Diagnostic switch', 'switch', device, null, [], 'off');
+    excluded.entity_category = 'diagnostic';
+    haPlatform.config.categoryWhiteList = ['none', 'diagnostic'];
+    haPlatform.config.categoryBlackList = ['diagnostic'];
+    haPlatform.config.controllerStrategy = 'Matter';
+    if (kind === 'split') haPlatform.config.splitEntities = [allowed.entity_id, excluded.entity_id];
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(kind === 'device' && device ? device.id : allowed.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(excluded.entity_id)).toBe(false);
+    expect([...haPlatform.endpointNames.keys()]).toEqual([allowed.entity_id]);
+    expect(aggregator.parts.size).toBe(1);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])('should ignore diagnostic battery metadata when a retained switch is present: %s', async (hasSwitch) => {
+    const device = generateDevice(haPlatform.ha, 'Battery device');
+    const battery = generateEntity(haPlatform.ha, 'Battery', 'sensor', device, null, [], '80', { device_class: 'battery', unit_of_measurement: '%' });
+    battery.entity_category = 'diagnostic';
+    const retained = hasSwitch ? generateEntity(haPlatform.ha, 'Retained switch', 'switch', device, null, [], 'off') : undefined;
+    haPlatform.config.categoryBlackList = ['diagnostic'];
+
+    await haPlatform.onStart('Test reason');
+
+    expect(addClusterServerBatteryPowerSourceSpy).not.toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(hasSwitch ? 1 : 0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(hasSwitch ? 1 : 0);
+    expect(haPlatform.endpointNames.has(battery.entity_id)).toBe(false);
+    expect([...haPlatform.endpointNames.keys()]).toEqual(retained ? [retained.entity_id] : []);
+    expect(haPlatform.matterbridgeDevices.get(device.id)?.hasClusterServer(PowerSource)).toBe(hasSwitch ? false : undefined);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
   });
 
   describe.each(['device', 'individual', 'split'] as const)('duplicate %s names', (kind) => {
