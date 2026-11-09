@@ -3,7 +3,7 @@
   "_comment": "Claude settings v.1.0.11",
   "sandbox": {
     "enabled": true,
-    "autoAllowBashIfSandboxed": false,
+    "autoAllowBashIfSandboxed": true,
     "excludedCommands": ["npm run test*", "npm run test:bun*"],
     "network": {
       "allowLocalBinding": true,
