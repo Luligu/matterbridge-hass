@@ -1,4 +1,4 @@
-## Shared agent instructions for Matterbridge plugins
+## Shared agent instructions for Matterbridge plugins (v.1.0.0)
 
 This repository supplies shared guidance through [AGENTS.md](./AGENTS.md) and [.agents/](./.agents/), the **single source of truth** for agent instructions, rules, and skills. Edit the shared guidance there; the instruction and skill wrappers under `.github/` and `.claude/` point back to it. Those folders also contain other configuration, workflows, and metadata; `.codex/` and `.antigravity/` contain tool-specific configuration. See [.agents/README.md](./.agents/README.md) for the full layout.
 
