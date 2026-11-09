@@ -252,15 +252,15 @@ Filter devices and individual entities by label. If enabled, only devices, indiv
 
 ### Whitelist
 
-If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name or the device/entity id.
+If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
 
 ### Blacklist
 
-If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
+If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
 
 ### Device Entity Blacklist
 
-List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
+List of entities not to be exposed for a single device. Enter in the first field the name of the device (with `namePostfix` when set) and in the second field add all the entity names (`entity_id`) you want to exclude for that device.
 
 ### Domain Whitelist
 
@@ -316,6 +316,14 @@ Strategy used for split entity names. "Entity name": use the entity name (i.e. C
 ### Controller Strategy
 
 Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not strictly compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
+
+### Name Postfix
+
+Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The `whiteList`, `blackList` and `deviceEntityBlackList` must use the names with the postfix.
+
+### Serial Postfix
+
+Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The `whiteList` and `blackList` must use the ids with the postfix (the `entity_id` is used as is).
 
 ### Air Quality Regex
 
