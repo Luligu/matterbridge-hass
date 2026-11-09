@@ -104,7 +104,7 @@ export function addControlEntity(
     context: ActionContext,
   ) => void,
 ): string | undefined {
-  let endpointName: string | undefined = undefined;
+  let endpointName: string | undefined;
   const domain = getDomain(entity.entity_id);
 
   // Use stateCache for state and attributes values to avoid issues with unavailable entities and to have the last valid state and attributes for the entity.

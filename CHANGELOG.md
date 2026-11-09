@@ -43,8 +43,8 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [package]: Bump `ws` to v.8.22.2.
 - [package]: Bump `@vitest/coverage-v8` to v.5.1.0.
-- [package]: Bump `oxfmt` to v.0.77.0.
-- [package]: Bump `oxlint` to v.1.92.0.
+- [package]: Bump `oxfmt` to v.0.78.0.
+- [package]: Bump `oxlint` to v.1.93.0.
 - [package]: Bump `oxlint-tsgolint` to v.7.0.2006.
 - [package]: Bump `vitest` to v.5.1.0.
 - [agents]: Update `.agents/README.md` to v.1.0.6.
