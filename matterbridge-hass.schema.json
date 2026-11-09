@@ -196,13 +196,13 @@
     },
     "namePostfix": {
       "title": "Name Postfix",
-      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",
+      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The whiteList, blackList and deviceEntityBlackList must use the names with the postfix.",
       "type": "string",
       "default": ""
     },
     "postfix": {
       "title": "Serial Postfix",
-      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",
+      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The whiteList and blackList must use the ids with the postfix (the entity_id is used as is).",
       "type": "string",
       "default": ""
     },
