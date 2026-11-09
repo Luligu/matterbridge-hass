@@ -16,6 +16,7 @@ import {
   getEntityName,
   getName,
   getPostfixedName,
+  getPostfixedSerial,
   isDeviceEntity,
   isDisabled,
   isHidden,
@@ -38,6 +39,18 @@ function createHomeAssistant(): HomeAssistant {
 }
 
 describe('HassPlatform helpers', () => {
+  it.each([
+    ['HA', '123456789012345678901234567890123456', '123456789012345678901234567890HA'],
+    ['ABC', 'short', 'shortABC'],
+    ['HA', '123456789012345678901234567890', '123456789012345678901234567890HA'],
+    ['HA', '1234567890123456789012345678901', '123456789012345678901234567890HA'],
+    ['', 'short', 'short'],
+    ['', '123456789012345678901234567890123456', '12345678901234567890123456789012'],
+  ])('should produce serial %s / %s as %s', (postfix, serial, expected) => {
+    const platform = { config: { postfix } } as unknown as HomeAssistantPlatform;
+    expect(getPostfixedSerial(platform, serial)).toBe(expected);
+  });
+
   it('should create a unique id as a 32-character hexadecimal string', () => {
     const uniqueId1 = createUniqueId();
     const uniqueId2 = createUniqueId();
@@ -831,9 +844,8 @@ describe('HassPlatform helpers', () => {
     expect(getEntityName({ config: { splitNameStrategy: 'Entity name' }, ha: {} } as unknown as HomeAssistantPlatform, entity)).toBeNull();
   });
 
-  it('should return the name with the namePostfix when valid', () => {
+  it('should append namePostfix with a separating space when nonempty', () => {
     expect(getPostfixedName({ config: { namePostfix: '' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light');
     expect(getPostfixedName({ config: { namePostfix: 'HA' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light HA');
-    expect(getPostfixedName({ config: { namePostfix: 'HASS' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light');
   });
 });

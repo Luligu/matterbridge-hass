@@ -326,10 +326,21 @@ export function getEntityName(platform: HomeAssistantPlatform, entity: HassEntit
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
  * @param {string} name - The device or entity name.
- * @returns {string} - The name with ' <namePostfix>' appended when namePostfix is valid.
+ * @returns {string} - The name with ' <namePostfix>' appended when the namePostfix is nonempty.
  */
 export function getPostfixedName(platform: HomeAssistantPlatform, name: string): string {
-  return name + (isValidString(platform.config.namePostfix, 1, 3) ? ' ' + platform.config.namePostfix : '');
+  return name + (platform.config.namePostfix ? ' ' + platform.config.namePostfix : '');
+}
+
+/**
+ * Returns the serial number with the configured postfix, limited to 32 characters.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {string} serial - The device or entity serial number.
+ * @returns {string} - The truncated serial with the postfix appended.
+ */
+export function getPostfixedSerial(platform: HomeAssistantPlatform, serial: string): string {
+  return serial.slice(0, 32 - platform.config.postfix.length) + platform.config.postfix;
 }
 
 /**
