@@ -716,10 +716,9 @@ describe('HassPlatform helpers', () => {
       { label_id: 'split', name: 'Split', color: null, created_at: 0, description: null, icon: null, modified_at: 0 },
       { label_id: 'desk', name: 'Desk', color: null, created_at: 0, description: null, icon: null, modified_at: 0 },
     ];
-    const createPlatform = (splitEntities: unknown, platformLabels: HassLabel[] | undefined, splitByLabel: unknown): HomeAssistantPlatform =>
+    const createPlatform = (platformLabels: HassLabel[] | undefined, splitByLabel: unknown): HomeAssistantPlatform =>
       ({
         config: {
-          splitEntities,
           splitByLabel,
         },
         ha: {
@@ -731,10 +730,9 @@ describe('HassPlatform helpers', () => {
       labels: ['split', 'desk'],
     } as unknown as HassEntity;
 
-    expect(isSplitEntity(createPlatform(['light.office'], labels, 'separate'), entity)).toBe(true);
-    expect(isSplitEntity(createPlatform(['light.kitchen'], labels, 'split'), entity)).toBe(false);
-    expect(isSplitEntity(createPlatform(['light.kitchen'], labels, 'Split'), entity)).toBe(true);
-    expect(isSplitEntity(createPlatform(['light.kitchen'], labels, 'separate'), entity)).toBe(false);
+    expect(isSplitEntity(createPlatform(labels, 'split'), entity)).toBe(false);
+    expect(isSplitEntity(createPlatform(labels, 'Split'), entity)).toBe(true);
+    expect(isSplitEntity(createPlatform(labels, 'separate'), entity)).toBe(false);
 
     // @ts-expect-error Testing edge case where platform is null
     expect(isSplitEntity(null, entity)).toBe(false);
@@ -743,22 +741,20 @@ describe('HassPlatform helpers', () => {
     expect(isSplitEntity(undefined, entity)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is null
-    expect(isSplitEntity(createPlatform(['light.office'], labels, 'Split'), null)).toBe(false);
+    expect(isSplitEntity(createPlatform(labels, 'Split'), null)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(isSplitEntity(createPlatform(['light.office'], labels, 'Split'))).toBe(false);
+    expect(isSplitEntity(createPlatform(labels, 'Split'))).toBe(false);
 
-    expect(isSplitEntity(createPlatform('light.office', labels, 'Split'), entity)).toBe(false);
-
-    expect(isSplitEntity(createPlatform(['light.kitchen'], undefined, 'Split'), entity)).toBe(false);
+    expect(isSplitEntity(createPlatform(undefined, 'Split'), entity)).toBe(false);
 
     // @ts-expect-error Testing edge case where entity is undefined
-    expect(isSplitEntity(createPlatform(['light.office'], labels), entity)).toBe(false);
+    expect(isSplitEntity(createPlatform(labels), entity)).toBe(false);
 
-    expect(isSplitEntity(createPlatform(['light.office'], labels, 1), entity)).toBe(false);
+    expect(isSplitEntity(createPlatform(labels, 1), entity)).toBe(false);
 
     delete (entity as Partial<HassEntity>).labels;
-    expect(isSplitEntity(createPlatform(['light.kitchen'], labels, 'Split'), entity)).toBe(false);
+    expect(isSplitEntity(createPlatform(labels, 'Split'), entity)).toBe(false);
   });
 
   it('should return the entity name using the selected strategy and handle edge cases', () => {

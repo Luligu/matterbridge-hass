@@ -116,7 +116,7 @@ export function entityHasLabel(platform: HomeAssistantPlatform, entity: HassEnti
 }
 
 /**
- * Checks if a given entity is a split entity based on the platform split configuration.
+ * Checks if a given entity is a split entity, i.e. it has the label set in the platform splitByLabel config.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
  * @param {HassEntity} entity - The Home Assistant entity to check.
@@ -129,12 +129,11 @@ export function isSplitEntity(platform: HomeAssistantPlatform, entity: HassEntit
     !isValidObject(platform.ha) ||
     !isValidObject(platform.ha.hassLabels) ||
     !isValidObject(entity) ||
-    !isValidArray(platform.config.splitEntities) ||
     !isValidString(platform.config.splitByLabel)
   ) {
     return false;
   }
-  return platform.config.splitEntities.includes(entity.entity_id) || entityHasLabel(platform, entity, platform.config.splitByLabel);
+  return entityHasLabel(platform, entity, platform.config.splitByLabel);
 }
 
 /**

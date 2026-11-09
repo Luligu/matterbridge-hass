@@ -96,6 +96,7 @@ import {
   type HassContext,
   type HassDevice,
   type HassEntity,
+  type HassLabel,
   type HassServices,
   type HassState,
   HomeAssistant,
@@ -1946,6 +1947,15 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 500);
+    expect(device.serialNumber).toBe('d80898f83188759ed7329e97df00c#10');
+    expect(haPlatform.getSelectDevices()).toContainEqual(
+      expect.objectContaining({
+        serialNumber: 'd80898f83188759ed7329e97df00c#10',
+        deviceName: 'Color Temperature Light #10',
+        entities: [expect.objectContaining({ name: lightDeviceEntity.entity_id })],
+      }),
+    );
+    expect(haPlatform.getSelectDevices().find((d) => d.serialNumber === lightDevice.id)).toBeUndefined();
 
     vi.clearAllMocks();
     await haPlatform.onConfigure();
@@ -4026,7 +4036,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
-    haPlatform.config.splitEntities = [];
+    haPlatform.config.splitByLabel = '';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
@@ -4075,7 +4085,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
-    haPlatform.config.splitEntities = [];
+    haPlatform.config.splitByLabel = '';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
@@ -4125,7 +4135,9 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.namePostfix = 'Tst';
     haPlatform.config.postfix = 'Tst';
-    haPlatform.config.splitEntities = [sensorEntity.entity_id, 'sensor.wrong_entity_id'];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    sensorEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
@@ -4135,9 +4147,6 @@ describe('Matterbridge ' + NAME, () => {
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
-    );
-    expect(loggerWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Split entity "${CYAN}sensor.wrong_entity_id${wr}" set in splitEntities not found in Home Assistant. Please check your configuration.`),
     );
 
     // Clean the test environment
@@ -4182,7 +4191,9 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.namePostfix = 'Tst';
     haPlatform.config.postfix = 'Tst';
-    haPlatform.config.splitEntities = [lightEntity.entity_id, 'sensor.wrong_entity_id'];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    lightEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
@@ -4255,7 +4266,9 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
-    haPlatform.config.splitEntities = [sensorEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    sensorEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
@@ -4370,10 +4383,11 @@ describe('Matterbridge ' + NAME, () => {
       [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
-      haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id, disabled_by: null });
+      haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id, disabled_by: null, labels: ['split'] });
       haPlatform.ha.hassStates.set(s.entity_id, s);
     }
-    haPlatform.config.splitEntities = entities.map(([e]) => e.entity_id);
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    haPlatform.config.splitByLabel = 'Split';
 
     // setDebug(true);
 
@@ -4384,9 +4398,9 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onStart('Test reason');
     await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(haPlatform.config.splitEntities.length);
-    expect(haPlatform.matterbridgeDevices.size).toBe(haPlatform.config.splitEntities.length);
-    expect(aggregator.parts.size).toBe(haPlatform.config.splitEntities.length);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(entities.length);
+    expect(haPlatform.matterbridgeDevices.size).toBe(entities.length);
+    expect(aggregator.parts.size).toBe(entities.length);
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(41); // switch(3) + lightOnOff(10) + lightDimmer(10) + lightCt(10) + lock(2) + valve(2) + vacuum(4) + fan(0) + climate(0)
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(13); // fan(2) + fanComplete(4) + climateHeatCool(3) + climateHeat(2) + climateCool(2)
 
@@ -4411,7 +4425,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.batteryVoltageEntities.clear();
     haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually
     await haPlatform.onConfigure();
-    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(haPlatform.config.splitEntities.length);
+    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(entities.length);
 
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -4566,7 +4580,6 @@ describe('Matterbridge ' + NAME, () => {
       haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: null, disabled_by: null });
       haPlatform.ha.hassStates.set(s.entity_id, s);
     }
-    haPlatform.config.splitEntities = entities.map(([e]) => e.entity_id);
 
     // setDebug(true);
     // @ts-expect-error accessing private member for testing
@@ -4576,9 +4589,9 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onStart('Test reason');
     await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(haPlatform.config.splitEntities.length);
-    expect(haPlatform.matterbridgeDevices.size).toBe(haPlatform.config.splitEntities.length);
-    expect(aggregator.parts.size).toBe(haPlatform.config.splitEntities.length);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(entities.length);
+    expect(haPlatform.matterbridgeDevices.size).toBe(entities.length);
+    expect(aggregator.parts.size).toBe(entities.length);
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(41); // switch(3) + lightOnOff(10) + lightDimmer(10) + lightCt(10) + lock(2) + valve(2) + vacuum(4) + fan(0) + climate(0)
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(13); // fan(2) + fanComplete(4) + climateHeatCool(3) + climateHeat(2) + climateCool(2)
 
@@ -4599,7 +4612,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.batteryVoltageEntities.clear();
     haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually
     await haPlatform.onConfigure();
-    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(haPlatform.config.splitEntities.length);
+    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(entities.length);
 
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();

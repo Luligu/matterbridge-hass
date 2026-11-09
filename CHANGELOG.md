@@ -28,6 +28,10 @@ If you like this project and find it useful, please consider giving it a star on
 
 ## [1.7.0] - Dev branch
 
+### Breaking changes
+
+- [config]: Remove the deprecated `splitEntities`. Use `splitByLabel` instead. If it is still in the config, it is ignored and removed.
+
 ### Added
 
 - [onboarding]: On first installation, prompt users to configure the Home Assistant host and token with an error log and snackbar; skip initialization, start, and configure while either is missing.
