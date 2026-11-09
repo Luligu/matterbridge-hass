@@ -4,7 +4,7 @@
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": false,
-    "excludedCommands": ["npm run test*", "npm run bun:test*"],
+    "excludedCommands": ["npm run test*", "npm run test:bun*"],
     "network": {
       "allowLocalBinding": true,
       "allowedDomains": ["api.github.com", "matterbridge.io"]
