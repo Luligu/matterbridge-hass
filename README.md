@@ -435,6 +435,6 @@ Licensed under the [Apache License 2.0](./LICENSE).
 
 ## Support the project
 
-If you find this project useful, please consider giving it a star on GitHub and sponsoring it. Your support helps maintain and improve the project.
+If you find this project useful, please consider giving it a star on [GitHub](https://github.com/Luligu/matterbridge-hass) and sponsoring it. Your support helps maintain and improve the project.
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/luligugithub)
