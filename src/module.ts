@@ -116,6 +116,10 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   postfix: string;
   airQualityRegex: string;
   enableServerRvc: boolean;
+  serverModeDomains: string[];
+  deviceIdentityRules: DeviceIdentityRule[];
+  entityNameOverrides: Record<string, string>;
+  entityNameAsProductName: boolean;
   discardHiddenEntities: boolean;
   virtualControlLabel: string;
 }
@@ -140,6 +144,18 @@ export default function initializePlugin(matterbridge: PlatformMatterbridge, log
  * and creates Matterbridge devices based on Home Assistant entities and devices.
  * It also handles updates from Home Assistant and converts them to Matterbridge commands.
  */
+/**
+ * Rule that overrides the Matter basic information (vendor/product) of an individual or split entity.
+ * The first rule whose `domain` and `match` both match wins; `match` is a case sensitive substring of the entity_id.
+ */
+export interface DeviceIdentityRule {
+  domain?: string;
+  match?: string;
+  vendorId: number;
+  vendorName: string;
+  productId: number;
+}
+
 export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
   /** Home Assistant instance */
   ha: HomeAssistant;
@@ -243,6 +259,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
     this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
     this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
+    this.config.serverModeDomains = isValidArray(this.config.serverModeDomains, 1) ? this.config.serverModeDomains.filter((d) => isValidString(d, 1)) : [];
+    this.config.deviceIdentityRules = isValidArray(this.config.deviceIdentityRules, 1)
+      ? this.config.deviceIdentityRules.filter(
+          (r) => isValidObject(r, 3) && isValidNumber(r.vendorId, 0, 0xffff) && isValidString(r.vendorName, 1, 32) && isValidNumber(r.productId, 0, 0xffff),
+        )
+      : [];
+    this.config.entityNameOverrides = isValidObject(this.config.entityNameOverrides, 1) ? this.config.entityNameOverrides : {};
+    this.config.entityNameAsProductName = isValidBoolean(this.config.entityNameAsProductName) ? this.config.entityNameAsProductName : false;
     this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
     this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
     this.config.debug ??= false;
@@ -497,14 +521,23 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for individual entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
-      const mutableDevice = new MutableDevice(this.matterbridge, getPostfixedName(this, entityName), getPostfixedSerial(this, entity.id), 0xfff1, 'HomeAssistant', 0x8000, domain);
+      const identity = this.getEntityIdentity(entity.entity_id, domain, entityName);
+      const mutableDevice = new MutableDevice(
+        this.matterbridge,
+        getPostfixedName(this, identity.name),
+        getPostfixedSerial(this, entity.id),
+        identity.vendorId,
+        identity.vendorName,
+        identity.productId,
+        identity.productName,
+      );
       mutableDevice.setLogLevel(this.log.logLevel);
       mutableDevice.addDeviceTypes('', bridgedNode);
 
       // Lookup and add helpers domain entity.
       if (this.supportedHelpersDomains.includes(domain)) addHelperEntity(this, mutableDevice, entity, hassState, true);
       // Set the device mode for the Rvc.
-      if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
+      if ((domain === 'vacuum' && this.config.enableServerRvc) || this.config.serverModeDomains.includes(domain)) mutableDevice.setMode('server');
       // Lookup and add core domains entity.
       if (this.supportedCoreDomains.includes(domain)) addControlEntity(this, mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this));
       // Lookup and add sensor domain entity.
@@ -877,14 +910,23 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
       // Create a Mutable device with bridgedNode
       this.log.info(`Creating device for split entity ${idn}${entityName}${rs}${nf} domain ${CYAN}${domain}${nf} name ${CYAN}${name}${nf}`);
-      const mutableDevice = new MutableDevice(this.matterbridge, getPostfixedName(this, entityName), getPostfixedSerial(this, entity.id), 0xfff1, 'HomeAssistant', 0x8000, domain);
+      const identity = this.getEntityIdentity(entity.entity_id, domain, entityName);
+      const mutableDevice = new MutableDevice(
+        this.matterbridge,
+        getPostfixedName(this, identity.name),
+        getPostfixedSerial(this, entity.id),
+        identity.vendorId,
+        identity.vendorName,
+        identity.productId,
+        identity.productName,
+      );
       mutableDevice.setLogLevel(this.log.logLevel);
       mutableDevice.addDeviceTypes('', bridgedNode);
 
       // Lookup and add helpers domain entity.
       if (this.supportedHelpersDomains.includes(domain)) addHelperEntity(this, mutableDevice, entity, hassState, true);
       // Set the device mode for the Rvc.
-      if (domain === 'vacuum' && this.config.enableServerRvc) mutableDevice.setMode('server');
+      if ((domain === 'vacuum' && this.config.enableServerRvc) || this.config.serverModeDomains.includes(domain)) mutableDevice.setMode('server');
       // Lookup and add core domains entity.
       if (this.supportedCoreDomains.includes(domain)) addControlEntity(this, mutableDevice, entity, hassState, this.commandHandler.bind(this), this.subscribeHandler.bind(this));
       // Lookup and add sensor domain entity.
@@ -1533,6 +1575,28 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
    * @param {string | undefined} regexString - The regex pattern string from config
    * @returns {RegExp | undefined} - Valid RegExp object
    */
+  /**
+   * Resolves the display name and the Matter basic information used for an individual or split entity device.
+   * Defaults are the upstream ones (vendor 0xfff1 "HomeAssistant", product 0x8000, product name = domain).
+   *
+   * @param {string} entityId The Home Assistant entity_id.
+   * @param {string} domain The entity domain.
+   * @param {string} entityName The entity name.
+   * @returns {{ name: string; vendorId: number; vendorName: string; productId: number; productName: string }} The resolved values.
+   */
+  private getEntityIdentity(entityId: string, domain: string, entityName: string): { name: string; vendorId: number; vendorName: string; productId: number; productName: string } {
+    const overrideKey = Object.keys(this.config.entityNameOverrides).find((k) => entityId.includes(k) && isValidString(this.config.entityNameOverrides[k], 1));
+    const name = overrideKey ? this.config.entityNameOverrides[overrideKey] : entityName;
+    const rule = this.config.deviceIdentityRules.find((r) => (!r.domain || r.domain === domain) && (!r.match || entityId.includes(r.match)));
+    return {
+      name,
+      vendorId: rule?.vendorId ?? 0xfff1,
+      vendorName: rule?.vendorName ?? 'HomeAssistant',
+      productId: rule?.productId ?? 0x8000,
+      productName: this.config.entityNameAsProductName ? name : domain,
+    };
+  }
+
   private createRegexFromConfig(regexString: string): RegExp | undefined {
     if (!isValidString(regexString, 1)) {
       this.log.debug(`No valid custom regex provided`);

@@ -42,6 +42,33 @@ Features:
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
 - Vitest test coverage = 100%.
 
+## About this fork (zonya/matterbridge-hass)
+
+This is a fork of [Luligu/matterbridge-hass](https://github.com/Luligu/matterbridge-hass) based on release 1.7.0. Upstream behavior is unchanged by default; every addition below is opt-in through the plugin config. It was made to expose a Home Assistant boiler, switches and sensors to **Samsung SmartThings** and **LG ThinQ**, which both handle one big Matter bridge badly.
+
+What is added (see [Config](#config)):
+
+- `serverModeDomains`: individual and split entities of the listed domains (for example `switch`, `sensor`) are created in *server mode*, as the upstream already does for the vacuum. Every entity becomes its own Matter node with its own QR code, so SmartThings and ThinQ pair them one by one instead of through a bridge.
+- `deviceIdentityRules`: override the Matter vendor/product of individual and split entities (first matching rule wins, matched by domain and/or an entity_id substring). LG ThinQ only keeps devices whose identity exists in the CSA Distributed Compliance Ledger, for example vendorId 4142 with productId 8800 (smart plug) or 8192 (temperature and humidity sensor).
+- `entityNameOverrides`: set the name shown on the controller for entities whose Home Assistant name you do not want to change.
+- `entityNameAsProductName`: use the entity name as the Matter product name instead of the domain (SmartThings shows the product name for server mode nodes).
+
+Example, everything that is a switch or sensor gets its own node and the LG identity:
+
+```json
+{
+  "serverModeDomains": ["switch", "sensor"],
+  "entityNameAsProductName": true,
+  "deviceIdentityRules": [
+    { "domain": "switch", "vendorId": 4142, "vendorName": "LG", "productId": 8800 },
+    { "domain": "sensor", "vendorId": 4142, "vendorName": "LG", "productId": 8192 }
+  ],
+  "entityNameOverrides": { "boiler_temp": "Boiler temperature" }
+}
+```
+
+Notes: a server mode node must be commissioned separately (its QR code is in the Matterbridge frontend and log), and removing the device in the controller app does not remove the fabric from the node, so reset a node by deleting its folder in `matterstorage` and restarting.
+
 ## How to use filters and select
 
 > Read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/186).
@@ -217,6 +244,22 @@ You may need to set some config values in the frontend (wait that the plugin has
 I suggest to always use the filters by Area and Label or the whiteList adding each entity or device you want to expose to Matter.
 
 If any device or entity creates issues put it in the blackList.
+
+### Server Mode Domains
+
+List of domains (for example `switch`, `sensor`) whose individual and split entities are exposed in server mode, one Matter node per entity. Default: empty (upstream behavior).
+
+### Device Identity Rules
+
+List of rules `{ domain?, match?, vendorId, vendorName, productId }` that replace the default Matter identity (vendor 0xfff1 "HomeAssistant", product 0x8000) of individual and split entities. The first rule whose `domain` and `match` (substring of the entity_id) both match is used. Default: empty.
+
+### Entity Name Overrides
+
+Object that maps an entity_id substring to the name shown on the controller. Default: empty.
+
+### Entity Name As Product Name
+
+If true the entity name is used as Matter product name instead of the domain. Default: false.
 
 ### Host
 
