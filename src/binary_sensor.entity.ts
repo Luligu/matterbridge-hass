@@ -44,7 +44,7 @@ import type { MutableDevice } from './mutableDevice.js';
  * @returns {string | undefined} - The endpoint name for the binary sensor, if found; otherwise, undefined
  */
 export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDevice: MutableDevice, entity: HassEntity, state: HassState): string | undefined {
-  let endpointName: string | undefined = undefined;
+  let endpointName: string | undefined;
   const domain = getDomain(entity.entity_id);
   if (domain !== 'binary_sensor') return undefined;
 

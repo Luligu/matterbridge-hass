@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
-import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
+import { CYAN, db, dn, idn, LogLevel, nf, rs, wr } from 'matterbridge/logger';
 import { VendorId } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -227,7 +227,6 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.entityWhiteList = [];
     mockConfig.entityBlackList = [];
     mockConfig.deviceEntityBlackList = {};
-    mockConfig.splitEntities = [];
     mockConfig.splitByLabel = '';
     mockConfig.splitNameStrategy = 'Entity name';
     mockConfig.controllerStrategy = 'Merge';
@@ -262,6 +261,70 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassServices = {}; // Simulate Home Assistant services
   });
 
+  describe.each(['device', 'individual', 'split'] as const)('duplicate %s names', (kind) => {
+    it.each(['none', 'area', 'label', 'blacklist', 'whitelist', 'domain'] as const)('should check duplicate names after filtering when applying %s filtering', async (filter) => {
+      const area = generateArea(haPlatform.ha, 'Export area');
+      const label = generateLabel(haPlatform.ha, 'Export label');
+      const first = generateEntity(haPlatform.ha, 'Shared export', 'scene', null, area.area_id, [label.label_id], 'unknown');
+      const parent = kind === 'individual' ? null : generateDevice(haPlatform.ha, kind === 'device' ? 'Shared export' : 'Split parent');
+      const second = generateEntity(haPlatform.ha, 'Second entity', 'switch', parent, null, [], 'off');
+      second.name = 'Shared export';
+      if (kind === 'split') {
+        const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+        second.labels.push(labelSplit.label_id);
+        haPlatform.config.splitByLabel = labelSplit.name;
+      }
+      if (filter === 'area') haPlatform.config.filterByArea = area.name;
+      if (filter === 'label') haPlatform.config.filterByLabel = label.name;
+      if (filter === 'blacklist') haPlatform.config.blackList = [kind === 'device' && parent ? parent.id : second.id];
+      if (filter === 'whitelist') haPlatform.config.whiteList = [first.entity_id];
+      if (filter === 'domain') haPlatform.config.entityBlackList = ['switch'];
+      const snackbarSpy = vi.spyOn(haPlatform, 'wssSendSnackbarMessage').mockImplementation(() => {});
+      try {
+        await haPlatform.onStart('Duplicate regression');
+        const duplicates = filter === 'none' || (kind === 'device' && filter === 'domain') ? 1 : 0;
+        const unselected = filter === 'blacklist' || filter === 'whitelist' || (kind !== 'device' && filter === 'domain') ? 1 : 0;
+        expect(haPlatform.duplicatedDevices).toBe(kind === 'device' ? duplicates : 0);
+        expect(haPlatform.duplicatedEntities).toBe(kind === 'device' ? 0 : duplicates);
+        expect(kind === 'device' ? haPlatform.unselectedDevices : haPlatform.unselectedEntities).toBe(unselected);
+        expect(loggerWarnSpy).toHaveBeenCalledTimes(duplicates);
+        // The selects of the duplicate are cleared, the selects of the unselected one are kept
+        expect(haPlatform.getSelectDevices().some((d) => d.serialNumber === first.id)).toBe(true);
+        expect(haPlatform.getSelectDevices().some((d) => d.serialNumber === (kind === 'device' && parent ? parent.id : second.id))).toBe(
+          filter === 'blacklist' || filter === 'whitelist',
+        );
+        expect(loggerErrorSpy).not.toHaveBeenCalled();
+        expect(haPlatform.matterbridgeDevices.size).toBe(1);
+        expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
+        expect(haPlatform.endpointNames.has(second.entity_id)).toBe(false);
+        expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+
+        await haPlatform.onConfigure();
+        const duplicateMessages = snackbarSpy.mock.calls.filter(([message]) => message.includes('duplicate names'));
+        expect(duplicateMessages).toHaveLength(duplicates);
+        expect(duplicateMessages).toEqual(
+          duplicates ? [[`Home Assistant: 1 ${kind === 'device' ? 'devices' : 'entities'} have been discarded due to duplicate names`, 60, 'warning']] : [],
+        );
+      } finally {
+        snackbarSpy.mockRestore();
+      }
+    });
+  });
+
+  it('should call onStart and skip a duplicate individual entity name with namePostfix', async () => {
+    const first = generateEntity(haPlatform.ha, 'Shared export', 'scene', null, null, [], 'unknown');
+    const second = generateEntity(haPlatform.ha, 'Second entity', 'scene', null, null, [], 'unknown');
+    second.name = 'Shared export';
+    haPlatform.config.namePostfix = 'HA';
+    await haPlatform.onStart('Test reason');
+    expect(haPlatform.duplicatedEntities).toBe(1);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Individual entity "${CYAN}Shared export${wr}" already exists as a registered device. Please change the name in Home Assistant`);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(second.entity_id)).toBe(false);
+  });
+
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {
     // await setDebug(true);
     const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', null, null, [], 'unknown');
@@ -287,7 +350,9 @@ describe('Matterbridge ' + NAME, () => {
     const device = generateDevice(haPlatform.ha, 'Test Device', null, []);
     const entity = generateEntity(haPlatform.ha, 'Test Scene', 'scene', device, null, [], 'unknown');
     haPlatform.config.entityWhiteList = ['automation'];
-    haPlatform.config.splitEntities = [entity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     await haPlatform.onStart('Test reason');
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -357,7 +422,9 @@ describe('Matterbridge ' + NAME, () => {
     const device = generateDevice(haPlatform.ha, 'Test Device');
     const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
     haPlatform.config.filterByArea = areaSelect.name;
-    haPlatform.config.splitEntities = [entity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     await haPlatform.onStart('Test reason');
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -383,7 +450,9 @@ describe('Matterbridge ' + NAME, () => {
     const device = generateDevice(haPlatform.ha, 'Test Device', null, [labelSelect.label_id]);
     const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
     haPlatform.config.filterByLabel = labelSelect.name;
-    haPlatform.config.splitEntities = [entity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     await haPlatform.onStart('Test reason');
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -407,7 +476,9 @@ describe('Matterbridge ' + NAME, () => {
     const device = generateDevice(haPlatform.ha, 'Test Device');
     const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [labelSelect.label_id], 'unknown');
     haPlatform.config.filterByLabel = labelSelect.name;
-    haPlatform.config.splitEntities = [entity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     await haPlatform.onStart('Test reason');
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -431,7 +502,9 @@ describe('Matterbridge ' + NAME, () => {
     const device = generateDevice(haPlatform.ha, 'Test Device');
     const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
     haPlatform.config.filterByLabel = labelSelect.name;
-    haPlatform.config.splitEntities = [entity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     await haPlatform.onStart('Test reason');
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -455,7 +528,9 @@ describe('Matterbridge ' + NAME, () => {
     // await setDebug(true);
     const device = generateDevice(haPlatform.ha, 'Test Device');
     const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
-    haPlatform.config.splitEntities = [entity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     haPlatform.ha.hassDevices.delete(device.id); // Simulate the device not existing
     await haPlatform.onStart('Test reason');
     // No warnings or errors
@@ -729,7 +804,9 @@ describe('Matterbridge ' + NAME, () => {
     generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
     generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
 
-    haPlatform.config.splitEntities = [pressureSplitEntity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    pressureSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     haPlatform.config.controllerStrategy = 'Merge';
 
     await haPlatform.onStart('Test reason');
@@ -773,7 +850,9 @@ describe('Matterbridge ' + NAME, () => {
     generateState(haPlatform.ha, mediaplayerDeviceEntity, 'on', { supported_features: 448439 });
     generateState(haPlatform.ha, remoteSplitEntity, 'on');
 
-    haPlatform.config.splitEntities = [remoteSplitEntity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    remoteSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     haPlatform.config.virtualControlLabel = virtualLabel.name;
     haPlatform.config.controllerStrategy = 'Merge';
 
@@ -821,7 +900,9 @@ describe('Matterbridge ' + NAME, () => {
     generateState(haPlatform.ha, selectDeviceEntity, 'Led Off', { options: ['Led On', 'Led Off'], friendly_name: 'Device select entity Led' });
     generateState(haPlatform.ha, selectSplitEntity, 'invalid', { options: ['Led On', 'Led Off'], friendly_name: 'Split select entity Led' });
 
-    haPlatform.config.splitEntities = [selectSplitEntity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    selectSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     haPlatform.config.virtualControlLabel = virtualLabel.name;
     haPlatform.config.controllerStrategy = 'Merge';
 
@@ -868,7 +949,9 @@ describe('Matterbridge ' + NAME, () => {
     humidityDeviceEntity.hidden_by = 'user';
     pressureSplitEntity.hidden_by = 'user';
 
-    haPlatform.config.splitEntities = [pressureSplitEntity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    pressureSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     haPlatform.config.discardHiddenEntities = true;
     haPlatform.config.controllerStrategy = 'Merge';
 
@@ -890,7 +973,9 @@ describe('Matterbridge ' + NAME, () => {
     generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
     generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
 
-    haPlatform.config.splitEntities = [pressureSplitEntity.entity_id];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    pressureSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
     haPlatform.config.controllerStrategy = 'Matter';
 
     await haPlatform.onStart('Test reason');

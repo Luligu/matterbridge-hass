@@ -1,5 +1,6 @@
 ---
-description: 'How to create MatterbridgeEndpoint instances, register them in Matterbridge plugins, and use the single-class devices exported by the package v.1.0.3'
+name: 'Matterbridge Endpoint Guide'
+description: 'How to create MatterbridgeEndpoint instances, register them in Matterbridge plugins, and use the single-class devices exported by the package v.1.0.4'
 ---
 
 # Matterbridge Endpoint Guide

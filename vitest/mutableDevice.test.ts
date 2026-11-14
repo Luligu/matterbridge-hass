@@ -35,6 +35,7 @@ import {
   temperatureSensor,
   thermostat,
   waterValve,
+  windowCovering,
 } from 'matterbridge';
 import { AnsiLogger, LogLevel, TimestampFormat } from 'matterbridge/logger';
 import { UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
@@ -55,6 +56,7 @@ import {
   SmokeCoAlarm,
   TemperatureMeasurement,
   ValveConfigurationAndControl,
+  WindowCovering,
 } from 'matterbridge/matter/clusters';
 import { Namespace } from 'matterbridge/matter/types';
 import {
@@ -638,6 +640,31 @@ describe('MutableDevice', () => {
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
     expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+
+    mutableDevice.destroy();
+  });
+
+  it('should addLiftTiltWindowCovering', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device lift and tilt cover');
+    mutableDevice.addDeviceTypes('', bridgedNode, windowCovering);
+    mutableDevice.addClusterServerIds('', WindowCovering.id);
+    mutableDevice.addLiftTiltWindowCovering('');
+
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+    expect(mutableDevice.get().clusterServersObjs[0].id).toBe(WindowCovering.id);
+    expect(mutableDevice.get().clusterServersObjs[0].options).toMatchObject({ type: WindowCovering.WindowCoveringType.TiltBlindLift, currentPositionLiftPercent100ths: 0 });
+
+    mutableDevice.destroy();
+  });
+
+  it('should addTiltWindowCovering', () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, 'Test Device tilt only cover');
+    mutableDevice.addDeviceTypes('', bridgedNode, windowCovering);
+    mutableDevice.addTiltWindowCovering('');
+
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(1);
+    expect(mutableDevice.get().clusterServersObjs[0].options).toMatchObject({ type: WindowCovering.WindowCoveringType.TiltBlindTiltOnly, currentPositionTiltPercent100ths: 0 });
+    expect(mutableDevice.get().clusterServersObjs[0].options).not.toHaveProperty('currentPositionLiftPercent100ths');
 
     mutableDevice.destroy();
   });

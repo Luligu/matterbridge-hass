@@ -1,7 +1,7 @@
-# Shared agent instructions (v.1.0.4)
+# Shared agent instructions (v.1.0.6)
 
 This folder is the **single source of truth** for the instructions given to every coding agent used on this
-repository — OpenAI Codex, Claude Code, GitHub Copilot and Google Gemini / Antigravity. Each agent reads the same documents through its
+repository — OpenAI Codex, Claude Code, GitHub Copilot, Google Gemini / Antigravity and Bionic / LM Studio. Each agent reads the same documents through its
 own mechanism, so guidance is written once here and never copied.
 
 > **The rule:** edit files in `.agents/` (or `AGENTS.md`). Never edit the copies under `.claude/` or
@@ -26,11 +26,12 @@ Reference documents. They are not loaded all the time — an agent opens the one
 | `rules/plugin-frontend.instructions.md` | Serving a plugin's own frontend SPA and REST API      |
 | `rules/chip-tests.instructions.md`      | The CHIP conformance test harness                     |
 
-Each starts with YAML frontmatter holding a `description` that ends with the file's version:
+Each starts with YAML frontmatter holding a human-readable `name` and a `description` that ends with the file's version:
 
 ```yaml
 ---
-description: 'Testing standards for unit tests in the project v.1.0.7'
+name: 'Testing Standards'
+description: 'Testing standards for unit tests in the project v.1.0.8'
 ---
 ```
 
@@ -56,19 +57,20 @@ Optional `scripts/`, `references/` and `assets/` subfolders are supported alongs
 
 ## How each agent reaches these files
 
-|             | Codex                                      | Claude Code                                         | Copilot                                                                  | Gemini / Antigravity                                       |
-| ----------- | ------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| Entry point | `AGENTS.md`                                | `CLAUDE.md` → `@AGENTS.md`                          | `AGENTS.md` natively, plus a link from `.github/copilot-instructions.md` | `GEMINI.md` → `@AGENTS.md` (and `AGENTS.md` natively)      |
-| Rules       | listed in `AGENTS.md`, read on demand      | `.claude/rules/*` pointers, auto-loaded by `paths:` | `.github/instructions/*` pointers, auto-applied by `applyTo:`            | listed in `AGENTS.md` / `GEMINI.md`, read on demand        |
-| Skills      | discovered automatically, run with `$name` | `.claude/skills/*` → `/name`                        | `.github/skills/*` → `/name`                                             | discovered automatically from `.agents/skills/*` → `/name` |
+|             | Codex                                      | Claude Code                                         | Copilot                                                                  | Gemini / Antigravity                                       | Bionic / LM Studio                                         |
+| ----------- | ------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| Entry point | `AGENTS.md`                                | `CLAUDE.md` → `@AGENTS.md`                          | `AGENTS.md` natively, plus a link from `.github/copilot-instructions.md` | `GEMINI.md` → `@AGENTS.md` (and `AGENTS.md` natively)      | `AGENTS.md` from the working directory only                |
+| Rules       | listed in `AGENTS.md`, read on demand      | `.claude/rules/*` pointers, auto-loaded by `paths:` | `.github/instructions/*` pointers, auto-applied by `applyTo:`            | listed in `AGENTS.md` / `GEMINI.md`, read on demand        | listed in `AGENTS.md`, read on demand                      |
+| Skills      | discovered automatically, run with `$name` | `.claude/skills/*` → `/name`                        | `.github/skills/*` → `/name`                                             | discovered automatically from `.agents/skills/*` → `/name` | discovered automatically from `.agents/skills/*` → `@name` |
 
-Codex and Gemini / Antigravity read `.agents/` natively — they scan `.agents/skills` from the working directory
-up to the repository root. Claude Code and Copilot have no such convention, so each keeps a small mirror in
-its own folder. Those mirrors hold **only** frontmatter plus a pointer, for example:
+Codex, Gemini / Antigravity and Bionic / LM Studio read `.agents/` natively — they scan `.agents/skills` from
+the working directory up to the repository root. Bionic also loads no global instruction file, so `AGENTS.md`
+asks it to read `~/.agents/AGENTS.md` itself. Claude Code and Copilot have no such convention, so each keeps a
+small mirror in its own folder. Those mirrors hold **only** frontmatter plus a pointer, for example:
 
 ```markdown
 ---
-description: 'Testing standards for unit tests in the project v.1.0.7'
+description: 'Testing standards for unit tests in the project v.1.0.8'
 paths:
   - '**/*.test.ts'
 ---
@@ -84,9 +86,9 @@ when the skill runs, and both also read the mirror's `description` to offer the 
 
 **A new rule:**
 
-1. Write `.agents/rules/<topic>.instructions.md` with a `description` frontmatter ending in `v.1.0.0`.
-2. Add a bullet for it in `AGENTS.md` under _Additional Agent Guidance_ — Codex has no auto-loading, so a
-   rule that is not listed there is invisible to it.
+1. Write `.agents/rules/<topic>.instructions.md` with a human-readable `name` and a `description` ending in `v.1.0.0` in its frontmatter.
+2. Add a bullet for it in `AGENTS.md` under _Additional Agent Guidance_ — Codex and Bionic have no
+   auto-loading, so a rule that is not listed there is invisible to them.
 3. Create the two pointer files, copying the frontmatter style of an existing pair and setting the
    `paths:` / `applyTo:` globs that should trigger it:
    - `.claude/rules/<topic>/<topic>.instructions.md`
@@ -114,7 +116,8 @@ they must always agree with the document they point at.
 
 ## Checking it works
 
-Run `/verify-agent-context` (Claude Code, Copilot, Gemini / Antigravity) or `$verify-agent-context` (Codex) in a fresh session.
-It reports which agent is running, whether `AGENTS.md` reached its context, which rules and skills it can
-see, and whether it can actually read a rule file — which is the quickest way to catch a pointer that a
+Run `/verify-agent-context` (Claude Code, Copilot, Gemini / Antigravity), `$verify-agent-context` (Codex) or
+`@verify-agent-context` (Bionic / LM Studio) in a fresh session. It reports which agent is running, whether
+`AGENTS.md` and the global instructions reached its context, which rules and skills it can see, and whether it
+can actually read a rule file — which is the quickest way to catch a pointer that a
 tool did not follow.

@@ -26,6 +26,65 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
+## [1.7.0] - 2026-11-14
+
+### Breaking changes
+
+- [config]: Remove the deprecated `splitEntities`. Use `splitByLabel` instead. If it is still in the config, it is ignored and removed.
+
+### Added
+
+- [onboarding]: On first installation, prompt users to configure the Home Assistant host and token with an error log and snackbar; skip initialization, start, and configure while either is missing.
+- [agents]: Add support for Bionic / LM Studio local agents.
+- [cover]: Add core speed feature, standard speed enum, and closed state and supported speed attributes.
+- [cover]: Add tilt support for covers. Venetian blinds with lift and tilt now show both the position and the slat angle in your Matter controller, and tilt-only covers (e.g. SwitchBot Blind Tilt) can open, close, stop and set the slat angle. Thanks gastonmuijtjens, chrispylizard and peppi911 (https://github.com/Luligu/matterbridge-hass/issues/138).
+
+### Changed
+
+- [package]: Bump `ws` to v.8.23.0.
+- [package]: Bump `@vitest/coverage-v8` to v.5.1.0.
+- [package]: Bump `oxfmt` to v.0.78.0.
+- [package]: Bump `oxlint` to v.1.93.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2007.
+- [package]: Bump `vitest` to v.5.1.0.
+- [agents]: Update `.agents/README.md` to v.1.0.6.
+- [agents]: Update `.agents/rules/chip-tests.instructions.md` to v.1.0.1.
+- [agents]: Update `.agents/rules/matterbridge.instructions.md` to v.1.0.4.
+- [agents]: Update `.agents/rules/plugin-frontend.instructions.md` to v.1.0.3.
+- [agents]: Update `.agents/rules/testing.instructions.md` to v.1.0.8.
+- [agents]: Update `.agents/skills/verify-agent-context/SKILL.md` to v.1.0.6.
+- [agents]: Update `.antigravity/settings.json` to v.1.0.6.
+- [agents]: Update `.claude/settings.json` to v.1.0.12.
+- [codex]: Update `.codex/config.toml` to v.1.0.8.
+- [codex]: Update `.codex/rules/default.rules` to v.1.0.8.
+- [workflows]: Update `.github/workflows/build.yml` to v.2.0.8.
+- [workflows]: Update `.github/workflows/codecov.yml` to v.2.0.8.
+- [workflows]: Update `.github/workflows/codeql.yml` to v.2.0.0.
+- [workflows]: Update `.github/workflows/publish.yml` to v.2.0.7.
+- [config]: Update `.gitignore` to v.1.0.5.
+- [config]: Update `.oxfmtrc.json` to v.1.2.0.
+- [config]: Update `.oxlintrc.json` to v.1.2.0.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.21.
+- [agents]: Update `AGENTS.md` to v.1.0.12.
+- [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
+- [config]: Update `vitest.config.ts` to v.2.0.9.
+- [package]: Bump `node-ansi-logger` to v.3.3.2.
+- [package]: Bump `node-persist-manager` to v.2.1.2.
+- [vscode]: Update `.vscode/extensions.json` to v.1.0.6.
+- [styleguide]: Update `STYLEGUIDE.md` to v.1.1.1.
+
+### Fixed
+
+- [discovery]: Check duplicate names after the area, label, domain, whiteList and blackList filtering. Thanks gmdfalk (https://github.com/Luligu/matterbridge-hass/pull/258).
+- [discovery]: Detect duplicate names when `namePostfix` is set.
+- [discovery]: Keep the select entity of the registered device when an individual or split entity with the same name is discarded.
+- [discovery]: Set the select devices with the `postfix` serial and the `namePostfix` name, so the frontend no longer shows each device twice when they are set.
+- [discovery]: When `namePostfix` or `postfix` is set, `whiteList`, `blackList` and `deviceEntityBlackList` must use the postfixed names and ids.
+- [cover]: Report the open and closed position of covers without `current_position` (i.e. garage doors). Thanks ok2sh (https://github.com/Luligu/matterbridge-hass/issues/244).
+- [climate]: Update the Thermostat `systemMode` when a climate entity switches to `auto`, so controllers no longer show a stale `off` on heating-only or cooling-only thermostats. Thanks pandinus (https://github.com/Luligu/matterbridge-hass/issues/247).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.6.1] - 2026-10-31
 
 ### Added

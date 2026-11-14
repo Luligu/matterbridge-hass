@@ -1,9 +1,10 @@
-// VS Code settings v.1.0.17
+// VS Code settings v.1.0.21
 {
   "eslint.enable": false,
   "prettier.enable": false,
   "oxc.enable": true,
   "js/ts.experimental.useTsgo": true,
+  "js/ts.tsdk.path": "./node_modules/typescript",
   "js/ts.tsdk.promptToUseWorkspaceVersion": false,
   "terminal.integrated.scrollback": 5000,
   "editor.tabSize": 2,
@@ -20,8 +21,8 @@
     "source.format.oxc": "always",
     "source.fixAll.oxc": "always"
   },
-  "vitest.configSearchPatternExclude": "{**/node_modules/**,**/template/**}",
   "diffEditor.ignoreTrimWhitespace": false,
+  "vitest.configSearchPatternExclude": "{**/node_modules/**,**/vendor/**,**/.*/**,**/*.d.ts,**/template/**}",
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
@@ -46,6 +47,18 @@
   "chat.useAgentsMdFile": true, // Load AGENTS.md at the workspace root as always-on instructions.
   "chat.useNestedAgentsMdFiles": true, // Also load nested AGENTS.md files in subfolders. Experimental.
   "github.copilot.chat.commitMessageGeneration.instructions": [{ "file": ".github/commit-message-instructions.md" }], // Conventional Commits for the Source Control "Generate Commit Message" button.
+  "chat.tools.urls.autoApprove": {
+    // Allow chat tools to access these domains without approval.
+    "api.github.com": true,
+    "github.com": true,
+    "registry.npmjs.org": true,
+    "matterbridge.io": true,
+    "www.rfc-editor.org": true,
+    "www.ietf.org": true
+  },
+  "chat.permissions.default": "autoApprove", // Automatically approve permissions by default.
+  "chat.agent.sandbox.enabled": "on", // Run agent commands in the sandbox.
+  "chat.agent.sandbox.network.allowLocalNetwork": true, // Allow sandboxed commands to access the local network.
   "chat.tools.terminal.autoApprove": {
     // Denied: raw tool invocations must go through the npm scripts (AGENTS.md hard rule).
     "npx tsc": false,

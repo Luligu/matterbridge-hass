@@ -53,7 +53,7 @@ export function addSensorEntity(
   airQualityRegex: RegExp | undefined,
   battery: boolean,
 ): string | undefined {
-  let endpointName: string | undefined = undefined;
+  let endpointName: string | undefined;
   const domain = getDomain(entity.entity_id);
   if (domain !== 'sensor') return undefined;
 

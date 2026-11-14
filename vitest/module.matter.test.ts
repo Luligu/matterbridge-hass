@@ -56,6 +56,7 @@ import {
   Thermostat,
   TotalVolatileOrganicCompoundsConcentrationMeasurement,
   ValveConfigurationAndControl,
+  WindowCovering,
 } from 'matterbridge/matter/clusters';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -95,9 +96,11 @@ import {
   type HassContext,
   type HassDevice,
   type HassEntity,
+  type HassLabel,
   type HassServices,
   type HassState,
   HomeAssistant,
+  HVACAction,
   VacuumEntityFeature,
 } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
@@ -1363,6 +1366,365 @@ describe('Matterbridge ' + NAME, () => {
     await cleanup();
   });
 
+  it('should call onStart and register a lift Cover device', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+      labels: [],
+      name: 'Roller Shutter',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.roller_shutter',
+      has_entity_name: true,
+      id: '1a2b3c4d5e6f708192a3b4c5d6e7f801',
+      labels: [],
+      name: null,
+      original_name: 'Roller Shutter',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'open',
+      attributes: { current_position: 100, supported_features: 15, friendly_name: 'Roller Shutter' }, // OPEN | CLOSE | SET_POSITION | STOP
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(true);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(false);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 0, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'targetPositionLiftPercent100ths', 0, expect.anything());
+
+    vi.clearAllMocks();
+    const closingState = { ...coverState, state: 'closing', attributes: { ...coverState.attributes, current_position: 25 } };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, closingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Closing,
+      lift: WindowCovering.MovementStatus.Closing,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(7500);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, closingState, {
+      ...coverState,
+      state: 'closed',
+      attributes: { ...coverState.attributes, current_position: 0 },
+    });
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Stopped,
+      lift: WindowCovering.MovementStatus.Stopped,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(10000);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToLiftPercentage', { liftPercent100thsValue: 3000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_position', coverEntity.entity_id, { position: 70 });
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a lift and tilt Cover device', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'b2c3d4e5f60718293a4b5c6d7e8f90a1',
+      labels: [],
+      name: 'Venetian Blind',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.venetian_blind',
+      has_entity_name: true,
+      id: '2b3c4d5e6f708192a3b4c5d6e7f8011a',
+      labels: [],
+      name: null,
+      original_name: 'Venetian Blind',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'open',
+      attributes: { current_position: 100, current_tilt_position: 50, supported_features: 255, friendly_name: 'Venetian Blind' }, // OPEN | CLOSE | SET_POSITION | STOP | OPEN_TILT | CLOSE_TILT | STOP_TILT | SET_TILT_POSITION
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(true);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(true);
+    expect(device.getAttribute(WindowCovering.id, 'type')).toBe(WindowCovering.WindowCoveringType.TiltBlindLift);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 0, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 5000, expect.anything());
+
+    vi.clearAllMocks();
+    const closingState = { ...coverState, state: 'closing', attributes: { ...coverState.attributes, current_position: 40, current_tilt_position: 20 } };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, closingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Closing,
+      lift: WindowCovering.MovementStatus.Closing,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(6000);
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(8000);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, closingState, {
+      ...coverState,
+      state: 'closed',
+      attributes: { ...coverState.attributes, current_position: 0, current_tilt_position: 0 },
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(10000);
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(10000);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToLiftPercentage', { liftPercent100thsValue: 3000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_position', coverEntity.entity_id, { position: 70 });
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 2500 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_tilt_position', coverEntity.entity_id, { tilt_position: 75 });
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 0 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 10000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover_tilt', coverEntity.entity_id);
+
+    // The tilt is moving (target different from current) so stopMotion stops also the tilt
+    await device.setAttribute(WindowCovering.id, 'targetPositionTiltPercent100ths', 2000);
+    await device.setAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths', 5000);
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover_tilt', coverEntity.entity_id);
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover', coverEntity.entity_id, undefined);
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a tilt Cover device', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'c3d4e5f60718293a4b5c6d7e8f90a1b2',
+      labels: [],
+      name: 'Tilt Blind',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.tilt_blind',
+      has_entity_name: true,
+      id: '3c4d5e6f708192a3b4c5d6e7f8011a2b',
+      labels: [],
+      name: null,
+      original_name: 'Tilt Blind',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'open',
+      attributes: { current_tilt_position: 30, supported_features: 240, friendly_name: 'Tilt Blind' }, // OPEN_TILT | CLOSE_TILT | STOP_TILT | SET_TILT_POSITION
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(false);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(true);
+    expect(device.getAttribute(WindowCovering.id, 'type')).toBe(WindowCovering.WindowCoveringType.TiltBlindTiltOnly);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 7000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering.id, 'targetPositionTiltPercent100ths', 7000, expect.anything());
+
+    vi.clearAllMocks();
+    const openingState = { ...coverState, state: 'opening', attributes: { ...coverState.attributes, current_tilt_position: 60 } };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, openingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({ global: WindowCovering.MovementStatus.Opening, tilt: WindowCovering.MovementStatus.Opening });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(4000);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, openingState, {
+      ...coverState,
+      state: 'closed',
+      attributes: { ...coverState.attributes, current_tilt_position: 0 },
+    });
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({ global: WindowCovering.MovementStatus.Stopped, tilt: WindowCovering.MovementStatus.Stopped });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionTiltPercent100ths')).toBe(10000);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover_tilt', coverEntity.entity_id);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'goToTiltPercentage', { tiltPercent100thsValue: 4000 });
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'set_cover_tilt_position', coverEntity.entity_id, { tilt_position: 60 });
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and register a Cover device without position', async () => {
+    const coverDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd4e5f60718293a4b5c6d7e8f90a1b2c3',
+      labels: [],
+      name: 'Garage Door',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const coverEntity = {
+      area_id: null,
+      device_id: coverDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'cover.garage_door',
+      has_entity_name: true,
+      id: '4d5e6f708192a3b4c5d6e7f8011a2b3c',
+      labels: [],
+      name: null,
+      original_name: 'Garage Door',
+    } as unknown as HassEntity;
+
+    const coverState = {
+      entity_id: coverEntity.entity_id,
+      state: 'closed',
+      attributes: { device_class: 'garage', supported_features: 3, friendly_name: 'Garage Door' }, // OPEN | CLOSE
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(coverDevice.id, coverDevice);
+    haPlatform.ha.hassEntities.set(coverEntity.entity_id, coverEntity);
+    haPlatform.ha.hassStates.set(coverState.entity_id, coverState);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    device = haPlatform.matterbridgeDevices.get(coverDevice.id) as MatterbridgeEndpoint;
+    expect(device).toBeDefined();
+    expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(aggregator.parts.has(device)).toBeTruthy();
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionLiftPercent100ths')).toBe(true);
+    expect(device.hasAttributeServer(WindowCovering, 'currentPositionTiltPercent100ths')).toBe(false);
+
+    vi.clearAllMocks();
+    await haPlatform.onConfigure();
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Configuring state of entity ${CYAN}${coverEntity.entity_id}${db}...`);
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 10000, expect.anything());
+    expect(setAttributeSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionLiftPercent100ths', 10000, expect.anything());
+
+    vi.clearAllMocks();
+    const openingState = { ...coverState, state: 'opening' };
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, coverState, openingState);
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Opening,
+      lift: WindowCovering.MovementStatus.Opening,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(10000);
+
+    vi.clearAllMocks();
+    await haPlatform.updateHandler(coverDevice.id, coverEntity.entity_id, openingState, { ...coverState, state: 'open' });
+    expect(device.getAttribute(WindowCovering.id, 'operationalStatus')).toEqual({
+      global: WindowCovering.MovementStatus.Stopped,
+      lift: WindowCovering.MovementStatus.Stopped,
+      tilt: WindowCovering.MovementStatus.Stopped,
+    });
+    expect(device.getAttribute(WindowCovering.id, 'currentPositionLiftPercent100ths')).toBe(0);
+    expect(device.getAttribute(WindowCovering.id, 'targetPositionLiftPercent100ths')).toBe(0);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'open_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'close_cover', coverEntity.entity_id, undefined);
+
+    await invokeBehaviorCommand(device, 'WindowCovering', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledWith(coverEntity.entity_id.split('.')[0], 'stop_cover', coverEntity.entity_id, undefined);
+
+    // Clean the test environment
+    await cleanup();
+  });
+
   it('should call onStart and register a Vacuum device', async () => {
     haPlatform.config.enableServerRvc = true;
     const vacuumDevice = {
@@ -1585,6 +1947,15 @@ describe('Matterbridge ' + NAME, () => {
     expect(aggregator.parts.has(device.id)).toBeTruthy();
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(0);
     expect(addClusterServerColorTemperatureColorControlSpy).toHaveBeenCalledWith(lightDeviceEntity.entity_id, 153, 500);
+    expect(device.serialNumber).toBe('d80898f83188759ed7329e97df00c#10');
+    expect(haPlatform.getSelectDevices()).toContainEqual(
+      expect.objectContaining({
+        serialNumber: 'd80898f83188759ed7329e97df00c#10',
+        deviceName: 'Color Temperature Light #10',
+        entities: [expect.objectContaining({ name: lightDeviceEntity.entity_id })],
+      }),
+    );
+    expect(haPlatform.getSelectDevices().find((d) => d.serialNumber === lightDevice.id)).toBeUndefined();
 
     vi.clearAllMocks();
     await haPlatform.onConfigure();
@@ -2089,6 +2460,84 @@ describe('Matterbridge ' + NAME, () => {
 
     // Clean the test environment
     await cleanup();
+  });
+
+  it('should update systemMode when individual climate entities switch to auto', async () => {
+    haPlatform.ha.hassEntities.set(climateEntity.entity_id, climateEntity);
+    haPlatform.ha.hassStates.set(climateState.entity_id, climateState);
+    haPlatform.ha.hassEntities.set(climateHeatAutoEntity.entity_id, climateHeatAutoEntity);
+    haPlatform.ha.hassStates.set(climateHeatAutoState.entity_id, climateHeatAutoState);
+    haPlatform.ha.hassEntities.set(climateCoolEntity.entity_id, climateCoolEntity);
+    haPlatform.ha.hassStates.set(climateCoolState.entity_id, climateCoolState);
+    haPlatform.ha.hassEntities.set(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolEntity);
+    haPlatform.ha.hassStates.set(climateHeatAndCoolState.entity_id, climateHeatAndCoolState);
+
+    // setDebug(true);
+    await haPlatform.onStart('Test reason');
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(4);
+    expect(haPlatform.matterbridgeDevices.size).toBe(4);
+    await haPlatform.onConfigure();
+
+    // AutoMode (heat_cool): off => Off, auto => Auto
+    device = haPlatform.matterbridgeDevices.get(climateEntity.entity_id) as MatterbridgeEndpoint;
+    await haPlatform.updateHandler(climateEntity.entity_id, climateState.entity_id, climateState, { ...climateState, state: 'off' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    await haPlatform.updateHandler(climateEntity.entity_id, climateState.entity_id, climateState, { ...climateState, state: 'auto' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Auto);
+
+    // Heating only (#247 [off, auto, heat]): starts in off, auto => Heat (before the fix systemMode stayed Off)
+    device = haPlatform.matterbridgeDevices.get(climateHeatAutoEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    await haPlatform.updateHandler(climateHeatAutoEntity.entity_id, climateHeatAutoState.entity_id, climateHeatAutoState, { ...climateHeatAutoState, state: 'auto' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
+    expect(device.getAttribute(Thermostat.id, 'occupiedHeatingSetpoint')).toBe(2100);
+
+    // Cooling only: off => Off, auto => Cool
+    device = haPlatform.matterbridgeDevices.get(climateCoolEntity.entity_id) as MatterbridgeEndpoint;
+    await haPlatform.updateHandler(climateCoolEntity.entity_id, climateCoolState.entity_id, climateCoolState, { ...climateCoolState, state: 'off' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    await haPlatform.updateHandler(climateCoolEntity.entity_id, climateCoolState.entity_id, climateCoolState, { ...climateCoolState, state: 'auto' });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+
+    // Heating and cooling without heat_cool: starts in off (systemMode Off)
+    device = haPlatform.matterbridgeDevices.get(climateHeatAndCoolEntity.entity_id) as MatterbridgeEndpoint;
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    // auto, idle, no current_temperature => unchanged (Off)
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.IDLE, current_temperature: null },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Off);
+    // auto, idle, target 21 >= current 19 => Heat
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.IDLE },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Heat);
+    // auto, cooling => Cool
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.COOLING },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+    // auto, idle => unchanged (Cool)
+    await haPlatform.updateHandler(climateHeatAndCoolEntity.entity_id, climateHeatAndCoolState.entity_id, climateHeatAndCoolState, {
+      ...climateHeatAndCoolState,
+      state: 'auto',
+      attributes: { ...climateHeatAndCoolState.attributes, hvac_action: HVACAction.IDLE },
+    });
+    expect(device.getAttribute(Thermostat.id, 'systemMode')).toBe(Thermostat.SystemMode.Cool);
+
+    // The systemMode changes are local: Home Assistant is never asked to leave 'auto'
+    expect(callServiceSpy).not.toHaveBeenCalledWith('climate', 'set_hvac_mode', expect.anything(), expect.anything());
+
+    // Clean the test environment
+    await cleanup();
+
+    // setDebug(false);
   });
 
   it('should call onStart and register a binary_sensor without device_class', async () => {
@@ -3587,7 +4036,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
-    haPlatform.config.splitEntities = [];
+    haPlatform.config.splitByLabel = '';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
@@ -3636,7 +4085,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
-    haPlatform.config.splitEntities = [];
+    haPlatform.config.splitByLabel = '';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
@@ -3686,7 +4135,9 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.namePostfix = 'Tst';
     haPlatform.config.postfix = 'Tst';
-    haPlatform.config.splitEntities = [sensorEntity.entity_id, 'sensor.wrong_entity_id'];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    sensorEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
@@ -3696,9 +4147,6 @@ describe('Matterbridge ' + NAME, () => {
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
       expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
-    );
-    expect(loggerWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Split entity "${CYAN}sensor.wrong_entity_id${wr}" set in splitEntities not found in Home Assistant. Please check your configuration.`),
     );
 
     // Clean the test environment
@@ -3743,7 +4191,9 @@ describe('Matterbridge ' + NAME, () => {
 
     haPlatform.config.namePostfix = 'Tst';
     haPlatform.config.postfix = 'Tst';
-    haPlatform.config.splitEntities = [lightEntity.entity_id, 'sensor.wrong_entity_id'];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    lightEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
@@ -3816,7 +4266,9 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
     haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
 
-    haPlatform.config.splitEntities = [sensorEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    sensorEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     await haPlatform.onStart('Test reason');
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
@@ -3931,10 +4383,11 @@ describe('Matterbridge ' + NAME, () => {
       [buttonEntity, buttonState],
     ];
     for (const [e, s] of entities) {
-      haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id, disabled_by: null });
+      haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: hassDevice.id, disabled_by: null, labels: ['split'] });
       haPlatform.ha.hassStates.set(s.entity_id, s);
     }
-    haPlatform.config.splitEntities = entities.map(([e]) => e.entity_id);
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    haPlatform.config.splitByLabel = 'Split';
 
     // setDebug(true);
 
@@ -3945,9 +4398,9 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onStart('Test reason');
     await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(haPlatform.config.splitEntities.length);
-    expect(haPlatform.matterbridgeDevices.size).toBe(haPlatform.config.splitEntities.length);
-    expect(aggregator.parts.size).toBe(haPlatform.config.splitEntities.length);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(entities.length);
+    expect(haPlatform.matterbridgeDevices.size).toBe(entities.length);
+    expect(aggregator.parts.size).toBe(entities.length);
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(41); // switch(3) + lightOnOff(10) + lightDimmer(10) + lightCt(10) + lock(2) + valve(2) + vacuum(4) + fan(0) + climate(0)
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(13); // fan(2) + fanComplete(4) + climateHeatCool(3) + climateHeat(2) + climateCool(2)
 
@@ -3972,7 +4425,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.batteryVoltageEntities.clear();
     haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually
     await haPlatform.onConfigure();
-    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(haPlatform.config.splitEntities.length);
+    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(entities.length);
 
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -4127,7 +4580,6 @@ describe('Matterbridge ' + NAME, () => {
       haPlatform.ha.hassEntities.set(e.entity_id, { ...e, device_id: null, disabled_by: null });
       haPlatform.ha.hassStates.set(s.entity_id, s);
     }
-    haPlatform.config.splitEntities = entities.map(([e]) => e.entity_id);
 
     // setDebug(true);
     // @ts-expect-error accessing private member for testing
@@ -4137,9 +4589,9 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onStart('Test reason');
     await flushAsync(undefined, undefined, 100); // ensure all split entity devices created
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
-    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(haPlatform.config.splitEntities.length);
-    expect(haPlatform.matterbridgeDevices.size).toBe(haPlatform.config.splitEntities.length);
-    expect(aggregator.parts.size).toBe(haPlatform.config.splitEntities.length);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(entities.length);
+    expect(haPlatform.matterbridgeDevices.size).toBe(entities.length);
+    expect(aggregator.parts.size).toBe(entities.length);
     expect(addCommandHandlerSpy).toHaveBeenCalledTimes(41); // switch(3) + lightOnOff(10) + lightDimmer(10) + lightCt(10) + lock(2) + valve(2) + vacuum(4) + fan(0) + climate(0)
     expect(subscribeAttributeSpy).toHaveBeenCalledTimes(13); // fan(2) + fanComplete(4) + climateHeatCool(3) + climateHeat(2) + climateCool(2)
 
@@ -4160,7 +4612,7 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.batteryVoltageEntities.clear();
     haPlatform.batteryVoltageEntities.add(batteryVoltageEntity.entity_id); // Is mixed here so we set manually
     await haPlatform.onConfigure();
-    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(haPlatform.config.splitEntities.length);
+    expect(setAttributeSpy.mock.calls.length).toBeGreaterThanOrEqual(entities.length);
 
     // No warnings or errors
     expect(loggerWarnSpy).not.toHaveBeenCalled();
@@ -4871,6 +5323,46 @@ const climateCoolState = {
     hvac_modes: ['off', 'cool'],
     temperature: 20,
     current_temperature: 18,
+    min_temp: 5,
+    max_temp: 35,
+  },
+} as unknown as HassState;
+
+// Heating only with a schedule (issue #247)
+const climateHeatAutoEntity = {
+  device_id: null,
+  entity_id: 'climate.climate_heat_auto',
+  id: 'climate-heat-auto-entity-id',
+  name: 'Single Entity Climate Heat Auto',
+} as unknown as HassEntity;
+const climateHeatAutoState = {
+  entity_id: climateHeatAutoEntity.entity_id,
+  state: 'off',
+  attributes: {
+    friendly_name: climateHeatAutoEntity.name,
+    hvac_modes: ['off', 'auto', 'heat'],
+    temperature: 21,
+    current_temperature: 19,
+    min_temp: 5,
+    max_temp: 35,
+  },
+} as unknown as HassState;
+
+// Heating and cooling without heat_cool
+const climateHeatAndCoolEntity = {
+  device_id: null,
+  entity_id: 'climate.climate_heat_and_cool',
+  id: 'climate-heat-and-cool-entity-id',
+  name: 'Single Entity Climate Heat And Cool',
+} as unknown as HassEntity;
+const climateHeatAndCoolState = {
+  entity_id: climateHeatAndCoolEntity.entity_id,
+  state: 'off',
+  attributes: {
+    friendly_name: climateHeatAndCoolEntity.name,
+    hvac_modes: ['off', 'auto', 'heat', 'cool'],
+    temperature: 21,
+    current_temperature: 19,
     min_temp: 5,
     max_temp: 35,
   },

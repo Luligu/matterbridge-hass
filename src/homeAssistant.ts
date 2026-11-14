@@ -145,6 +145,7 @@ export interface HassState {
     HassStateClimateAttributes &
     HassStateFanAttributes &
     HassStateValveAttributes &
+    HassStateCoverAttributes &
     HassStateVacuumAttributes &
     HassStateEventAttributes;
   context: HassContext;
@@ -504,6 +505,60 @@ export enum FanEntityFeature {
   PRESET_MODE = 8,
   TURN_OFF = 16,
   TURN_ON = 32,
+}
+
+/**
+ * Interface representing the attributes of a Home Assistant cover entity's state.
+ */
+export interface HassStateCoverAttributes {
+  is_closed?: boolean | null; // Whether the cover is closed. Null is unknown.
+  current_position?: number | null; // Current position of the cover. Null is unknown, 0 is closed, 100 is fully open.
+  current_tilt_position?: number | null; // Current tilt position of the cover. Null is unknown, 0 is closed, 100 is fully open.
+  supported_speeds?: string[]; // Supported speeds for open, close, and set position operations, including custom names.
+  supported_features?: CoverEntityFeature; // Supported features of the cover entity
+}
+
+/** Supported features of the cover entity. */
+export enum CoverEntityFeature {
+  OPEN = 1,
+  CLOSE = 2,
+  SET_POSITION = 4,
+  STOP = 8,
+  OPEN_TILT = 16,
+  CLOSE_TILT = 32,
+  STOP_TILT = 64,
+  SET_TILT_POSITION = 128,
+  SPEED = 256,
+}
+
+/** Standard speeds for cover entities. Omit speed to use the device's default speed. */
+export enum CoverSpeed {
+  FAST = 'fast',
+  MEDIUM = 'medium',
+  SLOW = 'slow',
+}
+
+/** Device class for cover. */
+export enum CoverDeviceClass {
+  // Refer to the cover dev docs for device class descriptions
+  AWNING = 'awning',
+  BLIND = 'blind',
+  CURTAIN = 'curtain',
+  DAMPER = 'damper',
+  DOOR = 'door',
+  GARAGE = 'garage',
+  GATE = 'gate',
+  SHADE = 'shade',
+  SHUTTER = 'shutter',
+  WINDOW = 'window',
+}
+
+/** State of Cover entities. */
+export enum CoverState {
+  OPENING = 'opening',
+  CLOSING = 'closing',
+  CLOSED = 'closed',
+  OPEN = 'open',
 }
 
 /**

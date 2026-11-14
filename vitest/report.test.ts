@@ -26,7 +26,6 @@ describe('report', () => {
         filterByArea: 'Living Room',
         filterByLabel: 'Important',
         splitByLabel: 'Split',
-        splitEntities: [],
       },
       ha: {
         hassAreas: new Map([
@@ -151,7 +150,6 @@ describe('report', () => {
         filterByArea: '',
         filterByLabel: '',
         splitByLabel: 'Split',
-        splitEntities: [],
       },
       ha: {
         hassAreas: new Map(),

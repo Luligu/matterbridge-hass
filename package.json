@@ -1,6 +1,6 @@
 {
   "name": "matterbridge-hass",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "description": "Matterbridge hass plugin",
   "author": "https://github.com/Luligu",
   "license": "Apache-2.0",
@@ -117,18 +117,18 @@
     "prepublishOnly": "npm run cleanBuildProduction && node scripts/prepublish-clean.mjs && npm install --no-fund --no-audit --omit=dev && npm shrinkwrap --omit=dev"
   },
   "dependencies": {
-    "node-ansi-logger": "3.3.1",
-    "node-persist-manager": "2.1.1",
-    "ws": "8.22.1"
+    "node-ansi-logger": "3.3.2",
+    "node-persist-manager": "2.1.2",
+    "ws": "8.23.0"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
     "@types/ws": "8.18.2",
-    "@vitest/coverage-v8": "5.0.5",
-    "oxfmt": "0.75.0",
-    "oxlint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005",
+    "@vitest/coverage-v8": "5.1.0",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "oxlint-tsgolint": "7.0.2007",
     "typescript": "7.0.2",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   }
 }

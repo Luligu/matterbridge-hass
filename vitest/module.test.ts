@@ -247,16 +247,100 @@ describe('HassPlatform', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Platform ${mockConfig.name} shut down successfully`);
   });
 
-  it('should not initialize platform with config name', () => {
-    mockConfig.host = '';
-    mockConfig.token = '';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow('Host and token must be defined in the configuration');
-    mockConfig.host = 'http://homeassistant.local:8123';
-    mockConfig.token = '';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow('Host and token must be defined in the configuration');
-    mockConfig.host = '';
-    mockConfig.token = 'long-lived token';
-    expect(() => new HomeAssistantPlatform(matterbridge, log, mockConfig)).toThrow('Host and token must be defined in the configuration');
+  it.each([
+    { host: '', token: '' },
+    { host: 'http://homeassistant.local:8123', token: '' },
+    { host: '', token: 'long-lived token' },
+  ])('should return without starting or configuring when credentials are missing: %j', async (credentials) => {
+    const snackbarSpy = vi.spyOn(HomeAssistantPlatform.prototype, 'wssSendSnackbarMessage').mockImplementation(() => {});
+    const platform = new HomeAssistantPlatform(matterbridge, log, { ...mockConfig, ...credentials });
+    expect(platform.onboarding).toBe(true);
+    expect(platform.ha).toBeInstanceOf(HomeAssistant);
+    expect(loggerErrorSpy).toHaveBeenCalledWith('Host and token must be defined in the configuration');
+    expect(snackbarSpy).toHaveBeenCalledWith('Home Assistant Plugin: configure Host and Token', 0, 'error');
+
+    for (const lifecycle of ['onStart', 'onConfigure'] as const) {
+      loggerErrorSpy.mockClear();
+      snackbarSpy.mockClear();
+      await expect(platform[lifecycle]()).resolves.toBeUndefined();
+      expect(loggerErrorSpy).toHaveBeenCalledWith('Host and token must be defined in the configuration');
+      expect(snackbarSpy).toHaveBeenCalledWith('Home Assistant Plugin: configure Host and Token', 0, 'error');
+    }
+    await expect(platform.onChangeLoggerLevel(LogLevel.DEBUG)).resolves.toBeUndefined();
+    expect(platform.log.logLevel).toBe(LogLevel.DEBUG);
+    expect(platform.ha.log.logLevel).toBe(LogLevel.DEBUG);
+    snackbarSpy.mockRestore();
+  });
+
+  it('should set the default values for a config missing the new properties', async () => {
+    const snackbarSpy = vi.spyOn(HomeAssistantPlatform.prototype, 'wssSendSnackbarMessage').mockImplementation(() => {});
+    const platform = new HomeAssistantPlatform(matterbridge, log, { name: 'matterbridge-hass', type: 'DynamicPlatform', version: '1.0.0' } as HomeAssistantPlatformConfig);
+    expect(platform.onboarding).toBe(true);
+    expect(platform.config).toEqual({
+      name: 'matterbridge-hass',
+      type: 'DynamicPlatform',
+      version: '1.0.0',
+      certificatePath: '',
+      rejectUnauthorized: true,
+      reconnectTimeout: 60,
+      reconnectRetries: 10,
+      filterByArea: '',
+      filterByLabel: '',
+      whiteList: [],
+      blackList: [],
+      entityWhiteList: [],
+      entityBlackList: [],
+      deviceEntityBlackList: {},
+      splitByLabel: '',
+      splitNameStrategy: 'Entity name',
+      controllerStrategy: 'Merge',
+      namePostfix: '',
+      postfix: '',
+      airQualityRegex: '',
+      enableServerRvc: true,
+      discardHiddenEntities: false,
+      virtualControlLabel: '',
+      debug: false,
+      unregisterOnShutdown: false,
+    });
+    snackbarSpy.mockRestore();
+  });
+
+  it('should keep the valid values of the config', async () => {
+    const snackbarSpy = vi.spyOn(HomeAssistantPlatform.prototype, 'wssSendSnackbarMessage').mockImplementation(() => {});
+    const config = {
+      name: 'matterbridge-hass',
+      type: 'DynamicPlatform',
+      version: '1.0.0',
+      host: '',
+      token: '',
+      certificatePath: '/path/to/cert.pem',
+      rejectUnauthorized: false,
+      reconnectTimeout: 120,
+      reconnectRetries: 5,
+      filterByArea: 'Living room',
+      filterByLabel: 'Matter',
+      whiteList: ['Device 1'],
+      blackList: ['Device 2'],
+      entityWhiteList: ['switch.switch_1'],
+      entityBlackList: ['switch.switch_2'],
+      deviceEntityBlackList: { 'Device 1': ['sensor.sensor_1'] },
+      splitByLabel: 'Split',
+      splitNameStrategy: 'Friendly name',
+      controllerStrategy: 'Matter',
+      namePostfix: 'AB',
+      postfix: 'CD',
+      airQualityRegex: '^sensor\\..*_air_quality$',
+      enableServerRvc: false,
+      discardHiddenEntities: true,
+      virtualControlLabel: 'Virtual',
+      debug: true,
+      unregisterOnShutdown: true,
+    } as HomeAssistantPlatformConfig;
+    const platform = new HomeAssistantPlatform(matterbridge, log, { ...config, splitEntities: ['switch.switch_3'] });
+    expect(platform.onboarding).toBe(true);
+    expect(platform.config).toEqual(config);
+    snackbarSpy.mockRestore();
   });
 
   it('should initialize platform with config name', async () => {
@@ -329,7 +413,14 @@ describe('HassPlatform', () => {
     haPlatform.config.deviceEntityBlackList = {};
     expect(haPlatform.validateEntity('any', 'white.white_entity')).toBe(true);
     expect(haPlatform.validateEntity('any', 'black.black_entity')).toBe(false);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Skipping entity ${CYAN}black.black_entity${nf} because in entityBlackList`);
     expect(haPlatform.validateEntity('any', 'green.black_entity')).toBe(false);
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.INFO, `Skipping entity ${CYAN}green.black_entity${nf} because not in entityWhiteList`);
+
+    vi.clearAllMocks();
+    expect(haPlatform.validateEntity('any', 'black.black_entity', false)).toBe(false);
+    expect(haPlatform.validateEntity('any', 'green.black_entity', false)).toBe(false);
+    expect(loggerLogSpy).not.toHaveBeenCalled();
 
     haPlatform.config.entityWhiteList = [];
     haPlatform.config.entityBlackList = [];
@@ -349,6 +440,14 @@ describe('HassPlatform', () => {
     expect(haPlatform.validateEntity('device1', 'white.white_entity')).toBe(true);
     expect(haPlatform.validateEntity('device1', 'black.black_entity')).toBe(false);
     expect(haPlatform.validateEntity('device1', 'green.black_entity_device1')).toBe(false);
+    expect(loggerLogSpy).toHaveBeenCalledWith(
+      LogLevel.INFO,
+      `Skipping entity ${CYAN}green.black_entity_device1${nf} for device ${CYAN}device1${nf} because in deviceEntityBlackList`,
+    );
+
+    vi.clearAllMocks();
+    expect(haPlatform.validateEntity('device1', 'green.black_entity_device1', false)).toBe(false);
+    expect(loggerLogSpy).not.toHaveBeenCalled();
 
     haPlatform.config.entityWhiteList = [];
     haPlatform.config.entityBlackList = [];
@@ -633,6 +732,148 @@ describe('HassPlatform', () => {
 
     expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledExactlyOnceWith(OnOff.id, 'onOff', true, device.log);
     expect(setAttributeMatterbridgeEndpointSpy.mock.contexts[0]).toBe(child);
+  });
+
+  it('should derive the cover position from the state when the cover has no position attribute', async () => {
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'garageDoor' }, true);
+    const child = device.addChildDeviceType('cover.garage_door', [windowCovering], { number: EndpointNumber(1) }).createDefaultWindowCoveringClusterServer();
+    haPlatform.matterbridgeDevices.set('garageDoor', device);
+    const openState = {
+      entity_id: 'cover.garage_door',
+      state: 'open',
+      attributes: { device_class: 'garage', supported_features: 3, friendly_name: 'Garage Door' },
+    } as unknown as HassState;
+    const closedState = { ...openState, state: 'closed' };
+
+    // Closed without current_position => fully closed
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', openState, closedState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 10000, child.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionLiftPercent100ths', 10000, child.log);
+
+    // Open without current_position => fully open
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', closedState, openState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 0, child.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionLiftPercent100ths', 0, child.log);
+
+    // Moving states don't derive any position
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', openState, { ...openState, state: 'closing' });
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(expect.anything(), 'currentPositionLiftPercent100ths', expect.anything(), expect.anything());
+
+    // Position aware covers keep the reported position
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('garageDoor', 'cover.garage_door', openState, {
+      ...openState,
+      attributes: { ...openState.attributes, supported_features: 15, current_position: 40 },
+    } as unknown as HassState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 6000, child.log);
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(WindowCovering, 'currentPositionLiftPercent100ths', 0, child.log);
+
+    haPlatform.matterbridgeDevices.delete('garageDoor');
+  });
+
+  it('should control and update the tilt when the cover supports tilt', async () => {
+    const device = new MatterbridgeEndpoint(bridgedNode, { id: 'tiltCovers' }, true);
+    const tiltOnly = device.addChildDeviceType('cover.tilt_only', [windowCovering], { number: EndpointNumber(1) }).createDefaultTiltWindowCoveringClusterServer();
+    const liftTilt = device.addChildDeviceType('cover.venetian', [windowCovering], { number: EndpointNumber(2) }).createDefaultLiftTiltWindowCoveringClusterServer();
+    haPlatform.matterbridgeDevices.set('tiltCovers', device);
+
+    // Tilt only cover: open, close and stop use the tilt services
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: tiltOnly, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.tilt_only', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'open_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: tiltOnly, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.tilt_only', 'downOrClose');
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'close_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: tiltOnly, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.tilt_only', 'stopMotion');
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'stop_cover_tilt', 'cover.tilt_only');
+
+    // goToTiltPercentage: 0 opens, 10000 closes, the other values set the tilt position
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: tiltOnly, request: { tiltPercent100thsValue: 0 }, cluster: 'windowCovering', attributes: {} },
+      'cover.tilt_only',
+      'goToTiltPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'open_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: tiltOnly, request: { tiltPercent100thsValue: 10000 }, cluster: 'windowCovering', attributes: {} },
+      'cover.tilt_only',
+      'goToTiltPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'close_cover_tilt', 'cover.tilt_only');
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: liftTilt, request: { tiltPercent100thsValue: 3000 }, cluster: 'windowCovering', attributes: {} },
+      'cover.venetian',
+      'goToTiltPercentage',
+    );
+    expect(callServiceSpy).toHaveBeenCalledExactlyOnceWith('cover', 'set_cover_tilt_position', 'cover.venetian', { tilt_position: 70 });
+
+    // Lift and tilt cover: open uses the lift service, stop also stops the tilt only when the tilt is moving
+    vi.clearAllMocks();
+    await haPlatform.commandHandler({ endpoint: liftTilt, request: {}, cluster: 'windowCovering', attributes: {} }, 'cover.venetian', 'upOrOpen');
+    expect(callServiceSpy).toHaveBeenCalledTimes(1);
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'open_cover', 'cover.venetian', undefined);
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: liftTilt, request: {}, cluster: 'windowCovering', attributes: { targetPositionTiltPercent100ths: 3000, currentPositionTiltPercent100ths: 5000 } },
+      'cover.venetian',
+      'stopMotion',
+    );
+    expect(callServiceSpy).toHaveBeenCalledTimes(2);
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'stop_cover_tilt', 'cover.venetian');
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'stop_cover', 'cover.venetian', undefined);
+    vi.clearAllMocks();
+    await haPlatform.commandHandler(
+      { endpoint: liftTilt, request: {}, cluster: 'windowCovering', attributes: { targetPositionTiltPercent100ths: 5000, currentPositionTiltPercent100ths: 5000 } },
+      'cover.venetian',
+      'stopMotion',
+    );
+    expect(callServiceSpy).toHaveBeenCalledTimes(1);
+    expect(callServiceSpy).toHaveBeenCalledWith('cover', 'stop_cover', 'cover.venetian', undefined);
+
+    // Tilt only cover update: the movement goes to the tilt field and the tilt position is converted
+    const tiltState = { entity_id: 'cover.tilt_only', state: 'opening', attributes: { supported_features: 240, current_tilt_position: 30 } } as unknown as HassState;
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.tilt_only', tiltState, tiltState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(
+      WindowCovering.id,
+      'operationalStatus',
+      { global: WindowCovering.MovementStatus.Opening, tilt: WindowCovering.MovementStatus.Opening },
+      device.log,
+    );
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 7000, tiltOnly.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'targetPositionTiltPercent100ths', 7000, tiltOnly.log);
+
+    // Tilt only cover closed without current_tilt_position => tilt fully closed
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.tilt_only', tiltState, { ...tiltState, state: 'closed', attributes: { supported_features: 240 } } as unknown as HassState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'currentPositionTiltPercent100ths', 10000, tiltOnly.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering, 'targetPositionTiltPercent100ths', 10000, tiltOnly.log);
+
+    // Lift and tilt cover update: both positions are converted and the tilt is not derived from the state
+    const venetianState = {
+      entity_id: 'cover.venetian',
+      state: 'closed',
+      attributes: { supported_features: 255, current_position: 0, current_tilt_position: 50 },
+    } as unknown as HassState;
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.venetian', venetianState, venetianState);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionLiftPercent100ths', 10000, liftTilt.log);
+    expect(setAttributeMatterbridgeEndpointSpy).toHaveBeenCalledWith(WindowCovering.id, 'currentPositionTiltPercent100ths', 5000, liftTilt.log);
+    vi.clearAllMocks();
+    await haPlatform.updateHandler('tiltCovers', 'cover.venetian', venetianState, {
+      ...venetianState,
+      attributes: { supported_features: 255, current_position: 0 },
+    } as unknown as HassState);
+    expect(setAttributeMatterbridgeEndpointSpy).not.toHaveBeenCalledWith(expect.anything(), 'currentPositionTiltPercent100ths', expect.anything(), expect.anything());
+
+    haPlatform.matterbridgeDevices.delete('tiltCovers');
   });
 
   it('should fail calling onStart with reason', async () => {
@@ -1531,7 +1772,7 @@ describe('HassPlatform', () => {
       entity_id: 'binary_sensor.door_contact',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: ['matterbridge_select'],
+      labels: ['matterbridge_select', 'split'],
       name: null,
       original_name: 'Switch Contact Sensor',
       disabled_by: null,
@@ -1553,7 +1794,7 @@ describe('HassPlatform', () => {
       entity_id: 'unsupported.entity',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: ['matterbridge_select'],
+      labels: ['matterbridge_select', 'split'],
       name: null,
       original_name: 'Unsupported Entity',
       disabled_by: null,
@@ -1566,7 +1807,7 @@ describe('HassPlatform', () => {
       entity_id: 'sensor.no_state_entity',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: ['matterbridge_select'],
+      labels: ['matterbridge_select', 'split'],
       name: null,
       original_name: 'No State Entity',
       disabled_by: null,
@@ -1579,7 +1820,7 @@ describe('HassPlatform', () => {
       entity_id: 'sensor.no_name_entity',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: ['matterbridge_select'],
+      labels: ['matterbridge_select', 'split'],
       name: null,
       original_name: null,
       disabled_by: null,
@@ -1600,7 +1841,7 @@ describe('HassPlatform', () => {
       entity_id: 'binary_sensor.door_contact_2',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: ['matterbridge_select'],
+      labels: ['matterbridge_select', 'split'],
       name: null,
       original_name: 'Switch Contact Sensor',
       disabled_by: null,
@@ -1621,7 +1862,7 @@ describe('HassPlatform', () => {
       entity_id: 'switch.door_contact_2',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: ['matterbridge_select'],
+      labels: ['matterbridge_select', 'split'],
       name: null,
       original_name: 'Switch with contact 2',
       disabled_by: null,
@@ -1642,7 +1883,7 @@ describe('HassPlatform', () => {
       entity_id: 'sensor.door_contact_temperature',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: ['matterbridge_select'],
+      labels: ['matterbridge_select', 'split'],
       name: null,
       original_name: 'Switch with contact temperature',
       disabled_by: null,
@@ -1666,7 +1907,7 @@ describe('HassPlatform', () => {
       entity_id: 'sensor.door_contact_humidity',
       has_entity_name: true,
       id: '0b33a337cb83edefb1d310450ad2b0ac',
-      labels: [],
+      labels: ['split'],
       name: null,
       original_name: 'Switch with contact humidity',
       disabled_by: null,
@@ -1709,16 +1950,8 @@ describe('HassPlatform', () => {
     haPlatform.ha.emit('labels', [{ label_id: 'matterbridge_select', name: 'Matterbridge select' }] as HassLabel[]);
     await new Promise((resolve) => setTimeout(resolve, 100)); // Allow async event handling to complete
 
-    haPlatform.config.splitEntities = [
-      contactEntity.entity_id,
-      unsupportedEntity.entity_id,
-      nostateEntity.entity_id,
-      nonameEntity.entity_id,
-      duplicatednameEntity.entity_id,
-      switch2Entity.entity_id,
-      temperatureEntity.entity_id,
-      humidityEntity.entity_id,
-    ];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    haPlatform.config.splitByLabel = 'Split';
 
     // await setDebug(true);
 
@@ -1747,7 +1980,6 @@ describe('HassPlatform', () => {
     */
 
     // Cleanup the test environment
-    haPlatform.config.splitEntities = [];
     haPlatform.config.filterByArea = '';
     haPlatform.config.filterByLabel = '';
     haPlatform.ha.hassAreas.clear();
@@ -1777,8 +2009,6 @@ describe('HassPlatform', () => {
       attributes: { friendly_name: 'Friendly Restart router' },
     } as HassState;
     haPlatform.ha.hassStates.set(entity.entity_id, state);
-
-    haPlatform.config.splitEntities = [];
 
     // await setDebug(true);
     await haPlatform.onStart('Test reason');
@@ -1815,8 +2045,6 @@ describe('HassPlatform', () => {
     } as HassState;
     haPlatform.ha.hassStates.set(entity.entity_id, state);
 
-    haPlatform.config.splitEntities = [];
-
     // await setDebug(true);
     await haPlatform.onStart('Test reason');
 
@@ -1852,7 +2080,9 @@ describe('HassPlatform', () => {
     } as HassState;
     haPlatform.ha.hassStates.set(entity.entity_id, state);
 
-    haPlatform.config.splitEntities = [entity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    entity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     haPlatform.config.splitNameStrategy = 'Entity name';
 
     await haPlatform.onStart('Test reason');
@@ -1899,7 +2129,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
     haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
 
-    haPlatform.config.splitEntities = [switchEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    switchEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     haPlatform.config.splitNameStrategy = 'Entity name';
 
     await haPlatform.onStart('Test reason');
@@ -1910,6 +2142,90 @@ describe('HassPlatform', () => {
     );
     expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${switchEntity.original_name}${db}...`);
     expect(matterbridge.addBridgedEndpoint).toHaveBeenCalled();
+  });
+
+  it('should not register a Switch split entity with the same name of a registered device', async () => {
+    const device = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: 'd83398f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: 'Switch with single entity',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const switchEntity = {
+      area_id: null,
+      device_id: 'd83398f83188759ed7329e97df00ee7c',
+      disabled_by: null,
+      entity_category: null,
+      entity_id: 'switch.single_entity',
+      has_entity_name: true,
+      id: '0b33a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Switch single entity',
+    } as unknown as HassEntity;
+
+    const switchState = {
+      entity_id: switchEntity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch single entity',
+      },
+    } as unknown as HassState;
+
+    const serviceDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: 'service',
+      id: 'e94409f94299860fe8430f08ef11ff8d',
+      labels: [],
+      name: 'Service device',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const splitEntity = {
+      area_id: null,
+      device_id: 'e94409f94299860fe8430f08ef11ff8d',
+      disabled_by: null,
+      entity_category: null,
+      entity_id: 'switch.service_entity',
+      has_entity_name: true,
+      id: '1c44b448dc94fefe2e21561e1be3c1bd',
+      labels: [],
+      name: null,
+      original_name: 'Switch with single entity',
+    } as unknown as HassEntity;
+
+    const splitState = {
+      entity_id: splitEntity.entity_id,
+      state: 'off',
+      attributes: {
+        friendly_name: 'Switch with single entity',
+      },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(device.id, device);
+    haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
+    haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
+    haPlatform.ha.hassDevices.set(serviceDevice.id, serviceDevice);
+    haPlatform.ha.hassEntities.set(splitEntity.entity_id, splitEntity);
+    haPlatform.ha.hassStates.set(splitState.entity_id, splitState);
+
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    splitEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
+    haPlatform.config.splitNameStrategy = 'Entity name';
+
+    await haPlatform.onStart('Test reason');
+
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(
+      `Split entity ${CYAN}${splitEntity.entity_id}${wr} name "${CYAN}${splitEntity.original_name}${wr}" already exists as a registered device. Please change the name in Home Assistant.`,
+    );
   });
 
   it('should register a Switch split entity with friendly name', async () => {
@@ -1948,7 +2264,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
     haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
 
-    haPlatform.config.splitEntities = [switchEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    switchEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     haPlatform.config.splitNameStrategy = 'Friendly name';
 
     await haPlatform.onStart('Test reason');
@@ -1999,7 +2317,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(buttonEntity.entity_id, buttonEntity);
     haPlatform.ha.hassStates.set(buttonState.entity_id, buttonState);
 
-    haPlatform.config.splitEntities = [buttonEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    buttonEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     haPlatform.config.splitNameStrategy = 'Friendly name';
 
     await haPlatform.onStart('Test reason');
@@ -2050,7 +2370,9 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassEntities.set(switchEntity.entity_id, switchEntity);
     haPlatform.ha.hassStates.set(switchState.entity_id, switchState);
 
-    haPlatform.config.splitEntities = [switchEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    switchEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
     haPlatform.config.whiteList = [];
     haPlatform.config.blackList = [switchEntity.entity_id];
     haPlatform.config.deviceEntityBlackList = {};
@@ -2060,7 +2382,7 @@ describe('HassPlatform', () => {
     expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
     expect(matterbridge.addBridgedEndpoint).not.toHaveBeenCalled();
 
-    haPlatform.config.splitEntities = [];
+    haPlatform.config.splitByLabel = '';
     haPlatform.config.whiteList = [];
     haPlatform.config.blacklist = [];
     haPlatform.config.deviceEntityBlackList = {};
@@ -2105,7 +2427,9 @@ describe('HassPlatform', () => {
 
     // setDebug(true);
 
-    haPlatform.config.splitEntities = [switchEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    switchEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
 
     vi.spyOn(MutableDevice.prototype, 'create').mockImplementationOnce(() => {
       throw new Error('Jest test');
@@ -2161,7 +2485,9 @@ describe('HassPlatform', () => {
 
     // setDebug(true);
 
-    haPlatform.config.splitEntities = [sensorEntity.entity_id];
+    haPlatform.ha.hassLabels.set('split', { label_id: 'split', name: 'Split' } as HassLabel);
+    sensorEntity.labels = ['split'];
+    haPlatform.config.splitByLabel = 'Split';
 
     await haPlatform.onStart('Test reason');
 

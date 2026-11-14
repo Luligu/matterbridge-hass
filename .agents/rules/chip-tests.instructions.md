@@ -1,5 +1,6 @@
 ---
-description: 'How the CHIP conformance test harness works for a Matterbridge plugin v.1.0.0'
+name: 'CHIP Conformance Test Harness'
+description: 'How the CHIP conformance test harness works for a Matterbridge plugin v.1.0.1'
 ---
 
 # CHIP Conformance Test Harness

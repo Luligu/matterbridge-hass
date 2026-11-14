@@ -92,7 +92,7 @@ import {
 import type { ClusterId } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { ColorMode, type HassState, type HassStateFanAttributes, HomeAssistant, HVACMode, UnitOfTemperature } from './homeAssistant.js';
+import { ColorMode, CoverEntityFeature, type HassState, type HassStateFanAttributes, HomeAssistant, HVACAction, HVACMode, UnitOfTemperature } from './homeAssistant.js';
 
 /**
  * Returns the names of enabled bit-flag features for any numeric enum.
@@ -114,6 +114,23 @@ export function getFeatureNames<T extends Record<string, number | string>>(featu
       .filter(([_, value]) => typeof value === 'number' && (supported_features & value) !== 0)
       .map(([key]) => key)
   );
+}
+
+/**
+ * Detects the lift and tilt capabilities of a Home Assistant cover from its supported features and position attributes.
+ *
+ * @param {HassState['attributes']} attributes - The attributes of the cover state.
+ * @returns {{ lift: boolean; tilt: boolean }} The detected capabilities. A cover with no detectable capability is reported as lift only.
+ */
+export function getCoverCapabilities(attributes: HassState['attributes']): { lift: boolean; tilt: boolean } {
+  const features = isValidNumber(attributes.supported_features) ? attributes.supported_features : 0;
+  const liftFeatures = CoverEntityFeature.OPEN + CoverEntityFeature.CLOSE + CoverEntityFeature.SET_POSITION + CoverEntityFeature.STOP;
+  const tiltFeatures = CoverEntityFeature.OPEN_TILT + CoverEntityFeature.CLOSE_TILT + CoverEntityFeature.STOP_TILT + CoverEntityFeature.SET_TILT_POSITION;
+  // oxlint-disable-next-line no-bitwise
+  const lift = (features & liftFeatures) !== 0 || isValidNumber(attributes.current_position);
+  // oxlint-disable-next-line no-bitwise
+  const tilt = (features & tiltFeatures) !== 0 || isValidNumber(attributes.current_tilt_position);
+  return { lift: lift || !tilt, tilt };
 }
 
 /**
@@ -341,6 +358,59 @@ export function convertHAFanPresetModeToMatter(presetMode: HassStateFanAttribute
 }
 
 /**
+ * Thermostat features of a Matter endpoint, as created from the hvac_modes of the Home Assistant climate entity.
+ */
+export interface ThermostatFeatures {
+  /** The endpoint has the AutoMode feature (created from hvac_modes with heat_cool). */
+  autoMode: boolean;
+  /** The endpoint has the Heating feature. */
+  heating: boolean;
+  /** The endpoint has the Cooling feature. */
+  cooling: boolean;
+}
+
+/**
+ * Convert the Home Assistant climate 'auto' state (the device follows its own schedule or logic) to a Matter Thermostat systemMode.
+ * Matter has no schedule mode, so 'auto' is reported as the mode the thermostat can actually run in, based on the features
+ * the endpoint was created with (not on the live hvac_modes, which could ask for a mode the endpoint doesn't support):
+ * - AutoMode: Auto.
+ * - Heating only: Heat.
+ * - Cooling only: Cool.
+ * - Heating and cooling without AutoMode: follow hvac_action (heating => Heat, cooling => Cool), otherwise keep the current
+ *   systemMode unless it's Off, otherwise compare the target temperature with the current temperature (target >= current => Heat, otherwise Cool).
+ * - No heating and no cooling: leave systemMode unchanged.
+ *
+ * @param {ThermostatFeatures} features The Thermostat features of the endpoint.
+ * @param {Thermostat.SystemMode | undefined} currentSystemMode The current systemMode of the endpoint.
+ * @param {HassState} state The new Home Assistant state of the climate entity (state 'auto').
+ * @returns {Thermostat.SystemMode | undefined} The systemMode to set, or undefined to leave systemMode unchanged.
+ */
+export function convertHAClimateAutoToMatter(
+  features: ThermostatFeatures,
+  currentSystemMode: Thermostat.SystemMode | undefined,
+  state: HassState,
+): Thermostat.SystemMode | undefined {
+  // The thermostat can switch between heating and cooling by itself: this is the Matter equivalent.
+  if (features.autoMode) return Thermostat.SystemMode.Auto;
+  // Single mode thermostats: 'auto' can only run in that mode.
+  if (features.heating && !features.cooling) return Thermostat.SystemMode.Heat;
+  if (features.cooling && !features.heating) return Thermostat.SystemMode.Cool;
+  // Neither heating nor cooling: nothing sensible to report.
+  if (!features.heating || !features.cooling) return undefined;
+
+  // Heating and cooling without AutoMode: 1) use what the device is doing right now.
+  if (state.attributes['hvac_action'] === HVACAction.HEATING) return Thermostat.SystemMode.Heat;
+  if (state.attributes['hvac_action'] === HVACAction.COOLING) return Thermostat.SystemMode.Cool;
+  // 2) The device is idle (or doesn't report hvac_action): keep the current mode if it's an active one.
+  if (currentSystemMode !== undefined && currentSystemMode !== Thermostat.SystemMode.Off) return undefined;
+  // 3) The current mode is Off: guess the direction from the target and current temperatures (same unit, no conversion needed).
+  const target = state.attributes['temperature'];
+  const current = state.attributes['current_temperature'];
+  if (!isValidNumber(target) || !isValidNumber(current)) return undefined;
+  return target >= current ? Thermostat.SystemMode.Heat : Thermostat.SystemMode.Cool;
+}
+
+/**
  * Returns the selected Home Assistant option for a Matter mode change request.
  *
  * @param {Record<string, unknown>} request - Matter command payload containing the target mode index.
@@ -396,7 +466,7 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
     { domain: 'climate', state: 'heat', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.Heat },
     { domain: 'climate', state: 'cool', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.Cool },
     { domain: 'climate', state: 'heat_cool', clusterId: Thermostat.id, attribute: 'systemMode', value: Thermostat.SystemMode.Auto },
-    { domain: 'climate', state: 'auto', clusterId: undefined, attribute: '', value: null }, // 'auto' is not updated directly
+    { domain: 'climate', state: 'auto', clusterId: undefined, attribute: '', value: null }, // 'auto' depends on the endpoint features: it's handled in updateHandler with convertHAClimateAutoToMatter()
 
     { domain: 'valve', state: 'opening', clusterId: ValveConfigurationAndControl.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Transitioning },
     { domain: 'valve', state: 'open', clusterId: ValveConfigurationAndControl.id, attribute: 'currentState', value: ValveConfigurationAndControl.ValveState.Open },
@@ -477,9 +547,12 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     // oxlint-disable-next-line typescript/no-unnecessary-boolean-literal-compare
     { domain: 'fan', with: 'oscillating', clusterId: FanControl.id, attribute: 'rockSetting', converter: (value: boolean) => (isValidBoolean(value) ? value === true ? { rockLeftRight: false, rockUpDown: false, rockRound: true } : { rockLeftRight: false, rockUpDown: false, rockRound: false } : null) },
 
-    // Matter WindowCovering: 0 = open 10000 = closed
+    // Matter WindowCovering lift and tilt: 0 = fully open 10000 = fully closed
+    // Hass cover current_position and current_tilt_position: 0 = fully closed 100 = fully open
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.id, attribute: 'currentPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
     { domain: 'cover', with: 'current_position', clusterId: WindowCovering.id, attribute: 'targetPositionLiftPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
+    { domain: 'cover', with: 'current_tilt_position', clusterId: WindowCovering.id, attribute: 'currentPositionTiltPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
+    { domain: 'cover', with: 'current_tilt_position', clusterId: WindowCovering.id, attribute: 'targetPositionTiltPercent100ths', converter: (value: number) => (isValidNumber(value, 0, 100) ? Math.round(10000 - value * 100) : null) },
 
     { domain: 'climate', with: 'temperature',         clusterId: Thermostat.id, attribute: 'occupiedHeatingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.state === HVACMode.HEAT || (state.state === HVACMode.AUTO && state.attributes?.hvac_modes?.includes(HVACMode.HEAT))) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
     { domain: 'climate', with: 'temperature',         clusterId: Thermostat.id, attribute: 'occupiedCoolingSetpoint', converter: (value: number, state: HassState) => (isValidNumber(value) && (state.state === HVACMode.COOL || (state.state === HVACMode.AUTO && state.attributes?.hvac_modes?.includes(HVACMode.COOL))) ? Math.round(temp(value, HomeAssistant.hassConfig?.unit_system?.temperature) * 100) : null) },
@@ -610,6 +683,7 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'downOrClose',             domain: 'cover', service: 'close_cover' },
     { command: 'stopMotion',              domain: 'cover', service: 'stop_cover' },
     { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
+    { command: 'goToTiltPercentage',      domain: 'cover', service: 'set_cover_tilt_position', converter: (request) => { return { tilt_position: Math.round(100 - request.tiltPercent100thsValue / 100) } } },
 
     { command: 'open',                    domain: 'valve', service: 'set_valve_position', converter: (request) => { return { position: Math.round(request.targetLevel) } } },
     { command: 'close',                   domain: 'valve', service: 'close_valve' },

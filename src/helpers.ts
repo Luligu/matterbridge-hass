@@ -116,7 +116,7 @@ export function entityHasLabel(platform: HomeAssistantPlatform, entity: HassEnti
 }
 
 /**
- * Checks if a given entity is a split entity based on the platform split configuration.
+ * Checks if a given entity is a split entity, i.e. it has the label set in the platform splitByLabel config.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
  * @param {HassEntity} entity - The Home Assistant entity to check.
@@ -129,12 +129,11 @@ export function isSplitEntity(platform: HomeAssistantPlatform, entity: HassEntit
     !isValidObject(platform.ha) ||
     !isValidObject(platform.ha.hassLabels) ||
     !isValidObject(entity) ||
-    !isValidArray(platform.config.splitEntities) ||
     !isValidString(platform.config.splitByLabel)
   ) {
     return false;
   }
-  return platform.config.splitEntities.includes(entity.entity_id) || entityHasLabel(platform, entity, platform.config.splitByLabel);
+  return entityHasLabel(platform, entity, platform.config.splitByLabel);
 }
 
 /**
@@ -319,6 +318,28 @@ export function getEntityName(platform: HomeAssistantPlatform, entity: HassEntit
   return platform.config.splitNameStrategy === 'Friendly name'
     ? (state.attributes?.friendly_name ?? entity.name ?? entity.original_name ?? null)
     : (entity.name ?? entity.original_name ?? state.attributes?.friendly_name ?? null);
+}
+
+/**
+ * Returns the device name with the configured namePostfix, as it is registered in Matterbridge.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {string} name - The device or entity name.
+ * @returns {string} - The name with ' <namePostfix>' appended when the namePostfix is nonempty.
+ */
+export function getPostfixedName(platform: HomeAssistantPlatform, name: string): string {
+  return name + (platform.config.namePostfix ? ' ' + platform.config.namePostfix : '');
+}
+
+/**
+ * Returns the serial number with the configured postfix, limited to 32 characters.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {string} serial - The device or entity serial number.
+ * @returns {string} - The truncated serial with the postfix appended.
+ */
+export function getPostfixedSerial(platform: HomeAssistantPlatform, serial: string): string {
+  return serial.slice(0, 32 - platform.config.postfix.length) + platform.config.postfix;
 }
 
 /**

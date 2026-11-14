@@ -35,7 +35,7 @@ Features:
 - It is possible to select from a list the individual entities to include in the white or black list. Select by name, id or entity_id.
 - It is possible to select from a list the devices to include in the white or black list. Select by name or id.
 - It is possible to select from a list the entities to include in the device entity black list.
-- It is possible to pickup from a list the split entities or to select them adding a label.
+- It is possible to select the split entities adding a label.
 - It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
 - Support **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
 - Support **transition time**.
@@ -76,7 +76,7 @@ Pair Matterbridge to your controller.
 | light        | on, off                                    | brightness, color_mode, color_temp_kelvin, hs_color, xy_color                           |
 | lock         | locked, locking, unlocking, unlocked       |                                                                                         |
 | fan          | on, off                                    | percentage, preset_mode (1), direction, oscillating                                     |
-| cover        | open, closed, opening, closing             | current_position                                                                        |
+| cover (3)    | open, closed, opening, closing             | current_position, current_tilt_position                                                 |
 | climate      | off, heat, cool, heat_cool, auto           | current_temperature, temperature, target_temp_low, target_temp_high, min_temp, max_temp |
 | valve        | open, closed, opening, closing             | current_position                                                                        |
 | vacuum (2)   | idle, cleaning, paused, docked, returning  |                                                                                         |
@@ -88,6 +88,8 @@ Pair Matterbridge to your controller.
 (1) - Supported preset_modes: auto, low, medium, high.
 
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
+
+(3) - Covers supporting tilt are exposed with the Matter Tilt feature (lift and tilt, or tilt only). Covers without `current_position` (i.e. garage doors) report fully open or fully closed from their state.
 
 If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
 
@@ -250,15 +252,15 @@ Filter devices and individual entities by label. If enabled, only devices, indiv
 
 ### Whitelist
 
-If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name or the device/entity id.
+If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
 
 ### Blacklist
 
-If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name or the device/entity id.
+If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
 
 ### Device Entity Blacklist
 
-List of entities not to be exposed for a single device. Enter in the first field the name of the device and in the second field add all the entity names you want to exclude for that device.
+List of entities not to be exposed for a single device. Enter in the first field the name of the device (with `namePostfix` when set) and in the second field add all the entity names (`entity_id`) you want to exclude for that device.
 
 ### Domain Whitelist
 
@@ -268,11 +270,9 @@ Only entities whose domain is listed here will be exposed. Leave this list empty
 
 Entities whose domain is listed here will be excluded. Leave this list empty to exclude no domains. Enter the domain name (i.e. automation, scene, button).
 
-### Split Entities
+### Split By Label
 
-> DEPRECATED: use `Split By Label`
-
-The device entities in the list will be exposed like an independent device and removed from their device. Use the entity id (i.e. switch.plug_child_lock).
+Any device entity with this label will be exposed like an independent device and removed from its device. Use the label name (i.e. Split).
 
 Let's make an example.
 
@@ -286,7 +286,8 @@ Without further setup, the controller will show 2 switch with the same name (dif
 
 Solution:
 
-- add switch.computer_plug_child_lock (use entity_id) to splitEntities and restart.
+- create a label (i.e. Split) in Home Assistant, set it in splitByLabel and restart.
+- add the label Split to switch.computer_plug_child_lock in Home Assistant and restart.
 - if you use the whiteList, select your switch.computer_plug_child_lock (will show up with the entity name "Computer plug Child lock") and restart.
 
 In this way, the controller will show one switch with name "Computer plug" and a second with name "Computer plug Child lock".
@@ -295,17 +296,11 @@ If you don't need the device temperature, just add it to deviceEntityBlackList.
 
 If you want a more technical explanation for the naming issues (expecially upsetting with Alexa) read the explanation [here](https://github.com/Luligu/matterbridge-hass/discussions/86).
 
-> **Adding an entity to splitEntities doesn't automatically add it to the whiteList, so it must be added manually if you use the whiteList.**
-
-> **If you enable the filters (area and label), the split entity must also satisfy the filter criteria.**
-
-### Split By Label
-
-Any device entity with this label will be split. This is faster to setup then splitEntities on huge setups.
-
 > **Adding splitByLabel to an entity doesn't automatically add it to the whiteList, so it must be added manually if you use the whiteList.**
 
 > **If you enable the filters (area and label), the split entity must also satisfy the filter criteria.**
+
+> **The old splitEntities option has been removed in v.1.7.0. If it is still in your config, it is ignored and removed.**
 
 ### Split Name Strategy
 
@@ -314,6 +309,14 @@ Strategy used for split entity names. "Entity name": use the entity name (i.e. C
 ### Controller Strategy
 
 Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not strictly compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
+
+### Name Postfix
+
+Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The `whiteList`, `blackList` and `deviceEntityBlackList` must use the names with the postfix.
+
+### Serial Postfix
+
+Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The `whiteList` and `blackList` must use the ids with the postfix (the `entity_id` is used as is).
 
 ### Air Quality Regex
 
@@ -432,6 +435,6 @@ Licensed under the [Apache License 2.0](./LICENSE).
 
 ## Support the project
 
-If you find this project useful, please consider giving it a star on GitHub and sponsoring it. Your support helps maintain and improve the project.
+If you find this project useful, please consider giving it a star on [GitHub](https://github.com/Luligu/matterbridge-hass) and sponsoring it. Your support helps maintain and improve the project.
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://www.buymeacoffee.com/luligugithub)
