@@ -63,8 +63,6 @@ Without authorization, or when in doubt about whether authorization is required,
 
 ## Additional Agent Guidance
 
-Before doing anything in this repo, read `~/.agents/AGENTS.md` and apply it.
-
 For task-specific guidance, read relevant files in [.agents/rules](./.agents/rules/):
 
 - `.agents/rules/testing.instructions.md` for testing and validation expectations;

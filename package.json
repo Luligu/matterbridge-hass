@@ -117,9 +117,9 @@
     "prepublishOnly": "npm run cleanBuildProduction && node scripts/prepublish-clean.mjs && npm install --no-fund --no-audit --omit=dev && npm shrinkwrap --omit=dev"
   },
   "dependencies": {
-    "node-ansi-logger": "3.3.1",
-    "node-persist-manager": "2.1.1",
-    "ws": "8.22.2"
+    "node-ansi-logger": "3.3.2",
+    "node-persist-manager": "2.1.2",
+    "ws": "8.23.0"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
@@ -127,7 +127,7 @@
     "@vitest/coverage-v8": "5.1.0",
     "oxfmt": "0.78.0",
     "oxlint": "1.93.0",
-    "oxlint-tsgolint": "7.0.2006",
+    "oxlint-tsgolint": "7.0.2007",
     "typescript": "7.0.2",
     "vitest": "5.1.0"
   }

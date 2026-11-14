@@ -1,4 +1,4 @@
-// VS Code settings v.1.0.19
+// VS Code settings v.1.0.21
 {
   "eslint.enable": false,
   "prettier.enable": false,
@@ -21,8 +21,8 @@
     "source.format.oxc": "always",
     "source.fixAll.oxc": "always"
   },
-  "vitest.configSearchPatternExclude": "{**/node_modules/**,**/template/**}",
   "diffEditor.ignoreTrimWhitespace": false,
+  "vitest.configSearchPatternExclude": "{**/node_modules/**,**/vendor/**,**/.*/**,**/*.d.ts,**/template/**}",
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
@@ -49,8 +49,12 @@
   "github.copilot.chat.commitMessageGeneration.instructions": [{ "file": ".github/commit-message-instructions.md" }], // Conventional Commits for the Source Control "Generate Commit Message" button.
   "chat.tools.urls.autoApprove": {
     // Allow chat tools to access these domains without approval.
+    "api.github.com": true,
     "github.com": true,
-    "matterbridge.io": true
+    "registry.npmjs.org": true,
+    "matterbridge.io": true,
+    "www.rfc-editor.org": true,
+    "www.ietf.org": true
   },
   "chat.permissions.default": "autoApprove", // Automatically approve permissions by default.
   "chat.agent.sandbox.enabled": "on", // Run agent commands in the sandbox.

@@ -41,11 +41,11 @@ If you like this project and find it useful, please consider giving it a star on
 
 ### Changed
 
-- [package]: Bump `ws` to v.8.22.2.
+- [package]: Bump `ws` to v.8.23.0.
 - [package]: Bump `@vitest/coverage-v8` to v.5.1.0.
 - [package]: Bump `oxfmt` to v.0.78.0.
 - [package]: Bump `oxlint` to v.1.93.0.
-- [package]: Bump `oxlint-tsgolint` to v.7.0.2006.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2007.
 - [package]: Bump `vitest` to v.5.1.0.
 - [agents]: Update `.agents/README.md` to v.1.0.6.
 - [agents]: Update `.agents/rules/chip-tests.instructions.md` to v.1.0.1.
@@ -54,9 +54,9 @@ If you like this project and find it useful, please consider giving it a star on
 - [agents]: Update `.agents/rules/testing.instructions.md` to v.1.0.8.
 - [agents]: Update `.agents/skills/verify-agent-context/SKILL.md` to v.1.0.6.
 - [agents]: Update `.antigravity/settings.json` to v.1.0.6.
-- [agents]: Update `.claude/settings.json` to v.1.0.11.
-- [codex]: Update `.codex/config.toml` to v.1.0.7.
-- [codex]: Update `.codex/rules/default.rules` to v.1.0.7.
+- [agents]: Update `.claude/settings.json` to v.1.0.12.
+- [codex]: Update `.codex/config.toml` to v.1.0.8.
+- [codex]: Update `.codex/rules/default.rules` to v.1.0.8.
 - [workflows]: Update `.github/workflows/build.yml` to v.2.0.8.
 - [workflows]: Update `.github/workflows/codecov.yml` to v.2.0.8.
 - [workflows]: Update `.github/workflows/codeql.yml` to v.2.0.0.
@@ -64,10 +64,14 @@ If you like this project and find it useful, please consider giving it a star on
 - [config]: Update `.gitignore` to v.1.0.5.
 - [config]: Update `.oxfmtrc.json` to v.1.2.0.
 - [config]: Update `.oxlintrc.json` to v.1.2.0.
-- [vscode]: Update `.vscode/settings.json` to v.1.0.18.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.21.
 - [agents]: Update `AGENTS.md` to v.1.0.12.
 - [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
 - [config]: Update `vitest.config.ts` to v.2.0.9.
+- [package]: Bump `node-ansi-logger` to v.3.3.2.
+- [package]: Bump `node-persist-manager` to v.2.1.2.
+- [vscode]: Update `.vscode/extensions.json` to v.1.0.6.
+- [styleguide]: Update `STYLEGUIDE.md` to v.1.1.1.
 
 ### Fixed
 
