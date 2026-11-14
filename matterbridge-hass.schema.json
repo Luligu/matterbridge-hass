@@ -207,6 +207,44 @@
       "type": "boolean",
       "default": true
     },
+    "serverModeDomains": {
+      "title": "Server Mode Domains",
+      "description": "Domains of individual/split entities that are exposed in server mode: every entity gets its own Matter node with its own QR code and pairs independently (e.g. ['switch','sensor']). Needed by controllers that only add the first device behind a bridge, mainly LG ThinQ (Samsung SmartThings also works well with individual nodes).",
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true,
+      "default": []
+    },
+    "deviceIdentityRules": {
+      "title": "Device Identity Rules",
+      "description": "Override vendor/product of individual/split entities. First matching rule wins; 'match' is a substring of the entity_id. Example: LG ThinQ only accepts devices with an identity from the CSA DCL (vendorId 4142, productId 8800 for a smart plug).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domain": { "title": "Domain", "type": "string" },
+          "match": { "title": "entity_id contains", "type": "string" },
+          "vendorId": { "title": "Vendor ID", "type": "integer", "minimum": 0, "maximum": 65535 },
+          "vendorName": { "title": "Vendor name", "type": "string", "maxLength": 32 },
+          "productId": { "title": "Product ID", "type": "integer", "minimum": 0, "maximum": 65535 }
+        },
+        "required": ["vendorId", "vendorName", "productId"]
+      },
+      "default": []
+    },
+    "entityNameOverrides": {
+      "title": "Entity Name Overrides",
+      "description": "Map of entity_id substring to the name shown on the controller, e.g. {\"boiler_temp\": \"Boiler temperature\"}.",
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "default": {}
+    },
+    "entityNameAsProductName": {
+      "title": "Entity Name As Product Name",
+      "description": "Use the entity name as the Matter product name instead of the domain. Some controllers (Samsung SmartThings, LG ThinQ) show the product name for server mode nodes.",
+      "type": "boolean",
+      "default": false
+    },
     "discardHiddenEntities": {
       "title": "Discard Hidden Entities",
       "description": "Discard entities with 'hidden' attribute set to true. This will prevent the plugin from exposing entities that are hidden in Home Assistant.",

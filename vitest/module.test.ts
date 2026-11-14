@@ -298,6 +298,10 @@ describe('HassPlatform', () => {
       postfix: '',
       airQualityRegex: '',
       enableServerRvc: true,
+      serverModeDomains: [],
+      deviceIdentityRules: [],
+      entityNameOverrides: {},
+      entityNameAsProductName: false,
       discardHiddenEntities: false,
       virtualControlLabel: '',
       debug: false,
@@ -332,6 +336,10 @@ describe('HassPlatform', () => {
       postfix: 'CD',
       airQualityRegex: '^sensor\\..*_air_quality$',
       enableServerRvc: false,
+      serverModeDomains: ['switch'],
+      deviceIdentityRules: [{ domain: 'switch', match: 'plug', vendorId: 4142, vendorName: 'LG', productId: 8800 }],
+      entityNameOverrides: { boiler_temp: 'Boiler temperature' },
+      entityNameAsProductName: true,
       discardHiddenEntities: true,
       virtualControlLabel: 'Virtual',
       debug: true,
@@ -341,6 +349,30 @@ describe('HassPlatform', () => {
     expect(platform.onboarding).toBe(true);
     expect(platform.config).toEqual(config);
     snackbarSpy.mockRestore();
+  });
+
+  it('should resolve the identity of an entity from the config rules', async () => {
+    const platform = new HomeAssistantPlatform(matterbridge, log, {
+      ...mockConfig,
+      entityNameAsProductName: true,
+      deviceIdentityRules: [
+        { domain: 'switch', match: 'plug', vendorId: 4142, vendorName: 'LG', productId: 8800 },
+        { domain: 'sensor', vendorId: 4142, vendorName: 'LG', productId: 8192 },
+        { domain: 'bad', vendorId: 70000, vendorName: 'X', productId: 1 },
+      ],
+      entityNameOverrides: { boiler_temp: 'Boiler temperature' },
+    });
+    const identity = (platform as unknown as { getEntityIdentity: (e: string, d: string, n: string) => Record<string, unknown> }).getEntityIdentity.bind(platform);
+    expect(identity('switch.kitchen_plug', 'switch', 'Kitchen')).toEqual({ name: 'Kitchen', vendorId: 4142, vendorName: 'LG', productId: 8800, productName: 'Kitchen' });
+    expect(identity('sensor.boiler_temp', 'sensor', 'Temp')).toEqual({
+      name: 'Boiler temperature',
+      vendorId: 4142,
+      vendorName: 'LG',
+      productId: 8192,
+      productName: 'Boiler temperature',
+    });
+    expect(identity('switch.lamp', 'switch', 'Lamp')).toEqual({ name: 'Lamp', vendorId: 0xfff1, vendorName: 'HomeAssistant', productId: 0x8000, productName: 'Lamp' });
+    expect(platform.config.deviceIdentityRules).toHaveLength(2);
   });
 
   it('should initialize platform with config name', async () => {
