@@ -1,6 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "_comment": "Claude settings v.1.0.9",
+  "_comment": "Claude settings v.1.0.11",
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "excludedCommands": ["npm run test*", "npm run test:bun*"],
+    "network": {
+      "allowLocalBinding": true,
+      "allowedDomains": ["api.github.com", "matterbridge.io"]
+    }
+  },
   "permissions": {
     "deny": [
       "Read(.env)",
@@ -10,9 +19,7 @@
       "Read(**/secrets/**)",
       "Bash(git pull:*)",
       "Bash(git merge:*)",
-      "Bash(git push:*)",
       "Bash(git rebase:*)",
-      "Bash(git commit:*)",
       "Bash(git reset:*)",
       "Bash(git filter-branch:*)",
       "Bash(git branch -D:*)",
@@ -33,6 +40,8 @@
       "Bash(tsc:*)"
     ],
     "ask": [
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
       "Bash(npm install:*)",
       "Bash(npm i:*)",
       "Bash(npm uninstall:*)",

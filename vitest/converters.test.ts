@@ -11,10 +11,12 @@ import { AirQuality, FanControl, PowerSource, Thermostat } from 'matterbridge/ma
 
 import {
   clamp,
+  convertHAClimateAutoToMatter,
   convertHAFanPresetModeToMatter,
   convertHAFanPresetModesToMatter,
   convertHAXYToMatter,
   convertMatterXYToHA,
+  getCoverCapabilities,
   getFeatureNames,
   hassCommandConverter,
   hassDomainBinarySensorsConverter,
@@ -54,6 +56,17 @@ function createSelectState(options: string[]): HassState {
 }
 
 describe('HassPlatform converters', () => {
+  it('should detect the cover lift and tilt capabilities', () => {
+    expect(getCoverCapabilities({} as HassState['attributes'])).toEqual({ lift: true, tilt: false });
+    expect(getCoverCapabilities({ supported_features: 3 } as HassState['attributes'])).toEqual({ lift: true, tilt: false });
+    expect(getCoverCapabilities({ supported_features: 15, current_position: 50 } as HassState['attributes'])).toEqual({ lift: true, tilt: false });
+    expect(getCoverCapabilities({ supported_features: 240 } as HassState['attributes'])).toEqual({ lift: false, tilt: true });
+    expect(getCoverCapabilities({ supported_features: 207 } as HassState['attributes'])).toEqual({ lift: true, tilt: true });
+    expect(getCoverCapabilities({ supported_features: 255 } as HassState['attributes'])).toEqual({ lift: true, tilt: true });
+    expect(getCoverCapabilities({ current_tilt_position: 50 } as HassState['attributes'])).toEqual({ lift: false, tilt: true });
+    expect(getCoverCapabilities({ current_position: 10, current_tilt_position: 50 } as HassState['attributes'])).toEqual({ lift: true, tilt: true });
+  });
+
   it('should return the feature names for supported features', () => {
     expect(getFeatureNames(FanEntityFeature, 0)).toEqual([]);
     // oxlint-disable-next-line unicorn/no-useless-undefined
@@ -206,10 +219,11 @@ describe('HassPlatform converters', () => {
         converter.converter(false, {} as HassState);
         converter.converter('wrong', {} as HassState);
       }
-      if (converter.domain === 'cover' && converter.with === 'current_position') {
+      if (converter.domain === 'cover' && (converter.with === 'current_position' || converter.with === 'current_tilt_position')) {
         expect(converter.converter(0, {} as HassState)).toBe(10000);
         expect(converter.converter(100, {} as HassState)).toBe(0);
         expect(converter.converter(-1, {} as HassState)).toBe(null);
+        expect(converter.converter(undefined, {} as HassState)).toBe(null);
       }
       if (converter.domain === 'climate' && converter.with === 'temperature') {
         expect(converter.converter(20, { state: HVACMode.AUTO, attributes: { hvac_modes: [HVACMode.HEAT, HVACMode.COOL] } } as HassState)).toBe(2000);
@@ -349,6 +363,11 @@ describe('HassPlatform converters', () => {
       }
       if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_position') {
         expect(converter.converter({ liftPercent100thsValue: 0 }, {})).toEqual({ position: 100 });
+      }
+      if (converter.converter && converter.domain === 'cover' && converter.service === 'set_cover_tilt_position') {
+        expect(converter.converter({ tiltPercent100thsValue: 10000 }, {})).toEqual({ tilt_position: 0 });
+        expect(converter.converter({ tiltPercent100thsValue: 3000 }, {})).toEqual({ tilt_position: 70 });
+        expect(converter.converter({ tiltPercent100thsValue: 0 }, {})).toEqual({ tilt_position: 100 });
       }
       if (converter.converter && converter.domain === 'valve' && converter.service === 'set_valve_position') {
         expect(converter.converter({ targetLevel: 100 }, {})).toEqual({ position: 100 });
@@ -597,6 +616,61 @@ describe('HassPlatform converters', () => {
     it('should return Off for an invalid string length', () => {
       expect(convertHAFanPresetModeToMatter('' as any)).toBe(FanControl.FanMode.Off);
       expect(convertHAFanPresetModeToMatter('x' as any)).toBe(FanControl.FanMode.Off);
+    });
+  });
+
+  describe('convertHAClimateAutoToMatter', () => {
+    it('should return Auto when the endpoint has the AutoMode feature', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: true, heating: true, cooling: true }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Auto);
+    });
+
+    it('should return Heat when the endpoint is heating only', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: false }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Heat);
+    });
+
+    it('should return Cool when the endpoint is cooling only', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: false, cooling: true }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Cool);
+    });
+
+    it('should return undefined when the endpoint has neither heating nor cooling', () => {
+      const state = { state: 'auto', attributes: {} } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: false, cooling: false }, Thermostat.SystemMode.Off, state)).toBeUndefined();
+    });
+
+    it('should follow hvac_action when the endpoint is heating and cooling without AutoMode', () => {
+      const heating = { state: 'auto', attributes: { hvac_action: 'heating' } } as unknown as HassState;
+      const cooling = { state: 'auto', attributes: { hvac_action: 'cooling' } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Cool, heating)).toBe(Thermostat.SystemMode.Heat);
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Heat, cooling)).toBe(Thermostat.SystemMode.Cool);
+    });
+
+    it('should return undefined when idle and the current systemMode is Heat or Cool', () => {
+      const state = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 18, current_temperature: 22 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Heat, state)).toBeUndefined();
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Cool, state)).toBeUndefined();
+    });
+
+    it('should return Heat when idle, the current systemMode is Off and the target is not below the current temperature', () => {
+      const above = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 21, current_temperature: 19 } } as unknown as HassState;
+      const equal = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 21, current_temperature: 21 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, above)).toBe(Thermostat.SystemMode.Heat);
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, equal)).toBe(Thermostat.SystemMode.Heat);
+    });
+
+    it('should return Cool when idle, the current systemMode is Off or unknown and the target is below the current temperature', () => {
+      const state = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 20, current_temperature: 23 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, state)).toBe(Thermostat.SystemMode.Cool);
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, undefined, state)).toBe(Thermostat.SystemMode.Cool);
+    });
+
+    it('should return undefined when the current systemMode is Off and a temperature is missing', () => {
+      const noCurrent = { state: 'auto', attributes: { hvac_action: 'idle', temperature: 21 } } as unknown as HassState;
+      const noTarget = { state: 'auto', attributes: { hvac_action: 'idle', current_temperature: 19 } } as unknown as HassState;
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, noCurrent)).toBeUndefined();
+      expect(convertHAClimateAutoToMatter({ autoMode: false, heating: true, cooling: true }, Thermostat.SystemMode.Off, noTarget)).toBeUndefined();
     });
   });
 });

@@ -1,5 +1,6 @@
 ---
-description: 'Testing standards for unit tests in the project v.1.0.7'
+name: 'Testing Standards'
+description: 'Testing standards for unit tests in the project v.1.0.8'
 ---
 
 # Testing Standards for Unit Tests

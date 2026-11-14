@@ -34,6 +34,7 @@ import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matt
 import {
   convertHAFanPresetModesToMatter,
   convertHAFanPresetModeToMatter,
+  getCoverCapabilities,
   getFeatureNames,
   hassCommandConverter,
   hassDomainConverter,
@@ -46,6 +47,7 @@ import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
+  CoverEntityFeature,
   DEFAULT_MAX_KELVIN,
   DEFAULT_MAX_TEMP,
   DEFAULT_MIN_KELVIN,
@@ -270,6 +272,16 @@ export function addControlEntity(
         });
       });
     }
+  }
+
+  // Configure the cover. Lift only covers use the default WindowCovering cluster server, covers with tilt need the Tilt feature.
+  if (domain === 'cover') {
+    const { lift, tilt } = getCoverCapabilities(state.attributes);
+    platform.log.debug(
+      `# cover device ${CYAN}${entity.entity_id}${db} lift: ${CYAN}${lift}${db} tilt: ${CYAN}${tilt}${db} supported_features: ${CYAN}${getFeatureNames(CoverEntityFeature, state.attributes.supported_features)}${db}`,
+    );
+    if (lift && tilt) mutableDevice.addLiftTiltWindowCovering(endpointName);
+    else if (tilt) mutableDevice.addTiltWindowCovering(endpointName);
   }
 
   // Configure the valve.

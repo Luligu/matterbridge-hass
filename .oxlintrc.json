@@ -1,7 +1,7 @@
-// .oxlintrc.json 1.2.0
+// .oxlintrc.json v.1.2.0
 
 // This Oxlint configuration (shared between all matterbridge packages) is designed for a TypeScript project using ESM modules (Node.js) and a Vite/React/TypeScript frontend (browser).
-// Oxlint respect .gitignore.
+// Oxlint respects .gitignore.
 // Package specific directories and files that should be ignored are merged by mb-run --upgrade from the automator.ignore.oxlint value in the root package.json.
 
 // The base rules target the Node.js packages; the overrides below adapt them per area:

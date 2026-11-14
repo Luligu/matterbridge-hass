@@ -21,7 +21,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
-import { CYAN, db, dn, idn, LogLevel, nf, rs } from 'matterbridge/logger';
+import { CYAN, db, dn, idn, LogLevel, nf, rs, wr } from 'matterbridge/logger';
+import { PowerSource } from 'matterbridge/matter/clusters';
 import { VendorId } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -226,6 +227,8 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.blackList = [];
     mockConfig.entityWhiteList = [];
     mockConfig.entityBlackList = [];
+    mockConfig.categoryWhiteList = [];
+    mockConfig.categoryBlackList = [];
     mockConfig.deviceEntityBlackList = {};
     mockConfig.splitEntities = [];
     mockConfig.splitByLabel = '';
@@ -260,6 +263,98 @@ describe('Matterbridge ' + NAME, () => {
     haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
     haPlatform.ha.hassConfig = {} as HassConfig; // Simulate Home Assistant configuration
     haPlatform.ha.hassServices = {}; // Simulate Home Assistant services
+  });
+
+  it.each(['individual', 'device', 'split'] as const)('should filter categories when discovering %s entities', async (kind) => {
+    const device = kind === 'individual' ? null : generateDevice(haPlatform.ha, 'Category device');
+    const allowed = generateEntity(haPlatform.ha, 'Allowed switch', 'switch', device, null, [], 'off');
+    const excluded = generateEntity(haPlatform.ha, 'Diagnostic switch', 'switch', device, null, [], 'off');
+    excluded.entity_category = 'diagnostic';
+    haPlatform.config.categoryWhiteList = ['none', 'diagnostic'];
+    haPlatform.config.categoryBlackList = ['diagnostic'];
+    haPlatform.config.controllerStrategy = 'Matter';
+    if (kind === 'split') haPlatform.config.splitEntities = [allowed.entity_id, excluded.entity_id];
+
+    await haPlatform.onStart('Test reason');
+
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(kind === 'device' && device ? device.id : allowed.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(excluded.entity_id)).toBe(false);
+    expect([...haPlatform.endpointNames.keys()]).toEqual([allowed.entity_id]);
+    expect(aggregator.parts.size).toBe(1);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])('should ignore diagnostic battery metadata when a retained switch is present: %s', async (hasSwitch) => {
+    const device = generateDevice(haPlatform.ha, 'Battery device');
+    const battery = generateEntity(haPlatform.ha, 'Battery', 'sensor', device, null, [], '80', { device_class: 'battery', unit_of_measurement: '%' });
+    battery.entity_category = 'diagnostic';
+    const retained = hasSwitch ? generateEntity(haPlatform.ha, 'Retained switch', 'switch', device, null, [], 'off') : undefined;
+    haPlatform.config.categoryBlackList = ['diagnostic'];
+
+    await haPlatform.onStart('Test reason');
+
+    expect(addClusterServerBatteryPowerSourceSpy).not.toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(hasSwitch ? 1 : 0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(hasSwitch ? 1 : 0);
+    expect(haPlatform.endpointNames.has(battery.entity_id)).toBe(false);
+    expect([...haPlatform.endpointNames.keys()]).toEqual(retained ? [retained.entity_id] : []);
+    expect(haPlatform.matterbridgeDevices.get(device.id)?.hasClusterServer(PowerSource)).toBe(hasSwitch ? false : undefined);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+  });
+
+  describe.each(['device', 'individual', 'split'] as const)('duplicate %s names', (kind) => {
+    it.each(['none', 'area', 'label', 'blacklist', 'whitelist', 'domain'] as const)('should check duplicate names after filtering when applying %s filtering', async (filter) => {
+      const area = generateArea(haPlatform.ha, 'Export area');
+      const label = generateLabel(haPlatform.ha, 'Export label');
+      const first = generateEntity(haPlatform.ha, 'Shared export', 'scene', null, area.area_id, [label.label_id], 'unknown');
+      const parent = kind === 'individual' ? null : generateDevice(haPlatform.ha, kind === 'device' ? 'Shared export' : 'Split parent');
+      const second = generateEntity(haPlatform.ha, 'Second entity', 'switch', parent, null, [], 'off');
+      second.name = 'Shared export';
+      if (kind === 'split') haPlatform.config.splitEntities = [second.entity_id];
+      if (filter === 'area') haPlatform.config.filterByArea = area.name;
+      if (filter === 'label') haPlatform.config.filterByLabel = label.name;
+      if (filter === 'blacklist') haPlatform.config.blackList = [kind === 'device' && parent ? parent.id : second.id];
+      if (filter === 'whitelist') haPlatform.config.whiteList = [first.entity_id];
+      if (filter === 'domain') haPlatform.config.entityBlackList = ['switch'];
+      const snackbarSpy = vi.spyOn(haPlatform, 'wssSendSnackbarMessage').mockImplementation(() => {});
+      try {
+        await haPlatform.onStart('Duplicate regression');
+        const duplicates = filter === 'none' || filter === 'blacklist' || filter === 'whitelist' || (kind === 'device' && filter === 'domain') ? 1 : 0;
+        expect(haPlatform.duplicatedDevices).toBe(kind === 'device' ? duplicates : 0);
+        expect(haPlatform.duplicatedEntities).toBe(kind === 'device' ? 0 : duplicates);
+        expect(loggerWarnSpy).toHaveBeenCalledTimes(duplicates);
+        expect(loggerErrorSpy).not.toHaveBeenCalled();
+        expect(haPlatform.matterbridgeDevices.size).toBe(1);
+        expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
+        expect(haPlatform.endpointNames.has(second.entity_id)).toBe(false);
+        expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+
+        await haPlatform.onConfigure();
+        const duplicateMessages = snackbarSpy.mock.calls.filter(([message]) => message.includes('duplicate names'));
+        expect(duplicateMessages).toHaveLength(duplicates);
+        expect(duplicateMessages).toEqual(
+          duplicates ? [[`Home Assistant: 1 ${kind === 'device' ? 'devices' : 'entities'} have been discarded due to duplicate names`, 60, 'warning']] : [],
+        );
+      } finally {
+        snackbarSpy.mockRestore();
+      }
+    });
+  });
+
+  it('should call onStart and skip a duplicate individual entity name with namePostfix', async () => {
+    const first = generateEntity(haPlatform.ha, 'Shared export', 'scene', null, null, [], 'unknown');
+    const second = generateEntity(haPlatform.ha, 'Second entity', 'scene', null, null, [], 'unknown');
+    second.name = 'Shared export';
+    haPlatform.config.namePostfix = 'HA';
+    await haPlatform.onStart('Test reason');
+    expect(haPlatform.duplicatedEntities).toBe(1);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Individual entity "${CYAN}Shared export${wr}" already exists as a registered device. Please change the name in Home Assistant`);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(second.entity_id)).toBe(false);
   });
 
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {

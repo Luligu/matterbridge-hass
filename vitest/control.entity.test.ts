@@ -63,6 +63,8 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerCompleteFanControl: vi.fn(),
     addVacuum: vi.fn(),
     addValve: vi.fn(),
+    addLiftTiltWindowCovering: vi.fn(),
+    addTiltWindowCovering: vi.fn(),
     addSelect: vi.fn(),
     addOnOff: vi.fn(),
     addBasicVideoPlayer: vi.fn(),
@@ -336,6 +338,20 @@ describe('addControlEntity', () => {
     [md, e, s] = make('cover', 'shade', { current_position: 55 });
     addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
     expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, windowCovering);
+    expect(md.addLiftTiltWindowCovering).not.toHaveBeenCalled();
+    expect(md.addTiltWindowCovering).not.toHaveBeenCalled();
+  });
+
+  it('should add the tilt window covering when the cover supports tilt', () => {
+    let [md, e, s] = make('cover', 'venetian', { supported_features: 255, current_position: 100, current_tilt_position: 50 });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addDeviceTypes).toHaveBeenCalledWith(e.entity_id, windowCovering);
+    expect(md.addLiftTiltWindowCovering).toHaveBeenCalledWith(e.entity_id);
+    expect(md.addTiltWindowCovering).not.toHaveBeenCalled();
+    [md, e, s] = make('cover', 'tilt', { supported_features: 240 });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addTiltWindowCovering).toHaveBeenCalledWith(e.entity_id);
+    expect(md.addLiftTiltWindowCovering).not.toHaveBeenCalled();
   });
 
   it('thermostat base & fan base device types', () => {

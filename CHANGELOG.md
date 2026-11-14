@@ -26,6 +26,54 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
+## [1.6.2] - Dev branch
+
+### Added
+
+- [filters]: Add entity category whitelists and blacklists for `config`, `diagnostic` and uncategorized entities.
+- [agents]: Add support for Bionic / LM Studio local agents.
+- [cover]: Add core speed feature, standard speed enum, and closed state and supported speed attributes.
+- [cover]: Add tilt support for covers. Venetian blinds with lift and tilt now show both the position and the slat angle in your Matter controller, and tilt-only covers (e.g. SwitchBot Blind Tilt) can open, close, stop and set the slat angle. Thanks gastonmuijtjens, chrispylizard and peppi911 (https://github.com/Luligu/matterbridge-hass/issues/138).
+
+### Changed
+
+- [package]: Bump `ws` to v.8.22.2.
+- [package]: Bump `@vitest/coverage-v8` to v.5.1.0.
+- [package]: Bump `oxfmt` to v.0.77.0.
+- [package]: Bump `oxlint` to v.1.92.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2006.
+- [package]: Bump `vitest` to v.5.1.0.
+- [agents]: Update `.agents/README.md` to v.1.0.6.
+- [agents]: Update `.agents/rules/chip-tests.instructions.md`, `.claude/rules/chip-tests/chip-tests.instructions.md` and `.github/instructions/chip-tests/chip-tests.instructions.md` to v.1.0.1.
+- [agents]: Update `.agents/rules/matterbridge.instructions.md`, `.claude/rules/matterbridge/matterbridge.instructions.md` and `.github/instructions/matterbridge/matterbridge.instructions.md` to v.1.0.4.
+- [agents]: Update `.agents/rules/plugin-frontend.instructions.md`, `.claude/rules/plugin-frontend/plugin-frontend.instructions.md` and `.github/instructions/plugin-frontend/plugin-frontend.instructions.md` to v.1.0.3.
+- [agents]: Update `.agents/rules/testing.instructions.md`, `.claude/rules/testing/testing.instructions.md` and `.github/instructions/testing/testing.instructions.md` to v.1.0.8.
+- [agents]: Update `.agents/skills/verify-agent-context/SKILL.md`, `.claude/skills/verify-agent-context/SKILL.md` and `.github/skills/verify-agent-context/SKILL.md` to v.1.0.6.
+- [agents]: Update `.antigravity/settings.json` to v.1.0.6.
+- [agents]: Update `.claude/settings.json` to v.1.0.10.
+- [codex]: Update `.codex/config.toml` to v.1.0.7.
+- [codex]: Update `.codex/rules/default.rules` to v.1.0.7.
+- [workflows]: Update `.github/workflows/build.yml` to v.2.0.8.
+- [workflows]: Update `.github/workflows/codecov.yml` to v.2.0.8.
+- [workflows]: Update `.github/workflows/codeql.yml` to v.2.0.0.
+- [workflows]: Update `.github/workflows/publish.yml` to v.2.0.7.
+- [config]: Update `.gitignore` to v.1.0.5.
+- [config]: Update `.oxfmtrc.json` to v.1.2.0.
+- [config]: Update `.oxlintrc.json` to v.1.2.0.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.18.
+- [agents]: Update `AGENTS.md` to v.1.0.12.
+- [config]: Update `SHARED-AGENTS.md`.
+- [config]: Update `vitest.config.ts` to v.2.0.9.
+
+### Fixed
+
+- [discovery]: Check duplicate names after the area, label and domain filtering. Thanks gmdfalk (https://github.com/Luligu/matterbridge-hass/pull/258).
+- [discovery]: Detect duplicate names when `namePostfix` is set.
+- [cover]: Report the open and closed position of covers without `current_position` (i.e. garage doors). Thanks ok2sh (https://github.com/Luligu/matterbridge-hass/issues/244).
+- [climate]: Update the Thermostat `systemMode` when a climate entity switches to `auto`, so controllers no longer show a stale `off` on heating-only or cooling-only thermostats. Thanks pandinus (https://github.com/Luligu/matterbridge-hass/issues/247).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.6.1] - 2026-10-31
 
 ### Added

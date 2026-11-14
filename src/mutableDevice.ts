@@ -21,6 +21,8 @@
  * limitations under the License.
  */
 
+/* oxlint-disable max-lines */
+
 // Node.js imports
 import { createHash, randomBytes } from 'node:crypto';
 
@@ -44,6 +46,7 @@ import {
   MatterbridgeSmokeCoAlarmServer,
   MatterbridgeThermostatServer,
   MatterbridgeValveConfigurationAndControlServer,
+  MatterbridgeWindowCoveringServer,
   onOffLight,
   onOffLightSwitch,
   onOffPlugInUnit,
@@ -77,6 +80,7 @@ import {
   SmokeCoAlarm,
   Thermostat,
   ValveConfigurationAndControl,
+  WindowCovering,
 } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById, Namespace, type Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
@@ -886,6 +890,86 @@ export class MutableDevice {
         // Simulation knobs
         movementDuration,
         autoClose,
+      }),
+    );
+    return this;
+  }
+
+  /**
+   * Adds a WindowCovering cluster server with features Lift, PositionAwareLift, Tilt and PositionAwareTilt (i.e. venetian blinds).
+   * A lift-only cover does not need it: the default WindowCovering cluster server already has the Lift and PositionAwareLift features.
+   *
+   * @param {string} endpoint - The endpoint name.
+   * @returns {this} The current MutableDevice instance for chaining.
+   */
+  addLiftTiltWindowCovering(endpoint: string): this {
+    const device = this.initializeEndpoint(endpoint);
+    const stopped = WindowCovering.MovementStatus.Stopped;
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        WindowCovering.id,
+        MatterbridgeWindowCoveringServer.with(
+          WindowCovering.Feature.Lift,
+          WindowCovering.Feature.PositionAwareLift,
+          WindowCovering.Feature.Tilt,
+          WindowCovering.Feature.PositionAwareTilt,
+        ),
+        {
+          type: WindowCovering.WindowCoveringType.TiltBlindLift,
+          endProductType: WindowCovering.EndProductType.InteriorBlind,
+          configStatus: {
+            operational: true,
+            liftMovementReversed: false,
+            liftPositionAware: true,
+            tiltPositionAware: true,
+            liftEncoderControlled: false,
+            tiltEncoderControlled: false,
+          },
+          operationalStatus: { global: stopped, lift: stopped, tilt: stopped },
+          mode: { motorDirectionReversed: false, calibrationMode: false, maintenanceMode: false, ledFeedback: false },
+          // Positions: 0 fully open 10000 fully closed.
+          numberOfActuationsLift: 0,
+          targetPositionLiftPercent100ths: 0,
+          currentPositionLiftPercent100ths: 0,
+          currentPositionLiftPercentage: 0,
+          numberOfActuationsTilt: 0,
+          targetPositionTiltPercent100ths: 0,
+          currentPositionTiltPercent100ths: 0,
+          currentPositionTiltPercentage: 0,
+        },
+      ),
+    );
+    return this;
+  }
+
+  /**
+   * Adds a WindowCovering cluster server with features Tilt and PositionAwareTilt (i.e. tilt-only blinds). The lift attributes and the lift field of operationalStatus are absent.
+   *
+   * @param {string} endpoint - The endpoint name.
+   * @returns {this} The current MutableDevice instance for chaining.
+   */
+  addTiltWindowCovering(endpoint: string): this {
+    const device = this.initializeEndpoint(endpoint);
+    const stopped = WindowCovering.MovementStatus.Stopped;
+    device.clusterServersObjs.push(
+      getClusterServerObj(WindowCovering.id, MatterbridgeWindowCoveringServer.with(WindowCovering.Feature.Tilt, WindowCovering.Feature.PositionAwareTilt), {
+        type: WindowCovering.WindowCoveringType.TiltBlindTiltOnly,
+        endProductType: WindowCovering.EndProductType.TiltOnlyInteriorBlind,
+        configStatus: {
+          operational: true,
+          liftMovementReversed: false,
+          liftPositionAware: false,
+          tiltPositionAware: true,
+          liftEncoderControlled: false,
+          tiltEncoderControlled: false,
+        },
+        operationalStatus: { global: stopped, tilt: stopped },
+        mode: { motorDirectionReversed: false, calibrationMode: false, maintenanceMode: false, ledFeedback: false },
+        // Positions: 0 fully open 10000 fully closed.
+        numberOfActuationsTilt: 0,
+        targetPositionTiltPercent100ths: 0,
+        currentPositionTiltPercent100ths: 0,
+        currentPositionTiltPercentage: 0,
       }),
     );
     return this;

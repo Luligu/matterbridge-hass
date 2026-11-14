@@ -1,4 +1,4 @@
-# Publish to npm (plugin) v. 2.0.7
+# Publish to npm (plugin) v.2.0.7
 # Path: .github/workflows/publish.yml
 
 name: Publish to npm
