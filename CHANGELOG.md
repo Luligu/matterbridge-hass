@@ -26,6 +26,10 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
+## [1.7.1] - Dev branch
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.7.0] - 2026-11-14
 
 ### Breaking changes
