@@ -209,7 +209,7 @@
     },
     "serverModeDomains": {
       "title": "Server Mode Domains",
-      "description": "Domains of individual/split entities that are exposed in server mode: every entity gets its own Matter node with its own QR code and pairs independently (e.g. ['switch','sensor']). Needed by controllers that do not work with devices behind a bridge, mainly LG ThinQ (Samsung SmartThings also works well with individual nodes).",
+      "description": "Domains of individual/split entities that are exposed in server mode: every entity gets its own Matter node with its own QR code and pairs independently (e.g. ['switch','sensor']). Needed by controllers that only add the first device behind a bridge, mainly LG ThinQ (Samsung SmartThings also works well with individual nodes).",
       "type": "array",
       "items": { "type": "string" },
       "uniqueItems": true,
