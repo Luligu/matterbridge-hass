@@ -26,7 +26,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
-## [1.7.0] - Dev branch
+## [1.7.0] - 2026-11-14
 
 ### Breaking changes
 
