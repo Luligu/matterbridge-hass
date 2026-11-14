@@ -209,7 +209,7 @@
     },
     "serverModeDomains": {
       "title": "Server Mode Domains",
-      "description": "Domains of individual/split entities that are exposed in server mode: every entity gets its own Matter node with its own QR code and pairs independently (e.g. ['switch','sensor']). Useful for controllers that handle bridges badly (Samsung SmartThings with many devices, LG ThinQ).",
+      "description": "Domains of individual/split entities that are exposed in server mode: every entity gets its own Matter node with its own QR code and pairs independently (e.g. ['switch','sensor']). Needed by controllers that do not work with devices behind a bridge, mainly LG ThinQ (Samsung SmartThings also works well with individual nodes).",
       "type": "array",
       "items": { "type": "string" },
       "uniqueItems": true,
@@ -241,7 +241,7 @@
     },
     "entityNameAsProductName": {
       "title": "Entity Name As Product Name",
-      "description": "Use the entity name as the Matter product name instead of the domain. Some controllers (Samsung SmartThings) show the product name for server mode nodes.",
+      "description": "Use the entity name as the Matter product name instead of the domain. Some controllers (Samsung SmartThings, LG ThinQ) show the product name for server mode nodes.",
       "type": "boolean",
       "default": false
     },
