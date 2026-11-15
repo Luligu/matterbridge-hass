@@ -26,6 +26,12 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
+## [1.7.1] - Dev branch
+
+### Added
+
+- [config]: Add the `autoRoomPrefix` option to put the Home Assistant area name in front of each device name (e.g. Light in the Kitchen area becomes Kitchen Light), so devices with the same name in different areas are all exposed.
+
 ## [1.7.0] - 2026-11-14
 
 ### Breaking changes

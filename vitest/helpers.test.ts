@@ -17,6 +17,7 @@ import {
   getName,
   getPostfixedName,
   getPostfixedSerial,
+  getRoomPrefixedName,
   isDeviceEntity,
   isDisabled,
   isHidden,
@@ -843,5 +844,46 @@ describe('HassPlatform helpers', () => {
   it('should append namePostfix with a separating space when nonempty', () => {
     expect(getPostfixedName({ config: { namePostfix: '' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light');
     expect(getPostfixedName({ config: { namePostfix: 'HA' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light HA');
+  });
+
+  it('should prefix the name with the area name when autoRoomPrefix is enabled', () => {
+    const ha = createHomeAssistant();
+    const platform = { config: { autoRoomPrefix: true }, ha } as unknown as HomeAssistantPlatform;
+    const kitchen = generateArea(ha, 'Kitchen');
+    const hallway = generateArea(ha, 'Hallway');
+    const device = generateDevice(ha, 'Light', kitchen.area_id);
+    const deviceEntity = generateEntity(ha, 'Lamp', 'light', device, null);
+    const ownAreaEntity = generateEntity(ha, 'Lamp', 'light', device, null);
+    ownAreaEntity.area_id = hallway.area_id;
+    const individualEntity = generateEntity(ha, 'Scene', 'scene', null, kitchen.area_id);
+
+    expect(getRoomPrefixedName(platform, 'Light', device)).toBe('Kitchen Light');
+    expect(getRoomPrefixedName(platform, 'Scene', individualEntity)).toBe('Kitchen Scene');
+    // An entity without its own area uses the area of its device
+    expect(getRoomPrefixedName(platform, 'Lamp', deviceEntity)).toBe('Kitchen Lamp');
+    expect(getRoomPrefixedName(platform, 'Lamp', ownAreaEntity)).toBe('Hallway Lamp');
+    // Only a whole leading word matches the area name
+    expect(getRoomPrefixedName(platform, 'Kitchenette Light', device)).toBe('Kitchen Kitchenette Light');
+  });
+
+  it('should not prefix the name when autoRoomPrefix is disabled, there is no area or the name already starts with the area name', () => {
+    const ha = createHomeAssistant();
+    const platform = { config: { autoRoomPrefix: true }, ha } as unknown as HomeAssistantPlatform;
+    const kitchen = generateArea(ha, 'Kitchen');
+    const device = generateDevice(ha, 'Light', kitchen.area_id);
+    const noAreaDevice = generateDevice(ha, 'Light');
+    const noAreaEntity = generateEntity(ha, 'Lamp', 'light', noAreaDevice, null);
+    const individualEntity = generateEntity(ha, 'Scene', 'scene', null, null);
+    const unknownAreaDevice = generateDevice(ha, 'Light', 'unknown_area');
+
+    expect(getRoomPrefixedName({ config: { autoRoomPrefix: false }, ha } as unknown as HomeAssistantPlatform, 'Light', device)).toBe('Light');
+    expect(getRoomPrefixedName(platform, null, device)).toBeNull();
+    expect(getRoomPrefixedName(platform, 'Light', noAreaDevice)).toBe('Light');
+    expect(getRoomPrefixedName(platform, 'Lamp', noAreaEntity)).toBe('Lamp');
+    expect(getRoomPrefixedName(platform, 'Scene', individualEntity)).toBe('Scene');
+    expect(getRoomPrefixedName(platform, 'Light', unknownAreaDevice)).toBe('Light');
+    expect(getRoomPrefixedName(platform, 'Kitchen Light', device)).toBe('Kitchen Light');
+    expect(getRoomPrefixedName(platform, 'kitchen light', device)).toBe('kitchen light');
+    expect(getRoomPrefixedName(platform, 'Kitchen', device)).toBe('Kitchen');
   });
 });

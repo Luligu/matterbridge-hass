@@ -66,6 +66,7 @@ import {
   getEntityName,
   getPostfixedName,
   getPostfixedSerial,
+  getRoomPrefixedName,
   isDeviceEntity,
   isDisabled,
   isHidden,
@@ -112,6 +113,7 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   splitByLabel: string;
   splitNameStrategy: 'Entity name' | 'Friendly name';
   controllerStrategy: 'Merge' | 'Matter';
+  autoRoomPrefix: boolean;
   namePostfix: string;
   postfix: string;
   airQualityRegex: string;
@@ -239,6 +241,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       isValidString(this.config.splitNameStrategy, 10) && ['Entity name', 'Friendly name'].includes(this.config.splitNameStrategy) ? this.config.splitNameStrategy : 'Entity name';
     this.config.controllerStrategy =
       isValidString(this.config.controllerStrategy, 5) && ['Merge', 'Matter'].includes(this.config.controllerStrategy) ? this.config.controllerStrategy : 'Merge';
+    this.config.autoRoomPrefix = isValidBoolean(this.config.autoRoomPrefix) ? this.config.autoRoomPrefix : false;
     this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
     this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
     this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
@@ -450,7 +453,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName = getEntityName(this, entity);
+      const entityName = getRoomPrefixedName(this, getEntityName(this, entity), entity);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
@@ -560,7 +563,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     for (const device of Array.from(this.ha.hassDevices.values()).filter((device) => !isDisabled(device))) {
       // Check if we have a valid device
-      const deviceName = device.name_by_user ?? device.name;
+      const deviceName = getRoomPrefixedName(this, device.name_by_user ?? device.name, device);
       if (!isValidString(deviceName, 1)) {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has not valid name. Skipping...`);
         continue;
@@ -822,7 +825,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName = getEntityName(this, entity);
+      const entityName = getRoomPrefixedName(this, getEntityName(this, entity), entity);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;

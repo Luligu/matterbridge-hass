@@ -184,6 +184,12 @@
       "enum": ["Merge", "Matter"],
       "default": "Merge"
     },
+    "autoRoomPrefix": {
+      "title": "Auto Room Prefix",
+      "description": "Put the Home Assistant area name in front of each device name, e.g. Light in the Kitchen area becomes Kitchen Light. Enable it if you name your devices without the area, as Home Assistant recommends, so that devices with the same name in different areas are all exposed. An entity without an area uses the area of its device, and names that already start with the area name are not changed. The whiteList, blackList and deviceEntityBlackList must use the names with the prefix. You will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller.",
+      "type": "boolean",
+      "default": false
+    },
     "namePostfix": {
       "title": "Name Postfix",
       "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The whiteList, blackList and deviceEntityBlackList must use the names with the postfix.",
