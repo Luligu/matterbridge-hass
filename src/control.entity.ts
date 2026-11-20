@@ -27,7 +27,7 @@
 import { colorTemperatureLight, dimmableLight, extendedColorLight, type MatterbridgeEndpoint, type PrimitiveTypes } from 'matterbridge';
 import { CYAN, db, debugStringify, nf, wr } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { ColorControl, LevelControl } from 'matterbridge/matter/clusters';
+import { ColorControl, LevelControl, type ServiceArea } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
@@ -43,7 +43,7 @@ import {
   roundTo,
   temp,
 } from './converters.js';
-import { entityHasLabel, getDomain, getEntityName } from './helpers.js';
+import { entityHasLabel, getDomain, getEntityName, getVacuumMappedHassAreas, hassAreaIdToMatterAreaId, truncateUtf8 } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
@@ -260,6 +260,21 @@ export function addControlEntity(
       `# vacuum device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(VacuumEntityFeature, state.attributes.supported_features)}${db}`,
     );
     mutableDevice.addVacuum(endpointName);
+    // oxlint-disable-next-line no-bitwise
+    if (isValidNumber(state.attributes.supported_features) && (state.attributes.supported_features & VacuumEntityFeature.CLEAN_AREA) !== 0) {
+      // Only the areas mapped to the vacuum segments in Home Assistant can be cleaned with vacuum.clean_area, so expose only those as SupportedAreas.
+      const mappedAreas = getVacuumMappedHassAreas(platform.ha, entity);
+      if (mappedAreas.length > 0) {
+        const supportedAreas: ServiceArea.Area[] = mappedAreas.map((area) => ({
+          areaId: hassAreaIdToMatterAreaId(area.area_id),
+          mapId: null,
+          areaInfo: { locationInfo: { locationName: truncateUtf8(area.name, 128), floorNumber: null, areaType: null }, landmarkInfo: null },
+        }));
+        mutableDevice.addClusterServerServiceArea(endpointName, supportedAreas);
+      } else {
+        platform.log.debug(`- vacuum device ${CYAN}${entity.entity_id}${db} supports clean_area but has no area mapped in Home Assistant: ServiceArea not added`);
+      }
+    }
     // Map the Identify command to the vacuum.locate service if the vacuum supports it.
     // oxlint-disable-next-line no-bitwise
     if (state.attributes['supported_features'] && state.attributes['supported_features'] & VacuumEntityFeature.LOCATE) {

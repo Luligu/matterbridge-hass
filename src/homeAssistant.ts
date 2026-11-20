@@ -621,6 +621,7 @@ export enum VacuumEntityFeature {
   MAP = 2048,
   STATE = 4096, // Must be set by vacuum platforms derived from StateVacuumEntity
   START = 8192,
+  CLEAN_AREA = 16384,
 }
 /** Vacuum activity states. */
 export enum VacuumActivity {
