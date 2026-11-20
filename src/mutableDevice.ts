@@ -1,11 +1,12 @@
 /**
+ * @file src/mutableDevice.ts
  * @description This file contains the class MutableDevice.
- * @file src\mutableDevice.ts
  * @author Luca Liguori
  * @created 2024-12-08
  * @version 1.4.0
  * @license Apache-2.0
- * @copyright 2024, 2025, 2026 Luca Liguori.
+ *
+ * Copyright 2024, 2025, 2026 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,20 +21,22 @@
  * limitations under the License.
  */
 
+/* oxlint-disable max-lines */
+
 // Node.js imports
 import { createHash, randomBytes } from 'node:crypto';
 
 // Matterbridge imports
 import {
   bridgedNode,
+  colorDimmerSwitch,
   colorTemperatureLight,
-  colorTemperatureSwitch,
-  CommandHandlerData,
-  CommandHandlers,
-  DeviceTypeDefinition,
+  type CommandHandlerData,
+  type CommandHandlers,
+  type DeviceTypeDefinition,
   dimmableLight,
-  dimmableOutlet,
-  dimmableSwitch,
+  dimmablePlugInUnit,
+  dimmerSwitch,
   extendedColorLight,
   MatterbridgeColorControlServer,
   MatterbridgeEndpoint,
@@ -43,10 +46,12 @@ import {
   MatterbridgeServiceAreaServer,
   MatterbridgeSmokeCoAlarmServer,
   MatterbridgeThermostatServer,
+  MatterbridgeValveConfigurationAndControlServer,
+  MatterbridgeWindowCoveringServer,
   onOffLight,
-  onOffOutlet,
-  onOffSwitch,
-  PlatformMatterbridge,
+  onOffLightSwitch,
+  onOffPlugInUnit,
+  type PlatformMatterbridge,
 } from 'matterbridge';
 import {
   MatterbridgeKeypadInputServer,
@@ -55,8 +60,8 @@ import {
   MatterbridgeRvcOperationalStateServer,
   MatterbridgeRvcRunModeServer,
 } from 'matterbridge/devices';
-import { AnsiLogger, CYAN, db, debugStringify, idn, ign, LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
-import { ActionContext, AtLeastOne, Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
+import { AnsiLogger, CYAN, db, debugStringify, idn, ign, type LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
+import { type ActionContext, type AtLeastOne, type Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
 import {
   BooleanState,
@@ -76,8 +81,10 @@ import {
   ServiceArea,
   SmokeCoAlarm,
   Thermostat,
+  ValveConfigurationAndControl,
+  WindowCovering,
 } from 'matterbridge/matter/clusters';
-import { ClusterId, getClusterNameById, Semtag, VendorId } from 'matterbridge/matter/types';
+import { type ClusterId, getClusterNameById, Namespace, type Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
 
 interface ClusterServerObj {
@@ -171,26 +178,29 @@ export class MutableDevice {
     this.vendorName = vendorName;
     this.productId = productId;
     this.productName = productName;
-    this.softwareVersion = softwareVersion ?? parseInt(matterbridge.matterbridgeVersion.split('-')[0].replace(/\D/g, ''));
+    this.softwareVersion = softwareVersion ?? Number.parseInt(matterbridge.matterbridgeVersion.split('-')[0].replace(/\D/g, ''));
     this.softwareVersionString = softwareVersionString ?? matterbridge.matterbridgeVersion;
-    this.hardwareVersion = hardwareVersion ?? parseInt(this.matterbridge.systemInformation.nodeVersion.replace(/\D/g, ''));
+    this.hardwareVersion = hardwareVersion ?? Number.parseInt(this.matterbridge.systemInformation.nodeVersion.replace(/\D/g, ''));
     this.hardwareVersionString = hardwareVersionString ?? this.matterbridge.systemInformation.nodeVersion;
     this.initializeEndpoint('');
   }
 
   /**
-   * Sets the log level for the mutable device and clears all internal maps and sets to reset the device state.
+   * Sets the log level for the mutable device and propagates it to the main endpoint and all the child endpoints already created.
    *
    * @param {LogLevel} level - The log level to set for the mutable device.
    */
-  setLogLevel(level: LogLevel) {
+  setLogLevel(level: LogLevel): void {
     this.log.logLevel = level;
+    for (const endpoint of this.endpoints.values()) {
+      endpoint.log.logLevel = level;
+    }
   }
 
   /**
    * Cleans up the mutable device by clearing all internal maps and sets.
    */
-  destroy() {
+  destroy(): void {
     this.mutableDevices.clear();
     this.endpoints.clear();
     this.remappedEndpoints.clear();
@@ -264,6 +274,7 @@ export class MutableDevice {
    */
   get(endpoint: string = ''): MutableDeviceInterface {
     if (this.mutableDevices.get(endpoint) === undefined) throw new Error(`Device ${endpoint} is not defined`);
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     return this.mutableDevices.get(endpoint) as MutableDeviceInterface;
   }
 
@@ -278,10 +289,11 @@ export class MutableDevice {
    */
   getEndpoint(endpoint: string = ''): MatterbridgeEndpoint {
     if (this.mutableDevices.get(endpoint)?.endpoint === undefined) throw new Error(`Device ${endpoint} endpoint is not defined`);
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     return this.mutableDevices.get(endpoint)?.endpoint as MatterbridgeEndpoint;
   }
 
-  private initializeEndpoint(endpoint: string) {
+  private initializeEndpoint(endpoint: string): MutableDeviceInterface {
     if (!this.mutableDevices.has(endpoint)) {
       this.mutableDevices.set(endpoint, {
         friendlyName: endpoint,
@@ -295,6 +307,7 @@ export class MutableDevice {
         subscribeHandlers: [],
       });
     }
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     return this.mutableDevices.get(endpoint) as MutableDeviceInterface;
   }
 
@@ -458,8 +471,25 @@ export class MutableDevice {
     return this;
   }
 
-  addClusterServerBatteryPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null): this {
+  addClusterServerBatteryPowerSource(endpoint: string, batChargeLevel: PowerSource.BatChargeLevel, batPercentRemaining: number | null, rechargeable = false): this {
     const device = this.initializeEndpoint(endpoint);
+    if (rechargeable) {
+      device.clusterServersObjs.push(
+        getClusterServerObj(PowerSource.id, PowerSourceServer.with(PowerSource.Feature.Battery, PowerSource.Feature.Rechargeable), {
+          status: PowerSource.PowerSourceStatus.Active,
+          order: 0,
+          description: 'Primary battery',
+          batReplacementNeeded: false,
+          batReplaceability: PowerSource.BatReplaceability.Unspecified,
+          batVoltage: null,
+          batPercentRemaining,
+          batChargeLevel,
+          batChargeState: PowerSource.BatChargeState.Unknown,
+          batFunctionalWhileCharging: true,
+        }),
+      );
+      return this;
+    }
     device.clusterServersObjs.push(
       getClusterServerObj(PowerSource.id, PowerSourceServer.with(PowerSource.Feature.Battery), {
         status: PowerSource.PowerSourceStatus.Active,
@@ -722,21 +752,63 @@ export class MutableDevice {
     return this;
   }
 
+  addClusterServerDefaultFanControl(
+    endpoint: string,
+    fanMode: FanControl.FanMode = FanControl.FanMode.Off,
+    fanModeSequence: FanControl.FanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto,
+    percentSetting: number = 0,
+    percentCurrent: number = 0,
+  ): this {
+    const device = this.initializeEndpoint(endpoint);
+    const hasAutoFeature =
+      fanModeSequence === FanControl.FanModeSequence.OffLowMedHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffLowHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffHighAuto;
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        FanControl.id,
+        hasAutoFeature ? MatterbridgeFanControlServer.with(FanControl.Feature.Auto, FanControl.Feature.Step) : MatterbridgeFanControlServer.with(FanControl.Feature.Step),
+        {
+          // Base fan control attributes
+          fanMode, // Writable and persistent attribute
+          fanModeSequence, // Fixed attribute
+          percentSetting, // Writable attribute
+          percentCurrent,
+        },
+      ),
+    );
+    return this;
+  }
+
   addClusterServerCompleteFanControl(
     endpoint: string,
     fanMode: FanControl.FanMode = FanControl.FanMode.Off,
     fanModeSequence: FanControl.FanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto,
     percentSetting: number = 0,
     percentCurrent: number = 0,
-    rockSupport: { rockLeftRight: boolean; rockUpDown: boolean; rockRound: boolean } = { rockLeftRight: false, rockUpDown: false, rockRound: true },
-    rockSetting: { rockLeftRight: boolean; rockUpDown: boolean; rockRound: boolean } = { rockLeftRight: false, rockUpDown: false, rockRound: true },
+    rockSupport: FanControl.Rock = { rockLeftRight: false, rockUpDown: false, rockRound: true },
+    rockSetting: FanControl.Rock = { rockLeftRight: false, rockUpDown: false, rockRound: true },
     airflowDirection: FanControl.AirflowDirection = FanControl.AirflowDirection.Forward,
+    windSupport: FanControl.Wind = { sleepWind: true, naturalWind: true },
+    windSetting: FanControl.Wind = { sleepWind: false, naturalWind: false },
   ): this {
     const device = this.initializeEndpoint(endpoint);
+    const hasAutoFeature =
+      fanModeSequence === FanControl.FanModeSequence.OffLowMedHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffLowHighAuto ||
+      fanModeSequence === FanControl.FanModeSequence.OffHighAuto;
     device.clusterServersObjs.push(
       getClusterServerObj(
         FanControl.id,
-        MatterbridgeFanControlServer.with(FanControl.Feature.Auto, FanControl.Feature.Step, FanControl.Feature.Rocking, FanControl.Feature.AirflowDirection),
+        hasAutoFeature
+          ? MatterbridgeFanControlServer.with(
+              FanControl.Feature.Auto,
+              FanControl.Feature.Step,
+              FanControl.Feature.Rocking,
+              FanControl.Feature.AirflowDirection,
+              FanControl.Feature.Wind,
+            )
+          : MatterbridgeFanControlServer.with(FanControl.Feature.Step, FanControl.Feature.Rocking, FanControl.Feature.AirflowDirection, FanControl.Feature.Wind),
         {
           // Base fan control attributes
           fanMode, // Writable and persistent attribute
@@ -748,6 +820,9 @@ export class MutableDevice {
           rockSetting, // Writable attribute
           // AirflowDirection feature
           airflowDirection, // Writable attribute
+          // Wind feature
+          windSupport, // Fixed attribute
+          windSetting, // Writable attribute
         },
       ),
     );
@@ -767,7 +842,11 @@ export class MutableDevice {
     );
     device.clusterServersObjs.push(
       getClusterServerObj(RvcCleanMode.id, MatterbridgeRvcCleanModeServer, {
-        supportedModes: [{ label: 'Vacuum', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }] }],
+        // Matter 1.6.1 requires 2 to 255 supported modes
+        supportedModes: [
+          { label: 'Vacuum', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Auto }, { value: RvcCleanMode.ModeTag.Vacuum }] },
+          { label: 'Vacuum Max', mode: 2, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }, { value: RvcCleanMode.ModeTag.Max }] },
+        ],
         currentMode: 1,
       }),
     );
@@ -809,6 +888,115 @@ export class MutableDevice {
         currentArea: null,
         estimatedEndTime: null,
         supportedMaps: [],
+      }),
+    );
+    return this;
+  }
+
+  addValve(
+    endpoint: string,
+    valveState: ValveConfigurationAndControl.ValveState = ValveConfigurationAndControl.ValveState.Closed,
+    valveLevel: number = 0,
+    movementDuration: number = 2000,
+    autoClose: boolean = true,
+  ): this {
+    const device = this.initializeEndpoint(endpoint);
+    device.clusterServersObjs.push(
+      getClusterServerObj(ValveConfigurationAndControl.id, MatterbridgeValveConfigurationAndControlServer, {
+        currentState: valveState,
+        targetState: valveState,
+        openDuration: null,
+        defaultOpenDuration: null, // Writable and persistent across restarts
+        remainingDuration: null,
+        valveFault: { generalFault: false, blocked: false, leaking: false, notConnected: false, shortCircuit: false, currentExceeded: false },
+        // Feature.Level
+        currentLevel: valveLevel,
+        targetLevel: valveLevel,
+        defaultOpenLevel: 100, // Writable and persistent across restarts
+        levelStep: 1, // Fixed
+        // Simulation knobs
+        movementDuration,
+        autoClose,
+      }),
+    );
+    return this;
+  }
+
+  /**
+   * Adds a WindowCovering cluster server with features Lift, PositionAwareLift, Tilt and PositionAwareTilt (i.e. venetian blinds).
+   * A lift-only cover does not need it: the default WindowCovering cluster server already has the Lift and PositionAwareLift features.
+   *
+   * @param {string} endpoint - The endpoint name.
+   * @returns {this} The current MutableDevice instance for chaining.
+   */
+  addLiftTiltWindowCovering(endpoint: string): this {
+    const device = this.initializeEndpoint(endpoint);
+    const stopped = WindowCovering.MovementStatus.Stopped;
+    device.clusterServersObjs.push(
+      getClusterServerObj(
+        WindowCovering.id,
+        MatterbridgeWindowCoveringServer.with(
+          WindowCovering.Feature.Lift,
+          WindowCovering.Feature.PositionAwareLift,
+          WindowCovering.Feature.Tilt,
+          WindowCovering.Feature.PositionAwareTilt,
+        ),
+        {
+          type: WindowCovering.WindowCoveringType.TiltBlindLift,
+          endProductType: WindowCovering.EndProductType.InteriorBlind,
+          configStatus: {
+            operational: true,
+            liftMovementReversed: false,
+            liftPositionAware: true,
+            tiltPositionAware: true,
+            liftEncoderControlled: false,
+            tiltEncoderControlled: false,
+          },
+          operationalStatus: { global: stopped, lift: stopped, tilt: stopped },
+          mode: { motorDirectionReversed: false, calibrationMode: false, maintenanceMode: false, ledFeedback: false },
+          // Positions: 0 fully open 10000 fully closed.
+          numberOfActuationsLift: 0,
+          targetPositionLiftPercent100ths: 0,
+          currentPositionLiftPercent100ths: 0,
+          currentPositionLiftPercentage: 0,
+          numberOfActuationsTilt: 0,
+          targetPositionTiltPercent100ths: 0,
+          currentPositionTiltPercent100ths: 0,
+          currentPositionTiltPercentage: 0,
+        },
+      ),
+    );
+    return this;
+  }
+
+  /**
+   * Adds a WindowCovering cluster server with features Tilt and PositionAwareTilt (i.e. tilt-only blinds). The lift attributes and the lift field of operationalStatus are absent.
+   *
+   * @param {string} endpoint - The endpoint name.
+   * @returns {this} The current MutableDevice instance for chaining.
+   */
+  addTiltWindowCovering(endpoint: string): this {
+    const device = this.initializeEndpoint(endpoint);
+    const stopped = WindowCovering.MovementStatus.Stopped;
+    device.clusterServersObjs.push(
+      getClusterServerObj(WindowCovering.id, MatterbridgeWindowCoveringServer.with(WindowCovering.Feature.Tilt, WindowCovering.Feature.PositionAwareTilt), {
+        type: WindowCovering.WindowCoveringType.TiltBlindTiltOnly,
+        endProductType: WindowCovering.EndProductType.TiltOnlyInteriorBlind,
+        configStatus: {
+          operational: true,
+          liftMovementReversed: false,
+          liftPositionAware: false,
+          tiltPositionAware: true,
+          liftEncoderControlled: false,
+          tiltEncoderControlled: false,
+        },
+        operationalStatus: { global: stopped, tilt: stopped },
+        mode: { motorDirectionReversed: false, calibrationMode: false, maintenanceMode: false, ledFeedback: false },
+        // Positions: 0 fully open 10000 fully closed.
+        numberOfActuationsTilt: 0,
+        targetPositionTiltPercent100ths: 0,
+        currentPositionTiltPercent100ths: 0,
+        currentPositionTiltPercentage: 0,
       }),
     );
     return this;
@@ -914,7 +1102,7 @@ export class MutableDevice {
     return this;
   }
 
-  private createUniqueId(param1: string, param2: string, param3: string, param4: string) {
+  private createUniqueId(param1: string, param2: string, param3: string, param4: string): string {
     const hash = createHash('md5');
     hash.update(param1 + param2 + param3 + param4);
     return hash.digest('hex');
@@ -997,6 +1185,7 @@ export class MutableDevice {
         }
       }
     }
+    this.addSiblingTagLists();
     this.createMainEndpoint();
     this.createChildEndpoints();
     for (const [endpoint] of this.mutableDevices) {
@@ -1005,18 +1194,43 @@ export class MutableDevice {
     return this.getEndpoint();
   }
 
-  private removeDuplicatedAndSupersetDeviceTypes() {
+  private addSiblingTagLists(): this {
+    // Matter 1.6.1 requires a tagList on sibling child endpoints with the same device type: add a Common Number tag labeled with the friendly name
+    const children = Array.from(this.mutableDevices.entries())
+      .filter(([endpoint]) => endpoint !== '')
+      .map(([_endpoint, device]) => device);
+    for (const device of children.filter((child) => child.tagList.length === 0)) {
+      const deviceType = device.deviceTypes.find((type) => children.some((sibling) => sibling !== device && sibling.deviceTypes.some((t) => t.code === type.code)));
+      if (!deviceType) continue;
+      // Skip the Common Number tags already used by the siblings with the same device type, explicit or generated
+      const used = new Set(
+        children
+          .filter((sibling) => sibling.deviceTypes.some((t) => t.code === deviceType.code))
+          .flatMap((sibling) => sibling.tagList)
+          .filter((tag) => tag.namespaceId === Namespace.CommonNumber)
+          .map((tag) => tag.tag),
+      );
+      let number = 1;
+      while (used.has(number)) number++;
+      // The Common Number namespace has only the tags 0 to 30
+      if (number > 30) continue;
+      device.tagList.push({ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: number, label: device.friendlyName.slice(0, 64) });
+    }
+    return this;
+  }
+
+  private removeDuplicatedAndSupersetDeviceTypes(): this {
     // Remove duplicates and superset device types on all endpoints
     for (const device of this.mutableDevices.values()) {
       const deviceTypesMap = new Map<number, DeviceTypeDefinition>();
       device.deviceTypes.forEach((deviceType) => {
         deviceTypesMap.set(deviceType.code, deviceType);
       });
-      if (deviceTypesMap.has(onOffSwitch.code) && deviceTypesMap.has(dimmableSwitch.code)) deviceTypesMap.delete(onOffSwitch.code);
-      if (deviceTypesMap.has(onOffSwitch.code) && deviceTypesMap.has(colorTemperatureSwitch.code)) deviceTypesMap.delete(onOffSwitch.code);
-      if (deviceTypesMap.has(dimmableSwitch.code) && deviceTypesMap.has(colorTemperatureSwitch.code)) deviceTypesMap.delete(dimmableSwitch.code);
+      if (deviceTypesMap.has(onOffLightSwitch.code) && deviceTypesMap.has(dimmerSwitch.code)) deviceTypesMap.delete(onOffLightSwitch.code);
+      if (deviceTypesMap.has(onOffLightSwitch.code) && deviceTypesMap.has(colorDimmerSwitch.code)) deviceTypesMap.delete(onOffLightSwitch.code);
+      if (deviceTypesMap.has(dimmerSwitch.code) && deviceTypesMap.has(colorDimmerSwitch.code)) deviceTypesMap.delete(dimmerSwitch.code);
 
-      if (deviceTypesMap.has(onOffOutlet.code) && deviceTypesMap.has(dimmableOutlet.code)) deviceTypesMap.delete(onOffOutlet.code);
+      if (deviceTypesMap.has(onOffPlugInUnit.code) && deviceTypesMap.has(dimmablePlugInUnit.code)) deviceTypesMap.delete(onOffPlugInUnit.code);
 
       if (deviceTypesMap.has(onOffLight.code) && deviceTypesMap.has(dimmableLight.code)) deviceTypesMap.delete(onOffLight.code);
       if (deviceTypesMap.has(onOffLight.code) && deviceTypesMap.has(colorTemperatureLight.code)) deviceTypesMap.delete(onOffLight.code);
@@ -1031,28 +1245,32 @@ export class MutableDevice {
     return this;
   }
 
-  private createMainEndpoint() {
+  private createMainEndpoint(): MatterbridgeEndpoint {
     // Remove duplicates and superset device types on all endpoints
     this.removeDuplicatedAndSupersetDeviceTypes();
 
     // Create the mutable device for the main endpoint
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     const mainDevice = this.mutableDevices.get('') as MutableDeviceInterface;
     // Remove bridgedNode on server mode
     if (this.mode === 'server') {
       mainDevice.deviceTypes = mainDevice.deviceTypes.filter((deviceType) => deviceType.code !== bridgedNode.code);
     }
     mainDevice.friendlyName = this.deviceName;
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
     mainDevice.endpoint = new MatterbridgeEndpoint(mainDevice.deviceTypes as AtLeastOne<DeviceTypeDefinition>, { id: this.deviceName, mode: this.mode });
     mainDevice.endpoint.log.logName = this.deviceName;
+    mainDevice.endpoint.log.logLevel = this.log.logLevel;
     this.endpoints.set('', mainDevice.endpoint);
     return mainDevice.endpoint;
   }
 
-  private createChildEndpoints() {
+  private createChildEndpoints(): this {
     // Remove duplicates and superset device types on all endpoints
     this.removeDuplicatedAndSupersetDeviceTypes();
 
     // Get the main endpoint
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion typescript/non-nullable-type-assertion-style
     const mainDevice = this.mutableDevices.get('') as MutableDeviceInterface;
     if (!mainDevice.endpoint) throw new Error('Main endpoint is not defined. Call createMainEndpoint() first.');
 
@@ -1060,16 +1278,18 @@ export class MutableDevice {
     for (const [endpoint, device] of Array.from(this.mutableDevices.entries()).filter(([endpoint]) => endpoint !== '')) {
       device.endpoint = mainDevice.endpoint.addChildDeviceType(
         endpoint,
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion
         device.deviceTypes as AtLeastOne<DeviceTypeDefinition>,
         device.tagList.length ? { tagList: device.tagList } : {},
       );
       device.endpoint.log.logName = device.friendlyName;
+      device.endpoint.log.logLevel = this.log.logLevel;
       this.endpoints.set(endpoint, device.endpoint);
     }
     return this;
   }
 
-  private removeDuplicatedClusterServers() {
+  private removeDuplicatedClusterServers(): this {
     // Filter out duplicate clusters and clusters objects on all endpoints
     for (const device of this.mutableDevices.values()) {
       // Filter out duplicate server clusters and server clusters objects. Remove the cluster server id when a cluster server object is present.
@@ -1104,7 +1324,7 @@ export class MutableDevice {
     return this;
   }
 
-  private createClusters(endpoint: string) {
+  private createClusters(endpoint: string): this {
     // Filter out duplicate clusters and clusters objects on all endpoints
     this.removeDuplicatedClusterServers();
 
@@ -1125,7 +1345,8 @@ export class MutableDevice {
       // Add the required clusters to the main endpoint
       mainDevice.endpoint.addRequiredClusterServers();
       // Add the Fixed Label cluster to the main endpoint
-      if (this.composedType) void mainDevice.endpoint.addFixedLabel('composed', this.composedType).catch(/* istanbul ignore next */ () => {});
+      // oxlint-disable-next-line no-empty-function
+      if (this.composedType) void mainDevice.endpoint.addFixedLabel('composed', this.composedType).catch(/* v8 ignore next */ () => {});
       // Set the configUrl of the main endpoint
       if (this.configUrl) mainDevice.endpoint.configUrl = this.configUrl;
       // Add the command handlers
@@ -1169,9 +1390,9 @@ export class MutableDevice {
     }
     // Add the subscribe handlers
     for (const subscribeHandler of device.subscribeHandlers) {
+      // v8 ignore else - just defensive
       if (device.endpoint.hasAttributeServer(subscribeHandler.clusterId, subscribeHandler.attribute))
-        // TODO: remove when require matterbridge 3.8.1 or higher
-        void device.endpoint.subscribeAttribute(
+        device.endpoint.subscribeAttribute(
           subscribeHandler.clusterId,
           subscribeHandler.attribute,
           (newValue: unknown, oldValue: unknown, context: ActionContext) => {

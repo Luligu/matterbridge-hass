@@ -1,0 +1,285 @@
+// .oxlintrc.json v.1.2.0
+
+// This Oxlint configuration (shared between all matterbridge packages) is designed for a TypeScript project using ESM modules (Node.js) and a Vite/React/TypeScript frontend (browser).
+// Oxlint respects .gitignore.
+// Package specific directories and files that should be ignored are merged by mb-run --upgrade from the automator.ignore.oxlint value in the root package.json.
+
+// The base rules target the Node.js packages; the overrides below adapt them per area:
+// - Jest, Vitest and Bun test: relaxed rules for test files (.ts and .tsx);
+// - Frontend (apps/frontend): adds the React and jsx-a11y plugins and the browser environment;
+// - Frontend Vitest: extra relaxations for the frontend test files.
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "**/.cache/**",
+    "**/.git/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/out/**",
+    "**/screenshots/**",
+    "**/scripts/**",
+    "**/temp/**",
+    "**/tmp/**",
+    "**/package-lock.json",
+    "**/bun.lock"
+  ],
+  "env": {
+    "builtin": true,
+    "node": true
+  },
+  "options": {
+    "reportUnusedDisableDirectives": "warn",
+    "respectEslintDisableDirectives": false,
+    "typeAware": true,
+    "typeCheck": true,
+    "maxWarnings": 0
+  },
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "node", "jsdoc", "promise"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "restriction": "warn",
+    "perf": "warn",
+    "style": "off",
+    "pedantic": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "ignoreRestSiblings": true,
+        "reportUsedIgnorePattern": true
+      }
+    ],
+    "eslint/no-await-in-loop": "off",
+    "eslint/no-undefined": "off",
+    "eslint/no-void": "off",
+    "eslint/no-shadow": "off",
+    "eslint/no-extend-native": "off",
+    "eslint/no-inline-comments": "off",
+    "eslint/no-underscore-dangle": "off",
+    "eslint/class-methods-use-this": "off",
+    "eslint/no-plusplus": "off",
+    "eslint/no-console": "warn",
+    "eslint/no-new": "warn",
+    "eslint/no-param-reassign": "warn",
+    "eslint/max-lines": ["warn", { "max": 1000, "skipComments": true, "skipBlankLines": true }],
+    "eslint/max-lines-per-function": ["warn", { "max": 500, "skipComments": true, "skipBlankLines": true }],
+    "eslint/complexity": ["warn", { "max": 100 }],
+    "eslint/no-eval": "error",
+    "eslint/no-implied-eval": "error",
+    "eslint/no-use-before-define": ["error", { "classes": false, "functions": false, "allowNamedExports": true }],
+    "unicorn/require-post-message-target-origin": "off", // Node worker_threads postMessage does not use browser target origins.
+    "unicorn/prefer-add-event-listener": "off", // Node EventEmitter APIs use on/off consistently across the repo.
+    "unicorn/no-array-for-each": "off", // forEach is acceptable for side-effect iteration when it reads clearly.
+    "unicorn/consistent-function-scoping": "off", // Keep helper functions near the code they support when locality helps readability.
+    "unicorn/no-instanceof-array": "warn", // Array.isArray() also works across realms (iframes, worker contexts), instanceof Array does not.
+    "unicorn/prefer-includes": "warn", // includes() reads better than indexOf() !== -1 for existence checks.
+    "unicorn/no-useless-undefined": "warn", // Omit explicit undefined where it is already the default (initializers, return values, arguments).
+    "unicorn/no-negated-condition": "warn", // Put the positive branch first in if/else and ternaries for readability.
+    "oxc/no-async-endpoint-handlers": "off", // Express and WebSocket handlers may be async when errors are handled locally.
+    "oxc/no-accumulating-spread": "error", // Accumulating spread in loops is easy to miss and can be quadratic.
+    "oxc/no-const-enum": "error", // Avoid const enum emit/versioning surprises in published packages.
+    "oxc/no-map-spread": "off", // Object/array spread from maps is acceptable when it keeps code clearer.
+    "oxc/no-async-await": "off", // Keep async/await; replacing it can change scheduling/readability.
+    "oxc/no-optional-chaining": "off", // Keep optional chaining for safe nullable access.
+    "oxc/no-rest-spread-properties": "off", // Keep object rest/spread where cloning or omitting fields is intentional.
+    "typescript/no-misused-promises": "warn",
+    "typescript/require-await": "warn",
+    "typescript/consistent-type-imports": [
+      "warn",
+      {
+        "prefer": "type-imports",
+        "fixStyle": "inline-type-imports",
+        "disallowTypeAnnotations": false
+      }
+    ],
+    "typescript/only-throw-error": "warn",
+    "typescript/ban-ts-comment": "warn",
+    "typescript/prefer-nullish-coalescing": "warn",
+    "typescript/prefer-optional-chain": "warn",
+    "typescript/explicit-member-accessibility": "off", // Public is the TypeScript default; require modifiers only where visibility matters.
+    "typescript/no-deprecated": [
+      "warn",
+      {
+        "allow": ["ClusterType", "invokeBehaviorCommand", "invokeSubscribeHandler"]
+      }
+    ],
+    "node/no-process-env": "off", // Accessing environment variables is common and not a problem in this project
+    "node/no-top-level-await": "off", // The Matterbridge ecosystem is pure ESM (no "require" export condition anywhere), so there are no require(esm) consumers this rule would protect
+    "jsdoc/check-tag-names": ["warn", { "definedTags": ["created", "contributor", "remarks"] }],
+    "jsdoc/require-param": "warn",
+    "jsdoc/require-param-type": "warn",
+    "jsdoc/require-param-description": "warn",
+    "jsdoc/require-returns": "warn",
+    "jsdoc/require-returns-type": "warn",
+    "jsdoc/require-returns-description": "warn",
+    "jsdoc/require-throws-type": "warn",
+    "jsdoc/require-throws-description": "warn",
+    "jsdoc/require-property": "warn",
+    "jsdoc/require-property-name": "warn",
+    "jsdoc/require-property-description": "warn",
+    "jsdoc/require-property-type": "warn",
+    "import/no-default-export": "off", // We allow default exports for Matterbridge plugins
+    "import/no-relative-parent-imports": "off", // We allow relative parent imports
+    "import/newline-after-import": "warn", // Enforce a newline after import statements for better readability
+    "import/no-namespace": "warn", // Disallow namespace imports to encourage more explicit imports
+    "import/first": "warn", // Ensure all import statements are at the top of the file
+    "import/no-duplicates": "warn", // Disallow duplicate imports to avoid confusion and improve readability
+    "promise/no-nesting": "warn", // Avoid nesting promises to improve readability and maintainability
+    "promise/prefer-catch": "warn", // Encourage using .catch() for handling promise rejections instead of passing a second argument to .then()
+    "promise/param-names": "warn", // Enforce standard parameter names for Promise constructors
+    "promise/no-return-wrap": "warn" // Avoid wrapping values in Promise.resolve or Promise.reject when not needed
+  },
+  "overrides": [
+    /* Jest */
+    {
+      "files": ["**/test/**/*.{spec,test}.{ts,tsx}"],
+      "plugins": ["jest"],
+      "env": { "jest": true },
+      "rules": {
+        "eslint/no-unused-vars": "off",
+        "eslint/no-new": "off",
+        "eslint/require-await": "off",
+        "eslint/no-empty-function": "off",
+        "eslint/max-lines-per-function": "off",
+        "eslint/max-lines": "off",
+        "eslint/complexity": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/require-await": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-deprecated": ["warn", { "allow": ["invokeBehaviorCommand", "invokeSubscribeHandler"] }],
+        "jest/require-to-throw-message": "off",
+        "jest/no-conditional-in-test": "off",
+        "jest/no-standalone-expect": "off",
+        "jsdoc/require-param": "off",
+        "jsdoc/require-param-type": "off",
+        "jsdoc/require-param-description": "off",
+        "jsdoc/require-returns": "off",
+        "jsdoc/require-returns-type": "off",
+        "jsdoc/require-returns-description": "off",
+        "jsdoc/require-throws-type": "off",
+        "jsdoc/require-throws-description": "off",
+        "jsdoc/require-property": "off",
+        "jsdoc/require-property-name": "off",
+        "jsdoc/require-property-description": "off",
+        "jsdoc/require-property-type": "off",
+        "import/first": "off",
+        "import/no-relative-parent-imports": "off"
+      }
+    },
+    /* Vitest */
+    {
+      "files": ["**/vitest/**/*.{spec,test}.{ts,tsx}"],
+      "plugins": ["vitest"],
+      "env": { "vitest": true },
+      "rules": {
+        "eslint/no-unused-vars": "off",
+        "eslint/no-new": "off",
+        "eslint/require-await": "off",
+        "eslint/no-empty-function": "off",
+        "eslint/max-lines-per-function": "off",
+        "eslint/max-lines": "off",
+        "eslint/complexity": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/require-await": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-deprecated": ["warn", { "allow": ["invokeBehaviorCommand", "invokeSubscribeHandler"] }],
+        "vitest/require-to-throw-message": "off",
+        "vitest/no-conditional-tests": "off",
+        "vitest/no-standalone-expect": "off",
+        "vitest/require-test-timeout": "off",
+        "vitest/require-mock-type-parameters": "off",
+        "jsdoc/require-param": "off",
+        "jsdoc/require-param-type": "off",
+        "jsdoc/require-param-description": "off",
+        "jsdoc/require-returns": "off",
+        "jsdoc/require-returns-type": "off",
+        "jsdoc/require-returns-description": "off",
+        "jsdoc/require-throws-type": "off",
+        "jsdoc/require-throws-description": "off",
+        "jsdoc/require-property": "off",
+        "jsdoc/require-property-name": "off",
+        "jsdoc/require-property-description": "off",
+        "jsdoc/require-property-type": "off",
+        "import/first": "off",
+        "import/no-relative-parent-imports": "off"
+      }
+    },
+    /* Bun test */
+    {
+      "files": ["**/buntest/**/*.{spec,test}.{ts,tsx}"],
+      "rules": {
+        "eslint/no-unused-vars": "off",
+        "eslint/no-new": "off",
+        "eslint/require-await": "off",
+        "eslint/no-empty-function": "off",
+        "eslint/max-lines-per-function": "off",
+        "eslint/max-lines": "off",
+        "eslint/complexity": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/no-explicit-any": "off",
+        "typescript/require-await": "off",
+        "typescript/unbound-method": "off",
+        "typescript/no-deprecated": ["warn", { "allow": ["invokeBehaviorCommand", "invokeSubscribeHandler"] }],
+        "jsdoc/require-param": "off",
+        "jsdoc/require-param-type": "off",
+        "jsdoc/require-param-description": "off",
+        "jsdoc/require-returns": "off",
+        "jsdoc/require-returns-type": "off",
+        "jsdoc/require-returns-description": "off",
+        "jsdoc/require-throws-type": "off",
+        "jsdoc/require-throws-description": "off",
+        "jsdoc/require-property": "off",
+        "jsdoc/require-property-name": "off",
+        "jsdoc/require-property-description": "off",
+        "jsdoc/require-property-type": "off",
+        "import/first": "off",
+        "import/no-relative-parent-imports": "off"
+      }
+    },
+    /* Frontend Vite/React: root rules plus React and jsx-a11y */
+    {
+      "files": ["apps/**/*.{ts,tsx}"],
+      "plugins": ["react", "jsx-a11y"], // "react-perf" — all four rules conflict with MUI patterns; not worth enabling
+      "env": { "node": false, "browser": true, "es2024": true },
+      "rules": {
+        "eslint/no-console": "off", // console logging is common in frontend code and not a problem
+        "eslint/no-use-before-define": "off", // function declarations are hoisted; common pattern in React
+        "typescript/explicit-function-return-type": "off", // React components/inline callbacks infer their return type
+        "typescript/explicit-module-boundary-types": "off", // return types on exported module boundaries clutter code with what TypeScript already infers
+        "typescript/no-import-type-side-effects": "off", // conflicts with the inline type-imports style
+        "typescript/prefer-nullish-coalescing": "off", // a ?? b only substitutes null/undefined; a || b also substitutes 0, "", false — prefer ?? for nullable state
+        "react/react-in-jsx-scope": "off", // React 17+ automatic JSX runtime needs no React import
+        "react/jsx-filename-extension": "off", // JSX lives in .tsx files in this project
+        "react/no-multi-comp": "off", // small colocated subcomponents (PayloadCell/PayloadDetail) are allowed
+        "react/no-array-index-key": "off", // the message feed has no stable id; index key is acceptable here
+        "react/forbid-component-props": "off", // MUI components often require passing through arbitrary props (e.g. `sx`), so we allow all component props
+        "react/jsx-no-literals": "off", // we allow string literals in JSX
+        "react/rule-suppression": "off", // sometimes necessary to suppress specific React Compiler rules
+        "react/todo": "off" // internal React Compiler limitations are not actionable application diagnostics
+      }
+    },
+    /* Frontend Vitest: extra relaxations on top of the Vitest override above */
+    {
+      "files": ["apps/**/vitest/**/*.{spec,test}.{ts,tsx}"],
+      "plugins": ["react"],
+      "rules": {
+        "typescript/no-non-null-assertion": "off", // tests often know values exist; ! is acceptable in test code
+        "typescript/non-nullable-type-assertion-style": "off", // tests often use it for concise non-null assertions
+        "typescript/no-misused-spread": "off", // test fixtures often use spread for concise object cloning and overrides
+        "react/jsx-no-constructed-context-values": "off", // test mocks can have inline context values
+        "import/no-unassigned-import": "off" // test setup imports don't need assignment (e.g., polyfills, fixtures)
+      }
+    }
+  ]
+}

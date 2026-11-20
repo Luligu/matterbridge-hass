@@ -1,13 +1,13 @@
-# Codecov (plugin) v. 2.0.5
+# Codecov (plugin) v.2.0.8
 # Path: .github/workflows/codecov.yml
 
 name: Codecov
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 jobs:
@@ -32,8 +32,15 @@ jobs:
       - name: Verify Npm version
         run: npm -v
 
-      - name: Clone matterbridge repo
-        run: git clone --depth 1 --single-branch --no-tags https://github.com/Luligu/matterbridge.git ../matterbridge
+      - name: Select matterbridge branch
+        id: select_matterbridge_ref
+        shell: bash
+        run: |
+          ref=$(node -p "require('./package.json').automator?.workflow || 'main'")
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Clone matterbridge repo branch ${{ steps.select_matterbridge_ref.outputs.ref }}
+        run: git clone --depth 1 --single-branch --no-tags -b ${{ steps.select_matterbridge_ref.outputs.ref }} https://github.com/Luligu/matterbridge.git ../matterbridge
 
       - name: Install matterbridge dependencies
         working-directory: ../matterbridge
@@ -47,18 +54,52 @@ jobs:
         working-directory: ../matterbridge
         run: npm link --no-fund --no-audit
 
-      - name: Install dependencies
+      - name: Install plugin dependencies
         run: npm ci --no-fund --no-audit
 
-      - name: Link matterbridge in the project
+      - name: Link matterbridge in the plugin
         run: npm link matterbridge --no-fund --no-audit
+
+      - name: Build the plugin
+        run: npm run build
+
+      - name: Typecheck the plugin
+        run: npm run typecheck
+
+      - name: Check the plugin frontend
+        id: check_frontend
+        shell: bash
+        run: echo "has_frontend=$(test -f apps/frontend/package.json && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Install the frontend dependencies
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm ci --no-fund --no-audit
+
+      - name: Lint the plugin
+        run: npm run lint
+
+      - name: Build the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Typecheck the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run typecheck
+
+      - name: Lint the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run lint
 
       - name: Check config files
         id: check_configs
         shell: bash
         run: |
           echo "has_jest=$(test -f jest.config.js && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "has_vitest=$(test -f vite.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_vitest=$(test -f vitest.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Run Jest tests
         if: steps.check_configs.outputs.has_jest == 'true'

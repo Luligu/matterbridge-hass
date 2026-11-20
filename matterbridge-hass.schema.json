@@ -20,7 +20,7 @@
     },
     "host": {
       "title": "Host",
-      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://homeassistant:8123 or ws://<IP-ADDRESS>:8123). For ssl connections use wss:// (eg. wss://homeassistant.local:8123) and enable rejectUnauthorized or provide certificatePath.",
+      "description": "Home Assistant host (eg. ws://homeassistant.local:8123 or ws://homeassistant:8123 or ws://<IP-ADDRESS>:8123). For TLS connections use wss:// (eg. wss://homeassistant.local:8123). With rejectUnauthorized enabled, provide certificatePath for a self-signed certificate or private CA.",
       "type": "string",
       "default": "ws://homeassistant.local:8123"
     },
@@ -31,7 +31,7 @@
     },
     "rejectUnauthorized": {
       "title": "Reject Unauthorized",
-      "description": "Ignore SSL certificate errors. It allows to connect to Home Assistant with self-signed certificates.",
+      "description": "Verify the Home Assistant server certificate when enabled. For a self-signed certificate or private CA, also provide certificatePath. Disable to accept untrusted certificates without verification.",
       "type": "boolean",
       "default": false
     },
@@ -164,16 +164,6 @@
       },
       "uniqueItems": true
     },
-    "splitEntities": {
-      "title": "Split Entities (DEPRECATED: use Split By Label)",
-      "description": "The device entities in the list will be exposed like an independent device and removed from their device. Enter the entity_id (i.e. switch.computer_plug_child_lock). Split entities must satisfy the filters (if any) and the whiteList (if any).",
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "uniqueItems": true,
-      "selectEntityFrom": "description"
-    },
     "splitByLabel": {
       "title": "Split By Label",
       "description": "Split device entities by label (use label name). Split entities must satisfy the filters (if any) and the whiteList (if any).",
@@ -196,13 +186,13 @@
     },
     "namePostfix": {
       "title": "Name Postfix",
-      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",
+      "description": "Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The whiteList, blackList and deviceEntityBlackList must use the names with the postfix.",
       "type": "string",
       "default": ""
     },
     "postfix": {
       "title": "Serial Postfix",
-      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller).",
+      "description": "Add this unique postfix (3 characters max) to each device serial to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The whiteList and blackList must use the ids with the postfix (the entity_id is used as is).",
       "type": "string",
       "default": ""
     },

@@ -1,11 +1,12 @@
 /**
+ * @file src/control.entity.ts
  * @description This file contains the addControlEntity function.
- * @file src\control.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
- * @version 1.1.0
+ * @version 1.1.3
  * @license Apache-2.0
- * @copyright 2025, 2026, 2027 Luca Liguori.
+ *
+ * Copyright 2025, 2026, 2027 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,21 +21,33 @@
  * limitations under the License.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable jsdoc/reject-function-type */
+/* oxlint-disable typescript/no-explicit-any */
+/* oxlint-disable typescript/restrict-template-expressions */
 
-import { colorTemperatureLight, dimmableLight, extendedColorLight, MatterbridgeEndpoint, PrimitiveTypes } from 'matterbridge';
-import { CYAN, db, debugStringify } from 'matterbridge/logger';
+import { colorTemperatureLight, dimmableLight, extendedColorLight, type MatterbridgeEndpoint, type PrimitiveTypes } from 'matterbridge';
+import { CYAN, db, debugStringify, nf, wr } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { LevelControl, ServiceArea } from 'matterbridge/matter/clusters';
-import { ClusterId, getClusterNameById } from 'matterbridge/matter/types';
+import { ColorControl, LevelControl, ServiceArea } from 'matterbridge/matter/clusters';
+import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { getFeatureNames, hassCommandConverter, hassDomainConverter, hassSubscribeConverter, kelvinToMireds, roundTo, temp } from './converters.js';
+import {
+  convertHAFanPresetModesToMatter,
+  convertHAFanPresetModeToMatter,
+  getCoverCapabilities,
+  getFeatureNames,
+  hassCommandConverter,
+  hassDomainConverter,
+  hassSubscribeConverter,
+  kelvinToMireds,
+  roundTo,
+  temp,
+} from './converters.js';
 import { entityHasLabel, getDomain, getEntityName, getSortedHassAreas, hassAreaIdToMatterAreaId } from './helpers.js';
 import {
   ClimateEntityFeature,
   ColorMode,
+  CoverEntityFeature,
   DEFAULT_MAX_KELVIN,
   DEFAULT_MAX_TEMP,
   DEFAULT_MIN_KELVIN,
@@ -49,6 +62,7 @@ import {
   MediaPlayerService,
   UnitOfTemperature,
   VacuumEntityFeature,
+  ValveEntityFeature,
 } from './homeAssistant.js';
 import type { HomeAssistantPlatform } from './module.js';
 import type { MutableDevice } from './mutableDevice.js';
@@ -90,17 +104,18 @@ export function addControlEntity(
     context: ActionContext,
   ) => void,
 ): string | undefined {
-  let endpointName: string | undefined = undefined;
+  let endpointName: string | undefined;
   const domain = getDomain(entity.entity_id);
 
   // Use stateCache for state and attributes values to avoid issues with unavailable entities and to have the last valid state and attributes for the entity.
   if (state.state === 'unavailable') {
     const cachedState = platform.stateCache.get(entity.entity_id);
     if (cachedState) {
-      platform.log.info(`Entity ${CYAN}${entity.entity_id}${db} is unavailable, using cached state and attributes`);
+      platform.log.info(`Entity ${CYAN}${entity.entity_id}${nf} is unavailable, using cached state and attributes`);
+      // oxlint-disable-next-line no-param-reassign
       state = cachedState;
     } else {
-      platform.log.warn(`Entity ${CYAN}${entity.entity_id}${db} is unavailable and no cached state found`);
+      platform.log.warn(`Entity ${CYAN}${entity.entity_id}${wr} is unavailable and no cached state found`);
     }
   }
   // Add device type and clusterIds for supported domain of the current entity.
@@ -134,9 +149,10 @@ export function addControlEntity(
 
   // Real values will be updated by the configure with the Home Assistant states. Here we need the features and fixed attributes to be set.
 
-  // Configure the Light cluster default values and features for dimmable lights when they are unavailable and only supported_color_modes and supported_features attributes are present.
-  // prettier-ignore
-  if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) && state.attributes.supported_color_modes.includes(ColorMode.BRIGHTNESS)) {
+  // Configure dimming from supported modes when current attributes are unavailable. Color modes also imply brightness support.
+  // oxfmt-ignore
+  if (domain === 'light' && isValidNumber(state.attributes?.supported_features) && isValidArray(state.attributes?.supported_color_modes) &&
+    state.attributes.supported_color_modes.some((mode) => [ColorMode.BRIGHTNESS, ColorMode.COLOR_TEMP, ColorMode.HS, ColorMode.XY, ColorMode.RGB, ColorMode.RGBW, ColorMode.RGBWW].includes(mode))) {
     platform.log.debug(`+ attribute device ${CYAN}${dimmableLight.name}${db} cluster ${CYAN}${LevelControl.name}${db}`);
     platform.log.debug(`= levelControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db}`);
     platform.log.debug(`# levelControl device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(LightEntityFeature, state.attributes.supported_features)}${db}`);
@@ -144,8 +160,21 @@ export function addControlEntity(
     mutableDevice.addClusterServerIds(endpointName, LevelControl.id);
   }
 
+  // Discover color support from capabilities when current color attributes are unavailable.
+  if (domain === 'light' && isValidArray(state.attributes?.supported_color_modes)) {
+    if (state.attributes.supported_color_modes.some((mode) => [ColorMode.HS, ColorMode.XY, ColorMode.RGB, ColorMode.RGBW, ColorMode.RGBWW].includes(mode))) {
+      platform.log.debug(`+ attribute device ${CYAN}${extendedColorLight.name}${db} cluster ${CYAN}${ColorControl.name}${db}`);
+      mutableDevice.addDeviceTypes(endpointName, extendedColorLight);
+      mutableDevice.addClusterServerIds(endpointName, ColorControl.id);
+    } else if (state.attributes.supported_color_modes.includes(ColorMode.COLOR_TEMP)) {
+      platform.log.debug(`+ attribute device ${CYAN}${colorTemperatureLight.name}${db} cluster ${CYAN}${ColorControl.name}${db}`);
+      mutableDevice.addDeviceTypes(endpointName, colorTemperatureLight);
+      mutableDevice.addClusterServerIds(endpointName, ColorControl.id);
+    }
+  }
+
   // Configure the ColorControl cluster default values and features.
-  // prettier-ignore
+  // oxfmt-ignore
   if (domain === 'light' && (mutableDevice.get(endpointName).deviceTypes.includes(colorTemperatureLight) || mutableDevice.get(endpointName).deviceTypes.includes(extendedColorLight))) {
     platform.log.debug(`= colorControl device ${CYAN}${entity.entity_id}${db} supported_color_modes: ${CYAN}${state.attributes['supported_color_modes']}${db} min_color_temp_kelvin: ${CYAN}${state.attributes['min_color_temp_kelvin']}${db} max_color_temp_kelvin: ${CYAN}${state.attributes['max_color_temp_kelvin']}${db}`);
     platform.log.debug(`# colorControl device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(LightEntityFeature, state.attributes.supported_features)}${db}`);
@@ -155,6 +184,9 @@ export function addControlEntity(
     if (isValidArray(state.attributes['supported_color_modes']) && !state.attributes['supported_color_modes'].includes(ColorMode.XY) && !state.attributes['supported_color_modes'].includes(ColorMode.HS) && !state.attributes['supported_color_modes'].includes(ColorMode.RGB) &&
       !state.attributes['supported_color_modes'].includes(ColorMode.RGBW) && !state.attributes['supported_color_modes'].includes(ColorMode.RGBWW) && state.attributes['supported_color_modes'].includes(ColorMode.COLOR_TEMP)
     ) {
+      // Home Assistant reports hs_color, rgb_color and xy_color also on color_temp only lights: keep only the ColorTemperatureLight device type.
+      const device = mutableDevice.get(endpointName);
+      device.deviceTypes = device.deviceTypes.filter((deviceType) => deviceType.code !== extendedColorLight.code);
       mutableDevice.addClusterServerColorTemperatureColorControl(endpointName, minMireds, maxMireds);
     } else {
       mutableDevice.addClusterServerColorControl(endpointName, minMireds, maxMireds);
@@ -162,7 +194,7 @@ export function addControlEntity(
   }
 
   // Configure the Thermostat cluster default values and features.
-  // prettier-ignore
+  // oxfmt-ignore
   if (domain === 'climate') {
     // Determine temperature unit and convert temperatures:
     // - temperature_unit is required as implementation but not on WS REST Api (never present actually)
@@ -198,13 +230,26 @@ export function addControlEntity(
     }
   }
 
-  // Configure the FanControl cluster default values and features.
-  // prettier-ignore
+  /*
+   * Configure the FanControl cluster default values and features.
+   */
+  // TODO Add wind support in converters
+  // oxfmt-ignore
   if (domain === 'fan') {
     platform.log.debug(`= fan device ${CYAN}${entity.entity_id}${db} preset_modes: ${CYAN}${state.attributes['preset_modes']}${db} direction: ${CYAN}${state.attributes['direction']}${db} oscillating: ${CYAN}${state.attributes['oscillating']}${db}`);
     platform.log.debug(`# fan device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(FanEntityFeature, state.attributes.supported_features)}${db}`);
-    if (isValidString(state.attributes['direction']) || isValidBoolean(state.attributes['oscillating'])) {
-      mutableDevice.addClusterServerCompleteFanControl(endpointName);
+    if (isValidString(state.attributes['direction']) || isValidBoolean(state.attributes['oscillating']) || (isValidArray(state.attributes['preset_modes']) && (state.attributes['preset_modes'].includes('natural_wind') || state.attributes['preset_modes'].includes('sleep_wind')))) {
+      /*
+       * Create a FanControl cluster with the following features: [FanControl.Feature.Auto], FanControl.Feature.Step, FanControl.Feature.Rocking, FanControl.Feature.AirflowDirection, FanControl.Feature.Wind
+       * fanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto
+       */
+      mutableDevice.addClusterServerCompleteFanControl(endpointName, convertHAFanPresetModeToMatter(state.attributes['preset_mode']), convertHAFanPresetModesToMatter(state.attributes['preset_modes']));
+    } else {
+      /*
+       * Create a FanControl cluster with the following features: [FanControl.Feature.Auto], FanControl.Feature.Step
+       * fanModeSequence = FanControl.FanModeSequence.OffLowMedHighAuto
+       */
+      mutableDevice.addClusterServerDefaultFanControl(endpointName, convertHAFanPresetModeToMatter(state.attributes['preset_mode']), convertHAFanPresetModesToMatter(state.attributes['preset_modes']));
     }
   }
 
@@ -223,6 +268,37 @@ export function addControlEntity(
       }));
       mutableDevice.addClusterServerServiceArea(endpointName, supportedAreas);
     }
+    // Map the Identify command to the vacuum.locate service if the vacuum supports it.
+    // oxlint-disable-next-line no-bitwise
+    if (state.attributes['supported_features'] && state.attributes['supported_features'] & VacuumEntityFeature.LOCATE) {
+      platform.log.debug(`- command: ${CYAN}Identify.identify${db} => ${CYAN}vacuum.locate${db}`);
+      mutableDevice.addCommandHandler(entity.entity_id, 'Identify.identify', (data) => {
+        // A zero IdentifyTime stops identification without playing another locate sound.
+        if (!('identifyTime' in data.request) || data.request.identifyTime <= 0) return;
+        platform.ha.callService('vacuum', 'locate', entity.entity_id).catch((error: unknown) => {
+          platform.log.error(`Failed to call locate service for ${CYAN}${entity.entity_id}${db}: ${error}`);
+        });
+      });
+    }
+  }
+
+  // Configure the cover. Lift only covers use the default WindowCovering cluster server, covers with tilt need the Tilt feature.
+  if (domain === 'cover') {
+    const { lift, tilt } = getCoverCapabilities(state.attributes);
+    platform.log.debug(
+      `# cover device ${CYAN}${entity.entity_id}${db} lift: ${CYAN}${lift}${db} tilt: ${CYAN}${tilt}${db} supported_features: ${CYAN}${getFeatureNames(CoverEntityFeature, state.attributes.supported_features)}${db}`,
+    );
+    if (lift && tilt) mutableDevice.addLiftTiltWindowCovering(endpointName);
+    else if (tilt) mutableDevice.addTiltWindowCovering(endpointName);
+  }
+
+  // Configure the valve.
+  if (domain === 'valve') {
+    platform.log.debug(`= valve device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db} current_position: ${CYAN}${state.attributes['current_position']}${db}`);
+    platform.log.debug(
+      `# valve device ${CYAN}${entity.entity_id}${db} supported_features: ${CYAN}${getFeatureNames(ValveEntityFeature, state.attributes.supported_features)}${db}`,
+    );
+    mutableDevice.addValve(endpointName);
   }
 
   // Configure the select.
@@ -233,13 +309,14 @@ export function addControlEntity(
       state.attributes['options']?.forEach((option: string) => {
         platform.log.debug(`***Add select device ${CYAN}${entity.entity_id}${db} virtual control: ${CYAN}${option}${db}`);
         void platform
-          // eslint-disable-next-line @typescript-eslint/require-await
+          // oxlint-disable-next-line typescript/require-await
           .registerVirtualDevice(`${getEntityName(platform, entity)} ${option}`, 'mounted_switch', async () => {
-            platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error) => {
+            platform.ha.callService(domain, 'select_option', entity.entity_id, { option }).catch((error: unknown) => {
               platform.log.error(`Failed to call select_option service for ${CYAN}${entity.entity_id}${db} with option ${CYAN}${option}${db}: ${error}`);
             });
           })
-          .catch(/* istanbul ignore next */ () => {});
+          // oxlint-disable-next-line no-empty-function
+          .catch(/* v8 ignore next */ () => {});
       });
     }
   }
@@ -247,7 +324,6 @@ export function addControlEntity(
   // Configure the remote.
   if (domain === 'remote') {
     platform.log.debug(`= remote device ${CYAN}${entity.entity_id}${db} state: ${CYAN}${state.state}${db}`);
-    mutableDevice.addOnOff(endpointName, true);
   }
 
   // Configure the media_player.
@@ -273,16 +349,18 @@ export function addControlEntity(
         { feature: MediaPlayerEntityFeature.NEXT_TRACK, service: MediaPlayerService.MEDIA_NEXT_TRACK, controlName: 'Next Track' },
       ];
       featuresServices.forEach(({ feature, service, controlName }) => {
+        // oxlint-disable-next-line no-bitwise
         if (state.attributes['supported_features'] && state.attributes['supported_features'] & feature) {
           platform.log.debug(`***Add media_player device ${CYAN}${entity.entity_id}${db} virtual control:${CYAN}${controlName}${db}`);
           void platform
-            // eslint-disable-next-line @typescript-eslint/require-await
+            // oxlint-disable-next-line typescript/require-await
             .registerVirtualDevice(`${controlName} ${getEntityName(platform, entity)}`, 'mounted_switch', async () => {
-              platform.ha.callService('media_player', service, entity.entity_id).catch((error) => {
+              platform.ha.callService('media_player', service, entity.entity_id).catch((error: unknown) => {
                 platform.log.error(`Failed to call ${controlName.toLowerCase()} service for ${CYAN}${entity.entity_id}${db}: ${error}`);
               });
             })
-            .catch(/* istanbul ignore next */ () => {});
+            // oxlint-disable-next-line no-empty-function
+            .catch(/* v8 ignore next */ () => {});
         }
       });
     }
@@ -292,7 +370,8 @@ export function addControlEntity(
   for (const hassCommand of hassCommandConverter.filter((c) => c.domain === domain)) {
     platform.log.debug(`- command: ${CYAN}${hassCommand.command}${db}`);
     mutableDevice.addCommandHandler(entity.entity_id, hassCommand.command, (data, endpointName, command) => {
-      void commandHandler(data as any, endpointName, command).catch(/* istanbul ignore next */ () => {});
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion no-empty-function
+      void commandHandler(data as any, endpointName, command).catch(/* v8 ignore next */ () => {});
     });
   }
 

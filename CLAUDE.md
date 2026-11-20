@@ -1,17 +1,10 @@
-# Matterbridge Claude Instructions
+# Matterbridge Claude Instructions (v.1.0.7)
 
-- Follow [STYLEGUIDE.md](./STYLEGUIDE.md) for code style, naming, JSDoc, validation, logging, and formatting expectations.
-- JSDoc requirements are enforced by ESLint. Treat missing or incomplete JSDoc on required APIs as a real lint issue, not optional documentation.
-- Import and export ordering are enforced by ESLint. Preserve the existing grouped and sorted order unless a change requires updating it.
-- Formatting is enforced by ESLint through the Prettier rule. Follow the existing formatting and do not fight the formatter.
-- Keep changes minimal and scoped to the request. Avoid unrelated refactors or broad cleanup.
-- Do not modify production code only to make a test pass. If a failing test points to a likely source issue, explain the issue and change behavior only when required by the task.
-- Preserve cross-platform behavior. Changes must work on Windows, macOS, and Linux, especially for paths, shell commands, environment variables, and networking behavior.
-- Maintain compatibility with the supported Node.js versions in this repository: 20.19, 22.13, 24.0 and 26.0.
-- This repository uses TypeScript and ESM. Follow existing project patterns for imports, exports, build configuration, and test setup.
-- Prefer the existing npm scripts in [package.json](./package.json) and the VS Code tasks in [tasks.json](./.vscode/tasks.json) for building, linting, and testing.
-- Keep tests deterministic and simple. Prefer small data sets and straightforward setup.
-- Some tests are intentionally multi-step flows. State may persist across successive steps within a single test flow, but each test unit must remain isolated from other tests.
-- For validation, run the relevant full test file or the matching suite/task for the touched area rather than assuming arbitrary isolated single-test execution is reliable.
-- When behavior changes, update the relevant tests and documentation.
-- Use dedicated instruction files under [.claude/rules](.claude/rules/) when a rule applies only to specific file types or workflows.
+@AGENTS.md
+
+## Claude Code specifics
+
+[AGENTS.md](./AGENTS.md) above is the single source for the shared instructions. Do not duplicate any of it here — edit AGENTS.md instead.
+
+- The rule files it lists under [.agents/rules](./.agents/rules/) are mirrored by [.claude/rules](.claude/rules/), which load automatically for the file types they are scoped to.
+- The skills it lists under [.agents/skills](./.agents/skills/) are also available as agent skills in [.claude/skills](.claude/skills/), invocable as slash commands and discovered automatically.

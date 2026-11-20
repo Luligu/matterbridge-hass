@@ -1,0 +1,1009 @@
+/**
+ * @file vitest/module.auto.test.ts
+ * @description This file contains the tests for the class HomeAssistantPlatform (auto discovery).
+ * @author Luca Liguori
+ */
+
+/* oxlint-disable eslint/no-console */
+
+/**
+ * WARNING!!!
+ * The tests in this unit are supposed to run sequentially because they depend on the Matterbridge/Matter state.
+ * Is not possible for timing reasons to create and destroy a Matter node each test to keep isolation.
+ */
+
+const NAME = 'PlatformAuto';
+const MATTER_PORT = 6200;
+const MATTER_CREATE_ONLY = true;
+const MATTER_PAUSE = 10;
+
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
+import { MatterbridgeEndpoint, mountedOnOffControl, onOffPlugInUnit } from 'matterbridge';
+import { CYAN, db, dn, idn, LogLevel, nf, rs, wr } from 'matterbridge/logger';
+import { VendorId } from 'matterbridge/matter/types';
+import { flushAsync } from 'matterbridge/test-utils';
+import {
+  HOMEDIR,
+  addDevice,
+  aggregator,
+  createServerNode,
+  createTestEnvironment,
+  deleteDevice,
+  destroyTestEnvironment,
+  flushServerNode,
+  log,
+  loggerDebugSpy,
+  loggerErrorSpy,
+  loggerFatalSpy,
+  loggerInfoSpy,
+  loggerNoticeSpy,
+  loggerWarnSpy,
+  server,
+  setDebug,
+  setupTest,
+  startServerNode,
+  stopServerNode,
+} from 'matterbridge/test-utils/vitest';
+
+import { createUniqueId, generateArea, generateDevice, generateEntity, generateLabel, generateState, getDomain, getEntityName, getName } from '../src/helpers.js';
+import { type HassConfig, type HassContext, type HassEntity, type HassServices, type HassState, HomeAssistant } from '../src/homeAssistant.js';
+import type { HomeAssistantPlatform as HomeAssistantPlatformType, HomeAssistantPlatformConfig } from '../src/module.js';
+import { MutableDevice } from '../src/mutableDevice.js';
+
+const connectSpy = vi.spyOn(HomeAssistant.prototype, 'connect').mockImplementation(async () => {
+  console.log(`Mocked connect`);
+  return Promise.resolve('2025.1.0'); // Simulate a successful connection with a version string
+});
+
+const closeSpy = vi.spyOn(HomeAssistant.prototype, 'close').mockImplementation(async () => {
+  console.log(`Mocked close`);
+  return Promise.resolve();
+});
+
+const subscribeSpy = vi.spyOn(HomeAssistant.prototype, 'subscribe').mockImplementation(async () => {
+  console.log(`Mocked subscribe`);
+  return Promise.resolve(1); // Simulate a successful subscription with a subscription ID
+});
+
+const fetchDataSpy = vi.spyOn(HomeAssistant.prototype, 'fetchData').mockImplementation(async () => {
+  console.log(`Mocked fetchData`);
+  return Promise.resolve();
+});
+
+const fetchSpy = vi.spyOn(HomeAssistant.prototype, 'fetch').mockImplementation(async (api: string) => {
+  console.log(`Mocked fetch: ${api}`);
+  return Promise.resolve();
+});
+
+const callServiceSpy = vi
+  .spyOn(HomeAssistant.prototype, 'callService')
+  .mockImplementation(async (domain: string, service: string, entityId: string, serviceData: Record<string, any> = {}) => {
+    console.log(`Mocked callService: domain ${domain} service ${service} entityId ${entityId}`);
+    return Promise.resolve({ context: {} as HassContext, response: undefined });
+  });
+
+const { savePayloadMock, writeReportMock } = vi.hoisted(() => ({
+  savePayloadMock: vi.fn(async () => {}),
+  writeReportMock: vi.fn(async () => ''),
+}));
+
+vi.mock('../src/payload.js', () => ({
+  savePayload: savePayloadMock,
+}));
+
+vi.mock('../src/report.js', () => ({
+  writeReport: writeReportMock,
+}));
+
+const { HomeAssistantPlatform } = await import('../src/module.js');
+
+const addClusterServerBatteryPowerSourceSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerBatteryPowerSource');
+const addClusterServerBooleanStateSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerBooleanState');
+const addClusterServerSmokeAlarmSmokeCoAlarmSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerSmokeAlarmSmokeCoAlarm');
+const addClusterServerCoAlarmSmokeCoAlarmSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerCoAlarmSmokeCoAlarm');
+const addClusterServerColorTemperatureColorControlSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerColorTemperatureColorControl');
+const addClusterServerColorControlSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerColorControl');
+const addClusterServerAutoModeThermostatSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerAutoModeThermostat');
+const addClusterServerHeatingThermostatSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerHeatingThermostat');
+const addClusterServerCoolingThermostatSpy = vi.spyOn(MutableDevice.prototype, 'addClusterServerCoolingThermostat');
+const addVacuumSpy = vi.spyOn(MutableDevice.prototype, 'addVacuum');
+const addSelectSpy = vi.spyOn(MutableDevice.prototype, 'addSelect');
+
+MatterbridgeEndpoint.logLevel = LogLevel.DEBUG; // Set the log level for MatterbridgeEndpoint to DEBUG
+
+// Setup the test environment
+await setupTest(NAME, false);
+
+describe('Matterbridge ' + NAME, () => {
+  let haPlatform: HomeAssistantPlatformType;
+
+  const mockMatterbridge = {
+    matterbridgeDirectory: HOMEDIR + '/.matterbridge',
+    matterbridgePluginDirectory: HOMEDIR + '/Matterbridge',
+    systemInformation: {
+      ipv4Address: undefined,
+      ipv6Address: undefined,
+      osRelease: 'xx.xx.xx.xx.xx.xx',
+      nodeVersion: '22.1.10',
+    },
+    matterbridgeVersion: '3.11.0',
+    log,
+    addBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      await addDevice(aggregator, device, 1, 1, 1, 0);
+    }),
+    removeBridgedEndpoint: vi.fn(async (pluginName: string, device: MatterbridgeEndpoint) => {
+      await deleteDevice(aggregator, device, 1, 1, 1, 0);
+    }),
+    removeAllBridgedEndpoints: vi.fn(async (pluginName: string) => {
+      for (const device of aggregator.parts) {
+        await deleteDevice(aggregator, device, 1, 1, 1, 0);
+      }
+    }),
+    addVirtualEndpoint: vi.fn(async (pluginName: string, name: string, type: 'light' | 'outlet' | 'switch' | 'mounted_switch', callback: () => Promise<void>) => {
+      console.log(`Mocked addVirtualEndpoint: pluginName ${pluginName} name ${name} type ${type}`);
+      const device = new MatterbridgeEndpoint([mountedOnOffControl, onOffPlugInUnit], { id: name.replaceAll(' ', '') + ':' + type })
+        .createDefaultBridgedDeviceBasicInformationClusterServer(name, createUniqueId(), VendorId(0xfff1), 'Matterbridge', 'Matterbridge Virtual Device')
+        .addRequiredClusterServers();
+      await addDevice(aggregator, device, 1, 1, 1, 0);
+    }),
+  } as any;
+
+  const mockConfig: HomeAssistantPlatformConfig = JSON.parse(readFileSync(path.join('.', 'matterbridge-hass.config.json'), 'utf-8'));
+  mockConfig.token = 'long-lived token'; // Replace with a valid long-lived token for actual testing
+
+  beforeAll(async () => {
+    // Setup the Matter test environment
+    await createTestEnvironment();
+    // Create the server node and aggregator
+    await createServerNode(MATTER_PORT);
+    // Start the server node and aggregator
+    if (!MATTER_CREATE_ONLY) await startServerNode();
+  });
+
+  beforeEach(async () => {
+    // Clear all mocks
+    vi.clearAllMocks();
+  });
+
+  afterEach(async () => {
+    // Clean up after each test
+    await cleanup();
+    await setDebug(false);
+  });
+
+  afterAll(async () => {
+    // Stop or flush the server node depending on the create-only mode
+    if (MATTER_CREATE_ONLY) await flushServerNode();
+    else await stopServerNode();
+    // Destroy the Matter test environment
+    await destroyTestEnvironment();
+
+    // Restore all mocks
+    vi.restoreAllMocks();
+
+    // logKeepAlives(log);
+  });
+
+  async function cleanup(): Promise<void> {
+    // Clean the test environment
+    if (haPlatform) {
+      // Reset start messages
+      haPlatform.filterMessages.length = 0;
+      haPlatform.filteredDevices = 0;
+      haPlatform.filteredEntities = 0;
+      haPlatform.unselectedDevices = 0;
+      haPlatform.unselectedEntities = 0;
+      haPlatform.duplicatedDevices = 0;
+      haPlatform.duplicatedEntities = 0;
+      haPlatform.longNameDevices = 0;
+      haPlatform.longNameEntities = 0;
+      haPlatform.failedDevices = 0;
+      haPlatform.failedEntities = 0;
+      // Reset platform state
+      haPlatform.matterbridgeDevices.clear();
+      haPlatform.endpointNames.clear();
+      haPlatform.batteryVoltageEntities.clear();
+      haPlatform.updatingEntities.clear();
+      haPlatform.offUpdatedEntities.clear();
+      haPlatform.ha.hassDevices.clear();
+      haPlatform.ha.hassEntities.clear();
+      haPlatform.ha.hassStates.clear();
+      haPlatform.ha.hassAreas.clear();
+      haPlatform.ha.hassLabels.clear();
+      haPlatform.ha.hassServices = {};
+      haPlatform.ha.hassConfig = {} as HassConfig;
+      await haPlatform.clearSelect();
+      await haPlatform.unregisterAllDevices();
+    }
+    expect(aggregator.parts.size).toBe(0);
+
+    // Reset the mock configuration to default values
+    mockConfig.filterByArea = '';
+    mockConfig.filterByLabel = '';
+    mockConfig.whiteList = [];
+    mockConfig.blackList = [];
+    mockConfig.entityWhiteList = [];
+    mockConfig.entityBlackList = [];
+    mockConfig.deviceEntityBlackList = {};
+    mockConfig.splitByLabel = '';
+    mockConfig.splitNameStrategy = 'Entity name';
+    mockConfig.controllerStrategy = 'Merge';
+    mockConfig.namePostfix = '';
+    mockConfig.postfix = '';
+    mockConfig.airQualityRegex = '';
+    mockConfig.enableServerRvc = false;
+    mockConfig.debug = true;
+    mockConfig.unregisterOnShutdown = false;
+  }
+
+  it('should initialize the HomeAssistantPlatform (mandatory)', async () => {
+    haPlatform = new HomeAssistantPlatform(mockMatterbridge, log, mockConfig);
+    expect(haPlatform).toBeDefined();
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    haPlatform.name = mockConfig.name;
+    haPlatform.type = mockConfig.type as 'DynamicPlatform';
+    haPlatform.version = mockConfig.version;
+    // @ts-expect-error - setMatterNode is intentionally private
+    haPlatform.setMatterNode?.(
+      mockMatterbridge.addBridgedEndpoint,
+      mockMatterbridge.removeBridgedEndpoint,
+      mockMatterbridge.removeAllBridgedEndpoints,
+      mockMatterbridge.addVirtualEndpoint,
+    );
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Initializing platform ${haPlatform.config.name}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${haPlatform.config.name} initialized successfully`);
+    haPlatform.haSubscriptionId = 1;
+    haPlatform.ha.connected = true; // Simulate a connected Home Assistant instance
+    haPlatform.ha.hassConfig = {} as HassConfig; // Simulate Home Assistant configuration
+    haPlatform.ha.hassServices = {}; // Simulate Home Assistant services
+  });
+
+  describe.each(['device', 'individual', 'split'] as const)('duplicate %s names', (kind) => {
+    it.each(['none', 'area', 'label', 'blacklist', 'whitelist', 'domain'] as const)('should check duplicate names after filtering when applying %s filtering', async (filter) => {
+      const area = generateArea(haPlatform.ha, 'Export area');
+      const label = generateLabel(haPlatform.ha, 'Export label');
+      const first = generateEntity(haPlatform.ha, 'Shared export', 'scene', null, area.area_id, [label.label_id], 'unknown');
+      const parent = kind === 'individual' ? null : generateDevice(haPlatform.ha, kind === 'device' ? 'Shared export' : 'Split parent');
+      const second = generateEntity(haPlatform.ha, 'Second entity', 'switch', parent, null, [], 'off');
+      second.name = 'Shared export';
+      if (kind === 'split') {
+        const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+        second.labels.push(labelSplit.label_id);
+        haPlatform.config.splitByLabel = labelSplit.name;
+      }
+      if (filter === 'area') haPlatform.config.filterByArea = area.name;
+      if (filter === 'label') haPlatform.config.filterByLabel = label.name;
+      if (filter === 'blacklist') haPlatform.config.blackList = [kind === 'device' && parent ? parent.id : second.id];
+      if (filter === 'whitelist') haPlatform.config.whiteList = [first.entity_id];
+      if (filter === 'domain') haPlatform.config.entityBlackList = ['switch'];
+      const snackbarSpy = vi.spyOn(haPlatform, 'wssSendSnackbarMessage').mockImplementation(() => {});
+      try {
+        await haPlatform.onStart('Duplicate regression');
+        const duplicates = filter === 'none' || (kind === 'device' && filter === 'domain') ? 1 : 0;
+        const unselected = filter === 'blacklist' || filter === 'whitelist' || (kind !== 'device' && filter === 'domain') ? 1 : 0;
+        expect(haPlatform.duplicatedDevices).toBe(kind === 'device' ? duplicates : 0);
+        expect(haPlatform.duplicatedEntities).toBe(kind === 'device' ? 0 : duplicates);
+        expect(kind === 'device' ? haPlatform.unselectedDevices : haPlatform.unselectedEntities).toBe(unselected);
+        expect(loggerWarnSpy).toHaveBeenCalledTimes(duplicates);
+        // The selects of the duplicate are cleared, the selects of the unselected one are kept
+        expect(haPlatform.getSelectDevices().some((d) => d.serialNumber === first.id)).toBe(true);
+        expect(haPlatform.getSelectDevices().some((d) => d.serialNumber === (kind === 'device' && parent ? parent.id : second.id))).toBe(
+          filter === 'blacklist' || filter === 'whitelist',
+        );
+        expect(loggerErrorSpy).not.toHaveBeenCalled();
+        expect(haPlatform.matterbridgeDevices.size).toBe(1);
+        expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
+        expect(haPlatform.endpointNames.has(second.entity_id)).toBe(false);
+        expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+
+        await haPlatform.onConfigure();
+        const duplicateMessages = snackbarSpy.mock.calls.filter(([message]) => message.includes('duplicate names'));
+        expect(duplicateMessages).toHaveLength(duplicates);
+        expect(duplicateMessages).toEqual(
+          duplicates ? [[`Home Assistant: 1 ${kind === 'device' ? 'devices' : 'entities'} have been discarded due to duplicate names`, 60, 'warning']] : [],
+        );
+      } finally {
+        snackbarSpy.mockRestore();
+      }
+    });
+  });
+
+  it('should call onStart and skip a duplicate individual entity name with namePostfix', async () => {
+    const first = generateEntity(haPlatform.ha, 'Shared export', 'scene', null, null, [], 'unknown');
+    const second = generateEntity(haPlatform.ha, 'Second entity', 'scene', null, null, [], 'unknown');
+    second.name = 'Shared export';
+    haPlatform.config.namePostfix = 'HA';
+    await haPlatform.onStart('Test reason');
+    expect(haPlatform.duplicatedEntities).toBe(1);
+    expect(loggerWarnSpy).toHaveBeenCalledWith(`Individual entity "${CYAN}Shared export${wr}" already exists as a registered device. Please change the name in Home Assistant`);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(second.entity_id)).toBe(false);
+  });
+
+  it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {
+    // await setDebug(true);
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', null, null, [], 'unknown');
+    haPlatform.config.entityBlackList = ['scene'];
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Skipping entity ${CYAN}${entity.entity_id}${nf} because in entityBlackList`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and not register a split entity if the domain is not whitelisted', async () => {
+    // await setDebug(true);
+    const device = generateDevice(haPlatform.ha, 'Test Device', null, []);
+    const entity = generateEntity(haPlatform.ha, 'Test Scene', 'scene', device, null, [], 'unknown');
+    haPlatform.config.entityWhiteList = ['automation'];
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Skipping entity ${CYAN}${entity.entity_id}${nf} because not in entityWhiteList`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and not register an individual entity if is not in the area', async () => {
+    // await setDebug(true);
+    const areaSelect = generateArea(haPlatform.ha, 'Test Area');
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', null, null, [], 'unknown');
+    haPlatform.config.filterByArea = areaSelect.name;
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(
+      `Individual entity ${CYAN}${entity.entity_id}${nf} name ${CYAN}${getEntityName(haPlatform, entity)}${nf} is not in the area "${CYAN}${haPlatform.config.filterByArea}${nf}". Skipping...`,
+    );
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and not register a device entity if is not in the area', async () => {
+    // await setDebug(true);
+    const areaSelect = generateArea(haPlatform.ha, 'Test Area');
+    const device = generateDevice(haPlatform.ha, 'Test Device');
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
+    haPlatform.config.filterByArea = areaSelect.name;
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Device ${CYAN}${device.name}${nf} is not in the area "${CYAN}${haPlatform.config.filterByArea}${nf}". Skipping...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and not register a split entity if is not in the area', async () => {
+    // await setDebug(true);
+    const areaSelect = generateArea(haPlatform.ha, 'Test Area');
+    const device = generateDevice(haPlatform.ha, 'Test Device');
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
+    haPlatform.config.filterByArea = areaSelect.name;
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(
+      `Split entity ${CYAN}${entity.entity_id}${nf} name ${CYAN}${getEntityName(haPlatform, entity)}${nf} is not in the area "${CYAN}${haPlatform.config.filterByArea}${nf}". Skipping...`,
+    );
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register a split entity if the device has the label filter', async () => {
+    // await setDebug(true);
+    const labelSelect = generateLabel(haPlatform.ha, 'Test Label');
+    const device = generateDevice(haPlatform.ha, 'Test Device', null, [labelSelect.label_id]);
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
+    haPlatform.config.filterByLabel = labelSelect.name;
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(1);
+  });
+
+  it('should call onStart and register a split entity if it has the label filter', async () => {
+    // await setDebug(true);
+    const labelSelect = generateLabel(haPlatform.ha, 'Test Label');
+    const device = generateDevice(haPlatform.ha, 'Test Device');
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [labelSelect.label_id], 'unknown');
+    haPlatform.config.filterByLabel = labelSelect.name;
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(1);
+  });
+
+  it('should call onStart and not register a split entity if it has not the label filter', async () => {
+    // await setDebug(true);
+    const labelSelect = generateLabel(haPlatform.ha, 'Test Label');
+    const device = generateDevice(haPlatform.ha, 'Test Device');
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
+    haPlatform.config.filterByLabel = labelSelect.name;
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(
+      `Split entity ${CYAN}${entity.entity_id}${nf} name ${CYAN}${getEntityName(haPlatform, entity)}${nf} doesn't have the label "${CYAN}${haPlatform.config.filterByLabel}${nf}". Skipping...`,
+    );
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and not register a split entity if the device does not exist', async () => {
+    // await setDebug(true);
+    const device = generateDevice(haPlatform.ha, 'Test Device');
+    const entity = generateEntity(haPlatform.ha, 'Test Entity Scene', 'scene', device, null, [], 'unknown');
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    entity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    haPlatform.ha.hassDevices.delete(device.id); // Simulate the device not existing
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Split entity ${CYAN}${entity.entity_id}${nf} name ${CYAN}${getEntityName(haPlatform, entity)}${nf} device not found. Skipping...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register the individual entities with Merge strategy', async () => {
+    // await setDebug(true);
+    const individualEntities: { generatedEntity?: HassEntity; generatedState?: HassState; name: string; domain: string; state: string; attributes: Record<string, any> }[] = [
+      { name: 'Scene', domain: 'scene', state: 'unknown', attributes: {} },
+      { name: 'Temperature', domain: 'sensor', state: '20.5', attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' } },
+      { name: 'Humidity', domain: 'sensor', state: '50', attributes: { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' } },
+      { name: 'Pressure', domain: 'sensor', state: '1013', attributes: { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' } },
+    ];
+    for (const entityData of individualEntities) {
+      entityData.generatedEntity = generateEntity(haPlatform.ha, entityData.name, entityData.domain, undefined, null, [], entityData.state);
+      entityData.generatedState = generateState(haPlatform.ha, entityData.generatedEntity, entityData.state, entityData.attributes);
+    }
+
+    haPlatform.config.controllerStrategy = 'Merge';
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    for (const entityData of individualEntities) {
+      if (!entityData.generatedEntity) throw new Error('Entity not generated');
+      expect(loggerInfoSpy).toHaveBeenCalledWith(
+        `Creating device for individual entity ${idn}${entityData.name}${rs}${nf} domain ${CYAN}${getDomain(entityData.generatedEntity)}${nf} name ${CYAN}${getName(entityData.generatedEntity)}${nf}`,
+      );
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${getEntityName(haPlatform, entityData.generatedEntity)}${db}...`);
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`- individual entity ${CYAN}${entityData.generatedEntity.entity_id}${db} mapped to endpoint ${CYAN}main${db}`);
+    }
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(individualEntities.length);
+    expect(haPlatform.matterbridgeDevices.size).toBe(individualEntities.length);
+    expect(haPlatform.endpointNames.size).toBe(individualEntities.length);
+    for (const entityData of individualEntities) {
+      if (!entityData.generatedEntity) throw new Error('Entity not generated');
+      expect(haPlatform.matterbridgeDevices.has(entityData.generatedEntity.entity_id)).toBe(true);
+      expect(haPlatform.matterbridgeDevices.get(entityData.generatedEntity.entity_id)).toBeDefined();
+      expect(haPlatform.endpointNames.get(entityData.generatedEntity.entity_id)).toBe('');
+    }
+    expect(aggregator.parts.size).toBe(individualEntities.length);
+  });
+
+  it('should call onStart and register the individual entities with Matter strategy', async () => {
+    // await setDebug(true);
+    const individualEntities: { generatedEntity?: HassEntity; generatedState?: HassState; name: string; domain: string; state: string; attributes: Record<string, any> }[] = [
+      { name: 'Scene', domain: 'scene', state: 'unknown', attributes: {} },
+      { name: 'Temperature', domain: 'sensor', state: '20.5', attributes: { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' } },
+      { name: 'Humidity', domain: 'sensor', state: '50', attributes: { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' } },
+      { name: 'Pressure', domain: 'sensor', state: '1013', attributes: { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' } },
+    ];
+    for (const entityData of individualEntities) {
+      entityData.generatedEntity = generateEntity(haPlatform.ha, entityData.name, entityData.domain, undefined, null, [], entityData.state);
+      entityData.generatedState = generateState(haPlatform.ha, entityData.generatedEntity, entityData.state, entityData.attributes);
+    }
+
+    haPlatform.config.controllerStrategy = 'Matter';
+    await haPlatform.onStart('Test reason');
+    // No warnings or errors
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    for (const entityData of individualEntities) {
+      if (!entityData.generatedEntity) throw new Error('Entity not generated');
+      expect(loggerInfoSpy).toHaveBeenCalledWith(
+        `Creating device for individual entity ${idn}${entityData.name}${rs}${nf} domain ${CYAN}${getDomain(entityData.generatedEntity)}${nf} name ${CYAN}${getName(entityData.generatedEntity)}${nf}`,
+      );
+      expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${getEntityName(haPlatform, entityData.generatedEntity)}${db}...`);
+      expect(loggerDebugSpy).toHaveBeenCalledWith(
+        `- individual entity ${CYAN}${entityData.generatedEntity.entity_id}${db} mapped to endpoint ${CYAN}${entityData.generatedEntity.entity_id}${db}`,
+      );
+    }
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(individualEntities.length);
+    expect(haPlatform.matterbridgeDevices.size).toBe(individualEntities.length);
+    expect(haPlatform.endpointNames.size).toBe(individualEntities.length);
+    for (const entityData of individualEntities) {
+      if (!entityData.generatedEntity) throw new Error('Entity not generated');
+      expect(haPlatform.matterbridgeDevices.has(entityData.generatedEntity.entity_id)).toBe(true);
+      expect(haPlatform.matterbridgeDevices.get(entityData.generatedEntity.entity_id)).toBeDefined();
+      expect(haPlatform.endpointNames.get(entityData.generatedEntity.entity_id)).toBe(entityData.generatedEntity.entity_id);
+    }
+    expect(aggregator.parts.size).toBe(individualEntities.length);
+  });
+
+  it('should call onStart and register a device with one entity switch that has split label', async () => {
+    const areaSelect = generateArea(haPlatform.ha, 'Test Area');
+    const labelSelect = generateLabel(haPlatform.ha, 'Select Label');
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    const device = generateDevice(haPlatform.ha, 'Test Device', areaSelect.area_id, [labelSelect.label_id, labelSplit.label_id]);
+    const entity = generateEntity(haPlatform.ha, 'Test Entity', 'switch', device, null, [labelSplit.label_id], 'on');
+    haPlatform.config.filterByArea = areaSelect.name;
+    haPlatform.config.filterByLabel = labelSelect.name;
+    haPlatform.config.splitByLabel = labelSplit.name;
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(
+      `Creating device for split entity ${idn}${getEntityName(haPlatform, entity)}${rs}${nf} domain ${CYAN}${getDomain(entity)}${nf} name ${CYAN}${getName(entity)}${nf}`,
+    );
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${getEntityName(haPlatform, entity)}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledWith(mockConfig.name, haPlatform.matterbridgeDevices.get(entity.entity_id));
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(entity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.get(entity.entity_id)).toBeDefined();
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(entity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(1);
+  });
+
+  it('should call onStart and register a device with three entities', async () => {
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperature = generateEntity(haPlatform.ha, 'Temperature', 'sensor', device);
+    const humidity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressure = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperature, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressure, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    haPlatform.config.controllerStrategy = 'Matter';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBe(humidity.entity_id);
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBe(pressure.entity_id);
+    expect(aggregator.parts.size).toBe(1);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(3);
+
+    // onChangeLoggerLevel() must propagate the new log level to the main endpoint and all its child endpoints
+    await haPlatform.onChangeLoggerLevel(LogLevel.NOTICE);
+    expect(endpoint?.log.logLevel).toBe(LogLevel.NOTICE);
+    for (const child of endpoint?.getChildEndpoints() ?? []) expect(child.log.logLevel).toBe(LogLevel.NOTICE);
+  });
+
+  it('should call onStart and register a device with three entities if the device has label filter', async () => {
+    const labelFilter = generateLabel(haPlatform.ha, 'Label Filter');
+    const device = generateDevice(haPlatform.ha, 'Climate Device', null, [labelFilter.label_id]);
+    const temperature = generateEntity(haPlatform.ha, 'Temperature', 'sensor', device);
+    const humidity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressure = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperature, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressure, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    haPlatform.config.filterByLabel = labelFilter.name;
+    haPlatform.config.controllerStrategy = 'Matter';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBe(humidity.entity_id);
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBe(pressure.entity_id);
+    expect(aggregator.parts.size).toBe(1);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(3);
+  });
+
+  it('should call onStart and register a device with three entities if one entity has label filter', async () => {
+    const labelFilter = generateLabel(haPlatform.ha, 'Label Filter');
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperature = generateEntity(haPlatform.ha, 'Temperature', 'sensor', device, null, [labelFilter.label_id]);
+    const humidity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressure = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperature, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressure, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    haPlatform.config.filterByLabel = labelFilter.name;
+    haPlatform.config.controllerStrategy = 'Matter';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBeUndefined();
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(1);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(1);
+  });
+
+  it('should call onStart and register a device with three entities if it has label filter and one entity has label filter', async () => {
+    const labelFilter = generateLabel(haPlatform.ha, 'Label Filter');
+    const device = generateDevice(haPlatform.ha, 'Climate Device', null, [labelFilter.label_id]);
+    const temperature = generateEntity(haPlatform.ha, 'Temperature', 'sensor', device, null, [labelFilter.label_id]);
+    const humidity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressure = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperature, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressure, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    haPlatform.config.filterByLabel = labelFilter.name;
+    haPlatform.config.controllerStrategy = 'Matter';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(temperature.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(humidity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressure.entity_id)).toBe(false);
+    expect(haPlatform.endpointNames.size).toBe(1);
+    expect(haPlatform.endpointNames.get(temperature.entity_id)).toBe(temperature.entity_id);
+    expect(haPlatform.endpointNames.get(humidity.entity_id)).toBeUndefined();
+    expect(haPlatform.endpointNames.get(pressure.entity_id)).toBeUndefined();
+    expect(aggregator.parts.size).toBe(1);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(1);
+  });
+
+  it('should call onStart and register an individual entity, a device with two entities, one normal and one split with Merge strategy', async () => {
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperatureIndividualEntity = generateEntity(haPlatform.ha, 'Temperature', 'sensor');
+    const humidityDeviceEntity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressureSplitEntity = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperatureIndividualEntity, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    pressureSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${temperatureIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${pressureSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(temperatureIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(humidityDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressureSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperatureIndividualEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(humidityDeviceEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(pressureSplitEntity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(3);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(0);
+
+    vi.clearAllMocks();
+    haPlatform.filterMessages.length = 0;
+    await haPlatform.onConfigure();
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+  });
+
+  it('should call onStart and register a remote individual entity, a media_player device with two remote entities, one normal and one split with Merge strategy', async () => {
+    const virtualLabel = generateLabel(haPlatform.ha, 'Virtual Label');
+    const device = generateDevice(haPlatform.ha, 'TV Device');
+    const remoteIndividualEntity = generateEntity(haPlatform.ha, 'Individual remote', 'remote');
+    const remoteDeviceEntity = generateEntity(haPlatform.ha, 'Device remote entity', 'remote', device);
+    const mediaplayerDeviceEntity = generateEntity(haPlatform.ha, 'Device media player entity', 'media_player', device, null, [virtualLabel.label_id]);
+    const remoteSplitEntity = generateEntity(haPlatform.ha, 'Split remote entity', 'remote', device);
+    generateState(haPlatform.ha, remoteIndividualEntity, 'on');
+    generateState(haPlatform.ha, remoteDeviceEntity, 'on');
+    generateState(haPlatform.ha, mediaplayerDeviceEntity, 'on', { supported_features: 448439 });
+    generateState(haPlatform.ha, remoteSplitEntity, 'on');
+
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    remoteSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    haPlatform.config.virtualControlLabel = virtualLabel.name;
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    // await setDebug(true);
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${remoteIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${remoteSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addVirtualEndpoint).toHaveBeenCalledTimes(9);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(remoteIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(remoteDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(mediaplayerDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(remoteSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(4);
+    expect(haPlatform.endpointNames.get(remoteIndividualEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(remoteDeviceEntity.entity_id)).toBe('remote.device_remote_entity');
+    expect(haPlatform.endpointNames.get(mediaplayerDeviceEntity.entity_id)).toBe('media_player.device_media_player_entity');
+    expect(haPlatform.endpointNames.get(remoteSplitEntity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(12);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(2);
+
+    vi.clearAllMocks();
+    haPlatform.filterMessages.length = 0;
+    await haPlatform.onConfigure();
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+  });
+
+  it('should call onStart and register a input_select individual entity, a device with two remote entities, one normal and one split with Merge strategy', async () => {
+    const virtualLabel = generateLabel(haPlatform.ha, 'Virtual Label');
+    const device = generateDevice(haPlatform.ha, 'Select Device');
+    const inputSelectIndividualEntity = generateEntity(haPlatform.ha, 'Individual input_select', 'input_select', null, null, [virtualLabel.label_id]);
+    const selectDeviceEntity = generateEntity(haPlatform.ha, 'Device select entity', 'select', device, null, [virtualLabel.label_id]);
+    const selectSplitEntity = generateEntity(haPlatform.ha, 'Split select entity', 'select', device, null, [virtualLabel.label_id]);
+    generateState(haPlatform.ha, inputSelectIndividualEntity, 'Led On', { options: ['Led On', 'Led Off'], friendly_name: 'Individual input_select Led' });
+    generateState(haPlatform.ha, selectDeviceEntity, 'Led Off', { options: ['Led On', 'Led Off'], friendly_name: 'Device select entity Led' });
+    generateState(haPlatform.ha, selectSplitEntity, 'invalid', { options: ['Led On', 'Led Off'], friendly_name: 'Split select entity Led' });
+
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    selectSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    haPlatform.config.virtualControlLabel = virtualLabel.name;
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${inputSelectIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${selectSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addVirtualEndpoint).toHaveBeenCalledTimes(6);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(addSelectSpy).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(inputSelectIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(selectDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(selectSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(inputSelectIndividualEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(selectDeviceEntity.entity_id)).toBe('');
+    expect(haPlatform.endpointNames.get(selectSplitEntity.entity_id)).toBe('');
+    expect(aggregator.parts.size).toBe(9);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(0);
+
+    vi.clearAllMocks();
+    haPlatform.filterMessages.length = 0;
+    await haPlatform.onConfigure();
+    expect(loggerWarnSpy).not.toHaveBeenCalled();
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(loggerFatalSpy).not.toHaveBeenCalled();
+  });
+
+  it('should call onStart and not register an individual entity, a device with two entities, one normal and one split with discardHiddenEntities enabled', async () => {
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperatureIndividualEntity = generateEntity(haPlatform.ha, 'Temperature', 'sensor');
+    const humidityDeviceEntity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressureSplitEntity = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperatureIndividualEntity, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+    temperatureIndividualEntity.hidden_by = 'user';
+    humidityDeviceEntity.hidden_by = 'user';
+    pressureSplitEntity.hidden_by = 'user';
+
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    pressureSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    haPlatform.config.discardHiddenEntities = true;
+    haPlatform.config.controllerStrategy = 'Merge';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(0);
+    expect(haPlatform.matterbridgeDevices.size).toBe(0);
+    expect(haPlatform.endpointNames.size).toBe(0);
+    expect(aggregator.parts.size).toBe(0);
+  });
+
+  it('should call onStart and register an individual entity, a device with two entities, one normal and one split with Matter strategy', async () => {
+    const device = generateDevice(haPlatform.ha, 'Climate Device');
+    const temperatureIndividualEntity = generateEntity(haPlatform.ha, 'Temperature', 'sensor');
+    const humidityDeviceEntity = generateEntity(haPlatform.ha, 'Humidity', 'sensor', device);
+    const pressureSplitEntity = generateEntity(haPlatform.ha, 'Pressure', 'sensor', device);
+    generateState(haPlatform.ha, temperatureIndividualEntity, '20.5', { state_class: 'measurement', device_class: 'temperature', unit_of_measurement: '°C' });
+    generateState(haPlatform.ha, humidityDeviceEntity, '50', { state_class: 'measurement', device_class: 'humidity', unit_of_measurement: '%' });
+    generateState(haPlatform.ha, pressureSplitEntity, '1013', { state_class: 'measurement', device_class: 'pressure', unit_of_measurement: 'hPa' });
+
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    pressureSplitEntity.labels.push(labelSplit.label_id);
+    haPlatform.config.splitByLabel = labelSplit.name;
+    haPlatform.config.controllerStrategy = 'Matter';
+
+    await haPlatform.onStart('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Starting platform ${mockConfig.name} with reason: Test reason...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${temperatureIndividualEntity.original_name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${device.name}${db}...`);
+    expect(loggerDebugSpy).toHaveBeenCalledWith(`Registering device ${dn}${pressureSplitEntity.original_name}${db}...`);
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Platform ${mockConfig.name} started successfully`);
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(3);
+    expect(haPlatform.matterbridgeDevices.size).toBe(3);
+    expect(haPlatform.matterbridgeDevices.has(temperatureIndividualEntity.entity_id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(device.id)).toBe(true);
+    expect(haPlatform.matterbridgeDevices.has(humidityDeviceEntity.entity_id)).toBe(false);
+    expect(haPlatform.matterbridgeDevices.has(pressureSplitEntity.entity_id)).toBe(true);
+    expect(haPlatform.endpointNames.size).toBe(3);
+    expect(haPlatform.endpointNames.get(temperatureIndividualEntity.entity_id)).toBe(temperatureIndividualEntity.entity_id);
+    expect(haPlatform.endpointNames.get(humidityDeviceEntity.entity_id)).toBe(humidityDeviceEntity.entity_id);
+    expect(haPlatform.endpointNames.get(pressureSplitEntity.entity_id)).toBe(pressureSplitEntity.entity_id);
+    expect(aggregator.parts.size).toBe(3);
+    const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+    expect(endpoint).toBeDefined();
+    expect(endpoint?.getChildEndpoints().length).toBe(1);
+  });
+
+  it('should call onShutdown and unregister (mandatory)', async () => {
+    mockConfig.unregisterOnShutdown = true;
+    await haPlatform.onShutdown('Test reason');
+    expect(loggerInfoSpy).toHaveBeenCalledWith(`Shutting down platform ${mockConfig.name} with reason: Test reason...`);
+    expect(mockMatterbridge.removeAllBridgedEndpoints).toHaveBeenCalled();
+  });
+});

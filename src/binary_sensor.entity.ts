@@ -1,11 +1,12 @@
 /**
+ * @file src/binary_sensor.entity.ts
  * @description This file contains the addBinarySensorEntity function.
- * @file src\binary_sensor.entity.ts
  * @author Luca Liguori
  * @created 2025-08-25
  * @version 1.1.0
  * @license Apache-2.0
- * @copyright 2025, 2026, 2027 Luca Liguori.
+ *
+ * Copyright 2025, 2026, 2027 Luca Liguori.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +21,9 @@
  * limitations under the License.
  */
 
-import { contactSensor, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
+import { contactSensor, powerSource, smokeCoAlarm, waterFreezeDetector, waterLeakDetector } from 'matterbridge';
 import { CYAN, db, debugStringify } from 'matterbridge/logger';
-import { BooleanState, SmokeCoAlarm } from 'matterbridge/matter/clusters';
+import { BooleanState, PowerSource, SmokeCoAlarm } from 'matterbridge/matter/clusters';
 import { getClusterNameById } from 'matterbridge/matter/types';
 import { isValidString } from 'matterbridge/utils';
 
@@ -43,7 +44,7 @@ import type { MutableDevice } from './mutableDevice.js';
  * @returns {string | undefined} - The endpoint name for the binary sensor, if found; otherwise, undefined
  */
 export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDevice: MutableDevice, entity: HassEntity, state: HassState): string | undefined {
-  let endpointName: string | undefined = undefined;
+  let endpointName: string | undefined;
   const domain = getDomain(entity.entity_id);
   if (domain !== 'binary_sensor') return undefined;
 
@@ -56,20 +57,20 @@ export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDe
     if (isValidString(state.attributes['friendly_name'])) mutableDevice.setFriendlyName(endpointName, state.attributes['friendly_name']);
     platform.log.debug(`- state ${debugStringify(state)}`);
     platform.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.state}${db}`);
-    mutableDevice.addClusterServerBooleanState(endpointName, state.state === 'on' ? false : true);
+    mutableDevice.addClusterServerBooleanState(endpointName, state.state !== 'on');
     return endpointName;
   }
 
   hassDomainBinarySensorsConverter
     .filter((d) => d.domain === domain && d.withDeviceClass === state.attributes['device_class'])
     .forEach((hassDomainBinarySensor) => {
-      if (hassDomainBinarySensor.endpoint !== undefined) {
+      if (hassDomainBinarySensor.endpoint === undefined) {
+        endpointName = entity.entity_id; // Use the entity ID as the endpoint name
+      } else {
         endpointName = hassDomainBinarySensor.endpoint; // Remap the endpoint name for the entity
         platform.log.debug(
           `- binary_sensor domain ${hassDomainBinarySensor.domain} deviceClass ${hassDomainBinarySensor.withDeviceClass} endpoint '${CYAN}${endpointName}${db}' for entity ${CYAN}${entity.entity_id}${db}`,
         );
-      } else {
-        endpointName = entity.entity_id; // Use the entity ID as the endpoint name
       }
       platform.log.debug(
         `+ binary_sensor device ${CYAN}${hassDomainBinarySensor.deviceType.name}${db} cluster ${CYAN}${getClusterNameById(hassDomainBinarySensor.clusterId)}${db}`,
@@ -82,13 +83,13 @@ export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDe
       // Configure the BooleanState cluster default value for contactSensor.
       if (hassDomainBinarySensor.deviceType.code === contactSensor.code) {
         platform.log.debug(`= contactSensor device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.state}${db}`);
-        mutableDevice.addClusterServerBooleanState(endpointName, state.state === 'on' ? false : true);
+        mutableDevice.addClusterServerBooleanState(endpointName, state.state !== 'on');
       }
 
       // Configure the BooleanState cluster default value for waterLeakDetector/waterFreezeDetector.
       if (hassDomainBinarySensor.deviceType.code === waterLeakDetector.code || hassDomainBinarySensor.deviceType.code === waterFreezeDetector.code) {
         platform.log.debug(`= waterLeakDetector/waterFreezeDetector device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.state}${db}`);
-        mutableDevice.addClusterServerBooleanState(endpointName, state.state === 'on' ? true : false);
+        mutableDevice.addClusterServerBooleanState(endpointName, state.state === 'on');
       }
 
       // Configure the SmokeCoAlarm cluster default value with feature SmokeAlarm for device_class smoke.
@@ -101,6 +102,13 @@ export function addBinarySensorEntity(platform: HomeAssistantPlatform, mutableDe
       if (state.attributes.device_class === 'carbon_monoxide' && hassDomainBinarySensor.deviceType.code === smokeCoAlarm.code) {
         platform.log.debug(`= smokeCoAlarm CoAlarm device ${CYAN}${entity.entity_id}${db} state ${CYAN}${state.state}${db}`);
         mutableDevice.addClusterServerCoAlarmSmokeCoAlarm(endpointName, state.state === 'on' ? SmokeCoAlarm.AlarmState.Critical : SmokeCoAlarm.AlarmState.Normal);
+      }
+
+      // Matter 1.6.1 requires a PowerSource device type in the SmokeCoAlarm composition: add a battery one with unknown level.
+      if (hassDomainBinarySensor.deviceType.code === smokeCoAlarm.code) {
+        platform.log.debug(`= smokeCoAlarm PowerSource device ${CYAN}${entity.entity_id}${db} battery with unknown level`);
+        mutableDevice.addDeviceTypes(endpointName, powerSource);
+        mutableDevice.addClusterServerBatteryPowerSource(endpointName, PowerSource.BatChargeLevel.Ok, null);
       }
     });
   return endpointName;

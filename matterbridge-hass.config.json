@@ -15,7 +15,6 @@
   "entityWhiteList": [],
   "entityBlackList": [],
   "deviceEntityBlackList": {},
-  "splitEntities": [],
   "splitByLabel": "",
   "splitNameStrategy": "Entity name",
   "controllerStrategy": "Merge",

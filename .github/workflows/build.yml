@@ -1,4 +1,4 @@
-# Node.js CI (plugin) v. 2.0.4
+# Node.js CI (plugin) v.2.0.8
 # Path: .github/workflows/build.yml
 
 name: Node.js CI
@@ -19,8 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Node.js 20.19 is still supported in package.json, but it is not tested in CI as it has reached EOL.
-        node-version: [22.x, 24.x, 26.2.x]
+        node-version: [22.x, 24.x, 26.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
@@ -43,7 +42,13 @@ jobs:
         id: select_matterbridge_ref
         shell: pwsh
         run: |
-          $ref = if ('${{ github.event_name }}' -eq 'push') { 'dev' } else { 'main' }
+          $pkg = Get-Content -Raw -Path package.json | ConvertFrom-Json
+          $workflowRef = $pkg.automator.workflow
+          if ($workflowRef) {
+            $ref = $workflowRef
+          } else {
+            $ref = if ('${{ github.event_name }}' -eq 'push') { 'dev' } else { 'main' }
+          }
           "ref=$ref" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Clone matterbridge repo branch ${{ steps.select_matterbridge_ref.outputs.ref }}
@@ -64,13 +69,41 @@ jobs:
       - name: Install plugin dependencies
         run: npm ci --no-fund --no-audit
 
-      - name: Link matterbridge in the project
+      - name: Link matterbridge in the plugin
         run: npm link matterbridge --no-fund --no-audit
 
       - name: Build the plugin
         run: npm run build
 
+      - name: Typecheck the plugin
+        run: npm run typecheck
+
+      - name: Check the plugin frontend
+        id: check_frontend
+        shell: bash
+        run: echo "has_frontend=$(test -f apps/frontend/package.json && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Install the frontend dependencies
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm ci --no-fund --no-audit
+
       - name: Lint the plugin
+        run: npm run lint
+
+      - name: Build the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Typecheck the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
+        run: npm run typecheck
+
+      - name: Lint the frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: apps/frontend
         run: npm run lint
 
       - name: Check config files
@@ -78,7 +111,7 @@ jobs:
         shell: bash
         run: |
           echo "has_jest=$(test -f jest.config.js && echo true || echo false)" >> $GITHUB_OUTPUT
-          echo "has_vitest=$(test -f vite.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "has_vitest=$(test -f vitest.config.ts && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Run Jest tests
         if: steps.check_configs.outputs.has_jest == 'true'

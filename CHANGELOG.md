@@ -1,16 +1,241 @@
-<!-- eslint-disable markdown/no-missing-label-refs -->
-
 # <img src="https://matterbridge.io/assets/matterbridge.svg" alt="Matterbridge Logo" width="64px" height="64px">&nbsp;&nbsp;&nbsp;Matterbridge hass plugin changelog
+
+[![npm version](https://img.shields.io/npm/v/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
+[![npm downloads](https://img.shields.io/npm/dt/matterbridge-hass.svg)](https://www.npmjs.com/package/matterbridge-hass)
+[![Docker Version](https://img.shields.io/docker/v/luligu/matterbridge/latest?label=docker%20version)](https://hub.docker.com/r/luligu/matterbridge)
+[![Docker Pulls](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/Luligu/b21088ab9c9f2b119b42c33f0fef218d/raw/docker.json)](https://hub.docker.com/r/luligu/matterbridge)
+![Node.js CI](https://github.com/Luligu/matterbridge-hass/actions/workflows/build.yml/badge.svg)
+![CodeQL](https://github.com/Luligu/matterbridge-hass/actions/workflows/codeql.yml/badge.svg)
+[![codecov](https://codecov.io/gh/Luligu/matterbridge-hass/branch/main/graph/badge.svg)](https://codecov.io/gh/Luligu/matterbridge-hass)
+[![tested with Vitest](https://img.shields.io/badge/tested_with-Vitest-6E9F18.svg?logo=vitest&logoColor=white)](https://vitest.dev)
+[![styled with Oxc](https://img.shields.io/badge/styled_with-Oxc-9BE4E0.svg?logo=oxc&logoColor=white)](https://oxc.rs/docs/guide/usage/formatter.html)
+[![linted with Oxc](https://img.shields.io/badge/linted_with-Oxc-9BE4E0.svg?logo=oxc&logoColor=white)](https://oxc.rs/docs/guide/usage/linter.html)
+[![TypeScript Native](https://img.shields.io/badge/TypeScript_Native-3178C6?logo=typescript&logoColor=white)](https://github.com/microsoft/typescript-go)
+[![ESM](https://img.shields.io/badge/ESM-Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![matterbridge.io](https://img.shields.io/badge/matterbridge.io-online-brightgreen)](https://matterbridge.io)
+
+---
 
 All notable changes to this project will be documented in this file.
 
-If you like this project and find it useful, please consider giving it a **star** on [GitHub](https://github.com/Luligu/matterbridge-hass) and **sponsoring** it.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+If you like this project and find it useful, please consider giving it a star on [GitHub](https://github.com/Luligu/matterbridge-hass) and sponsoring it.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="120"></a>
 
-## Possible issue upgrading the plugin
+---
 
-> WARNING: The domains button, remote and media_player include an OnOff cluster. This will not make it possible to merge the entities on the same endpoint: if you have Alexa or Google you may want to either black list those domains or to split their entities.
+## [1.7.0] - 2026-11-14
+
+### Breaking changes
+
+- [config]: Remove the deprecated `splitEntities`. Use `splitByLabel` instead. If it is still in the config, it is ignored and removed.
+
+### Added
+
+- [onboarding]: On first installation, prompt users to configure the Home Assistant host and token with an error log and snackbar; skip initialization, start, and configure while either is missing.
+- [agents]: Add support for Bionic / LM Studio local agents.
+- [cover]: Add core speed feature, standard speed enum, and closed state and supported speed attributes.
+- [cover]: Add tilt support for covers. Venetian blinds with lift and tilt now show both the position and the slat angle in your Matter controller, and tilt-only covers (e.g. SwitchBot Blind Tilt) can open, close, stop and set the slat angle. Thanks gastonmuijtjens, chrispylizard and peppi911 (https://github.com/Luligu/matterbridge-hass/issues/138).
+
+### Changed
+
+- [package]: Bump `ws` to v.8.23.0.
+- [package]: Bump `@vitest/coverage-v8` to v.5.1.0.
+- [package]: Bump `oxfmt` to v.0.78.0.
+- [package]: Bump `oxlint` to v.1.93.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2007.
+- [package]: Bump `vitest` to v.5.1.0.
+- [agents]: Update `.agents/README.md` to v.1.0.6.
+- [agents]: Update `.agents/rules/chip-tests.instructions.md` to v.1.0.1.
+- [agents]: Update `.agents/rules/matterbridge.instructions.md` to v.1.0.4.
+- [agents]: Update `.agents/rules/plugin-frontend.instructions.md` to v.1.0.3.
+- [agents]: Update `.agents/rules/testing.instructions.md` to v.1.0.8.
+- [agents]: Update `.agents/skills/verify-agent-context/SKILL.md` to v.1.0.6.
+- [agents]: Update `.antigravity/settings.json` to v.1.0.6.
+- [agents]: Update `.claude/settings.json` to v.1.0.12.
+- [codex]: Update `.codex/config.toml` to v.1.0.8.
+- [codex]: Update `.codex/rules/default.rules` to v.1.0.8.
+- [workflows]: Update `.github/workflows/build.yml` to v.2.0.8.
+- [workflows]: Update `.github/workflows/codecov.yml` to v.2.0.8.
+- [workflows]: Update `.github/workflows/codeql.yml` to v.2.0.0.
+- [workflows]: Update `.github/workflows/publish.yml` to v.2.0.7.
+- [config]: Update `.gitignore` to v.1.0.5.
+- [config]: Update `.oxfmtrc.json` to v.1.2.0.
+- [config]: Update `.oxlintrc.json` to v.1.2.0.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.21.
+- [agents]: Update `AGENTS.md` to v.1.0.12.
+- [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
+- [config]: Update `vitest.config.ts` to v.2.0.9.
+- [package]: Bump `node-ansi-logger` to v.3.3.2.
+- [package]: Bump `node-persist-manager` to v.2.1.2.
+- [vscode]: Update `.vscode/extensions.json` to v.1.0.6.
+- [styleguide]: Update `STYLEGUIDE.md` to v.1.1.1.
+
+### Fixed
+
+- [discovery]: Check duplicate names after the area, label, domain, whiteList and blackList filtering. Thanks gmdfalk (https://github.com/Luligu/matterbridge-hass/pull/258).
+- [discovery]: Detect duplicate names when `namePostfix` is set.
+- [discovery]: Keep the select entity of the registered device when an individual or split entity with the same name is discarded.
+- [discovery]: Set the select devices with the `postfix` serial and the `namePostfix` name, so the frontend no longer shows each device twice when they are set.
+- [discovery]: When `namePostfix` or `postfix` is set, `whiteList`, `blackList` and `deviceEntityBlackList` must use the postfixed names and ids.
+- [cover]: Report the open and closed position of covers without `current_position` (i.e. garage doors). Thanks ok2sh (https://github.com/Luligu/matterbridge-hass/issues/244).
+- [climate]: Update the Thermostat `systemMode` when a climate entity switches to `auto`, so controllers no longer show a stale `off` on heating-only or cooling-only thermostats. Thanks pandinus (https://github.com/Luligu/matterbridge-hass/issues/247).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
+## [1.6.1] - 2026-10-31
+
+### Added
+
+- [binary_sensor]: Map a `binary_sensor` with device class `battery_charging` to the PowerSource `batChargeState` attribute (rechargeable battery feature). Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/254).
+- [vacuum]: Map the Identify command to the `vacuum.locate` service when the vacuum supports the `locate` feature. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/pull/255).
+- [agents]: Add `SHARED-AGENTS.md` documenting the shared agent instruction setup.
+- [toolchain]: Add `TOOLCHAIN.md` v.1.0.1 documenting the repository toolchain.
+
+### Changed
+
+- [package]: Remove the `bun`, `buntest` and `native` automator settings.
+- [platform]: Uniform the constructor, onStart, onConfigure, onShutdown and onChangeLoggerLevel log messages.
+- [agents]: Update `AGENTS.md` to v.1.0.8: document commit sign-off and sensitive data rules.
+- [agents]: Update `.github/commit-message-instructions.md` to v.1.0.1: let Git add the sign-off trailer.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.17: enable automatic commit sign-off.
+- [docs]: Update `CODE_OF_CONDUCT.md` to v.1.0.0 and `CONTRIBUTING.md` to v.1.0.1.
+- [scripts]: Update `scripts/downloads.mjs` to v.2.2.0: query explicit dates and mark unpublished download counts as pending.
+- [agents]: Update the mirrored plugin frontend rules to v.1.0.2: document base paths and trailing slashes for Home Assistant Ingress.
+- [codex]: Update `.codex/config.toml` to v.1.0.6: clarify the default workspace permissions and opt-in profiles.
+- [vscode]: Update `.vscode/tasks.json`: pack local sources and download Docker installer scripts before running them.
+- [scripts]: Update `scripts/git-sync-dev.mjs` to v.2.1.0: guard against overwriting remote dev commits.
+- [scripts]: Update `scripts/prepublish-clean.mjs` to v.2.2.0: remove development fields from `package.json`, preserving indentation and line endings.
+- [package]: Delegate development-field removal in `prepublishOnly` to `scripts/prepublish-clean.mjs`.
+- [package]: Bump `@types/node` to v.26.6.6.
+- [package]: Bump `oxfmt` to v.0.75.0.
+- [package]: Bump `oxlint` to v.1.90.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2005.
+- [package]: Bump `ws` to v.8.22.1.
+
+### Fixed
+
+- [sensor]: Route battery voltage updates correctly regardless of battery or charging entity order.
+- [battery]: Restrict battery detection to sensor and binary_sensor entities.
+- [light]: Restore dimming and color discovery for unavailable lights without cached state. Thanks starship666 (https://github.com/Luligu/matterbridge-hass/issues/245).
+- [updates]: Normalize dotted endpoint names when routing updates to mapped child endpoints. Thanks zegioni (https://github.com/Luligu/matterbridge-hass/issues/250).
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
+## [1.6.0] - 2026-10-23
+
+### Breaking changes
+
+- [matterbridge]: Require matterbridge v.3.11.0 with matter v.1.6.1.
+- [node]: Drop Node.js 20 support, matching matterbridge v.3.11.0. Supported versions are Node.js 22.13, 24 and 26.
+
+### Added
+
+- [devcontainer]: Add [`Dev Container`](.devcontainer/README.md) v.2.2.0 with dual Node and Bun runtime support.
+- [agents]: Add a [`shared setup`](.agents/README.md) for all agents: OpenAI Codex, Claude Code, GitHub Copilot and Google Gemini / Antigravity.
+- [agents]: Add [`commit message instructions`](.github/commit-message-instructions.md) v.1.0.0 for the VS Code Copilot "Generate Commit Message" button (Conventional Commits).
+- [agents]: Add the Copilot `Matterbridge` custom agent (`.github/agents/matterbridge.agent.md`) that works without subagents.
+
+### Changed
+
+- [test]: Migrate tests from `matterbridge/vitest-utils` to the unified `matterbridge/test-utils`.
+- [test]: Pass the new `ticks` and `microTurns` arguments to `addDevice()` and `deleteDevice()`.
+- [styleguide]: Update [`STYLEGUIDE.md`](STYLEGUIDE.md) to v.1.1.0: align it with the lint and format config and add the Commit Messages and Changelog sections.
+- [agents]: Update the shared agent setup: `AGENTS.md`, `CLAUDE.md` and `.github/copilot-instructions.md` to v.1.0.7, `GEMINI.md` to v.1.0.1 and `.agents/README.md` to v.1.0.4.
+- [agents]: Update the `testing` rules to v.1.0.7, the `matterbridge` rules to v.1.0.3 and the `verify-agent-context` skill to v.1.0.5.
+- [agents]: Update `.claude/settings.json` to v.1.0.9, `.antigravity/settings.json` to v.1.0.6 (allow read-only Git commands) and `.codex/rules/default.rules` to v.1.0.7.
+- [vscode]: Update `.vscode/settings.json` to v.1.0.16: configure commit message instructions, exclude templates from Vitest discovery and refine terminal command approvals.
+- [vscode]: Add Bundle, Minify, Obfuscate, Pack and Docker install tasks to `.vscode/tasks.json`.
+- [gitignore]: Update `.gitignore` to v.1.0.5: ignore `tmp/`, `.DS_Store` and Windows `Zone.Identifier` files.
+- [lint]: Update `.oxlintrc.json` and `.oxfmtrc.json` to v.1.2.0: align shared ignore patterns.
+- [vitest]: Replace `vite.config.ts` with `vitest.config.ts` v.2.0.9 and update test and coverage exclusions.
+- [scripts]: Update `scripts/clean.mjs` and `scripts/deep-clean.mjs` to v.2.0.0: log removed paths, add dry-run support and expose importable entry points.
+- [scripts]: Update release, download, Git status, Git sync, prepublish, pruning, workflow cleanup and version helpers to v.2.0.0 with CLI previews and importable entry points.
+- [scripts]: Update `scripts/deep-clean.mjs` and `scripts/prepublish-clean.mjs` to v.2.1.0: also remove `tmp/` and `bun.lock`.
+- [package]: Remove the `softReset:bun` script.
+- [package]: Run `checkDependencies` and `updateDependencies` with `npx npm-check-updates@latest`.
+- [package]: Upgrade package.
+- [package]: Bump `node-ansi-logger` to v.3.3.1.
+- [package]: Bump `node-persist-manager` to v.2.1.1.
+- [package]: Bump `oxfmt` to v.0.74.0.
+- [package]: Bump `oxlint` to v.1.89.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2004.
+- [package]: Bump `vitest` to v.5.0.5.
+- [package]: Bump `@vitest/coverage-v8` to v.5.0.5.
+- [package]: Bump `@types/node` to v.26.6.5.
+- [package]: Bump `ws` to v.8.22.0.
+- [package]: Bump `@types/ws` to v.8.18.2.
+
+### Fixed
+
+- [vacuum]: Add a `Vacuum Max` clean mode and the `Auto` tag to `Vacuum`: Matter 1.6.1 requires 2 to 255 RVC clean modes.
+- [remote]: Keep the `Lighting` feature of OnOff on remote entities: Matter 1.6.1 requires it on OnOffPlugInUnit.
+- [smoke]: Add a battery PowerSource with unknown level to every Smoke CO Alarm endpoint: Matter 1.6.1 requires a PowerSource device type in its composition.
+- [device]: Add a Common Number tag, labeled with the friendly name, to sibling child endpoints with the same device type: Matter 1.6.1 requires a tagList on them.
+- [light]: Remove the ExtendedColorLight device type from color temperature only lights that report `hs_color`, `rgb_color` or `xy_color`: Matter 1.6.1 requires the XY feature on it.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
+## [1.5.0] - 2026-08-28
+
+### Breaking changes
+
+- [matterbridge]: Require matterbridge v.3.10.6 with matter v.1.6.0.
+
+### Added
+
+- [chip]: Add chip-test toolchain agents instruction and chip-test runner.
+- [frontend]: Add plugin-frontend agents instructions.
+- [converters]: Add `convertHAFanPresetModesToMatter()` to convert a single `preset_modes` to the corresponding `FanModeSequence`.
+- [converters]: Add `convertHAFanPresetModeToMatter()` to convert a single `preset_mode` to the corresponding `FanMode`.
+- [devcontainer]: Add `Dev Container` v.2.0.0 with a double stack Node and Bun.
+
+### Changed
+
+- [package]: Bump `ws` to v.8.21.3.
+- [package]: Bump `oxfmt` to v.0.65.0.
+- [package]: Bump `oxlint` to v.1.80.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2001.
+- [package]: Bump `@types/node` to v.26.4.0.
+- [package]: Update agents configs.
+- [vscode]: Bump `settings` to v.1.0.10.
+- [subscribe]: Improve logging and use fireAndForget().
+- [endpoint]: Set logger level of the main and child MatterbridgeEndpoint(s) at creation via `MutableDevice.setLogLevel()`.
+- [update]: Downgrade the `sensor`, `binary_sensor` and generic state "not supported" logs from warn to debug.
+- [converters]: Change the `fan` `on` state converter to `fanMode` to `High`; `fanMode` is also derived from the `preset_mode` attribute converter.
+
+### Fixed
+
+- [update]: Fix multiple update handler.
+- [platform]: Fix `onChangeLoggerLevel` not propagating the new log level to child endpoints (only the main endpoint of each device was updated).
+- [subscribe]: Fix `subscribeHandler` not finding split entities registered by `entity_id`, which silently dropped controller attribute writes for them. Thanks to @zayninteligencia-Zayn-E for reporting and diagnosing the issue in PR #239.
+- [bun]: Fix WebSocket tls connection in bun runtime, waiting for the bun fix.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
+## [1.4.0] - 2026-07-17
+
+### Breaking changes
+
+- [matterbridge]: Require matterbridge v.3.9.0.
+
+### Changed
+
+- [package]: Apply uniform style.
+- [package]: Upgrade package.
+- [package]: Update dependencies.
+- [package]: Migrate the project from ESLint + Prettier + Jest to the native toolchain: oxlint + oxfmt + tsgo + Vitest.
+- [tests]: Convert the full test suite from Jest to Vitest and move it from `src` to `vitest`.
+- [package]: Replace deprecated Matterbridge device types with their current equivalents: `onOffOutlet` → `onOffPlugInUnit`, `dimmableOutlet` → `dimmablePlugInUnit`, `onOffMountedSwitch` → `mountedOnOffControl`, `onOffSwitch` → `onOffLightSwitch`, `dimmableSwitch` → `dimmerSwitch`, `colorTemperatureSwitch` → `colorDimmerSwitch`, `doorLockDevice` → `doorLock`, `coverDevice` → `windowCovering`, `thermostatDevice` → `thermostat`, `fanDevice` → `fan`.
+
+### Fixed
+
+- [platform]: Fix `onChangeLoggerLevel` not updating the platform's own logger level (it only updated `ha` and `stateCache`).
+- [helpers]: Fix `isDeviceEntity` incorrectly returning `true` for an entity with an `undefined` `device_id`.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.3.1] - 2026-06-07
 
@@ -1112,34 +1337,3 @@ The vacuum domain have been added. When pairing to Apple Home always enable enab
 First published release.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
-
-<!-- Commented out section
-## [1.1.2] - 2024-03-08
-
-### Added
-
-- [Feature 1]: Description of the feature.
-- [Feature 2]: Description of the feature.
-
-### Changed
-
-- [Feature 3]: Description of the change.
-- [Feature 4]: Description of the change.
-
-### Deprecated
-
-- [Feature 5]: Description of the deprecation.
-
-### Removed
-
-- [Feature 6]: Description of the removal.
-
-### Fixed
-
-- [Bug 1]: Description of the bug fix.
-- [Bug 2]: Description of the bug fix.
-
-### Security
-
-- [Security 1]: Description of the security improvement.
--->

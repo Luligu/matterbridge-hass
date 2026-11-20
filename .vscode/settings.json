@@ -1,30 +1,28 @@
-// VS Code settings v. 1.0.2
+// VS Code settings v.1.0.21
 {
-  "eslint.enable": true,
-  "prettier.enable": true,
-  "oxc.enable": false,
+  "eslint.enable": false,
+  "prettier.enable": false,
+  "oxc.enable": true,
   "js/ts.experimental.useTsgo": true,
+  "js/ts.tsdk.path": "./node_modules/typescript",
   "js/ts.tsdk.promptToUseWorkspaceVersion": false,
-  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.scrollback": 5000,
   "editor.tabSize": 2,
   "editor.rulers": [180],
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-  "[javascript]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
-  "[typescript]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
-  "[json]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
-  "[jsonc]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
-  "[markdown]": { "editor.defaultFormatter": "dbaeumer.vscode-eslint" },
+  "editor.formatOnSave": false,
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "[javascript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  "[typescript]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  "[json]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  "[jsonc]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  "[markdown]": { "editor.defaultFormatter": "oxc.oxc-vscode" },
+  "editor.formatOnSaveMode": "file",
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.format.oxc": "always",
+    "source.fixAll.oxc": "always"
   },
-  "eslint.format.enable": true,
-  "eslint.options": {
-    "cache": true,
-    "cacheLocation": ".cache/.eslintcache"
-  },
-  "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact", "json", "jsonc", "markdown"],
   "diffEditor.ignoreTrimWhitespace": false,
+  "vitest.configSearchPatternExclude": "{**/node_modules/**,**/vendor/**,**/.*/**,**/*.d.ts,**/template/**}",
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
@@ -42,14 +40,95 @@
     "**/coverage": true
   },
   "git.autofetch": true,
+  "git.alwaysSignOff": true, // Git adds Signed-off-by using the current committer identity at commit time.
   "git.autoRepositoryDetection": false,
   // VS Code's Copilot Chat extension settings
-  "chat.useCustomizationsInParentRepositories": false,
-  "chat.useClaudeMdFile": true,
-  "chat.instructionsFilesLocations": {
-    ".github/instructions": true,
-    ".claude/rules": true,
-    "~/.copilot/instructions": false,
-    "~/.claude/rules": false
+  "chat.useCustomizationsInParentRepositories": true, // Default false.
+  "chat.useAgentsMdFile": true, // Load AGENTS.md at the workspace root as always-on instructions.
+  "chat.useNestedAgentsMdFiles": true, // Also load nested AGENTS.md files in subfolders. Experimental.
+  "github.copilot.chat.commitMessageGeneration.instructions": [{ "file": ".github/commit-message-instructions.md" }], // Conventional Commits for the Source Control "Generate Commit Message" button.
+  "chat.tools.urls.autoApprove": {
+    // Allow chat tools to access these domains without approval.
+    "api.github.com": true,
+    "github.com": true,
+    "registry.npmjs.org": true,
+    "matterbridge.io": true,
+    "www.rfc-editor.org": true,
+    "www.ietf.org": true
+  },
+  "chat.permissions.default": "autoApprove", // Automatically approve permissions by default.
+  "chat.agent.sandbox.enabled": "on", // Run agent commands in the sandbox.
+  "chat.agent.sandbox.network.allowLocalNetwork": true, // Allow sandboxed commands to access the local network.
+  "chat.tools.terminal.autoApprove": {
+    // Denied: raw tool invocations must go through the npm scripts (AGENTS.md hard rule).
+    "npx tsc": false,
+    "npx oxlint": false,
+    "npx oxfmt": false,
+    "npx vitest": false,
+    "tsc": false,
+    "oxlint": false,
+    "oxfmt": false,
+    "vitest": false,
+    "bun test": false,
+    // Denied: git mutations and history rewrites must be run manually outside the agent.
+    "git pull": false,
+    "git merge": false,
+    "git push": false,
+    "git rebase": false,
+    "git commit": false,
+    "git reset": false,
+    "git filter-branch": false,
+    "git branch -D": false,
+    "git branch -d": false,
+    "git tag -d": false,
+    "git stash": false,
+    "git reflog expire": false,
+    "git reflog delete": false,
+    // Denied: applies automatic fixes, so it needs an explicit confirmation.
+    "npm run lint:fix": false,
+    // Ask: dependency changes need an explicit confirmation.
+    "npm install": false,
+    "npm i": false,
+    "npm uninstall": false,
+    "bun install": false,
+    "bun i": false,
+    "bun uninstall": false,
+    "bun add": false,
+    "bun remove": false,
+    // Ask: mb-run rewrites vendored files and package.json.
+    "mb-run": false,
+    "npx mb-run": false,
+    "bunx mb-run": false,
+    // Ask: external network fetches and container runs.
+    "curl": false,
+    "Invoke-WebRequest": false,
+    "docker pull": false,
+    "docker run": false,
+    // Approved: validation scripts.
+    "npm run build": true,
+    "npm run typecheck": true,
+    "npm run lint": true,
+    "npm run format": true,
+    "npm run format:check": true,
+    "npm run test": true,
+    "npm run test:watch": true,
+    "npm run test:verbose": true,
+    "npm run test:coverage": true,
+    // Approved: read-only shell utilities.
+    "cat": true,
+    "ls": true,
+    "head": true,
+    "tail": true,
+    "find": true,
+    "grep": true,
+    "echo": true,
+    "cd": true,
+    // Approved: read-only git.
+    "git status": true,
+    "/^git (?:--no-pager )?diff(?: --(?:check|stat))?$/": true,
+    "git log": true,
+    "git show": true,
+    "git branch -vv": true,
+    "git ls-files": true
   }
 }

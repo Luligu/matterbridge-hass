@@ -1,6 +1,7 @@
 {
   "version": "2.0.0",
   "tasks": [
+    // --DO NOT EDIT BELOW THIS LINE--
     {
       "label": "Start",
       "detail": "npm run start",
@@ -58,25 +59,23 @@
     },
     {
       "label": "Lint",
-      "detail": "Run ESLint",
+      "detail": "Run lint",
       "type": "npm",
       "script": "lint",
-      "problemMatcher": ["$eslint-stylish"]
+      "problemMatcher": []
     },
     {
       "label": "Format",
-      "detail": "Run Prettier",
+      "detail": "Run format",
       "type": "npm",
       "script": "format",
       "problemMatcher": []
     },
     {
       "label": "Test",
-      "detail": "Run Jest with coverage and verbose",
-      "type": "shell",
-      "command": "node",
-      "args": ["--no-warnings", "--experimental-vm-modules", "node_modules/jest/bin/jest.js", "--verbose", "--coverage", "--maxWorkers=100%"],
-      "group": { "kind": "test", "isDefault": true },
+      "detail": "Run test with coverage",
+      "type": "npm",
+      "script": "test:coverage",
       "problemMatcher": []
     },
     {
@@ -115,6 +114,170 @@
       "problemMatcher": []
     },
     {
+      "label": "Update",
+      "detail": "Update the package with mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--update"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Upgrade",
+      "detail": "Upgrade the package with mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--upgrade"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Install and Validate",
+      "detail": "Install dependencies, build, typecheck, lint, and format with mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--install", "--build", "--typecheck", "--lint", "--format"],
+      "problemMatcher": []
+    },
+    {
+      "label": "System info",
+      "detail": "Show system information with mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--info"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Bundle",
+      "detail": "Bundle with esbuild using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--esbuild"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Minify",
+      "detail": "Bundle and minify with esbuild using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--esbuild", "minify"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Obfuscate",
+      "detail": "Bundle, minify and obfuscate with esbuild using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--esbuild", "minify", "obfuscate"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pack",
+      "detail": "Build and pack the package tarball using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--pack", "local"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pack Minify",
+      "detail": "Build, minify and pack the package tarball using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--pack", "local", "minify"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Pack Obfuscate",
+      "detail": "Build, minify, obfuscate and pack the package tarball using mb-run",
+      "type": "shell",
+      "command": "npx",
+      "args": ["--yes", "mb-run", "--pack", "local", "minify", "obfuscate"],
+      "group": { "kind": "build", "isDefault": false },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Ubuntu Install",
+      "detail": "Run an ubuntu:latest container on the host network with Node.js and bun",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--pull",
+        "always",
+        "--hostname",
+        "ubuntu",
+        "--name",
+        "ubuntu",
+        "--network",
+        "host",
+        "--entrypoint",
+        "bash",
+        "ubuntu:latest",
+        "-c",
+        "if [ ! -e /var/lib/matterbridge-install.done ]; then apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && curl -4 -fsSL https://matterbridge.io/scripts/install-debian.sh -o /tmp/install.sh && bash /tmp/install.sh || exit 1; fi; exec \"$@\"",
+        "_",
+        "bash"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Debian Install",
+      "detail": "Run a debian:latest container on the host network with Node.js and bun",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--pull",
+        "always",
+        "--hostname",
+        "debian",
+        "--name",
+        "debian",
+        "--network",
+        "host",
+        "--entrypoint",
+        "bash",
+        "debian:latest",
+        "-c",
+        "if [ ! -e /var/lib/matterbridge-install.done ]; then apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && curl -4 -fsSL https://matterbridge.io/scripts/install-debian.sh -o /tmp/install.sh && bash /tmp/install.sh || exit 1; fi; exec \"$@\"",
+        "_",
+        "bash"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Alpine Install",
+      "detail": "Run an alpine:latest container on the host network with Node.js and bun",
+      "type": "process",
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "--pull",
+        "always",
+        "--hostname",
+        "alpine",
+        "--name",
+        "alpine",
+        "--network",
+        "host",
+        "--entrypoint",
+        "sh",
+        "alpine:latest",
+        "-c",
+        "if [ ! -e /var/lib/matterbridge-install.done ]; then apk add --no-cache curl && curl -4 -fsSL https://matterbridge.io/scripts/install-alpine.sh -o /tmp/install.sh && sh /tmp/install.sh || exit 1; fi; exec \"$@\"",
+        "_",
+        "bash"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "Git Status",
       "detail": "Run Git Status Script",
       "type": "shell",
@@ -146,19 +309,18 @@
       "args": ["scripts/remove-workflows.mjs"],
       "problemMatcher": []
     },
+    // --DO NOT EDIT ABOVE THIS LINE--
     {
       "label": "Test: Module",
       "type": "shell",
-      "command": "node",
+      "command": "npx",
       "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
+        "vitest",
+        "run",
+        "--reporter=verbose",
         "--coverage",
         "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/module.ts",
+        "--coverage.include=src/module.ts",
         "module.test.ts",
         "module.matter.test.ts",
         "module.auto.test.ts"
@@ -169,16 +331,14 @@
     {
       "label": "Test: Home Assistant",
       "type": "shell",
-      "command": "node",
+      "command": "npx",
       "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
+        "vitest",
+        "run",
+        "--reporter=verbose",
         "--coverage",
         "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/homeAssistant.ts",
+        "--coverage.include=src/homeAssistant.ts",
         "homeAssistant.test.ts",
         "homeAssistant.real.test.ts"
       ],
@@ -188,117 +348,65 @@
     {
       "label": "Test: Mutable Device",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/mutableDevice.ts",
-        "mutableDevice.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/mutableDevice.ts", "mutableDevice.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Helpers",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/helpers.ts",
-        "helpers.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/helpers.ts", "helpers.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Payload",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/payload.ts",
-        "payload.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/payload.ts", "payload.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Report",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/report.ts",
-        "report.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/report.ts", "report.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Converters",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/converters.ts",
-        "converters.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/converters.ts", "converters.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     },
     {
       "label": "Test: Entities",
       "type": "shell",
-      "command": "node",
+      "command": "npx",
       "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
+        "vitest",
+        "run",
+        "--reporter=verbose",
         "--coverage",
         "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/binary_sensor.entity.ts",
-        "--collectCoverageFrom=src/button.entity.ts",
-        "--collectCoverageFrom=src/control.entity.ts",
-        "--collectCoverageFrom=src/event.entity.ts",
-        "--collectCoverageFrom=src/helper.entity.ts",
-        "--collectCoverageFrom=src/sensor.entity.ts",
-        "src/binary_sensor.entity.test.ts",
-        "src/button.entity.test.ts",
-        "src/control.entity.test.ts",
-        "src/event.entity.test.ts",
-        "src/helper.entity.test.ts",
-        "src/sensor.entity.test.ts"
+        "--coverage.include=src/binary_sensor.entity.ts",
+        "--coverage.include=src/button.entity.ts",
+        "--coverage.include=src/control.entity.ts",
+        "--coverage.include=src/event.entity.ts",
+        "--coverage.include=src/helper.entity.ts",
+        "--coverage.include=src/sensor.entity.ts",
+        "binary_sensor.entity.test.ts",
+        "button.entity.test.ts",
+        "control.entity.test.ts",
+        "event.entity.test.ts",
+        "helper.entity.test.ts",
+        "sensor.entity.test.ts"
       ],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
@@ -306,18 +414,8 @@
     {
       "label": "Test: State Cache",
       "type": "shell",
-      "command": "node",
-      "args": [
-        "--no-warnings",
-        "--experimental-vm-modules",
-        "node_modules/jest/bin/jest.js",
-        "--verbose",
-        "--coverage",
-        "--maxWorkers=100%",
-        "--detectOpenHandles",
-        "--collectCoverageFrom=src/stateCache.ts",
-        "stateCache.test.ts"
-      ],
+      "command": "npx",
+      "args": ["vitest", "run", "--reporter=verbose", "--coverage", "--maxWorkers=100%", "--coverage.include=src/stateCache.ts", "stateCache.test.ts"],
       "group": { "kind": "test", "isDefault": false },
       "problemMatcher": []
     }

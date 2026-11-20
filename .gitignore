@@ -1,24 +1,31 @@
-# .gitignore
+# .gitignore v.1.0.5
+
 # This file specifies intentionally untracked directories and files that Git should ignore.
 
 # Specific directories that should be ignored
 .cache/
+build/
 coverage/
 dist/
-jest/
 node_modules/
+out/
 temp/
+tmp/
 
 # Specific files that should be ignored
+.DS_Store
+*:Zone.Identifier
 *.backup
 *.heapsnapshot
 *.heapprofile
 *.tsbuildinfo
 *.tgz
 *.log
+.env
+.env.*
+!.env.example
 
-# Package specific directories and files that should be ignored
-
+# Package specific directories and files that should be ignored (mb-run --upgrade merges the .localignore .gitlocalignore files from packages)
 TODO.md
 ts_homeassistant.json
 certificates/serverToken
