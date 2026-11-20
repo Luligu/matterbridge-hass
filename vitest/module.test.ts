@@ -21,7 +21,7 @@ import path from 'node:path';
 
 import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEndpoint, onOffPlugInUnit, roboticVacuumCleaner, windowCovering } from 'matterbridge';
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
-import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, OnOff, WindowCovering } from 'matterbridge/matter/clusters';
+import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, OnOff, RvcRunMode, WindowCovering } from 'matterbridge/matter/clusters';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -642,22 +642,62 @@ describe('HassPlatform', () => {
     expect(callServiceSpy).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining(`Command ${ign}unknown${rs}${wr} not supported`));
 
+    // The vacuum RVC Run Mode changeToMode to a Cleaning mode cleans only the selected areas with the clean_area service.
     // The Matter AreaId is a stable hash of the Home Assistant area_id (see hassAreaIdToMatterAreaId).
     haPlatform.ha.hassAreas.set('area_b', { area_id: 'area_b', name: 'Bedroom' } as HassArea);
     haPlatform.ha.hassAreas.set('area_a', { area_id: 'area_a', name: 'Kitchen' } as HassArea);
-    vi.clearAllMocks();
-    await haPlatform.commandHandler(
-      { endpoint: child5, request: { newAreas: [hassAreaIdToMatterAreaId('area_b')] }, cluster: 'serviceArea', attributes: {} },
-      'vacuum.vacuum_5',
-      'selectAreas',
-    );
-    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'clean_area', 'vacuum.vacuum_5', { cleaning_area_id: ['area_b'] });
+    let selectedAreas: number[] = [];
+    const supportedRunModes = [
+      { label: 'Idle', mode: 1, modeTags: [{ value: RvcRunMode.ModeTag.Idle }] },
+      { label: 'Cleaning', mode: 2, modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }] },
+    ];
+    // A vacuum endpoint with the ServiceArea cluster: child5 has no cluster servers.
+    const serviceAreaVacuum = {
+      log: child5.log,
+      maybeNumber: child5.number,
+      hasAttributeServer: () => true,
+      getAttribute: (_cluster: unknown, attribute: string) => (attribute === 'supportedModes' ? supportedRunModes : selectedAreas),
+    } as unknown as MatterbridgeEndpoint;
+    const changeToMode = async (endpoint: MatterbridgeEndpoint, cluster: string, newMode: number): Promise<void> =>
+      haPlatform.commandHandler({ endpoint, request: { newMode }, cluster, attributes: {} }, 'vacuum.vacuum_5', 'changeToMode');
 
-    // An AreaId that does not match any known Home Assistant area must not call the clean_area service.
+    selectedAreas = [hassAreaIdToMatterAreaId('area_b')];
     vi.clearAllMocks();
-    await haPlatform.commandHandler({ endpoint: child5, request: { newAreas: [999999999] }, cluster: 'serviceArea', attributes: {} }, 'vacuum.vacuum_5', 'selectAreas');
+    await changeToMode(serviceAreaVacuum, 'rvcRunMode', 2);
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'clean_area', 'vacuum.vacuum_5', { cleaning_area_id: ['area_b'] });
+    expect(callServiceSpy).toHaveBeenCalledTimes(1);
+
+    // Without selected areas the Cleaning mode starts a full cleaning.
+    selectedAreas = [];
+    vi.clearAllMocks();
+    await changeToMode(serviceAreaVacuum, 'rvcRunMode', 2);
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'start', 'vacuum.vacuum_5', undefined);
+    expect(callServiceSpy).toHaveBeenCalledTimes(1);
+
+    // A mode that is not a Cleaning mode keeps the default behavior even with selected areas.
+    selectedAreas = [hassAreaIdToMatterAreaId('area_b')];
+    vi.clearAllMocks();
+    await changeToMode(serviceAreaVacuum, 'rvcRunMode', 1);
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'start', 'vacuum.vacuum_5', undefined);
+    expect(callServiceSpy).not.toHaveBeenCalledWith('vacuum', 'clean_area', expect.anything(), expect.anything());
+
+    // The RVC Clean Mode changeToMode is not affected by the selected areas.
+    vi.clearAllMocks();
+    await changeToMode(serviceAreaVacuum, 'rvcCleanMode', 2);
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'start', 'vacuum.vacuum_5', undefined);
+    expect(callServiceSpy).not.toHaveBeenCalledWith('vacuum', 'clean_area', expect.anything(), expect.anything());
+
+    // A vacuum without the ServiceArea cluster keeps the default behavior.
+    vi.clearAllMocks();
+    await changeToMode(child5, 'rvcRunMode', 2);
+    expect(callServiceSpy).toHaveBeenCalledWith('vacuum', 'start', 'vacuum.vacuum_5', undefined);
+
+    // Selected areas that no longer match any known Home Assistant area must not start any cleaning.
+    selectedAreas = [999999999];
+    vi.clearAllMocks();
+    await changeToMode(serviceAreaVacuum, 'rvcRunMode', 2);
     expect(callServiceSpy).not.toHaveBeenCalled();
-    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining('did not resolve to any known Home Assistant area'));
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.WARN, expect.stringContaining("the selected areas don't resolve to any known Home Assistant area"));
     haPlatform.ha.hassAreas.clear();
   });
 

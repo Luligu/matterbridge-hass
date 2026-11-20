@@ -17,6 +17,7 @@ import {
   getName,
   getPostfixedName,
   getPostfixedSerial,
+  getVacuumMappedHassAreas,
   isDeviceEntity,
   isDisabled,
   isHidden,
@@ -24,6 +25,7 @@ import {
   isSplitEntity,
   satisfiesAreaFilter,
   satisfiesLabelFilter,
+  truncateUtf8,
 } from '../src/helpers.js';
 import type { HassArea, HassDevice, HassEntity, HassLabel, HassState, HomeAssistant } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform } from '../src/module.js';
@@ -843,5 +845,31 @@ describe('HassPlatform helpers', () => {
   it('should append namePostfix with a separating space when nonempty', () => {
     expect(getPostfixedName({ config: { namePostfix: '' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light');
     expect(getPostfixedName({ config: { namePostfix: 'HA' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light HA');
+  });
+
+  it('should return only the Home Assistant areas mapped to the vacuum segments sorted by area_id', () => {
+    const ha = createHomeAssistant();
+    ha.hassAreas.set('kitchen', { area_id: 'kitchen', name: 'Kitchen' } as HassArea);
+    ha.hassAreas.set('bedroom', { area_id: 'bedroom', name: 'Bedroom' } as HassArea);
+    ha.hassAreas.set('garage', { area_id: 'garage', name: 'Garage' } as HassArea);
+    const entityWith = (options: HassEntity['options']): HassEntity => ({ entity_id: 'vacuum.robby', options }) as HassEntity;
+
+    expect(getVacuumMappedHassAreas(ha, entityWith(null))).toEqual([]);
+    expect(getVacuumMappedHassAreas(ha, entityWith({}))).toEqual([]);
+    expect(getVacuumMappedHassAreas(ha, entityWith({ vacuum: {} }))).toEqual([]);
+    expect(getVacuumMappedHassAreas(ha, entityWith({ vacuum: { area_mapping: null } }))).toEqual([]);
+    expect(
+      getVacuumMappedHassAreas(ha, entityWith({ vacuum: { area_mapping: { kitchen: ['1'], bedroom: ['2'], garage: [], attic: ['3'] } } })).map((area) => area.area_id),
+    ).toEqual(['bedroom', 'kitchen']);
+  });
+
+  it('should truncate a string to a maximum number of UTF-8 bytes without splitting a character', () => {
+    expect(truncateUtf8('Kitchen', 128)).toBe('Kitchen');
+    expect(truncateUtf8('Kitchen', 4)).toBe('Kitc');
+    expect(truncateUtf8('Küche', 2)).toBe('K'); // ü is 2 bytes
+    expect(truncateUtf8('Küche', 3)).toBe('Kü');
+    expect(truncateUtf8('🛋️Living', 4)).toBe('🛋'); // The emoji is a surrogate pair of 4 bytes followed by a 3 bytes variation selector
+    expect(truncateUtf8('🛋Living', 3)).toBe('');
+    expect(truncateUtf8('x'.repeat(200), 128)).toHaveLength(128);
   });
 });

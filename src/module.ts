@@ -40,7 +40,18 @@ import {
 } from 'matterbridge';
 import { type AnsiLogger, CYAN, db, debugStringify, dn, er, hk, idn, ign, type LogLevel, nf, or, rs, wr, YELLOW } from 'matterbridge/logger';
 import type { ActionContext } from 'matterbridge/matter';
-import { BridgedDeviceBasicInformation, ColorControl, LevelControl, ModeSelect, OnOff, PowerSource, Thermostat, WindowCovering } from 'matterbridge/matter/clusters';
+import {
+  BridgedDeviceBasicInformation,
+  ColorControl,
+  LevelControl,
+  ModeSelect,
+  OnOff,
+  PowerSource,
+  RvcRunMode,
+  ServiceArea,
+  Thermostat,
+  WindowCovering,
+} from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById } from 'matterbridge/matter/types';
 import { deepEqual, fireAndForget, getErrorMessage, inspectError, isValidArray, isValidBoolean, isValidNumber, isValidObject, isValidString, waiter } from 'matterbridge/utils';
 
@@ -1212,20 +1223,29 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
           return;
         }
       }
-      if (domain === 'vacuum' && command === 'selectAreas') {
-        // Special handling for the vacuum selectAreas command. The Matter AreaId is a stable hash of the Home Assistant area_id (see hassAreaIdToMatterAreaId), so we translate it back to the Home Assistant area_id before calling the clean_area service.
-        const hassAreas = Array.from(this.ha.hassAreas.values());
-        const cleaning_area_id = (data.request.newAreas as number[])
-          .map((areaId) => hassAreas.find((area) => hassAreaIdToMatterAreaId(area.area_id) === areaId)?.area_id)
-          .filter((id): id is string => id !== undefined);
-        if (!isValidArray(cleaning_area_id, 1)) {
-          data.endpoint.log.warn(
-            `Command ${ign}${command}${rs}${wr} for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr} did not resolve to any known Home Assistant area, ignoring`,
-          );
+      if (domain === 'vacuum' && command === 'changeToMode' && data.cluster === 'rvcRunMode' && data.endpoint.hasAttributeServer(ServiceArea, 'selectedAreas')) {
+        // Special handling for the vacuum RVC Run Mode changeToMode command when the vacuum has the ServiceArea cluster.
+        // In Matter the SelectAreas command only stores the areas to clean in the selectedAreas attribute (validated by matter.js against supportedAreas) and the cleaning starts when the RVC Run Mode changes to a Cleaning mode.
+        // So when a Cleaning mode is requested with some selected areas, we clean only those areas with the clean_area service instead of starting a full cleaning with the start service.
+        // The Matter AreaId is a stable hash of the Home Assistant area_id (see hassAreaIdToMatterAreaId), so we translate it back to the Home Assistant area_id.
+        const supportedModes: RvcRunMode.ModeOption[] = data.endpoint.getAttribute(RvcRunMode.id, 'supportedModes');
+        const newMode = supportedModes.find((mode) => mode.mode === data.request?.newMode);
+        const selectedAreas: number[] = data.endpoint.getAttribute(ServiceArea.id, 'selectedAreas');
+        const cleaningModeTag: number = RvcRunMode.ModeTag.Cleaning;
+        if (newMode?.modeTags.some((tag) => tag.value === cleaningModeTag) && isValidArray(selectedAreas, 1)) {
+          const hassAreas = Array.from(this.ha.hassAreas.values());
+          const cleaning_area_id = selectedAreas
+            .map((areaId) => hassAreas.find((area) => hassAreaIdToMatterAreaId(area.area_id) === areaId)?.area_id)
+            .filter((id): id is string => id !== undefined);
+          if (!isValidArray(cleaning_area_id, 1)) {
+            data.endpoint.log.warn(
+              `Command ${ign}${command}${rs}${wr} for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}: the selected areas don't resolve to any known Home Assistant area, ignoring`,
+            );
+            return;
+          }
+          await this.ha.callService('vacuum', 'clean_area', entityId, { cleaning_area_id });
           return;
         }
-        await this.ha.callService('vacuum', 'clean_area', entityId, { cleaning_area_id });
-        return;
       }
       // Normal execution for all the other commands and domains, we use the converter if present to get the service attributes and then call the service.
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes, state) : undefined;

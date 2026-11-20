@@ -26,6 +26,12 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- [vacuum]: Add the Matter ServiceArea cluster to vacuums supporting the Home Assistant `clean_area` feature. The Home Assistant areas mapped to the vacuum segments are exposed as supported areas, and starting the cleaning from a Matter controller with some selected areas calls the `vacuum.clean_area` service. The Matter AreaId is derived from the Home Assistant `area_id`, so it stays stable when areas are added, removed or renamed.
+
 ## [1.7.0] - 2026-11-14
 
 ### Breaking changes
