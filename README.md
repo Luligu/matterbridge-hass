@@ -90,11 +90,11 @@ Pair Matterbridge to your controller.
 
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
 
-(3) - Covers supporting tilt are exposed with the Matter Tilt feature (lift and tilt, or tilt only). Covers without `current_position` (i.e. garage doors) report fully open or fully closed from their state.
-
 If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
 
 Vacuum endpoints expose the mandatory RVC Run Mode and Operational State clusters. The optional RVC Clean Mode cluster is not exposed because Home Assistant fan-speed values do not provide reliable Matter clean-mode semantics.
+
+(3) - Covers supporting tilt are exposed with the Matter Tilt feature (lift and tilt, or tilt only). Covers without `current_position` (i.e. garage doors) report fully open or fully closed from their state.
 
 These domains are supported also like individual and split entities.
 
