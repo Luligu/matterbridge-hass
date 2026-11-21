@@ -33,6 +33,20 @@ If you like this project and find it useful, please consider giving it a star on
 - [config]: Add the `autoRoomPrefix` option to put the Home Assistant area name in front of each device name (e.g. Light in the Kitchen area becomes Kitchen Light), so devices with the same name in different areas are all exposed. Thanks 0SkillAllLuck (https://github.com/Luligu/matterbridge-hass/pull/259).
 - [config]: Add `discardConfigCategory` and `discardDiagnosticCategory` to filter Home Assistant entities by category. Thanks guilhem (https://github.com/Luligu/matterbridge-hass/pull/263).
 
+### Changed
+
+- [package]: Bump `@vitest/coverage-v8` to v.5.1.1.
+- [package]: Bump `oxfmt` to v.0.79.0.
+- [package]: Bump `oxlint` to v.1.94.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2008.
+- [package]: Bump `vitest` to v.5.1.1.
+- [agents]: Update `.agents/rules/chip-tests.instructions.md`, `.claude/rules/chip-tests/chip-tests.instructions.md` and `.github/instructions/chip-tests/chip-tests.instructions.md` to v.1.0.1.
+- [config]: Remove `.github/agents/matterbridge.agent.md`.
+- [agents]: Update `AGENTS.md` to v.1.0.12.
+- [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
+- [config]: Add `.github/agents/matterbridge-no-delegate.agent.md`.
+- [config]: Add `.github/agents/matterbridge-orchestrator.agent.md`.
+
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 
 ## [1.7.0] - 2026-11-14

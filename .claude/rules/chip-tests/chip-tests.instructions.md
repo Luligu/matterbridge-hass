@@ -5,7 +5,7 @@ paths:
   - 'chipTests.md'
   - 'chipTests.log'
   - 'chipTestsSummary.log'
-  - 'scripts/run-chip-tests.mjs'
+  - 'scripts/run-chip-test.mjs'
   - '.github/workflows/chip-tests.yml'
 ---
 
