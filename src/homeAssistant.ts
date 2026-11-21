@@ -621,6 +621,7 @@ export enum VacuumEntityFeature {
   MAP = 2048,
   STATE = 4096, // Must be set by vacuum platforms derived from StateVacuumEntity
   START = 8192,
+  CLEAN_AREA = 16384,
 }
 /** Vacuum activity states. */
 export enum VacuumActivity {
@@ -1430,6 +1431,8 @@ export class HomeAssistant extends EventEmitter {
           // oxlint-disable-next-line typescript/no-unsafe-type-assertion
           const areas = data as HassArea[];
           this.log.debug(`Received ${areas.length} areas.`);
+          // The area list is the full registry, so clear the cache first to drop the areas deleted in Home Assistant.
+          this.hassAreas.clear();
           areas.forEach((area) => this.hassAreas.set(area.area_id, area));
           this.emit('areas', areas);
         } else if (fetchId === 'config/label_registry/list') {

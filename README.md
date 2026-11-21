@@ -93,6 +93,8 @@ Pair Matterbridge to your controller.
 
 If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
 
+If the vacuum supports the `clean_area` feature and some of its rooms (segments) are mapped to Home Assistant areas, the vacuum exposes the Matter ServiceArea cluster with those mapped areas, so a Matter controller can select the rooms to clean. When the controller then starts the cleaning, the `vacuum.clean_area` service is called with the selected areas; without selected areas the `vacuum.start` service is called as usual. Map the vacuum segments to the Home Assistant areas in the vacuum entity settings in Home Assistant: a vacuum without any mapped area doesn't expose the ServiceArea cluster. The areas are read when the plugin starts, so restart the plugin after changing the area mapping or the area names.
+
 These domains are supported also like individual and split entities.
 
 ## Supported individual entities:

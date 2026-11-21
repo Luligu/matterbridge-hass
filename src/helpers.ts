@@ -218,6 +218,76 @@ export function satisfiesAreaFilter(platform: HomeAssistantPlatform, deviceOrEnt
 }
 
 /**
+ * Returns the Home Assistant areas sorted by area_id for a deterministic Matter SupportedAreas ordering.
+ *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
+ * @returns {HassArea[]} - The Home Assistant areas sorted by area_id.
+ */
+export function getSortedHassAreas(ha: HomeAssistant): HassArea[] {
+  // Compare code points directly instead of localeCompare(), whose result depends on the runtime's default locale/ICU settings and would undermine the deterministic ordering across hosts.
+  // The area_id values are unique keys of the area registry, so two areas never compare equal.
+  return Array.from(ha.hassAreas.values()).toSorted((a, b) => (a.area_id < b.area_id ? -1 : 1));
+}
+
+/**
+ * Returns the Home Assistant areas that a vacuum entity has mapped to its own cleaning segments, sorted by area_id.
+ *
+ * The Home Assistant vacuum.clean_area service only accepts the areas present in the per-entity area_mapping stored in the entity registry options (options.vacuum.area_mapping: area_id => segment ids).
+ * Any other area makes the service fail with areas_not_mapped, and an entity without an area_mapping fails with area_mapping_not_configured, so only the mapped areas can be offered to a Matter controller.
+ *
+ * @param {HomeAssistant} ha - The Home Assistant instance.
+ * @param {HassEntity} entity - The Home Assistant vacuum entity registry entry.
+ * @returns {HassArea[]} - The mapped Home Assistant areas sorted by area_id, or an empty array if the vacuum has no area mapping.
+ */
+export function getVacuumMappedHassAreas(ha: HomeAssistant, entity: HassEntity): HassArea[] {
+  const vacuumOptions = entity.options?.['vacuum'];
+  if (!isValidObject(vacuumOptions) || !('area_mapping' in vacuumOptions)) return [];
+  if (!isValidObject(vacuumOptions.area_mapping)) return [];
+  const areaMapping = new Map<string, unknown>(Object.entries(vacuumOptions.area_mapping));
+  return getSortedHassAreas(ha).filter((area) => isValidArray(areaMapping.get(area.area_id), 1));
+}
+
+/**
+ * Truncates a string to at most the given number of UTF-8 bytes without splitting a character.
+ *
+ * Matter string constraints are expressed in UTF-8 bytes, while String.prototype.slice() counts UTF-16 code units and can split a surrogate pair.
+ *
+ * @param {string} text - The string to truncate.
+ * @param {number} maxBytes - The maximum length in UTF-8 bytes.
+ * @returns {string} - The string itself if it fits, otherwise its longest prefix of whole characters that fits.
+ */
+export function truncateUtf8(text: string, maxBytes: number): string {
+  let result = '';
+  let bytes = 0;
+  for (const char of text) {
+    const charBytes = Buffer.byteLength(char, 'utf8');
+    if (bytes + charBytes > maxBytes) break;
+    result += char;
+    bytes += charBytes;
+  }
+  return result;
+}
+
+/**
+ * Derives a stable Matter ServiceArea AreaId from a Home Assistant area_id using the FNV-1a 32-bit hash.
+ *
+ * The AreaId must stay stable across restarts regardless of how the Home Assistant area registry grows, shrinks, or is reordered, so it cannot be a positional index into the current area list.
+ *
+ * @param {string} areaId - The Home Assistant area_id.
+ * @returns {number} - An unsigned 32-bit integer derived from the area_id, stable for as long as the area_id itself does not change.
+ */
+export function hassAreaIdToMatterAreaId(areaId: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < areaId.length; i++) {
+    // oxlint-disable-next-line no-bitwise
+    hash ^= areaId.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  // oxlint-disable-next-line no-bitwise
+  return hash >>> 0;
+}
+
+/**
  * Checks if a given entity or device satisfies the configured label filter.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.

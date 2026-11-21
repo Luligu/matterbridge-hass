@@ -21,7 +21,7 @@ import { ColorControl, LevelControl, OnOff } from 'matterbridge/matter/clusters'
 
 import { addControlEntity } from '../src/control.entity.js';
 import { hassCommandConverter, hassDomainConverter, hassSubscribeConverter } from '../src/converters.js';
-import { generateEntity, generateState } from '../src/helpers.js';
+import { generateEntity, generateState, hassAreaIdToMatterAreaId } from '../src/helpers.js';
 import {
   type HassConfig,
   type HassEntity,
@@ -62,6 +62,7 @@ function createMockMutableDevice(): MutableDevice {
     addClusterServerDefaultFanControl: vi.fn(),
     addClusterServerCompleteFanControl: vi.fn(),
     addVacuum: vi.fn(),
+    addClusterServerServiceArea: vi.fn(),
     addValve: vi.fn(),
     addLiftTiltWindowCovering: vi.fn(),
     addTiltWindowCovering: vi.fn(),
@@ -75,13 +76,16 @@ function createMockMutableDevice(): MutableDevice {
 }
 
 const mockLog = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() } as any;
-const mockPlatform = { config: { virtualControlLabel: '' }, log: mockLog } as any;
+const mockPlatform = { config: { virtualControlLabel: '' }, log: mockLog, ha: { hassAreas: new Map() } } as any;
 const commandHandler = vi.fn(async () => {}); // async signature required
 const subscribeHandler = vi.fn();
 type VirtualDeviceCallback = () => Promise<void>;
 
 describe('addControlEntity', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPlatform.ha.hassAreas.clear();
+  });
 
   const make = (domain: string, name: string, attrs: Record<string, any>): readonly [MutableDevice, HassEntity, HassState] => {
     const md = createMockMutableDevice();
@@ -290,6 +294,44 @@ describe('addControlEntity', () => {
     // @ts-expect-error chainable return
     const vacuumCalls = md.addDeviceTypes.mock.calls.filter((c: any[]) => c[1] === roboticVacuumCleaner);
     expect(vacuumCalls.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('vacuum does not add ServiceArea without CLEAN_AREA feature even with areas available', () => {
+    mockPlatform.ha.hassAreas.set('kitchen', { area_id: 'kitchen', name: 'Kitchen' });
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.START });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerServiceArea).not.toHaveBeenCalled();
+  });
+
+  it('vacuum does not add ServiceArea when CLEAN_AREA is supported but no areas are available', () => {
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.CLEAN_AREA });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerServiceArea).not.toHaveBeenCalled();
+  });
+
+  it('vacuum does not add ServiceArea when CLEAN_AREA is supported but the vacuum has no area mapping', () => {
+    mockPlatform.ha.hassAreas.set('kitchen', { area_id: 'kitchen', name: 'Kitchen' });
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.CLEAN_AREA });
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerServiceArea).not.toHaveBeenCalled();
+    expect(mockLog.debug).toHaveBeenCalledWith(expect.stringContaining('has no area mapped in Home Assistant'));
+    expect(md.addCommandHandler).not.toHaveBeenCalledWith(e.entity_id, 'selectAreas', expect.any(Function));
+  });
+
+  it('vacuum adds ServiceArea with only the Home Assistant areas mapped to the vacuum segments when CLEAN_AREA is supported', () => {
+    mockPlatform.ha.hassAreas.set('kitchen', { area_id: 'kitchen', name: 'Kitchen' });
+    mockPlatform.ha.hassAreas.set('bedroom', { area_id: 'bedroom', name: 'Bedroom' });
+    mockPlatform.ha.hassAreas.set('garage', { area_id: 'garage', name: 'Garage' });
+    mockPlatform.ha.hassAreas.set('office', { area_id: 'office', name: 'Office' });
+    const [md, e, s] = make('vacuum', 'robby', { activity: 'idle', supported_features: VacuumEntityFeature.CLEAN_AREA });
+    // The garage has no segments and the attic is not a known Home Assistant area, so neither is exposed. The office is not mapped at all.
+    e.options = { vacuum: { area_mapping: { kitchen: ['1'], bedroom: ['2', '3'], garage: [], attic: ['4'] } } };
+    addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
+    expect(md.addClusterServerServiceArea).toHaveBeenCalledWith(e.entity_id, [
+      { areaId: hassAreaIdToMatterAreaId('bedroom'), mapId: null, areaInfo: { locationInfo: { locationName: 'Bedroom', floorNumber: null, areaType: null }, landmarkInfo: null } },
+      { areaId: hassAreaIdToMatterAreaId('kitchen'), mapId: null, areaInfo: { locationInfo: { locationName: 'Kitchen', floorNumber: null, areaType: null }, landmarkInfo: null } },
+    ]);
+    expect(md.addCommandHandler).not.toHaveBeenCalledWith(e.entity_id, 'selectAreas', expect.any(Function));
   });
 
   it('vacuum maps Identify to vacuum.locate when LOCATE is supported', async () => {
