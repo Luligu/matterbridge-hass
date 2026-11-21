@@ -94,6 +94,8 @@ Pair Matterbridge to your controller.
 
 If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
 
+Vacuum endpoints expose the mandatory RVC Run Mode and Operational State clusters. The optional RVC Clean Mode cluster is not exposed because Home Assistant fan-speed values do not provide reliable Matter clean-mode semantics.
+
 These domains are supported also like individual and split entities.
 
 ## Supported individual entities:

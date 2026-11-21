@@ -49,6 +49,7 @@ import {
   PressureMeasurement,
   RadonConcentrationMeasurement,
   RelativeHumidityMeasurement,
+  RvcCleanMode,
   RvcOperationalState,
   RvcRunMode,
   SmokeCoAlarm,
@@ -1792,6 +1793,9 @@ describe('Matterbridge ' + NAME, () => {
     device = haPlatform.matterbridgeDevices.get(vacuumDevice.id) as MatterbridgeEndpoint;
     expect(device.mode).toBe('server');
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.hasClusterServer(RvcRunMode.id)).toBeTruthy();
+    expect(device.hasClusterServer(RvcOperationalState.id)).toBeTruthy();
+    expect(device.hasClusterServer(RvcCleanMode.id)).toBeFalsy();
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
 

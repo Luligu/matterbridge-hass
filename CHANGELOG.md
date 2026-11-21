@@ -46,6 +46,7 @@ If you like this project and find it useful, please consider giving it a star on
 - [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
 - [config]: Add `.github/agents/matterbridge-no-delegate.agent.md`.
 - [config]: Add `.github/agents/matterbridge-orchestrator.agent.md`.
+- [vacuum]: Remove the optional RVC Clean Mode cluster because Home Assistant fan-speed values cannot be mapped safely to Matter clean-mode semantics.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

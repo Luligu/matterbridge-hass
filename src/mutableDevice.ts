@@ -52,13 +52,7 @@ import {
   onOffPlugInUnit,
   type PlatformMatterbridge,
 } from 'matterbridge';
-import {
-  MatterbridgeKeypadInputServer,
-  MatterbridgeMediaPlaybackServer,
-  MatterbridgeRvcCleanModeServer,
-  MatterbridgeRvcOperationalStateServer,
-  MatterbridgeRvcRunModeServer,
-} from 'matterbridge/devices';
+import { MatterbridgeKeypadInputServer, MatterbridgeMediaPlaybackServer, MatterbridgeRvcOperationalStateServer, MatterbridgeRvcRunModeServer } from 'matterbridge/devices';
 import { AnsiLogger, CYAN, db, debugStringify, idn, ign, type LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
 import { type ActionContext, type AtLeastOne, type Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
@@ -74,7 +68,6 @@ import {
   ModeSelect,
   OnOff,
   PowerSource,
-  RvcCleanMode,
   RvcOperationalState,
   RvcRunMode,
   SmokeCoAlarm,
@@ -834,16 +827,6 @@ export class MutableDevice {
         supportedModes: [
           { label: 'Idle', mode: 1, modeTags: [{ value: RvcRunMode.ModeTag.Idle }] },
           { label: 'Cleaning', mode: 2, modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }] },
-        ],
-        currentMode: 1,
-      }),
-    );
-    device.clusterServersObjs.push(
-      getClusterServerObj(RvcCleanMode.id, MatterbridgeRvcCleanModeServer, {
-        // Matter 1.6.1 requires 2 to 255 supported modes
-        supportedModes: [
-          { label: 'Vacuum', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Auto }, { value: RvcCleanMode.ModeTag.Vacuum }] },
-          { label: 'Vacuum Max', mode: 2, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }, { value: RvcCleanMode.ModeTag.Max }] },
         ],
         currentMode: 1,
       }),

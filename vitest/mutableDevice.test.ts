@@ -627,7 +627,7 @@ describe('MutableDevice', () => {
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
-    expect(mutableDevice.get().clusterServersObjs).toHaveLength(3);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(2);
 
     mutableDevice.destroy();
   });
