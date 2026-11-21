@@ -230,6 +230,7 @@ describe('Matterbridge ' + NAME, () => {
     mockConfig.splitByLabel = '';
     mockConfig.splitNameStrategy = 'Entity name';
     mockConfig.controllerStrategy = 'Merge';
+    mockConfig.autoRoomPrefix = false;
     mockConfig.namePostfix = '';
     mockConfig.postfix = '';
     mockConfig.airQualityRegex = '';
@@ -323,6 +324,38 @@ describe('Matterbridge ' + NAME, () => {
     expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
     expect(haPlatform.matterbridgeDevices.has(first.entity_id)).toBe(true);
     expect(haPlatform.matterbridgeDevices.has(second.entity_id)).toBe(false);
+  });
+
+  it.each(['device', 'individual', 'split'] as const)('should register a same-named %s in each area when autoRoomPrefix is enabled', async (kind) => {
+    const kitchen = generateArea(haPlatform.ha, 'Kitchen');
+    const hallway = generateArea(haPlatform.ha, 'Hallway');
+    const labelSplit = generateLabel(haPlatform.ha, 'Split Label');
+    haPlatform.config.splitByLabel = labelSplit.name;
+    haPlatform.config.autoRoomPrefix = true;
+    const keys = [kitchen, hallway].map((area) => {
+      const device = kind === 'individual' ? null : generateDevice(haPlatform.ha, 'Light', area.area_id);
+      const entity = generateEntity(haPlatform.ha, 'Light', 'switch', device, kind === 'individual' ? area.area_id : null, kind === 'split' ? [labelSplit.label_id] : [], 'off');
+      return kind === 'device' && device ? device.id : entity.entity_id;
+    });
+    await haPlatform.onStart('Test reason');
+    expect(haPlatform.duplicatedDevices + haPlatform.duplicatedEntities).toBe(0);
+    expect(loggerErrorSpy).not.toHaveBeenCalled();
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(2);
+    expect(keys.map((key) => haPlatform.matterbridgeDevices.get(key)?.deviceName)).toEqual(['Kitchen Light', 'Hallway Light']);
+  });
+
+  it('should match the blackList against the room prefixed and postfixed name when autoRoomPrefix is enabled', async () => {
+    const kitchen = generateArea(haPlatform.ha, 'Kitchen');
+    const hallway = generateArea(haPlatform.ha, 'Hallway');
+    const kitchenLight = generateEntity(haPlatform.ha, 'Light', 'switch', null, kitchen.area_id, [], 'off');
+    const hallwayLight = generateEntity(haPlatform.ha, 'Light', 'switch', null, hallway.area_id, [], 'off');
+    haPlatform.config.autoRoomPrefix = true;
+    haPlatform.config.namePostfix = 'HA';
+    haPlatform.config.blackList = ['Hallway Light HA'];
+    await haPlatform.onStart('Test reason');
+    expect(haPlatform.unselectedEntities).toBe(1);
+    expect(haPlatform.matterbridgeDevices.get(kitchenLight.entity_id)?.deviceName).toBe('Kitchen Light HA');
+    expect(haPlatform.matterbridgeDevices.has(hallwayLight.entity_id)).toBe(false);
   });
 
   it('should call onStart and not register an individual entity if the domain is blacklisted', async () => {

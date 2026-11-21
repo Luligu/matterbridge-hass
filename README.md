@@ -37,6 +37,7 @@ Features:
 - It is possible to select from a list the entities to include in the device entity black list.
 - It is possible to select the split entities adding a label.
 - It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
+- It is possible to prefix the Matter device name with its Home Assistant area (e.g. Light in the Kitchen area becomes Kitchen Light).
 - Support **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
 - Support **transition time**.
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
@@ -252,15 +253,15 @@ Filter devices and individual entities by label. If enabled, only devices, indiv
 
 ### Whitelist
 
-If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
+If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is). When `autoRoomPrefix` is enabled, use the name with the area prefix.
 
 ### Blacklist
 
-If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
+If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is). When `autoRoomPrefix` is enabled, use the name with the area prefix.
 
 ### Device Entity Blacklist
 
-List of entities not to be exposed for a single device. Enter in the first field the name of the device (with `namePostfix` when set) and in the second field add all the entity names (`entity_id`) you want to exclude for that device.
+List of entities not to be exposed for a single device. Enter in the first field the name of the device (with the area prefix when `autoRoomPrefix` is enabled and with `namePostfix` when set) and in the second field add all the entity names (`entity_id`) you want to exclude for that device.
 
 ### Domain Whitelist
 
@@ -309,6 +310,10 @@ Strategy used for split entity names. "Entity name": use the entity name (i.e. C
 ### Controller Strategy
 
 Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not strictly compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
+
+### Auto Room Prefix
+
+Put the Home Assistant area name in front of each device name, e.g. Light in the Kitchen area becomes Kitchen Light. Enable it if you name your devices without the area, as Home Assistant recommends, so that devices with the same name in different areas are all exposed. An entity without an area uses the area of its device, and names that already start with the area name (e.g. Kitchen Light in the Kitchen area) are not changed. The `whiteList`, `blackList` and `deviceEntityBlackList` must use the names with the prefix. You will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller.
 
 ### Name Postfix
 

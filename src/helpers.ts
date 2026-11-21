@@ -332,6 +332,25 @@ export function getPostfixedName(platform: HomeAssistantPlatform, name: string):
 }
 
 /**
+ * Returns the name with the Home Assistant area name in front when autoRoomPrefix is enabled (e.g. Light in the Kitchen area becomes Kitchen Light).
+ * An entity without its own area uses the area of its device, as in Home Assistant.
+ * The name is returned unchanged when there is no area or when it already starts with the area name.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {string | null} name - The device or entity name.
+ * @param {HassDevice | HassEntity} deviceOrEntity - The Home Assistant device or entity the name belongs to.
+ * @returns {string | null} - The name with '<area name> ' prepended when it applies.
+ */
+export function getRoomPrefixedName(platform: HomeAssistantPlatform, name: string | null, deviceOrEntity: HassDevice | HassEntity): string | null {
+  if (!platform.config.autoRoomPrefix || !name) return name;
+  const deviceId = 'entity_id' in deviceOrEntity ? deviceOrEntity.device_id : null;
+  const areaId = deviceOrEntity.area_id ?? (deviceId ? platform.ha.hassDevices.get(deviceId)?.area_id : null);
+  const area = areaId ? platform.ha.hassAreas.get(areaId)?.name : undefined;
+  if (!area || `${name} `.toLowerCase().startsWith(`${area} `.toLowerCase())) return name;
+  return `${area} ${name}`;
+}
+
+/**
  * Returns the serial number with the configured postfix, limited to 32 characters.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.

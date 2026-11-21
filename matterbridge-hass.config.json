@@ -18,6 +18,7 @@
   "splitByLabel": "",
   "splitNameStrategy": "Entity name",
   "controllerStrategy": "Merge",
+  "autoRoomPrefix": false,
   "namePostfix": "",
   "postfix": "",
   "airQualityRegex": "",
