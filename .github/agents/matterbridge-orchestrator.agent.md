@@ -1,7 +1,7 @@
 ---
 name: Matterbridge Orchestrator
 description: Orchestrates independent answers from GPT 6.2, Opus 5.5, and Neo 4 for the same question
-tools: [read, search, edit, execute]
+tools: [runSubagent, execute, read, edit, search, agent]
 agents: ['*']
 ---
 
