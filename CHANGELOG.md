@@ -31,6 +31,7 @@ If you like this project and find it useful, please consider giving it a star on
 ### Added
 
 - [config]: Add the `autoRoomPrefix` option to put the Home Assistant area name in front of each device name (e.g. Light in the Kitchen area becomes Kitchen Light), so devices with the same name in different areas are all exposed. Thanks 0SkillAllLuck (https://github.com/Luligu/matterbridge-hass/pull/259).
+- [config]: Add `discardConfigCategory` and `discardDiagnosticCategory` to filter Home Assistant entities by category. Thanks guilhem (https://github.com/Luligu/matterbridge-hass/pull/263).
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

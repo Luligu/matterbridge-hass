@@ -24,6 +24,7 @@ import {
   isIndividualEntity,
   isSplitEntity,
   satisfiesAreaFilter,
+  satisfiesCategoryFilter,
   satisfiesLabelFilter,
 } from '../src/helpers.js';
 import type { HassArea, HassDevice, HassEntity, HassLabel, HassState, HomeAssistant } from '../src/homeAssistant.js';
@@ -533,6 +534,22 @@ describe('HassPlatform helpers', () => {
 
     // @ts-expect-error Testing edge case where deviceOrEntity is null
     expect(satisfiesAreaFilter(createPlatform('Living Room', [area]), null)).toBe(false);
+  });
+
+  it.each([
+    { discardConfigCategory: false, discardDiagnosticCategory: false, allowConfig: true, allowDiagnostic: true },
+    { discardConfigCategory: true, discardDiagnosticCategory: false, allowConfig: false, allowDiagnostic: true },
+    { discardConfigCategory: false, discardDiagnosticCategory: true, allowConfig: true, allowDiagnostic: false },
+    { discardConfigCategory: true, discardDiagnosticCategory: true, allowConfig: false, allowDiagnostic: false },
+  ])('should apply category filters with config=$discardConfigCategory and diagnostic=$discardDiagnosticCategory', (settings) => {
+    const { discardConfigCategory, discardDiagnosticCategory, allowConfig, allowDiagnostic } = settings;
+    const platform = { config: { discardConfigCategory, discardDiagnosticCategory } } as HomeAssistantPlatform;
+
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'switch.child_lock', entity_category: 'config' } as HassEntity)).toBe(allowConfig);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.battery', entity_category: 'diagnostic' } as HassEntity)).toBe(allowDiagnostic);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.temperature', entity_category: null } as HassEntity)).toBe(true);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.temperature' } as HassEntity)).toBe(true);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.temperature', entity_category: 'other' } as HassEntity)).toBe(true);
   });
 
   it('should check if a device or entity satisfies the configured label filter', () => {

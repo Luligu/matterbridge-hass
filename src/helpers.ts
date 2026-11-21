@@ -218,6 +218,22 @@ export function satisfiesAreaFilter(platform: HomeAssistantPlatform, deviceOrEnt
 }
 
 /**
+ * Check whether the configured category filters allow an entity
+ *
+ * Each enabled filter discards every entity in its matching registry category.
+ * Discarding the diagnostic category also discards battery-related entities in that category.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {HassEntity} entity - The Home Assistant entity registry entry.
+ * @returns {boolean} True if the entity is outside the enabled discard categories.
+ */
+export function satisfiesCategoryFilter(platform: HomeAssistantPlatform, entity: HassEntity): boolean {
+  if (entity.entity_category === 'config') return !platform.config.discardConfigCategory;
+  if (entity.entity_category === 'diagnostic') return !platform.config.discardDiagnosticCategory;
+  return true;
+}
+
+/**
  * Checks if a given entity or device satisfies the configured label filter.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.

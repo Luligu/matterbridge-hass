@@ -73,6 +73,7 @@ import {
   isIndividualEntity,
   isSplitEntity,
   satisfiesAreaFilter,
+  satisfiesCategoryFilter,
   satisfiesLabelFilter,
 } from './helpers.js';
 import {
@@ -119,6 +120,8 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   airQualityRegex: string;
   enableServerRvc: boolean;
   discardHiddenEntities: boolean;
+  discardConfigCategory: boolean;
+  discardDiagnosticCategory: boolean;
   virtualControlLabel: string;
 }
 
@@ -247,6 +250,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
     this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
     this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
+    this.config.discardConfigCategory = isValidBoolean(this.config.discardConfigCategory) ? this.config.discardConfigCategory : false;
+    this.config.discardDiagnosticCategory = isValidBoolean(this.config.discardDiagnosticCategory) ? this.config.discardDiagnosticCategory : false;
     this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
     this.config.debug ??= false;
     this.config.unregisterOnShutdown ??= false;
@@ -434,7 +439,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
 
     for (const entity of Array.from(this.ha.hassEntities.values()).filter(
-      (entity) => isIndividualEntity(entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
+      (entity) => isIndividualEntity(entity) && satisfiesCategoryFilter(this, entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
     )) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
@@ -573,8 +578,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Device ${CYAN}${deviceName}${db} is a service. Skipping...`);
         continue;
       }
-      // Skip the devices without entities
-      if (Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length === 0) {
+      // Skip devices without any entities allowed by the category filters
+      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((entity) => entity.device_id === device.id && satisfiesCategoryFilter(this, entity));
+      if (deviceEntities.length === 0) {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
         continue;
       }
@@ -584,7 +590,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.info(`Device ${CYAN}${deviceName}${nf} is not in the area "${CYAN}${this.config.filterByArea}${nf}". Skipping...`);
         continue;
       }
-      const deviceHasValidLabelFilterEntities = Array.from(this.ha.hassEntities.values()).some((e) => e.device_id === device.id && !isDisabled(e) && satisfiesLabelFilter(this, e));
+      const deviceHasValidLabelFilterEntities = deviceEntities.some((entity) => !isDisabled(entity) && satisfiesLabelFilter(this, entity));
       if (!satisfiesLabelFilter(this, device) && !deviceHasValidLabelFilterEntities) {
         this.filteredDevices++;
         this.log.info(`Device ${CYAN}${deviceName}${nf} doesn't have the label "${CYAN}${this.config.filterByLabel}${nf}". Skipping...`);
@@ -614,7 +620,6 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
-      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id);
       let battery = false;
       let rechargeable = false;
       for (const entity of deviceEntities) {
@@ -663,9 +668,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // *******************************************************************************************************************
 
       let hasRvc = false;
-      for (const entity of Array.from(this.ha.hassEntities.values()).filter(
-        (entity) => entity.device_id === device.id && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
-      )) {
+      for (const entity of deviceEntities.filter((entity) => !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities))) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} labels ${CYAN}${entity.labels?.join(', ') ?? ''}${db}...`);
         const [domain, _name] = entity.entity_id.split('.');
         const entityName = entity.name ?? entity.original_name ?? deviceName;
@@ -806,7 +809,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
 
     for (const entity of Array.from(this.ha.hassEntities.values()).filter(
-      (entity) => isDeviceEntity(entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities) && isSplitEntity(this, entity),
+      (entity) =>
+        isDeviceEntity(entity) &&
+        satisfiesCategoryFilter(this, entity) &&
+        !isDisabled(entity) &&
+        (!isHidden(entity) || !this.config.discardHiddenEntities) &&
+        isSplitEntity(this, entity),
     )) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.

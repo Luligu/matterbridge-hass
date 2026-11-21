@@ -21,7 +21,16 @@ import path from 'node:path';
 
 import { bridgedNode, colorTemperatureLight, dimmablePlugInUnit, MatterbridgeEndpoint, onOffPlugInUnit, windowCovering } from 'matterbridge';
 import { CYAN, db, dn, er, idn, ign, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
-import { BooleanState, BridgedDeviceBasicInformation, FanControl, IlluminanceMeasurement, OccupancySensing, OnOff, WindowCovering } from 'matterbridge/matter/clusters';
+import {
+  BooleanState,
+  BridgedDeviceBasicInformation,
+  FanControl,
+  IlluminanceMeasurement,
+  OccupancySensing,
+  OnOff,
+  PowerSource,
+  WindowCovering,
+} from 'matterbridge/matter/clusters';
 import { EndpointNumber } from 'matterbridge/matter/types';
 import { flushAsync } from 'matterbridge/test-utils';
 import {
@@ -300,6 +309,8 @@ describe('HassPlatform', () => {
       airQualityRegex: '',
       enableServerRvc: true,
       discardHiddenEntities: false,
+      discardConfigCategory: false,
+      discardDiagnosticCategory: false,
       virtualControlLabel: '',
       debug: false,
       unregisterOnShutdown: false,
@@ -335,6 +346,8 @@ describe('HassPlatform', () => {
       airQualityRegex: '^sensor\\..*_air_quality$',
       enableServerRvc: false,
       discardHiddenEntities: true,
+      discardConfigCategory: true,
+      discardDiagnosticCategory: true,
       virtualControlLabel: 'Virtual',
       debug: true,
       unregisterOnShutdown: true,
@@ -1987,6 +2000,80 @@ describe('HassPlatform', () => {
     haPlatform.ha.hassAreas.clear();
     haPlatform.ha.hassLabels.clear();
   });
+
+  it.each([
+    { discardConfigCategory: false, discardDiagnosticCategory: false },
+    { discardConfigCategory: true, discardDiagnosticCategory: false },
+    { discardConfigCategory: false, discardDiagnosticCategory: true },
+    { discardConfigCategory: true, discardDiagnosticCategory: true },
+  ])('should discover entities with discardConfigCategory=$discardConfigCategory and discardDiagnosticCategory=$discardDiagnosticCategory', async (filters) => {
+    const device = { id: 'category-device', name: 'Category Device', disabled_by: null } as HassDevice;
+    const categoryOnlyDevice = { id: 'category-only-device', name: 'Category Only Device', disabled_by: null } as HassDevice;
+    const configBatteryDevice = { id: 'config-battery-device', name: 'Config Battery Device', disabled_by: null } as HassDevice;
+    haPlatform.ha.hassDevices.set(device.id, device);
+    haPlatform.ha.hassDevices.set(categoryOnlyDevice.id, categoryOnlyDevice);
+    haPlatform.ha.hassDevices.set(configBatteryDevice.id, configBatteryDevice);
+    const entities = [
+      { entityId: 'switch.uncategorized', deviceId: device.id, category: null },
+      { entityId: 'switch.device_config', deviceId: device.id, category: 'config' },
+      { entityId: 'switch.device_diagnostic', deviceId: device.id, category: 'diagnostic' },
+      { entityId: 'switch.only_config', deviceId: categoryOnlyDevice.id, category: 'config' },
+      { entityId: 'switch.only_diagnostic', deviceId: categoryOnlyDevice.id, category: 'diagnostic' },
+      { entityId: 'switch.config_battery_host', deviceId: configBatteryDevice.id, category: null },
+      { entityId: 'sensor.config_battery', deviceId: configBatteryDevice.id, category: 'config', deviceClass: 'battery', state: '80' },
+      { entityId: 'switch.individual_config', deviceId: null, category: 'config' },
+      { entityId: 'switch.split_diagnostic', deviceId: device.id, category: 'diagnostic', split: true },
+      { entityId: 'sensor.diagnostic_battery', deviceId: device.id, category: 'diagnostic', deviceClass: 'battery', state: '75' },
+      { entityId: 'binary_sensor.diagnostic_low_battery', deviceId: null, category: 'diagnostic', deviceClass: 'battery' },
+      { entityId: 'binary_sensor.diagnostic_charging', deviceId: device.id, category: 'diagnostic', deviceClass: 'battery_charging', split: true },
+      { entityId: 'sensor.diagnostic_voltage', deviceId: device.id, category: 'diagnostic', deviceClass: 'voltage', state: '3.7' },
+    ];
+    for (const { entityId, deviceId, category, split, deviceClass, state } of entities) {
+      haPlatform.ha.hassEntities.set(entityId, {
+        id: entityId,
+        entity_id: entityId,
+        entity_category: category,
+        device_id: deviceId,
+        name: entityId,
+        labels: split ? ['category_split'] : [],
+        disabled_by: null,
+        hidden_by: null,
+      } as HassEntity);
+      haPlatform.ha.hassStates.set(entityId, {
+        entity_id: entityId,
+        state: state ?? 'off',
+        attributes: { friendly_name: entityId, device_class: deviceClass, state_class: 'measurement' },
+      } as HassState);
+    }
+
+    const { discardConfigCategory, discardDiagnosticCategory, splitByLabel } = haPlatform.config;
+    Object.assign(haPlatform.config, filters, { splitByLabel: 'Category Split' });
+    haPlatform.ha.hassLabels.set('category_split', { label_id: 'category_split', name: 'Category Split' } as HassLabel);
+    try {
+      await haPlatform.onStart('Test category filters');
+
+      expect(haPlatform.endpointNames.has('switch.uncategorized')).toBe(true);
+      expect(haPlatform.endpointNames.has('switch.device_config')).toBe(!filters.discardConfigCategory);
+      expect(haPlatform.endpointNames.has('switch.device_diagnostic')).toBe(!filters.discardDiagnosticCategory);
+      expect(haPlatform.matterbridgeDevices.has('switch.individual_config')).toBe(!filters.discardConfigCategory);
+      expect(haPlatform.matterbridgeDevices.has('switch.split_diagnostic')).toBe(!filters.discardDiagnosticCategory);
+      expect(haPlatform.endpointNames.has('sensor.diagnostic_battery')).toBe(!filters.discardDiagnosticCategory);
+      expect(haPlatform.endpointNames.has('sensor.diagnostic_voltage')).toBe(!filters.discardDiagnosticCategory);
+      expect(haPlatform.matterbridgeDevices.has('binary_sensor.diagnostic_low_battery')).toBe(!filters.discardDiagnosticCategory);
+      expect(haPlatform.matterbridgeDevices.has('binary_sensor.diagnostic_charging')).toBe(!filters.discardDiagnosticCategory);
+      const endpoint = haPlatform.matterbridgeDevices.get(device.id);
+      expect(endpoint?.hasAttributeServer(PowerSource.id, 'batPercentRemaining')).toBe(!filters.discardDiagnosticCategory);
+      expect(haPlatform.matterbridgeDevices.has(categoryOnlyDevice.id)).toBe(!filters.discardConfigCategory || !filters.discardDiagnosticCategory);
+      const configBatteryEndpoint = haPlatform.matterbridgeDevices.get(configBatteryDevice.id);
+      expect(configBatteryEndpoint).toBeDefined();
+      expect(configBatteryEndpoint?.hasAttributeServer(PowerSource.id, 'batPercentRemaining') ?? false).toBe(!filters.discardConfigCategory);
+    } finally {
+      Object.assign(haPlatform.config, { discardConfigCategory, discardDiagnosticCategory, splitByLabel });
+      haPlatform.ha.hassLabels.delete('category_split');
+      for (const endpoint of haPlatform.matterbridgeDevices.values()) await haPlatform.unregisterDevice(endpoint);
+    }
+  });
+
   it('should register a button device entity', async () => {
     const device = {
       area_id: null,

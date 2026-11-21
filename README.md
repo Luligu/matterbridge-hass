@@ -346,6 +346,14 @@ In addition to this well known bugs, the rvc must be a single device, it cannot 
 
 If enabled (default), the plugin discards entities that are hidden in Home Assistant (i.e. entities whose `hidden_by` field is not `null` in the entity registry). Hidden entities will not be exposed as device entities, individual entities, or split entities.
 
+### Discard Config Category
+
+Enable `discardConfigCategory` to skip all Home Assistant entities with `entity_category` set to `config` during Matter discovery. This applies to device entities, individual entities, and split entities. The option is off by default.
+
+### Discard Diagnostic Category
+
+Enable `discardDiagnosticCategory` to skip all Home Assistant entities with `entity_category` set to `diagnostic` during Matter discovery. This applies to device entities, individual entities, and split entities. **It also discards battery-related entities in that category**, including battery level, low-battery, charging, and battery voltage readings. Those entities are also excluded from Matter power source data. The option is off by default.
+
 ### Virtual Control Label
 
 Label used to enable virtual controls on entities. If set, the plugin creates one virtual control for each entity with the selected label. These virtual controls are intended for accessibility and let you send commands to entities that are not directly supported by the controller, such as `media_player.samsung_tv`, with simple voice-friendly switches. Virtual controls are exposed as switch entities: turning one on triggers the command, and the plugin automatically turns it off again afterward.
