@@ -463,12 +463,15 @@ describe('HomeAssistant', () => {
     clearTimeout((homeAssistant as any).fetchTimeout);
 
     vi.clearAllMocks();
+    homeAssistant.hassAreas.set('deletedareaid', { area_id: 'deletedareaid', name: 'Deleted Area' } as HassArea); // An area deleted in Home Assistant
     area_registry_response.push({ area_id: 'myareaid', name: 'My Area' } as HassArea);
     (homeAssistant as any).onFetchTimeout();
     await new Promise<void>((resolve) => setTimeout(resolve, 100)); // Wait for the event to be processed
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, `Received 1 areas.`);
     expect(homeAssistant.hassAreas.get('myareaid')).toBeDefined();
     expect(homeAssistant.hassAreas.get('myareaid')?.name).toBe('My Area');
+    expect(homeAssistant.hassAreas.has('deletedareaid')).toBe(false);
+    expect(homeAssistant.hassAreas.size).toBe(1);
     area_registry_response.splice(0, area_registry_response.length); // Clear the response for next tests
   });
 
