@@ -91,7 +91,17 @@ import {
 import type { ClusterId } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { ColorMode, CoverEntityFeature, type HassState, type HassStateFanAttributes, HomeAssistant, HVACAction, HVACMode, UnitOfTemperature } from './homeAssistant.js';
+import {
+  ColorMode,
+  CoverEntityFeature,
+  type HassState,
+  type HassStateFanAttributes,
+  HomeAssistant,
+  HVACAction,
+  HVACMode,
+  UnitOfTemperature,
+  VacuumEntityFeature,
+} from './homeAssistant.js';
 
 /**
  * Returns the names of enabled bit-flag features for any numeric enum.
@@ -113,6 +123,33 @@ export function getFeatureNames<T extends Record<string, number | string>>(featu
       .filter(([_, value]) => typeof value === 'number' && (supported_features & value) !== 0)
       .map(([key]) => key)
   );
+}
+
+/**
+ * Checks whether a Home Assistant entity advertises a feature in its supported_features bitmask.
+ *
+ * @param {HassState | undefined} state - The Home Assistant state of the entity.
+ * @param {number} feature - The feature bit to check (e.g. VacuumEntityFeature.RETURN_HOME).
+ * @returns {boolean} True if supported_features is a valid number and has the feature bit set, false otherwise.
+ */
+function supportsEntityFeature(state: HassState | undefined, feature: number): boolean {
+  const supportedFeatures = state?.attributes.supported_features;
+  if (!isValidNumber(supportedFeatures)) return false;
+  // oxlint-disable-next-line no-bitwise
+  return (supportedFeatures & feature) !== 0;
+}
+
+/**
+ * Returns the Home Assistant vacuum service that stops cleaning when the RVC Run Mode changes to Idle.
+ *
+ * @param {HassState | undefined} state - The Home Assistant state of the vacuum entity.
+ * @returns {string | undefined} 'return_to_base' if RETURN_HOME is supported, else 'stop' if STOP is supported, else 'pause' if PAUSE is supported, otherwise undefined.
+ */
+function getVacuumIdleService(state: HassState | undefined): string | undefined {
+  if (supportsEntityFeature(state, VacuumEntityFeature.RETURN_HOME)) return 'return_to_base';
+  if (supportsEntityFeature(state, VacuumEntityFeature.STOP)) return 'stop';
+  if (supportsEntityFeature(state, VacuumEntityFeature.PAUSE)) return 'pause';
+  return undefined;
 }
 
 /**
@@ -658,7 +695,7 @@ export const hassDomainEventConverter: { hassEventType: string; matterbridgeEven
 
 /** Convert Home Assistant domains services to Matterbridge commands for device types */
 // oxfmt-ignore
-export const hassCommandConverter: { command: CommandHandlers; domain: string; service: string; converter?: (request: Record<string, any>, attributes: Record<string, any>, state?: HassState) => any }[] = [
+export const hassCommandConverter: { command: CommandHandlers; domain: string; service: string | ((request: Record<string, any>, attributes: Record<string, any>, state?: HassState) => string | undefined); converter?: (request: Record<string, any>, attributes: Record<string, any>, state?: HassState) => any }[] = [
     { command: 'on',                      domain: 'switch', service: 'turn_on' },
     { command: 'off',                     domain: 'switch', service: 'turn_off' },
     { command: 'toggle',                  domain: 'switch', service: 'toggle' },
@@ -688,8 +725,8 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
 
     { command: 'pause',                   domain: 'vacuum', service: 'pause' },
     { command: 'resume',                  domain: 'vacuum', service: 'start' },
-    { command: 'goHome',                  domain: 'vacuum', service: 'return_to_base' },
-    { command: 'changeToMode',            domain: 'vacuum', service: 'start' },
+    { command: 'goHome',                  domain: 'vacuum', service: (_request, _attributes, state) => supportsEntityFeature(state, VacuumEntityFeature.RETURN_HOME) ? 'return_to_base' : undefined },
+    { command: 'changeToMode',            domain: 'vacuum', service: (request, attributes, state) => request.newMode === attributes.currentMode ? undefined : request.newMode === 1 ? getVacuumIdleService(state) : request.newMode === 2 ? 'start' : undefined },
 
     { command: 'on',                      domain: 'remote', service: 'turn_on' },
     { command: 'off',                     domain: 'remote', service: 'turn_off' },

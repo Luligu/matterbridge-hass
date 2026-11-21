@@ -41,6 +41,7 @@ import {
   HomeAssistant,
   HVACMode,
   UnitOfTemperature,
+  VacuumEntityFeature,
 } from '../src/homeAssistant.js';
 
 function createSelectState(options: string[]): HassState {
@@ -415,6 +416,26 @@ describe('HassPlatform converters', () => {
         expect(converter.converter({}, undefined as any, createSelectState(['Eco', 'Comfort']))).toBeUndefined();
         expect(converter.converter({ newMode: 3 }, undefined as any, createSelectState(['Eco', 'Comfort']))).toBeUndefined();
         expect(converter.converter({ newMode: 1 }, undefined as any, createSelectState([]))).toBeUndefined();
+      }
+      if (converter.command === 'changeToMode' && converter.domain === 'vacuum') {
+        if (typeof converter.service !== 'function') expect.unreachable('vacuum changeToMode service must be a function');
+        const state = { attributes: { supported_features: VacuumEntityFeature.RETURN_HOME } } as HassState;
+        expect(converter.service({ newMode: 1 }, { currentMode: 2 }, state)).toBe('return_to_base');
+        expect(converter.service({ newMode: 2 }, { currentMode: 1 }, state)).toBe('start');
+        expect(converter.service({ newMode: 1 }, { currentMode: 1 }, state)).toBeUndefined();
+        expect(converter.service({ newMode: 3 }, { currentMode: 1 }, state)).toBeUndefined();
+        expect(
+          converter.service({ newMode: 1 }, { currentMode: 2 }, { attributes: { supported_features: VacuumEntityFeature.STOP + VacuumEntityFeature.PAUSE } } as HassState),
+        ).toBe('stop');
+        expect(converter.service({ newMode: 1 }, { currentMode: 2 }, { attributes: { supported_features: VacuumEntityFeature.PAUSE } } as HassState)).toBe('pause');
+        expect(converter.service({ newMode: 1 }, { currentMode: 2 }, { attributes: {} } as HassState)).toBeUndefined();
+        expect(converter.service({ newMode: 1 }, { currentMode: 2 })).toBeUndefined();
+      }
+      if (converter.command === 'goHome' && converter.domain === 'vacuum') {
+        if (typeof converter.service !== 'function') expect.unreachable('vacuum goHome service must be a function');
+        expect(converter.service({}, {}, { attributes: { supported_features: VacuumEntityFeature.RETURN_HOME } } as HassState)).toBe('return_to_base');
+        expect(converter.service({}, {}, { attributes: { supported_features: VacuumEntityFeature.START } } as HassState)).toBeUndefined();
+        expect(converter.service({}, {})).toBeUndefined();
       }
     });
   });

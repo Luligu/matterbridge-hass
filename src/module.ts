@@ -1083,6 +1083,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
+      const service = typeof hassCommand.service === 'function' ? hassCommand.service(data.request, data.attributes, state) : hassCommand.service;
+      if (!service) return;
       if (domain === 'cover') {
         // Special handling for cover goToLiftPercentage command. When goToLiftPercentage is called with 0, we may call the open service and when called with 10000 we may call the close service.
         // This allows to support also covers not supporting the set_cover_position service.
@@ -1225,7 +1227,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Normal execution for all the other commands and domains, we use the converter if present to get the service attributes and then call the service.
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes, state) : undefined;
       if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
-      await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
+      await this.ha.callService(hassCommand.domain, service, entityId, serviceAttributes);
     } else {
       data.endpoint.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }

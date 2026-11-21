@@ -1754,7 +1754,7 @@ describe('Matterbridge ' + NAME, () => {
     const vacuumState = {
       entity_id: vacuumEntity.entity_id,
       state: 'docked',
-      attributes: { friendly_name: 'Vacuum', supported_features: VacuumEntityFeature.LOCATE },
+      attributes: { friendly_name: 'Vacuum', supported_features: VacuumEntityFeature.LOCATE + VacuumEntityFeature.RETURN_HOME },
     } as unknown as HassState;
 
     const sensorEntity = {
@@ -1858,6 +1858,21 @@ describe('Matterbridge ' + NAME, () => {
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
 
     vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(callServiceSpy).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 2 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcOperationalState', 'pause');
     expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2); // Pause no longer forces RvcRunMode back to Idle: currentMode stays Cleaning
     expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
@@ -1874,6 +1889,29 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2); // GoHome no longer forces RvcRunMode back to Idle: currentMode stays Cleaning
     expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger); // GoHome now transitions through SeekingCharger instead of jumping straight to Docked
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    haPlatform.ha.hassStates.set(vacuumEntity.entity_id, {
+      ...vacuumState,
+      attributes: { ...vacuumState.attributes, supported_features: VacuumEntityFeature.LOCATE + VacuumEntityFeature.STOP },
+    } as unknown as HassState);
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'stop', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 2 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    haPlatform.ha.hassStates.set(vacuumEntity.entity_id, {
+      ...vacuumState,
+      attributes: { ...vacuumState.attributes, supported_features: VacuumEntityFeature.LOCATE },
+    } as unknown as HassState);
+    await invokeBehaviorCommand(device, 'RvcOperationalState', 'goHome');
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(callServiceSpy).not.toHaveBeenCalled();
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 5 });

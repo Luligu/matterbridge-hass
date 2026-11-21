@@ -32,6 +32,7 @@ If you like this project and find it useful, please consider giving it a star on
 
 - [config]: Add the `autoRoomPrefix` option to put the Home Assistant area name in front of each device name (e.g. Light in the Kitchen area becomes Kitchen Light), so devices with the same name in different areas are all exposed. Thanks 0SkillAllLuck (https://github.com/Luligu/matterbridge-hass/pull/259).
 - [config]: Add `discardConfigCategory` and `discardDiagnosticCategory` to filter Home Assistant entities by category. Thanks guilhem (https://github.com/Luligu/matterbridge-hass/pull/263).
+- [vacuum]: Map RVC Run Mode Idle to `vacuum.return_to_base`, falling back to `vacuum.stop` or `vacuum.pause` from the advertised features, and map Cleaning to `vacuum.start`. Thanks joshuata (https://github.com/Luligu/matterbridge-hass/issues/270).
 
 ### Changed
 
