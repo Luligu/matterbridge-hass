@@ -75,6 +75,7 @@ import {
   satisfiesAreaFilter,
   satisfiesCategoryFilter,
   satisfiesLabelFilter,
+  utf8ByteLength,
 } from './helpers.js';
 import {
   type DeviceId,
@@ -496,10 +497,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (getPostfixedName(this, entityName).length > 32) {
+      const entityNameBytes = utf8ByteLength(getPostfixedName(this, entityName));
+      if (entityNameBytes > 32) {
         this.longNameEntities++;
         this.log.warn(
-          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${getPostfixedName(this, entityName).length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-byte limit (${entityNameBytes} bytes). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -610,10 +612,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (getPostfixedName(this, deviceName).length > 32) {
+      const deviceNameBytes = utf8ByteLength(getPostfixedName(this, deviceName));
+      if (deviceNameBytes > 32) {
         this.longNameDevices++;
         this.log.warn(
-          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-character limit (${getPostfixedName(this, deviceName).length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-byte limit (${deviceNameBytes} bytes). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -879,10 +882,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (getPostfixedName(this, entityName).length > 32) {
+      const entityNameBytes = utf8ByteLength(getPostfixedName(this, entityName));
+      if (entityNameBytes > 32) {
         this.longNameEntities++;
         this.log.warn(
-          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${getPostfixedName(this, entityName).length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-byte limit (${entityNameBytes} bytes). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -992,9 +996,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.unselectedEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedEntities} entities have been discarded by select`, 60, 'success');
 
     if (this.longNameDevices) this.log.warn(`Devices with long names: ${this.longNameDevices}`);
-    if (this.longNameDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameDevices} devices have names that exceed Matter’s 32-character limit`, 60, 'warning');
+    if (this.longNameDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameDevices} devices have names that exceed Matter’s 32-byte limit`, 60, 'warning');
     if (this.longNameEntities) this.log.warn(`Entities with long names: ${this.longNameEntities}`);
-    if (this.longNameEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameEntities} entities have names that exceed Matter’s 32-character limit`, 60, 'warning');
+    if (this.longNameEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameEntities} entities have names that exceed Matter’s 32-byte limit`, 60, 'warning');
 
     if (this.duplicatedDevices) this.log.warn(`Duplicated device names: ${this.duplicatedDevices}`);
     if (this.duplicatedDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.duplicatedDevices} devices have been discarded due to duplicate names`, 60, 'warning');

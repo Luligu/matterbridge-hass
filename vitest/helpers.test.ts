@@ -26,6 +26,8 @@ import {
   satisfiesAreaFilter,
   satisfiesCategoryFilter,
   satisfiesLabelFilter,
+  truncateUtf8,
+  utf8ByteLength,
 } from '../src/helpers.js';
 import type { HassArea, HassDevice, HassEntity, HassLabel, HassState, HomeAssistant } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform } from '../src/module.js';
@@ -42,15 +44,39 @@ function createHomeAssistant(): HomeAssistant {
 
 describe('HassPlatform helpers', () => {
   it.each([
+    ['', 0],
+    ['short', 5],
+    ['버튼 - 작은방 (버튼-작은방)123', 40],
+    ['😀', 4],
+  ])('should measure %s as %s UTF-8 bytes', (value, expected) => {
+    expect(utf8ByteLength(value)).toBe(expected);
+  });
+
+  it.each([
+    ['short', 32, 'short'],
+    ['12345678901234567890123456789012', 32, '12345678901234567890123456789012'],
+    ['버튼 - 작은방 (버튼-작은방)123', 32, '버튼 - 작은방 (버튼-작'],
+    ['😀😀😀😀😀a', 4, '😀'],
+  ])('should truncate %s to at most %s UTF-8 bytes', (value, maxBytes, expected) => {
+    expect(truncateUtf8(value, maxBytes)).toBe(expected);
+    expect(utf8ByteLength(truncateUtf8(value, maxBytes))).toBeLessThanOrEqual(maxBytes);
+  });
+
+  it.each([
     ['HA', '123456789012345678901234567890123456', '123456789012345678901234567890HA'],
     ['ABC', 'short', 'shortABC'],
     ['HA', '123456789012345678901234567890', '123456789012345678901234567890HA'],
     ['HA', '1234567890123456789012345678901', '123456789012345678901234567890HA'],
     ['', 'short', 'short'],
     ['', '123456789012345678901234567890123456', '12345678901234567890123456789012'],
+    ['HA', '버튼 - 작은방 (버튼-작은방)123', '버튼 - 작은방 (버튼-작HA'],
+    ['버튼', '123456789012345678901234567890', '12345678901234567890123456버튼'],
+    ['버튼버튼버튼버튼버튼버튼', 'serial', 'se버튼버튼버튼버튼버튼'],
   ])('should produce serial %s / %s as %s', (postfix, serial, expected) => {
     const platform = { config: { postfix } } as unknown as HomeAssistantPlatform;
-    expect(getPostfixedSerial(platform, serial)).toBe(expected);
+    const result = getPostfixedSerial(platform, serial);
+    expect(result).toBe(expected);
+    expect(utf8ByteLength(result)).toBeLessThanOrEqual(32);
   });
 
   it('should create a unique id as a 32-character hexadecimal string', () => {

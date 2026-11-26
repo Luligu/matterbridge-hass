@@ -26,19 +26,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { getErrorMessage } from 'matterbridge/utils';
+import { getErrorMessage, isValidString } from 'matterbridge/utils';
 
-import { isHidden, isIndividualEntity, isSplitEntity } from './helpers.js';
+import { getEntityName, getPostfixedName, getRoomPrefixedName, isHidden, isIndividualEntity, isSplitEntity, utf8ByteLength } from './helpers.js';
+import type { HassDevice, HassEntity } from './homeAssistant.js';
 import type { HomeAssistantPlatform } from './module.js';
 
 /**
- * Returns the LONGNAME suffix when the provided name exceeds Matter's limit.
+ * Returns the LONGNAME suffix when the configured Matter node name exceeds 32 UTF-8 bytes.
  *
- * @param {string | null | undefined} name - The name to check.
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform data.
+ * @param {string | null} name - The base device or entity name.
+ * @param {HassDevice | HassEntity} deviceOrEntity - The device or entity whose area can prefix the name.
  * @returns {string} The LONGNAME suffix or an empty string.
  */
-function getLongNameSuffix(name: string | null | undefined): string {
-  return (name ?? '').length > 32 ? ' LONGNAME' : '';
+function getLongNameSuffix(platform: HomeAssistantPlatform, name: string | null, deviceOrEntity: HassDevice | HassEntity): string {
+  const roomPrefixedName = getRoomPrefixedName(platform, name, deviceOrEntity);
+  return isValidString(roomPrefixedName, 1) && utf8ByteLength(getPostfixedName(platform, roomPrefixedName)) > 32 ? ' LONGNAME' : '';
 }
 
 /**
@@ -77,7 +81,7 @@ export function createReport(platform: HomeAssistantPlatform): string {
     const deviceName = device.name_by_user ?? device.name;
     lines.push(
       `Device: "${deviceName}"` +
-        `${getLongNameSuffix(deviceName)}` +
+        `${getLongNameSuffix(platform, deviceName, device)}` +
         `${device.entry_type === 'service' ? ' SERVICE' : ''}` +
         `${areaId && device.area_id === areaId ? ' AREA' : ''}` +
         `${labelId && device.labels?.includes(labelId) ? ' LABEL' : ''}`,
@@ -86,15 +90,15 @@ export function createReport(platform: HomeAssistantPlatform): string {
     for (const entity of entities.filter((entry) => entry.device_id === device.id)) {
       const state = platform.ha.hassStates.get(entity.entity_id);
       const entityName = entity.name ?? entity.original_name;
-      const reportName = state?.attributes?.friendly_name ?? entity.name ?? entity.original_name;
+      const isSplit = isSplitEntity(platform, entity);
 
       lines.push(
         `-  Entity: ${entity.entity_id} "${state?.attributes?.friendly_name}" - "${entityName}"` +
-          `${getLongNameSuffix(reportName)}` +
+          `${isSplit ? getLongNameSuffix(platform, getEntityName(platform, entity), entity) : ''}` +
           `${areaId && entity.area_id === areaId ? ' AREA' : ''}` +
           `${labelId && entity.labels?.includes(labelId) ? ' LABEL' : ''}` +
           `${isHidden(entity) ? ' HIDDEN' : ''}` +
-          `${isSplitEntity(platform, entity) ? ' SPLIT' : ''}`,
+          `${isSplit ? ' SPLIT' : ''}`,
       );
     }
   }
@@ -104,11 +108,10 @@ export function createReport(platform: HomeAssistantPlatform): string {
   for (const entity of entities.filter(isIndividualEntity)) {
     const state = platform.ha.hassStates.get(entity.entity_id);
     const entityName = entity.name ?? entity.original_name;
-    const reportName = state?.attributes?.friendly_name ?? entity.name ?? entity.original_name;
 
     lines.push(
       `Individual Entity: ${entity.entity_id} "${state?.attributes?.friendly_name}" - "${entityName}"` +
-        `${getLongNameSuffix(reportName)}` +
+        `${getLongNameSuffix(platform, getEntityName(platform, entity), entity)}` +
         `${areaId && entity.area_id === areaId ? ' AREA' : ''}` +
         `${labelId && entity.labels?.includes(labelId) ? ' LABEL' : ''}` +
         `${isHidden(entity) ? ' HIDDEN' : ''}`,

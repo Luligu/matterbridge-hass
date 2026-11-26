@@ -78,6 +78,8 @@ import {
 import { type ClusterId, getClusterNameById, Namespace, type Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
 
+import { truncateUtf8 } from './helpers.js';
+
 interface ClusterServerObj {
   id: ClusterId;
   type: Behavior.Type;
@@ -1042,16 +1044,16 @@ export class MutableDevice {
       '',
       getClusterServerObj(BridgedDeviceBasicInformation.id, BridgedDeviceBasicInformationServer, {
         vendorId: this.vendorId,
-        vendorName: this.vendorName.slice(0, 32),
-        productName: this.productName.slice(0, 32),
-        productLabel: this.deviceName.slice(0, 64),
-        nodeLabel: this.deviceName.slice(0, 32),
-        serialNumber: this.serialNumber.slice(0, 32),
+        vendorName: truncateUtf8(this.vendorName, 32),
+        productName: truncateUtf8(this.productName, 32),
+        productLabel: truncateUtf8(this.deviceName, 64),
+        nodeLabel: truncateUtf8(this.deviceName, 32),
+        serialNumber: truncateUtf8(this.serialNumber, 32),
         uniqueId: this.createUniqueId(this.deviceName, this.serialNumber, this.vendorName, this.productName),
         softwareVersion: isValidNumber(this.softwareVersion, 0, UINT32_MAX) ? this.softwareVersion : undefined,
-        softwareVersionString: isValidString(this.softwareVersionString) ? this.softwareVersionString.slice(0, 64) : undefined,
+        softwareVersionString: isValidString(this.softwareVersionString) ? truncateUtf8(this.softwareVersionString, 64) : undefined,
         hardwareVersion: isValidNumber(this.hardwareVersion, 0, UINT16_MAX) ? this.hardwareVersion : undefined,
-        hardwareVersionString: isValidString(this.hardwareVersionString) ? this.hardwareVersionString.slice(0, 64) : undefined,
+        hardwareVersionString: isValidString(this.hardwareVersionString) ? truncateUtf8(this.hardwareVersionString, 64) : undefined,
         reachable: true,
       }),
     );
@@ -1170,7 +1172,7 @@ export class MutableDevice {
       while (used.has(number)) number++;
       // The Common Number namespace has only the tags 0 to 30
       if (number > 30) continue;
-      device.tagList.push({ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: number, label: device.friendlyName.slice(0, 64) });
+      device.tagList.push({ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: number, label: truncateUtf8(device.friendlyName, 64) });
     }
     return this;
   }

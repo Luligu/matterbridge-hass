@@ -4001,7 +4001,7 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Individual entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+      expect.stringContaining(`Individual entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-byte limit`),
     );
     expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Entities with long names: 1`));
 
@@ -4086,7 +4086,56 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-character limit`));
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-byte limit`));
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Devices with long names: 1`));
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and warn for a multibyte device name exceeding 32 UTF-8 bytes', async () => {
+    await setDebug(false);
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: '버튼 - 작은방 (버튼-작은방)123',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name_multibyte',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Device Entity',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.splitByLabel = '';
+    await haPlatform.onStart('Test reason');
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-byte limit (40 bytes)`));
     expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Devices with long names: 1`));
 
     // Clean the test environment
@@ -4187,9 +4236,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(loggerWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
-    );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-byte limit`));
 
     // Clean the test environment
     haPlatform.config.namePostfix = '';
