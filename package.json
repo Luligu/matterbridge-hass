@@ -122,13 +122,13 @@
     "ws": "8.23.0"
   },
   "devDependencies": {
-    "@types/node": "26.6.6",
+    "@types/node": "26.6.11",
     "@types/ws": "8.18.2",
-    "@vitest/coverage-v8": "5.1.1",
-    "oxfmt": "0.79.0",
-    "oxlint": "1.94.0",
+    "@vitest/coverage-v8": "5.1.2",
+    "oxfmt": "0.80.0",
+    "oxlint": "1.95.0",
     "oxlint-tsgolint": "7.0.2008",
     "typescript": "7.0.2",
-    "vitest": "5.1.1"
+    "vitest": "5.1.2"
   }
 }
