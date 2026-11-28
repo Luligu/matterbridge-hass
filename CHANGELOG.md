@@ -41,14 +41,14 @@ If you like this project and find it useful, please consider giving it a star on
 - [package]: Bump `@vitest/coverage-v8` to v.5.1.2.
 - [package]: Bump `oxfmt` to v.0.80.0.
 - [package]: Bump `oxlint` to v.1.95.0.
-- [package]: Bump `oxlint-tsgolint` to v.7.0.2008.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2009.
 - [package]: Bump `vitest` to v.5.1.2.
 - [agents]: Update `.agents/rules/chip-tests.instructions.md`, `.claude/rules/chip-tests/chip-tests.instructions.md` and `.github/instructions/chip-tests/chip-tests.instructions.md` to v.1.0.1.
 - [config]: Remove `.github/agents/matterbridge.agent.md`.
 - [agents]: Update `AGENTS.md` to v.1.0.12.
 - [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
-- [config]: Add `.github/agents/matterbridge-no-delegate.agent.md`.
-- [config]: Add `.github/agents/matterbridge-orchestrator.agent.md`.
+- [config]: Update `.github/agents/matterbridge-no-delegate.agent.md` to v.1.0.0.
+- [config]: Update `.github/agents/matterbridge-orchestrator.agent.md` to v.1.0.1.
 - [vacuum]: Remove the optional RVC Clean Mode cluster because Home Assistant fan-speed values cannot be mapped safely to Matter clean-mode semantics.
 - [package]: Bump `@types/node` to v.26.6.11.
 - [config]: Update `.oxlintrc.json` to v.1.2.1.
@@ -57,6 +57,9 @@ If you like this project and find it useful, please consider giving it a star on
 - [config]: Update `src/converters.ts`.
 - [config]: Update `vitest/button.entity.test.ts`.
 - [config]: Update `vitest/helper.entity.test.ts`.
+- [package]: Bump `node-ansi-logger` to v.3.3.3.
+- [package]: Bump `node-persist-manager` to v.2.1.3.
+- [package]: Bump `ws` to v.8.23.1.
 
 <a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
 

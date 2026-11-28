@@ -1,5 +1,5 @@
 ---
-name: Matterbridge No Delegate
+name: Matterbridge No Delegate v.1.0.0
 description: Implements and validates changes in this repository without delegating
 tools: [read, search, edit, execute]
 agents: []

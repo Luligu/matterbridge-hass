@@ -28,16 +28,16 @@ The plugin guidance covers endpoints, frontend SPAs and REST APIs, and CHIP conf
 
 ### Copilot instructions
 
-| File                                                                   | Notes                                                                                                      |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `.github/copilot-instructions.md`                                      | Entry point importing or linking to AGENTS.md                                                              |
-| `.github/instructions/testing/testing.instructions.md`                 | Testing standards — scoped to the test patterns listed below                                               |
-| `.github/instructions/matterbridge/matterbridge.instructions.md`       | Endpoint guide — scoped to `src/module.ts`                                                                 |
-| `.github/instructions/plugin-frontend/plugin-frontend.instructions.md` | Frontend guide — scoped to `apps/frontend/**` and `src/*.ts`                                               |
-| `.github/instructions/chip-tests/chip-tests.instructions.md`           | CHIP harness guide — scoped to the CHIP files listed below                                                 |
-| `.github/agents/matterbridge-no-delegate.agent.md`                     | **Matterbridge No Delegate** custom agent — follows the shared instructions and executes tasks directly    |
-| `.github/agents/matterbridge-orchestrator.agent.md`                    | **Matterbridge Orchestrator** custom agent — collects independent answers from GPT 6.2, Opus 5.5 and Neo 4 |
-| `.github/skills/verify-agent-context/SKILL.md`                         | Skill invocable as `/verify-agent-context`                                                                 |
+| File                                                                   | Notes                                                                                                                         |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `.github/copilot-instructions.md`                                      | Entry point importing or linking to AGENTS.md                                                                                 |
+| `.github/instructions/testing/testing.instructions.md`                 | Testing standards — scoped to the test patterns listed below                                                                  |
+| `.github/instructions/matterbridge/matterbridge.instructions.md`       | Endpoint guide — scoped to `src/module.ts`                                                                                    |
+| `.github/instructions/plugin-frontend/plugin-frontend.instructions.md` | Frontend guide — scoped to `apps/frontend/**` and `src/*.ts`                                                                  |
+| `.github/instructions/chip-tests/chip-tests.instructions.md`           | CHIP harness guide — scoped to the CHIP files listed below                                                                    |
+| `.github/agents/matterbridge-no-delegate.agent.md`                     | **Matterbridge No Delegate** custom agent — follows the shared instructions and executes tasks directly                       |
+| `.github/agents/matterbridge-orchestrator.agent.md`                    | **Matterbridge Orchestrator** custom agent — collects independent answers from GPT-6.2 Sol, Claude Opus 5.5 and Gemini 4 Neon |
+| `.github/skills/verify-agent-context/SKILL.md`                         | Skill invocable as `/verify-agent-context`                                                                                    |
 
 The testing pointers for both Claude Code and Copilot cover `**/*.test.ts`, `**/*.spec.ts`, `**/test/**/*.ts`, `**/vitest/**/*.ts`, and `**/buntest/**/*.ts`.
 
@@ -67,10 +67,10 @@ Codex discovers skills in `.agents/skills/`; the skill is invoked as `$verify-ag
 
 ### Gemini / Antigravity instructions
 
-| File                         | Notes                                                 |
-| ---------------------------- | ----------------------------------------------------- |
-| `GEMINI.md`                  | Entry point importing or linking to AGENTS.md         |
-| `.antigravity/settings.json` | Sandboxing and permissions: allow, ask and deny rules |
+| File                         | Notes                                                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `GEMINI.md`                  | Entry point importing or linking to AGENTS.md                                                                               |
+| `.antigravity/settings.json` | Sandboxing and permissions: allow, ask and deny rules. Gemini only settings (Antigravity reads only the global config.json) |
 
 The shared testing, Matterbridge endpoint, plugin frontend, and CHIP harness rules under `.agents/rules/` apply on demand for the relevant tasks, and `.agents/skills/` is discovered automatically as `/verify-agent-context`.
 
