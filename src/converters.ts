@@ -79,7 +79,6 @@ import {
   PressureMeasurement,
   RadonConcentrationMeasurement,
   RelativeHumidityMeasurement,
-  RvcCleanMode,
   RvcOperationalState,
   RvcRunMode,
   SmokeCoAlarm,
@@ -92,7 +91,17 @@ import {
 import type { ClusterId } from 'matterbridge/matter/types';
 import { isValidArray, isValidBoolean, isValidNumber, isValidString } from 'matterbridge/utils';
 
-import { ColorMode, CoverEntityFeature, type HassState, type HassStateFanAttributes, HomeAssistant, HVACAction, HVACMode, UnitOfTemperature } from './homeAssistant.js';
+import {
+  ColorMode,
+  CoverEntityFeature,
+  type HassState,
+  type HassStateFanAttributes,
+  HomeAssistant,
+  HVACAction,
+  HVACMode,
+  UnitOfTemperature,
+  VacuumEntityFeature,
+} from './homeAssistant.js';
 
 /**
  * Returns the names of enabled bit-flag features for any numeric enum.
@@ -114,6 +123,33 @@ export function getFeatureNames<T extends Record<string, number | string>>(featu
       .filter(([_, value]) => typeof value === 'number' && (supported_features & value) !== 0)
       .map(([key]) => key)
   );
+}
+
+/**
+ * Checks whether a Home Assistant entity advertises a feature in its supported_features bitmask.
+ *
+ * @param {HassState | undefined} state - The Home Assistant state of the entity.
+ * @param {number} feature - The feature bit to check (e.g. VacuumEntityFeature.RETURN_HOME).
+ * @returns {boolean} True if supported_features is a valid number and has the feature bit set, false otherwise.
+ */
+function supportsEntityFeature(state: HassState | undefined, feature: number): boolean {
+  const supportedFeatures = state?.attributes.supported_features;
+  if (!isValidNumber(supportedFeatures)) return false;
+  // oxlint-disable-next-line no-bitwise
+  return (supportedFeatures & feature) !== 0;
+}
+
+/**
+ * Returns the Home Assistant vacuum service that stops cleaning when the RVC Run Mode changes to Idle.
+ *
+ * @param {HassState | undefined} state - The Home Assistant state of the vacuum entity.
+ * @returns {string | undefined} 'return_to_base' if RETURN_HOME is supported, else 'stop' if STOP is supported, else 'pause' if PAUSE is supported, otherwise undefined.
+ */
+function getVacuumIdleService(state: HassState | undefined): string | undefined {
+  if (supportsEntityFeature(state, VacuumEntityFeature.RETURN_HOME)) return 'return_to_base';
+  if (supportsEntityFeature(state, VacuumEntityFeature.STOP)) return 'stop';
+  if (supportsEntityFeature(state, VacuumEntityFeature.PAUSE)) return 'pause';
+  return undefined;
 }
 
 /**
@@ -514,7 +550,7 @@ export const hassUpdateStateConverter: { domain: string; state: string; clusterI
 // oxfmt-ignore
 export const hassUpdateAttributeConverter: { domain: string; with: string; clusterId: ClusterId; attribute: string; converter: (value: any, state: HassState) => any }[] = [
     { domain: 'light', with: 'brightness', clusterId: LevelControl.id, attribute: 'currentLevel', converter: (value: number) => (isValidNumber(value, 1, 255) ? Math.round(value / 255 * 254) : null) },
-    { domain: 'light', with: 'color_mode', clusterId: ColorControl.id, attribute: 'colorMode', converter: (value: string) => {
+    { domain: 'light', with: 'color_mode', clusterId: ColorControl.id, attribute: 'colorMode', converter: (value: string): ColorControl.ColorMode | null => {
         if( isValidString(value, 2, 10) ) {
           if (value === 'hs' || value === 'rgb') return ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
           else if (value === 'xy') return ColorControl.ColorMode.CurrentXAndCurrentY;
@@ -532,7 +568,7 @@ export const hassUpdateAttributeConverter: { domain: string; with: string; clust
     { domain: 'light', with: 'xy_color', clusterId: ColorControl.id, attribute: 'currentY', converter: (value: number[], state: HassState) => ( isValidArray(value, 2, 2) && isValidNumber(value[1], 0, 1) && state.attributes['color_mode'] === ColorMode.XY ? convertHAXYToMatter([value[0], value[1]]).currentY : null ) },
 
     { domain: 'fan', with: 'percentage', clusterId: FanControl.id, attribute: 'percentCurrent', converter: (value: number) => (isValidNumber(value, 1, 100) ? Math.round(value) : null) },
-    { domain: 'fan', with: 'preset_mode', clusterId: FanControl.id, attribute: 'fanMode', converter: (value: string) => {
+    { domain: 'fan', with: 'preset_mode', clusterId: FanControl.id, attribute: 'fanMode', converter: (value: string): FanControl.FanMode | null => {
       if( isValidString(value, 3, 6) ) {
         if (value === 'low') return FanControl.FanMode.Low;
         else if (value === 'medium') return FanControl.FanMode.Medium;
@@ -582,7 +618,6 @@ export const hassDomainConverter: { domain: string; withAttribute?: string; devi
     { domain: 'climate',                                deviceType: thermostat,             clusterId: Thermostat.id },
     { domain: 'valve',                                  deviceType: waterValve,             clusterId: ValveConfigurationAndControl.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcRunMode.id },
-    { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcCleanMode.id },
     { domain: 'vacuum',                                 deviceType: roboticVacuumCleaner,   clusterId: RvcOperationalState.id },
     { domain: 'remote',                                 deviceType: onOffPlugInUnit,        clusterId: OnOff.id },
     { domain: 'input_select',                           deviceType: modeSelect,             clusterId: ModeSelect.id },
@@ -660,7 +695,7 @@ export const hassDomainEventConverter: { hassEventType: string; matterbridgeEven
 
 /** Convert Home Assistant domains services to Matterbridge commands for device types */
 // oxfmt-ignore
-export const hassCommandConverter: { command: CommandHandlers; domain: string; service: string; converter?: (request: Record<string, any>, attributes: Record<string, any>, state?: HassState) => any }[] = [
+export const hassCommandConverter: { command: CommandHandlers; domain: string; service: string | ((request: Record<string, any>, attributes: Record<string, any>, state?: HassState) => string | undefined); converter?: (request: Record<string, any>, attributes: Record<string, any>, state?: HassState) => any }[] = [
     { command: 'on',                      domain: 'switch', service: 'turn_on' },
     { command: 'off',                     domain: 'switch', service: 'turn_off' },
     { command: 'toggle',                  domain: 'switch', service: 'toggle' },
@@ -668,13 +703,13 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'on',                      domain: 'light', service: 'turn_on' },
     { command: 'off',                     domain: 'light', service: 'turn_off' },
     { command: 'toggle',                  domain: 'light', service: 'toggle' },
-    { command: 'moveToLevel',             domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
-    { command: 'moveToLevelWithOnOff',    domain: 'light', service: 'turn_on', converter: (request) => { return { brightness: Math.round(request.level / 254 * 255) } } },
-    { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request, attributes, state) => { return { color_temp_kelvin: state?.attributes?.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin ? clamp(miredsToKelvin(request.colorTemperatureMireds, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin) : miredsToKelvin(request.colorTemperatureMireds, 'floor') } } },
-    { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request) => { return { xy_color: convertMatterXYToHA(request.colorX, request.colorY) } } },
-    { command: 'moveToHue',               domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
-    { command: 'moveToSaturation',        domain: 'light', service: 'turn_on', converter: (request, attributes) => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
-    { command: 'moveToHueAndSaturation',  domain: 'light', service: 'turn_on', converter: (request) => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
+    { command: 'moveToLevel',             domain: 'light', service: 'turn_on', converter: (request): { brightness: number } => { return { brightness: Math.round(request.level / 254 * 255) } } },
+    { command: 'moveToLevelWithOnOff',    domain: 'light', service: 'turn_on', converter: (request): { brightness: number } => { return { brightness: Math.round(request.level / 254 * 255) } } },
+    { command: 'moveToColorTemperature',  domain: 'light', service: 'turn_on', converter: (request, attributes, state): { color_temp_kelvin: number } => { return { color_temp_kelvin: state?.attributes?.min_color_temp_kelvin && state.attributes.max_color_temp_kelvin ? clamp(miredsToKelvin(request.colorTemperatureMireds, 'floor'), state.attributes.min_color_temp_kelvin, state.attributes.max_color_temp_kelvin) : miredsToKelvin(request.colorTemperatureMireds, 'floor') } } },
+    { command: 'moveToColor',             domain: 'light', service: 'turn_on', converter: (request): { xy_color: [number, number] } => { return { xy_color: convertMatterXYToHA(request.colorX, request.colorY) } } },
+    { command: 'moveToHue',               domain: 'light', service: 'turn_on', converter: (request, attributes): { hs_color: [number, number] } => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(attributes.currentSaturation.value / 254 * 100)] } } },
+    { command: 'moveToSaturation',        domain: 'light', service: 'turn_on', converter: (request, attributes): { hs_color: [number, number] } => { return { hs_color: [Math.round(attributes.currentHue.value / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
+    { command: 'moveToHueAndSaturation',  domain: 'light', service: 'turn_on', converter: (request): { hs_color: [number, number] } => { return { hs_color: [Math.round(request.hue / 254 * 360), Math.round(request.saturation / 254 * 100)] } } },
 
     { command: 'lockDoor',                domain: 'lock', service: 'lock' },
     { command: 'unlockDoor',              domain: 'lock', service: 'unlock' },
@@ -682,22 +717,22 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
     { command: 'upOrOpen',                domain: 'cover', service: 'open_cover' },
     { command: 'downOrClose',             domain: 'cover', service: 'close_cover' },
     { command: 'stopMotion',              domain: 'cover', service: 'stop_cover' },
-    { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request) => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
-    { command: 'goToTiltPercentage',      domain: 'cover', service: 'set_cover_tilt_position', converter: (request) => { return { tilt_position: Math.round(100 - request.tiltPercent100thsValue / 100) } } },
+    { command: 'goToLiftPercentage',      domain: 'cover', service: 'set_cover_position', converter: (request): { position: number } => { return { position: Math.round(100 - request.liftPercent100thsValue / 100) } } },
+    { command: 'goToTiltPercentage',      domain: 'cover', service: 'set_cover_tilt_position', converter: (request): { tilt_position: number } => { return { tilt_position: Math.round(100 - request.tiltPercent100thsValue / 100) } } },
 
-    { command: 'open',                    domain: 'valve', service: 'set_valve_position', converter: (request) => { return { position: Math.round(request.targetLevel) } } },
+    { command: 'open',                    domain: 'valve', service: 'set_valve_position', converter: (request): { position: number } => { return { position: Math.round(request.targetLevel) } } },
     { command: 'close',                   domain: 'valve', service: 'close_valve' },
 
     { command: 'pause',                   domain: 'vacuum', service: 'pause' },
     { command: 'resume',                  domain: 'vacuum', service: 'start' },
-    { command: 'goHome',                  domain: 'vacuum', service: 'return_to_base' },
-    { command: 'changeToMode',            domain: 'vacuum', service: 'start' },
+    { command: 'goHome',                  domain: 'vacuum', service: (_request, _attributes, state) => supportsEntityFeature(state, VacuumEntityFeature.RETURN_HOME) ? 'return_to_base' : undefined },
+    { command: 'changeToMode',            domain: 'vacuum', service: (request, attributes, state) => request.newMode === attributes.currentMode ? undefined : request.newMode === 1 ? getVacuumIdleService(state) : request.newMode === 2 ? 'start' : undefined },
 
     { command: 'on',                      domain: 'remote', service: 'turn_on' },
     { command: 'off',                     domain: 'remote', service: 'turn_off' },
 
-    { command: 'changeToMode',            domain: 'input_select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) } },
-    { command: 'changeToMode',            domain: 'select', service: 'select_option', converter: (request, attributes, state) => { return getSelectOptionFromMode(request, state) }  },
+    { command: 'changeToMode',            domain: 'input_select', service: 'select_option', converter: (request, attributes, state): { option: string } | undefined => { return getSelectOptionFromMode(request, state) } },
+    { command: 'changeToMode',            domain: 'select', service: 'select_option', converter: (request, attributes, state): { option: string } | undefined => { return getSelectOptionFromMode(request, state) }  },
 
     { command: 'on',                      domain: 'media_player', service: 'turn_on' },
     { command: 'off',                     domain: 'media_player', service: 'turn_off' },
@@ -714,7 +749,7 @@ export const hassCommandConverter: { command: CommandHandlers; domain: string; s
  */
 // oxfmt-ignore
 export const hassSubscribeConverter: { domain: string; service: string; with: string; clusterId: ClusterId; attribute: string; converter?: (value: number) => any }[] = [
-    { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode) => {
+    { domain: 'fan',      service: 'turn_on',         with: 'preset_mode',  clusterId: FanControl.id,  attribute: 'fanMode', converter: (value: FanControl.FanMode): 'low' | 'medium' | 'high' | 'auto' | null => {
 
       // oxlint-disable-next-line typescript/no-deprecated
       if( isValidNumber(value, FanControl.FanMode.Low, FanControl.FanMode.Smart) ) {
@@ -726,11 +761,11 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         return null;
       }
     }},
-    { domain: 'fan',      service: 'turn_on',         with: 'percentage',  clusterId: FanControl.id,  attribute: 'percentSetting', converter: (value: number) => { return value === 0 ? null : value; } },
-    { domain: 'fan',      service: 'set_direction',   with: 'direction',   clusterId: FanControl.id,  attribute: 'airflowDirection', converter: (value: any) => { return value === FanControl.AirflowDirection.Forward ? 'forward' : 'reverse' } },
-    { domain: 'fan',      service: 'oscillate',       with: 'oscillating', clusterId: FanControl.id,  attribute: 'rockSetting', converter: (value: any) => { return value.rockRound === true } },
+    { domain: 'fan',      service: 'turn_on',         with: 'percentage',  clusterId: FanControl.id,  attribute: 'percentSetting', converter: (value: number): number | null => { return value === 0 ? null : value; } },
+    { domain: 'fan',      service: 'set_direction',   with: 'direction',   clusterId: FanControl.id,  attribute: 'airflowDirection', converter: (value: any): 'forward' | 'reverse' => { return value === FanControl.AirflowDirection.Forward ? 'forward' : 'reverse' } },
+    { domain: 'fan',      service: 'oscillate',       with: 'oscillating', clusterId: FanControl.id,  attribute: 'rockSetting', converter: (value: any): boolean => { return value.rockRound === true } },
 
-    { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',   clusterId: Thermostat.id,  attribute: 'systemMode', converter: (value) => {
+    { domain: 'climate',  service: 'set_hvac_mode',   with: 'hvac_mode',   clusterId: Thermostat.id,  attribute: 'systemMode', converter: (value): 'heat_cool' | 'cool' | 'heat' | null => {
       if( isValidNumber(value, Thermostat.SystemMode.Off, Thermostat.SystemMode.Heat) ) {
         if (value === Thermostat.SystemMode.Auto) return 'heat_cool';
         else if (value === Thermostat.SystemMode.Cool) return 'cool';
@@ -740,6 +775,6 @@ export const hassSubscribeConverter: { domain: string; service: string; with: st
         return null;
       }
     }},
-    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedHeatingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
-    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedCoolingSetpoint', converter: (value) => { return tempToFahrenheit(value / 100) } },
+    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedHeatingSetpoint', converter: (value): number => { return tempToFahrenheit(value / 100) } },
+    { domain: 'climate',  service: 'set_temperature', with: 'temperature',  clusterId: Thermostat.id,  attribute: 'occupiedCoolingSetpoint', converter: (value): number => { return tempToFahrenheit(value / 100) } },
   ];

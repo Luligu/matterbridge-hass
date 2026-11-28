@@ -49,6 +49,7 @@ import {
   PressureMeasurement,
   RadonConcentrationMeasurement,
   RelativeHumidityMeasurement,
+  RvcCleanMode,
   RvcOperationalState,
   RvcRunMode,
   SmokeCoAlarm,
@@ -1753,7 +1754,7 @@ describe('Matterbridge ' + NAME, () => {
     const vacuumState = {
       entity_id: vacuumEntity.entity_id,
       state: 'docked',
-      attributes: { friendly_name: 'Vacuum', supported_features: VacuumEntityFeature.LOCATE },
+      attributes: { friendly_name: 'Vacuum', supported_features: VacuumEntityFeature.LOCATE + VacuumEntityFeature.RETURN_HOME },
     } as unknown as HassState;
 
     const sensorEntity = {
@@ -1792,6 +1793,9 @@ describe('Matterbridge ' + NAME, () => {
     device = haPlatform.matterbridgeDevices.get(vacuumDevice.id) as MatterbridgeEndpoint;
     expect(device.mode).toBe('server');
     expect(device.construction.status).toBe(Lifecycle.Status.Active);
+    expect(device.hasClusterServer(RvcRunMode.id)).toBeTruthy();
+    expect(device.hasClusterServer(RvcOperationalState.id)).toBeTruthy();
+    expect(device.hasClusterServer(RvcCleanMode.id)).toBeFalsy();
     expect(aggregator.parts.has(device)).toBeTruthy();
     expect(aggregator.parts.has(device.id)).toBeTruthy();
 
@@ -1854,6 +1858,21 @@ describe('Matterbridge ' + NAME, () => {
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
 
     vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(callServiceSpy).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 2 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'RvcOperationalState', 'pause');
     expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2); // Pause no longer forces RvcRunMode back to Idle: currentMode stays Cleaning
     expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.Paused);
@@ -1870,6 +1889,29 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2); // GoHome no longer forces RvcRunMode back to Idle: currentMode stays Cleaning
     expect(device.getAttribute(RvcOperationalState.id, 'operationalState')).toBe(RvcOperationalState.OperationalState.SeekingCharger); // GoHome now transitions through SeekingCharger instead of jumping straight to Docked
     expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'return_to_base', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    haPlatform.ha.hassStates.set(vacuumEntity.entity_id, {
+      ...vacuumState,
+      attributes: { ...vacuumState.attributes, supported_features: VacuumEntityFeature.LOCATE + VacuumEntityFeature.STOP },
+    } as unknown as HassState);
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(1);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'stop', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 2 });
+    expect(device.getAttribute(RvcRunMode.id, 'currentMode')).toBe(2);
+    expect(callServiceSpy).toHaveBeenCalledWith(vacuumEntity.entity_id.split('.')[0], 'start', vacuumEntity.entity_id, undefined);
+
+    vi.clearAllMocks();
+    haPlatform.ha.hassStates.set(vacuumEntity.entity_id, {
+      ...vacuumState,
+      attributes: { ...vacuumState.attributes, supported_features: VacuumEntityFeature.LOCATE },
+    } as unknown as HassState);
+    await invokeBehaviorCommand(device, 'RvcOperationalState', 'goHome');
+    await invokeBehaviorCommand(device, 'RvcRunMode', 'changeToMode', { newMode: 1 });
+    expect(callServiceSpy).not.toHaveBeenCalled();
 
     vi.clearAllMocks();
     await invokeBehaviorCommand(device, 'Identify', 'identify', { identifyTime: 5 });
@@ -3959,7 +4001,7 @@ describe('Matterbridge ' + NAME, () => {
     await haPlatform.onConfigure();
 
     expect(loggerWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Individual entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
+      expect.stringContaining(`Individual entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-byte limit`),
     );
     expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Entities with long names: 1`));
 
@@ -4044,7 +4086,56 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-character limit`));
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-byte limit`));
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Devices with long names: 1`));
+
+    // Clean the test environment
+    await cleanup();
+  });
+
+  it('should call onStart and warn for a multibyte device name exceeding 32 UTF-8 bytes', async () => {
+    await setDebug(false);
+    const sensorDevice = {
+      area_id: null,
+      disabled_by: null,
+      entry_type: null,
+      id: '560898f83188759ed7329e97df00ee7c',
+      labels: [],
+      name: '버튼 - 작은방 (버튼-작은방)123',
+      name_by_user: null,
+    } as unknown as HassDevice;
+
+    const sensorEntity = {
+      area_id: null,
+      device_id: sensorDevice.id,
+      entity_category: null,
+      disabled_by: null,
+      entity_id: 'sensor.long_name_multibyte',
+      has_entity_name: true,
+      id: '0b25a337cb83edefb1d310450ad2b0ac',
+      labels: [],
+      name: null,
+      original_name: 'Device Entity',
+    } as unknown as HassEntity;
+
+    const sensorEntityState = {
+      entity_id: sensorEntity.entity_id,
+      state: '22.5',
+      attributes: { state_class: 'measurement', device_class: 'temperature', friendly_name: 'Temperature Sensor' },
+    } as unknown as HassState;
+
+    haPlatform.ha.hassDevices.set(sensorDevice.id, sensorDevice);
+    haPlatform.ha.hassEntities.set(sensorEntity.entity_id, sensorEntity);
+    haPlatform.ha.hassStates.set(sensorEntityState.entity_id, sensorEntityState);
+
+    haPlatform.config.splitByLabel = '';
+    await haPlatform.onStart('Test reason');
+    expect(mockMatterbridge.addBridgedEndpoint).toHaveBeenCalledTimes(1);
+    expect(haPlatform.matterbridgeDevices.size).toBe(1);
+
+    await haPlatform.onConfigure();
+
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Device "${CYAN}${sensorDevice.name}${wr}" has a name that exceeds Matter’s 32-byte limit (40 bytes)`));
     expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Devices with long names: 1`));
 
     // Clean the test environment
@@ -4145,9 +4236,7 @@ describe('Matterbridge ' + NAME, () => {
 
     await haPlatform.onConfigure();
 
-    expect(loggerWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-character limit`),
-    );
+    expect(loggerWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`Split entity "${CYAN}${sensorEntity.original_name}${wr}" has a name that exceeds Matter’s 32-byte limit`));
 
     // Clean the test environment
     haPlatform.config.namePostfix = '';

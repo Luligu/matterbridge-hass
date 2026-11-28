@@ -283,13 +283,13 @@ describe('addControlEntity', () => {
     expect(md.addClusterServerCompleteFanControl).not.toHaveBeenCalled();
   });
 
-  it('vacuum triple device type mapping and configuration', () => {
+  it('vacuum mandatory cluster mapping and configuration', () => {
     const [md, e, s] = make('vacuum', 'robby', { activity: 'idle' });
     addControlEntity(mockPlatform, md, e, s, commandHandler, subscribeHandler as any);
     expect(md.addVacuum).toHaveBeenCalled();
     // @ts-expect-error chainable return
     const vacuumCalls = md.addDeviceTypes.mock.calls.filter((c: any[]) => c[1] === roboticVacuumCleaner);
-    expect(vacuumCalls.length).toBeGreaterThanOrEqual(3);
+    expect(vacuumCalls).toHaveLength(2);
   });
 
   it('vacuum maps Identify to vacuum.locate when LOCATE is supported', async () => {

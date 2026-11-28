@@ -26,13 +26,13 @@ function createMockMutableDevice(): MutableDeviceLike & {
   return {
     deviceTypes,
     commandHandlers,
-    addDeviceTypes(endpoint: string, ...types: any[]) {
+    addDeviceTypes(endpoint: string, ...types: any[]): unknown {
       const ep = endpoint ?? '';
       if (!deviceTypes[ep]) deviceTypes[ep] = [];
       for (const deviceType of types) deviceTypes[ep].push(deviceType.code);
       return this;
     },
-    addCommandHandler(endpoint: string, command: string, handler: CommandHandler) {
+    addCommandHandler(endpoint: string, command: string, handler: CommandHandler): unknown {
       const ep = endpoint ?? '';
       commandHandlers[ep] ||= {};
       commandHandlers[ep][command] = handler;

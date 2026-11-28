@@ -8,9 +8,9 @@ description: 'How the CHIP conformance test harness works for a Matterbridge plu
 A Matterbridge plugin can be validated against the Matter CHIP certification test suite — both the Python
 test scripts and the YAML certification tests used by the CSA's own CI — running inside the
 `luligu/matterbridge:chip-test` Docker image. The harness is driven entirely by
-`scripts/run-chip-tests.mjs` and configured by `chipTests.json`, both dropped into the plugin repo's root.
+`scripts/run-chip-test.mjs` and configured by `chipTests.json`, both dropped into the plugin repo's root.
 The script is not specific to any one plugin: it reads the plugin name, config, and test list from
-`chipTests.json`, so the same `run-chip-tests.mjs` works unmodified across plugin repos — copy it as-is and
+`chipTests.json`, so the same `run-chip-test.mjs` works unmodified across plugin repos — copy it as-is and
 only author a `chipTests.json` for the new repo.
 
 ## 1. What the container is
@@ -27,19 +27,12 @@ only author a `chipTests.json` for the new repo.
   reads back `VendorName: Matterbridge` against that existing pairing, no commissioning needed. There is no
   long-running server process baked into the image; each YAML test invocation spawns its own short-lived
   `chip-tool interactive server`, runs, and tears it down again.
-- The plugin's `node_modules` (under `/root/Matterbridge/<pluginName>/node_modules`) is shadowed by a named
-  Docker volume (`chip-test-node-modules`), not the host bind mount — this gives the container its own
-  independent, native-Linux-filesystem `node_modules`, since Matterbridge core re-links itself into a local
-  plugin's `node_modules` on every restart when it isn't already there, and running that against a Windows
-  bind mount over Docker Desktop's cross-OS file sharing is dramatically slower (a Windows-created
-  `node_modules/matterbridge` symlink also doesn't reliably resolve from inside the Linux container anyway).
-  The first-ever `--start` has to populate this volume from scratch, comparable to a full `npm install`, so
-  the container can take **2-3 minutes to report ready**; every `--start` after that finds it already
-  populated and skips straight past the re-link, coming up much faster. The named volume persists across
-  `docker rm`/`--start` cycles (only removed by an explicit `docker volume rm chip-test-node-modules`), so
-  this slow first run only happens once per host, not once per `--start`.
+- `--start --plugin` copies the prepared plugin into `/root/Matterbridge/<pluginName>`, including
+  dependencies but excluding `node_modules/matterbridge` (directory or symlink). Matterbridge links its
+  own installed package on startup. Build the plugin first and ensure its dependencies work on Linux;
+  the runner does not install dependencies, build, or modify the host plugin directory.
 - It runs on the `matterbridge` docker network, mapping the frontend to host port `8585`, mounting `./temp`
-  to `/tmp/matter_testing/logs` (test artifacts) and the plugin repo to `/root/Matterbridge/<pluginName>`,
+  to `/tmp/matter_testing/logs` (test artifacts), with the plugin copied to `/root/Matterbridge/<pluginName>`,
   where `<pluginName>` comes from `chipTests.json`'s `config.name`. `start()` creates this network itself
   (`docker network inspect matterbridge || docker network create --ipv6 matterbridge`) if it doesn't already
   exist, so a fresh host (including a CI runner, see §9) needs no separate setup step for it. The `--ipv6`
@@ -48,7 +41,7 @@ only author a `chipTests.json` for the new repo.
   if the network already exists without `--ipv6` (e.g. created by hand or by another tool), `--start` reuses
   it as-is rather than recreating it, so that pre-existing network still needs fixing manually.
 - The image bakes in a fixed set of environment variables (`Config.Env` in the Dockerfile, not something
-  `chipTests.json`/`run-chip-tests.mjs` sets — check with `docker inspect luligu/matterbridge:chip-test`).
+  `chipTests.json`/`run-chip-test.mjs` sets — check with `docker inspect luligu/matterbridge:chip-test`).
   As of this writing that includes `MATTERBRIDGE_CHIP_TEST=1` (a marker flag), `MATTERBRIDGE_START_CONFIGURE_TIMEOUT`/
   `MATTERBRIDGE_START_REACHABILITY_TIMEOUT` (shorter Matterbridge-core startup timeouts tuned for a fast,
   local, single-controller container), and one or more plugin-specific opt-in gates (e.g. a var that skips a
@@ -72,22 +65,23 @@ only author a `chipTests.json` for the new repo.
 ## 2. Lifecycle commands
 
 ```shell
-node scripts/run-chip-tests.mjs --start   # create the container, npm install/link/build, copy the plugin in, matterbridge --add, write config, restart
-node scripts/run-chip-tests.mjs           # run every test in chipTests.json's "yamlTests" and "pythonTests" arrays against the running container
-node scripts/run-chip-tests.mjs --test X  # run only tests whose "name" or "test" (filename) includes X, case-insensitive substring match
-node scripts/run-chip-tests.mjs --stop    # docker stop the container, then npm install/link/build locally to restore the local dev environment
+node scripts/run-chip-test.mjs --start --plugin   # create the container, copy the prepared plugin and config, matterbridge --add, restart
+node scripts/run-chip-test.mjs           # run every test in chipTests.json's "tests" array against the running container
+node scripts/run-chip-test.mjs --test X  # run only tests whose "name" or "test" (filename) includes X, case-insensitive substring match
+node scripts/run-chip-test.mjs --stop    # stop the container
 ```
 
 Expose these as `npm run` shortcuts in `package.json`, e.g. `chip:start`, `chip:test`, `chip:test:<cluster>`
 (filtered by the `TC_*` prefix of the test file), `chip:stop`. Add a new `chip:test:<name>` shortcut
 whenever a new cluster's tests are added to `chipTests.json`.
 
-**Always run `--stop` after any container-based investigation.** On Windows especially, `--start`/`--stop`
-swap `node_modules` native binaries (oxlint/oxfmt/tsc addons/etc.) between the container's platform (Linux,
-from the container-side npm install) and the local platform — until `--stop` has run and rebuilt cleanly,
-do not trust local lint/format/typecheck output.
+**Always run `--stop` after any container-based investigation.** The host dependencies remain unchanged.
+Use `--start --plugin --local` to use the local `matterbridge:chip-test` image without pulling.
 
 ## 3. `chipTests.json` shape
+
+Use one `tests` array for YAML and Python tests. Migrate legacy `yamlTests` and
+`phytonTests`/`pythonTests` entries into this array; the new runner reads only `tests`.
 
 ```jsonc
 {
@@ -95,10 +89,10 @@ do not trust local lint/format/typecheck output.
     /* the plugin's config.json content, written into the container as
        /root/.matterbridge/<config.name>.config.json before the final restart in --start.
        "config.name" is also used as the plugin (npm package) name for the container's
-       volume mount and `matterbridge --add`. */
+       copy destination and `matterbridge --add`. */
   },
   "resetClusterGlobs": [
-    /* filename globs, matched against files under this plugin's node storage directory for the
+    /* filename globs, matched against files under the bridge's Matterbridge node storage directory for the
        bridged endpoints, cleared by any test entry that sets "resetBefore": true or
        "resetAfter": true. Only needs entries for cluster state that's actually persisted to disk —
        the container restart that "resetBefore"/"resetAfter" also performs already clears any
@@ -106,7 +100,7 @@ do not trust local lint/format/typecheck output.
        any test uses "resetBefore"/"resetAfter" — the script fails loudly rather than silently
        skipping the reset if this is empty. */
   ],
-  "yamlTests": [
+  "tests": [
     // optional, defaults to []. "test" is a YAML certification test name (no extension, e.g.
     // "Test_TC_I_2_1") from src/app/tests/suites/certification/, run via:
     //   python3 scripts/tests/chipyaml/chiptool.py tests <test.test> <args...>
@@ -115,9 +109,6 @@ do not trust local lint/format/typecheck output.
     // declares (e.g. "endpoint") become CLI flags, so "args": ["--endpoint 6"] overrides the file's own
     // default. Pass "--PICS /root/matterbridge.pics" in args when a hand-verified section exists for the
     // cluster under test (see §1) — the tool's own default is the generic ci-pics-values file.
-    // "input"/"resetBefore"/"resetAfter"/"skip"/"comment" (documented on the phytonTests entry below) apply here identically —
-    // run-chip-tests.mjs's runTests() reads them off every entry in yamlTests/phytonTests the same way,
-    // regardless of kind.
     {
       "name": "Human-readable label, matched by --test",
       "test": "Test_TC_SOMETHING_1_2",
@@ -128,9 +119,6 @@ do not trust local lint/format/typecheck output.
       "skip": true, // optional: list the test (name, comment) but never invoke it — see below
       "comment": "optional free text, printed under a failing/skipped result in the summary log",
     },
-  ],
-  "phytonTests": [
-    // optional, defaults to [].
     {
       "name": "Human-readable label, matched by --test",
       "test": "TC_SOMETHING_1_2.py", // filename under src/python_testing/ inside the container
@@ -190,7 +178,7 @@ registration has changed since.
 Not every `TC_<CLUSTER>_<n>_<m>` certification test ID has a corresponding `.py` file in
 `src/python_testing/`. Some certification tests are YAML-only — e.g. for Identify, `TC_I_2_1`/`2_2`/`2_3`
 are YAML-only (`Test_TC_I_2_1.yaml` etc. under `src/app/tests/suites/certification/`), while only
-`TC_I_2_4.py` exists as a Python test. These are not unrunnable — run them as `yamlTests` entries (§3), not
+`TC_I_2_4.py` exists as a Python test. These are not unrunnable — run them as `tests` entries (§3), not
 as a documented gap. Before assuming a test is "missing" from `chipTests.json`, check both:
 
 ```shell
@@ -271,12 +259,12 @@ gets translated to a Windows path before reaching `docker`).
 
 ## 8. Verifying any change to this harness
 
-After editing `chipTests.json`, `chipTests.md`, `run-chip-tests.mjs`, or `matterbridge.pics` (in the
+After editing `chipTests.json`, `chipTests.md`, `run-chip-test.mjs`, or `matterbridge.pics` (in the
 `matterbridge` repo), always re-verify end-to-end rather than trusting the edit alone:
 
-1. `node scripts/run-chip-tests.mjs --start`
-2. `node scripts/run-chip-tests.mjs --test <NAME>` for the affected test(s)
-3. `node scripts/run-chip-tests.mjs --stop`
+1. `node scripts/run-chip-test.mjs --start --plugin`
+2. `node scripts/run-chip-test.mjs --test <NAME>` for the affected test(s)
+3. `node scripts/run-chip-test.mjs --stop`
 4. Run the plugin's formatter/linter check on the touched files.
 
 Keep `chipTests.md`'s manual-run shell block and prose in sync with `chipTests.json` whenever tests are
@@ -290,12 +278,10 @@ minutes, and the harness has occasionally shown session/container state leaking 
 `chipTests.md` Known Issue #4), so it isn't wired into the normal per-PR gate. On a GitHub-hosted
 `ubuntu-latest` runner: Docker Engine is already preinstalled (no setup step needed), and
 `luligu/matterbridge:chip-test` is a modest pull (~260MB compressed per architecture, checked via the Docker
-Hub API), so runner disk space isn't a concern. Every run starts on a fresh runner with no prior
-`chip-test-node-modules` volume (see §1), so `--start` always pays the ~2-3 minute first-run cost — there's
-no way to warm that cache between separate workflow runs. The job mirrors `build.yml`'s matterbridge
-clone/build/`npm link` setup, then goes straight into `--start` → the full test run → `--stop` — no separate
+Hub API). The job mirrors `build.yml`'s matterbridge clone/build/`npm link` setup, installs and builds
+the plugin, then runs `--start --plugin` → the full test run → `--stop` — no separate
 docker-network step needed, since `--start` itself creates the `matterbridge` network (with `--ipv6`) on a
 fresh runner that doesn't have it yet (see §1). `--stop` runs with `if: always()` so the container always
 gets torn down, even on test failure. No log artifact is uploaded — `chipTests.log`/`chipTestsSummary.log` add nothing the step's own
 console output doesn't already show, since `runTests()` prints every result live. The job fails naturally
-because `run-chip-tests.mjs` sets a nonzero exit code whenever any executed (non-skipped) test fails.
+because `run-chip-test.mjs` sets a nonzero exit code whenever any executed (non-skipped) test fails.

@@ -217,6 +217,18 @@ describe('MutableDevice', () => {
     mutableDevice.destroy();
   });
 
+  it('should add a BridgedDeviceBasicInformation with a multibyte name', async () => {
+    const mutableDevice = new MutableDevice(mockMatterbridge, '버튼 - 작은방 (버튼-작은방)123');
+    mutableDevice.addDeviceTypes('', bridgedNode);
+    device = (mutableDevice as any).createMainEndpoint();
+    mutableDevice.addBridgedDeviceBasicInformationClusterServer();
+
+    expect(mutableDevice.get().clusterServersObjs[0].options).toHaveProperty('nodeLabel', '버튼 - 작은방 (버튼-작');
+    (mutableDevice as any).createClusters('');
+    await addDevice(aggregator, device);
+    mutableDevice.destroy();
+  });
+
   it('should add a BridgedDeviceBasicInformation with software and hardware', async () => {
     const mutableDevice = new MutableDevice(
       mockMatterbridge,
@@ -627,7 +639,7 @@ describe('MutableDevice', () => {
 
     expect(mutableDevice.get()).toBeDefined();
     expect(mutableDevice.get().clusterServersIds).toHaveLength(0);
-    expect(mutableDevice.get().clusterServersObjs).toHaveLength(3);
+    expect(mutableDevice.get().clusterServersObjs).toHaveLength(2);
 
     mutableDevice.destroy();
   });

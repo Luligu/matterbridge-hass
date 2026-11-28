@@ -52,13 +52,7 @@ import {
   onOffPlugInUnit,
   type PlatformMatterbridge,
 } from 'matterbridge';
-import {
-  MatterbridgeKeypadInputServer,
-  MatterbridgeMediaPlaybackServer,
-  MatterbridgeRvcCleanModeServer,
-  MatterbridgeRvcOperationalStateServer,
-  MatterbridgeRvcRunModeServer,
-} from 'matterbridge/devices';
+import { MatterbridgeKeypadInputServer, MatterbridgeMediaPlaybackServer, MatterbridgeRvcOperationalStateServer, MatterbridgeRvcRunModeServer } from 'matterbridge/devices';
 import { AnsiLogger, CYAN, db, debugStringify, idn, ign, type LogLevel, rs, TimestampFormat } from 'matterbridge/logger';
 import { type ActionContext, type AtLeastOne, type Behavior, UINT16_MAX, UINT32_MAX } from 'matterbridge/matter';
 import { BooleanStateServer, BridgedDeviceBasicInformationServer, PowerSourceServer } from 'matterbridge/matter/behaviors';
@@ -74,7 +68,6 @@ import {
   ModeSelect,
   OnOff,
   PowerSource,
-  RvcCleanMode,
   RvcOperationalState,
   RvcRunMode,
   SmokeCoAlarm,
@@ -84,6 +77,8 @@ import {
 } from 'matterbridge/matter/clusters';
 import { type ClusterId, getClusterNameById, Namespace, type Semtag, VendorId } from 'matterbridge/matter/types';
 import { isValidNumber, isValidString } from 'matterbridge/utils';
+
+import { truncateUtf8 } from './helpers.js';
 
 interface ClusterServerObj {
   id: ClusterId;
@@ -839,16 +834,6 @@ export class MutableDevice {
       }),
     );
     device.clusterServersObjs.push(
-      getClusterServerObj(RvcCleanMode.id, MatterbridgeRvcCleanModeServer, {
-        // Matter 1.6.1 requires 2 to 255 supported modes
-        supportedModes: [
-          { label: 'Vacuum', mode: 1, modeTags: [{ value: RvcCleanMode.ModeTag.Auto }, { value: RvcCleanMode.ModeTag.Vacuum }] },
-          { label: 'Vacuum Max', mode: 2, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }, { value: RvcCleanMode.ModeTag.Max }] },
-        ],
-        currentMode: 1,
-      }),
-    );
-    device.clusterServersObjs.push(
       getClusterServerObj(RvcOperationalState.id, MatterbridgeRvcOperationalStateServer, {
         operationalStateList: [
           { operationalStateId: RvcOperationalState.OperationalState.Stopped },
@@ -1059,16 +1044,16 @@ export class MutableDevice {
       '',
       getClusterServerObj(BridgedDeviceBasicInformation.id, BridgedDeviceBasicInformationServer, {
         vendorId: this.vendorId,
-        vendorName: this.vendorName.slice(0, 32),
-        productName: this.productName.slice(0, 32),
-        productLabel: this.deviceName.slice(0, 64),
-        nodeLabel: this.deviceName.slice(0, 32),
-        serialNumber: this.serialNumber.slice(0, 32),
+        vendorName: truncateUtf8(this.vendorName, 32),
+        productName: truncateUtf8(this.productName, 32),
+        productLabel: truncateUtf8(this.deviceName, 64),
+        nodeLabel: truncateUtf8(this.deviceName, 32),
+        serialNumber: truncateUtf8(this.serialNumber, 32),
         uniqueId: this.createUniqueId(this.deviceName, this.serialNumber, this.vendorName, this.productName),
         softwareVersion: isValidNumber(this.softwareVersion, 0, UINT32_MAX) ? this.softwareVersion : undefined,
-        softwareVersionString: isValidString(this.softwareVersionString) ? this.softwareVersionString.slice(0, 64) : undefined,
+        softwareVersionString: isValidString(this.softwareVersionString) ? truncateUtf8(this.softwareVersionString, 64) : undefined,
         hardwareVersion: isValidNumber(this.hardwareVersion, 0, UINT16_MAX) ? this.hardwareVersion : undefined,
-        hardwareVersionString: isValidString(this.hardwareVersionString) ? this.hardwareVersionString.slice(0, 64) : undefined,
+        hardwareVersionString: isValidString(this.hardwareVersionString) ? truncateUtf8(this.hardwareVersionString, 64) : undefined,
         reachable: true,
       }),
     );
@@ -1187,7 +1172,7 @@ export class MutableDevice {
       while (used.has(number)) number++;
       // The Common Number namespace has only the tags 0 to 30
       if (number > 30) continue;
-      device.tagList.push({ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: number, label: device.friendlyName.slice(0, 64) });
+      device.tagList.push({ mfgCode: null, namespaceId: Namespace.CommonNumber, tag: number, label: truncateUtf8(device.friendlyName, 64) });
     }
     return this;
   }

@@ -21,6 +21,7 @@
  * limitations under the License.
  */
 
+import { Buffer } from 'node:buffer';
 import { randomBytes } from 'node:crypto';
 
 import { isValidArray, isValidObject, isValidString } from 'matterbridge/utils';
@@ -218,6 +219,22 @@ export function satisfiesAreaFilter(platform: HomeAssistantPlatform, deviceOrEnt
 }
 
 /**
+ * Check whether the configured category filters allow an entity
+ *
+ * Each enabled filter discards every entity in its matching registry category.
+ * Discarding the diagnostic category also discards battery-related entities in that category.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {HassEntity} entity - The Home Assistant entity registry entry.
+ * @returns {boolean} True if the entity is outside the enabled discard categories.
+ */
+export function satisfiesCategoryFilter(platform: HomeAssistantPlatform, entity: HassEntity): boolean {
+  if (entity.entity_category === 'config') return !platform.config.discardConfigCategory;
+  if (entity.entity_category === 'diagnostic') return !platform.config.discardDiagnosticCategory;
+  return true;
+}
+
+/**
  * Checks if a given entity or device satisfies the configured label filter.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
@@ -332,14 +349,63 @@ export function getPostfixedName(platform: HomeAssistantPlatform, name: string):
 }
 
 /**
- * Returns the serial number with the configured postfix, limited to 32 characters.
+ * Returns the UTF-8 byte length of a string.
+ *
+ * @param {string} value - The string to measure.
+ * @returns {number} - The UTF-8 byte length.
+ */
+export function utf8ByteLength(value: string): number {
+  return Buffer.byteLength(value, 'utf8');
+}
+
+/**
+ * Truncates a string to the given UTF-8 byte length without splitting Unicode code points.
+ *
+ * @param {string} value - The string to truncate.
+ * @param {number} maxBytes - The maximum UTF-8 byte length.
+ * @returns {string} - The truncated string.
+ */
+export function truncateUtf8(value: string, maxBytes: number): string {
+  let bytes = 0;
+  let result = '';
+  for (const character of value) {
+    const characterBytes = utf8ByteLength(character);
+    if (bytes + characterBytes > maxBytes) break;
+    result += character;
+    bytes += characterBytes;
+  }
+  return result;
+}
+
+/**
+ * Returns the name with the Home Assistant area name in front when autoRoomPrefix is enabled (e.g. Light in the Kitchen area becomes Kitchen Light).
+ * An entity without its own area uses the area of its device, as in Home Assistant.
+ * The name is returned unchanged when there is no area or when it already starts with the area name.
+ *
+ * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
+ * @param {string | null} name - The device or entity name.
+ * @param {HassDevice | HassEntity} deviceOrEntity - The Home Assistant device or entity the name belongs to.
+ * @returns {string | null} - The name with '<area name> ' prepended when it applies.
+ */
+export function getRoomPrefixedName(platform: HomeAssistantPlatform, name: string | null, deviceOrEntity: HassDevice | HassEntity): string | null {
+  if (!platform.config.autoRoomPrefix || !name) return name;
+  const deviceId = 'entity_id' in deviceOrEntity ? deviceOrEntity.device_id : null;
+  const areaId = deviceOrEntity.area_id ?? (deviceId ? platform.ha.hassDevices.get(deviceId)?.area_id : null);
+  const area = areaId ? platform.ha.hassAreas.get(areaId)?.name : undefined;
+  if (!area || `${name} `.toLowerCase().startsWith(`${area} `.toLowerCase())) return name;
+  return `${area} ${name}`;
+}
+
+/**
+ * Returns the serial number with the configured postfix, limited to 32 UTF-8 bytes.
  *
  * @param {HomeAssistantPlatform} platform - The Home Assistant platform instance.
  * @param {string} serial - The device or entity serial number.
  * @returns {string} - The truncated serial with the postfix appended.
  */
 export function getPostfixedSerial(platform: HomeAssistantPlatform, serial: string): string {
-  return serial.slice(0, 32 - platform.config.postfix.length) + platform.config.postfix;
+  const postfix = truncateUtf8(platform.config.postfix, 32);
+  return truncateUtf8(serial, 32 - utf8ByteLength(postfix)) + postfix;
 }
 
 /**

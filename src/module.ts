@@ -66,13 +66,16 @@ import {
   getEntityName,
   getPostfixedName,
   getPostfixedSerial,
+  getRoomPrefixedName,
   isDeviceEntity,
   isDisabled,
   isHidden,
   isIndividualEntity,
   isSplitEntity,
   satisfiesAreaFilter,
+  satisfiesCategoryFilter,
   satisfiesLabelFilter,
+  utf8ByteLength,
 } from './helpers.js';
 import {
   type DeviceId,
@@ -112,11 +115,14 @@ export interface HomeAssistantPlatformConfig extends PlatformConfig {
   splitByLabel: string;
   splitNameStrategy: 'Entity name' | 'Friendly name';
   controllerStrategy: 'Merge' | 'Matter';
+  autoRoomPrefix: boolean;
   namePostfix: string;
   postfix: string;
   airQualityRegex: string;
   enableServerRvc: boolean;
   discardHiddenEntities: boolean;
+  discardConfigCategory: boolean;
+  discardDiagnosticCategory: boolean;
   virtualControlLabel: string;
 }
 
@@ -239,11 +245,14 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       isValidString(this.config.splitNameStrategy, 10) && ['Entity name', 'Friendly name'].includes(this.config.splitNameStrategy) ? this.config.splitNameStrategy : 'Entity name';
     this.config.controllerStrategy =
       isValidString(this.config.controllerStrategy, 5) && ['Merge', 'Matter'].includes(this.config.controllerStrategy) ? this.config.controllerStrategy : 'Merge';
+    this.config.autoRoomPrefix = isValidBoolean(this.config.autoRoomPrefix) ? this.config.autoRoomPrefix : false;
     this.config.namePostfix = isValidString(this.config.namePostfix, 1, 3) ? this.config.namePostfix : '';
     this.config.postfix = isValidString(this.config.postfix, 1, 3) ? this.config.postfix : '';
     this.config.airQualityRegex = isValidString(this.config.airQualityRegex, 1) ? this.config.airQualityRegex : '';
     this.config.enableServerRvc = isValidBoolean(this.config.enableServerRvc) ? this.config.enableServerRvc : true;
     this.config.discardHiddenEntities = isValidBoolean(this.config.discardHiddenEntities) ? this.config.discardHiddenEntities : false;
+    this.config.discardConfigCategory = isValidBoolean(this.config.discardConfigCategory) ? this.config.discardConfigCategory : false;
+    this.config.discardDiagnosticCategory = isValidBoolean(this.config.discardDiagnosticCategory) ? this.config.discardDiagnosticCategory : false;
     this.config.virtualControlLabel = isValidString(this.config.virtualControlLabel, 1) ? this.config.virtualControlLabel : '';
     this.config.debug ??= false;
     this.config.unregisterOnShutdown ??= false;
@@ -431,7 +440,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
 
     for (const entity of Array.from(this.ha.hassEntities.values()).filter(
-      (entity) => isIndividualEntity(entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
+      (entity) => isIndividualEntity(entity) && satisfiesCategoryFilter(this, entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
     )) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
@@ -450,7 +459,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName = getEntityName(this, entity);
+      const entityName = getRoomPrefixedName(this, getEntityName(this, entity), entity);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Individual entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
@@ -488,10 +497,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (getPostfixedName(this, entityName).length > 32) {
+      const entityNameBytes = utf8ByteLength(getPostfixedName(this, entityName));
+      if (entityNameBytes > 32) {
         this.longNameEntities++;
         this.log.warn(
-          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${getPostfixedName(this, entityName).length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Individual entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-byte limit (${entityNameBytes} bytes). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -560,7 +570,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
 
     for (const device of Array.from(this.ha.hassDevices.values()).filter((device) => !isDisabled(device))) {
       // Check if we have a valid device
-      const deviceName = device.name_by_user ?? device.name;
+      const deviceName = getRoomPrefixedName(this, device.name_by_user ?? device.name, device);
       if (!isValidString(deviceName, 1)) {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has not valid name. Skipping...`);
         continue;
@@ -570,8 +580,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.debug(`Device ${CYAN}${deviceName}${db} is a service. Skipping...`);
         continue;
       }
-      // Skip the devices without entities
-      if (Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id).length === 0) {
+      // Skip devices without any entities allowed by the category filters
+      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((entity) => entity.device_id === device.id && satisfiesCategoryFilter(this, entity));
+      if (deviceEntities.length === 0) {
         this.log.debug(`Device ${CYAN}${deviceName}${db} has no entities. Skipping...`);
         continue;
       }
@@ -581,7 +592,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         this.log.info(`Device ${CYAN}${deviceName}${nf} is not in the area "${CYAN}${this.config.filterByArea}${nf}". Skipping...`);
         continue;
       }
-      const deviceHasValidLabelFilterEntities = Array.from(this.ha.hassEntities.values()).some((e) => e.device_id === device.id && !isDisabled(e) && satisfiesLabelFilter(this, e));
+      const deviceHasValidLabelFilterEntities = deviceEntities.some((entity) => !isDisabled(entity) && satisfiesLabelFilter(this, entity));
       if (!satisfiesLabelFilter(this, device) && !deviceHasValidLabelFilterEntities) {
         this.filteredDevices++;
         this.log.info(`Device ${CYAN}${deviceName}${nf} doesn't have the label "${CYAN}${this.config.filterByLabel}${nf}". Skipping...`);
@@ -601,17 +612,17 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (getPostfixedName(this, deviceName).length > 32) {
+      const deviceNameBytes = utf8ByteLength(getPostfixedName(this, deviceName));
+      if (deviceNameBytes > 32) {
         this.longNameDevices++;
         this.log.warn(
-          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-character limit (${getPostfixedName(this, deviceName).length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Device "${CYAN}${deviceName}${wr}" has a name that exceeds Matter’s 32-byte limit (${deviceNameBytes} bytes). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
       this.log.info(`Creating device ${idn}${device.name}${rs}${nf} id ${CYAN}${device.id}${nf}...`);
 
       // Check if the device has any battery entities
-      const deviceEntities = Array.from(this.ha.hassEntities.values()).filter((e) => e.device_id === device.id);
       let battery = false;
       let rechargeable = false;
       for (const entity of deviceEntities) {
@@ -660,9 +671,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // *******************************************************************************************************************
 
       let hasRvc = false;
-      for (const entity of Array.from(this.ha.hassEntities.values()).filter(
-        (entity) => entity.device_id === device.id && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities),
-      )) {
+      for (const entity of deviceEntities.filter((entity) => !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities))) {
         this.log.debug(`Lookup device ${CYAN}${device.name}${db} entity ${CYAN}${entity.entity_id}${db} labels ${CYAN}${entity.labels?.join(', ') ?? ''}${db}...`);
         const [domain, _name] = entity.entity_id.split('.');
         const entityName = entity.name ?? entity.original_name ?? deviceName;
@@ -803,7 +812,12 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     // *********************************************************************************************************
 
     for (const entity of Array.from(this.ha.hassEntities.values()).filter(
-      (entity) => isDeviceEntity(entity) && !isDisabled(entity) && (!isHidden(entity) || !this.config.discardHiddenEntities) && isSplitEntity(this, entity),
+      (entity) =>
+        isDeviceEntity(entity) &&
+        satisfiesCategoryFilter(this, entity) &&
+        !isDisabled(entity) &&
+        (!isHidden(entity) || !this.config.discardHiddenEntities) &&
+        isSplitEntity(this, entity),
     )) {
       const [domain, name] = entity.entity_id.split('.');
       // Skip not supported domains.
@@ -822,7 +836,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // If the entity doesn't have a valid name, we skip it.
-      const entityName = getEntityName(this, entity);
+      const entityName = getRoomPrefixedName(this, getEntityName(this, entity), entity);
       if (!isValidString(entityName, 1)) {
         this.log.debug(`Split entity ${CYAN}${entity.entity_id}${db} has no valid name. Skipping...`);
         continue;
@@ -868,10 +882,11 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
         continue;
       }
       // Check name length and log a warning if it's too long for Matter, but we will try to register it anyway with the truncated name.
-      if (getPostfixedName(this, entityName).length > 32) {
+      const entityNameBytes = utf8ByteLength(getPostfixedName(this, entityName));
+      if (entityNameBytes > 32) {
         this.longNameEntities++;
         this.log.warn(
-          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-character limit (${getPostfixedName(this, entityName).length}). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
+          `Split entity "${CYAN}${entityName}${wr}" has a name that exceeds Matter’s 32-byte limit (${entityNameBytes} bytes). Matterbridge will truncate the name, but it's recommended to change it in Home Assistant to avoid issues.`,
         );
       }
 
@@ -981,9 +996,9 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     if (this.unselectedEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.unselectedEntities} entities have been discarded by select`, 60, 'success');
 
     if (this.longNameDevices) this.log.warn(`Devices with long names: ${this.longNameDevices}`);
-    if (this.longNameDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameDevices} devices have names that exceed Matter’s 32-character limit`, 60, 'warning');
+    if (this.longNameDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameDevices} devices have names that exceed Matter’s 32-byte limit`, 60, 'warning');
     if (this.longNameEntities) this.log.warn(`Entities with long names: ${this.longNameEntities}`);
-    if (this.longNameEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameEntities} entities have names that exceed Matter’s 32-character limit`, 60, 'warning');
+    if (this.longNameEntities) this.wssSendSnackbarMessage(`Home Assistant: ${this.longNameEntities} entities have names that exceed Matter’s 32-byte limit`, 60, 'warning');
 
     if (this.duplicatedDevices) this.log.warn(`Duplicated device names: ${this.duplicatedDevices}`);
     if (this.duplicatedDevices) this.wssSendSnackbarMessage(`Home Assistant: ${this.duplicatedDevices} devices have been discarded due to duplicate names`, 60, 'warning');
@@ -1072,6 +1087,8 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
     const domain = entityId.split('.')[0];
     const hassCommand = hassCommandConverter.find((cvt) => cvt.command === command && cvt.domain === domain);
     if (hassCommand) {
+      const service = typeof hassCommand.service === 'function' ? hassCommand.service(data.request, data.attributes, state) : hassCommand.service;
+      if (!service) return;
       if (domain === 'cover') {
         // Special handling for cover goToLiftPercentage command. When goToLiftPercentage is called with 0, we may call the open service and when called with 10000 we may call the close service.
         // This allows to support also covers not supporting the set_cover_position service.
@@ -1214,7 +1231,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       // Normal execution for all the other commands and domains, we use the converter if present to get the service attributes and then call the service.
       const serviceAttributes: Record<string, HomeAssistantPrimitive> = hassCommand.converter ? hassCommand.converter(data.request, data.attributes, state) : undefined;
       if (isValidNumber(data.request?.transitionTime, 1)) serviceAttributes['transition'] = Math.round(data.request.transitionTime / 10);
-      await this.ha.callService(hassCommand.domain, hassCommand.service, entityId, serviceAttributes);
+      await this.ha.callService(hassCommand.domain, service, entityId, serviceAttributes);
     } else {
       data.endpoint.log.warn(`Command ${ign}${command}${rs}${wr} not supported for domain ${CYAN}${domain}${wr} entity ${CYAN}${entityId}${wr}`);
     }

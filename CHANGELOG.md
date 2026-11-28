@@ -26,6 +26,43 @@ If you like this project and find it useful, please consider giving it a star on
 
 ---
 
+## [1.7.1] - 2026-11-28
+
+### Added
+
+- [config]: Add the `autoRoomPrefix` option to put the Home Assistant area name in front of each device name (e.g. Light in the Kitchen area becomes Kitchen Light), so devices with the same name in different areas are all exposed. Thanks 0SkillAllLuck (https://github.com/Luligu/matterbridge-hass/pull/259).
+- [config]: Add `discardConfigCategory` and `discardDiagnosticCategory` to filter Home Assistant entities by category. Thanks guilhem (https://github.com/Luligu/matterbridge-hass/pull/263).
+- [vacuum]: Map RVC Run Mode Idle to `vacuum.return_to_base`, falling back to `vacuum.stop` or `vacuum.pause` from the advertised features, and map Cleaning to `vacuum.start`. Thanks joshuata (https://github.com/Luligu/matterbridge-hass/issues/270).
+- [matter]: Truncate Basic Information strings by UTF-8 byte length so names with non-Latin characters do not exceed Matter limits.
+- [report]: Flag configured Matter node names over 32 UTF-8 bytes, including room prefixes and name postfixes.
+
+### Changed
+
+- [package]: Bump `@vitest/coverage-v8` to v.5.1.2.
+- [package]: Bump `oxfmt` to v.0.80.0.
+- [package]: Bump `oxlint` to v.1.95.0.
+- [package]: Bump `oxlint-tsgolint` to v.7.0.2009.
+- [package]: Bump `vitest` to v.5.1.2.
+- [agents]: Update `.agents/rules/chip-tests.instructions.md`, `.claude/rules/chip-tests/chip-tests.instructions.md` and `.github/instructions/chip-tests/chip-tests.instructions.md` to v.1.0.1.
+- [config]: Remove `.github/agents/matterbridge.agent.md`.
+- [agents]: Update `AGENTS.md` to v.1.0.12.
+- [config]: Update `SHARED-AGENTS.md` to v.1.0.0.
+- [config]: Update `.github/agents/matterbridge-no-delegate.agent.md` to v.1.0.0.
+- [config]: Update `.github/agents/matterbridge-orchestrator.agent.md` to v.1.0.1.
+- [vacuum]: Remove the optional RVC Clean Mode cluster because Home Assistant fan-speed values cannot be mapped safely to Matter clean-mode semantics.
+- [package]: Bump `@types/node` to v.26.6.11.
+- [config]: Update `.oxlintrc.json` to v.1.2.1.
+- [scripts]: Update `scripts/downloads.mjs`.
+- [scripts]: Update `scripts/prepublish-clean.mjs`.
+- [config]: Update `src/converters.ts`.
+- [config]: Update `vitest/button.entity.test.ts`.
+- [config]: Update `vitest/helper.entity.test.ts`.
+- [package]: Bump `node-ansi-logger` to v.3.3.3.
+- [package]: Bump `node-persist-manager` to v.2.1.3.
+- [package]: Bump `ws` to v.8.23.1.
+
+<a href="https://www.buymeacoffee.com/luligugithub"><img src="https://matterbridge.io/assets/bmc-button.svg" alt="Buy me a coffee" width="80"></a>
+
 ## [1.7.0] - 2026-11-14
 
 ### Breaking changes

@@ -26,6 +26,7 @@ describe('report', () => {
         filterByArea: 'Living Room',
         filterByLabel: 'Important',
         splitByLabel: 'Split',
+        splitNameStrategy: 'Friendly name',
       },
       ha: {
         hassAreas: new Map([
@@ -150,6 +151,7 @@ describe('report', () => {
         filterByArea: '',
         filterByLabel: '',
         splitByLabel: 'Split',
+        splitNameStrategy: 'Entity name',
       },
       ha: {
         hassAreas: new Map(),
@@ -226,6 +228,55 @@ describe('report', () => {
     expect(createReport(createPlatform())).toBe(
       `Home Assistant Devices and Entities Report\n\nFilter by area: Living Room >>> area-1\n\nFilter by label: Important >>> label-1\n\nDevice Entities\n\nDevice: "Desk Lamp Renamed With A Very Long Name" LONGNAME SERVICE AREA LABEL\n-  Entity: light.desk "Desk Accent Light With A Very Long Friendly Name" - "Desk Light" LONGNAME AREA LABEL HIDDEN SPLIT\n-  Entity: sensor.temperature "Temperature" - "Temperature"\n\nIndividual Entities\n\nIndividual Entity: scene.movie "Movie Mode" - "Movie Mode" AREA LABEL HIDDEN\nIndividual Entity: script.night "Night Mode" - "Night Mode"\n`,
     );
+  });
+
+  it('should mark multibyte names exceeding 32 UTF-8 bytes as LONGNAME', () => {
+    const platform = createPlatform();
+    const device = platform.ha.hassDevices.get('device-1');
+    if (device) device.name_by_user = '버튼 - 작은방 (버튼-작은방)123';
+    const state = platform.ha.hassStates.get('light.desk');
+    if (state) state.attributes.friendly_name = '버튼 - 작은방 (버튼-작은방)123';
+
+    const report = createReport(platform);
+    expect(report).toContain('Device: "버튼 - 작은방 (버튼-작은방)123" LONGNAME SERVICE AREA LABEL');
+    expect(report).toContain('-  Entity: light.desk "버튼 - 작은방 (버튼-작은방)123" - "Desk Light" LONGNAME AREA LABEL HIDDEN SPLIT');
+  });
+
+  it('should measure the configured entity name when it differs from the friendly name', () => {
+    const platform = createPlatform();
+    platform.config.splitNameStrategy = 'Entity name';
+    const scene = platform.ha.hassEntities.get('scene.movie');
+    if (scene) scene.name = 'A Movie Scene With A Very Long Name';
+
+    const report = createReport(platform);
+    expect(report).toContain(' - "Desk Light" AREA LABEL HIDDEN SPLIT');
+    expect(report).toContain('Individual Entity: scene.movie "Movie Mode" - "A Movie Scene With A Very Long Name" LONGNAME');
+  });
+
+  it('should count the room prefix and name postfix toward the byte limit for node names', () => {
+    const platform = createPlatform();
+    platform.config.autoRoomPrefix = true;
+    platform.config.namePostfix = 'HA';
+    const device = platform.ha.hassDevices.get('device-1');
+    const split = platform.ha.hassEntities.get('light.desk');
+    const splitState = platform.ha.hassStates.get('light.desk');
+    const childState = platform.ha.hassStates.get('sensor.temperature');
+    const script = platform.ha.hassEntities.get('script.night');
+    const scriptState = platform.ha.hassStates.get('script.night');
+    const splitName = '작은방작은방작은'; // 24 bytes before the inherited room prefix
+    const scriptName = '작은방작은방작은방등'; // 30 bytes before the postfix
+    if (device) device.name_by_user = '작은방작은방'; // 18 bytes plus the 12-byte prefix and 3-byte postfix
+    if (split) split.area_id = null;
+    if (splitState) splitState.attributes.friendly_name = splitName;
+    if (childState) childState.attributes.friendly_name = 'Temperature Sensor With A Very Long Friendly Name';
+    if (script) script.area_id = null;
+    if (scriptState) scriptState.attributes.friendly_name = scriptName;
+
+    const report = createReport(platform);
+    expect(report).toContain('Device: "작은방작은방" LONGNAME SERVICE AREA LABEL');
+    expect(report).toContain(`-  Entity: light.desk "${splitName}" - "Desk Light" LONGNAME LABEL HIDDEN SPLIT`);
+    expect(report).toContain('-  Entity: sensor.temperature "Temperature Sensor With A Very Long Friendly Name" - "Temperature"\n');
+    expect(report).toContain(`Individual Entity: script.night "${scriptName}" - "Night Mode" LONGNAME`);
   });
 
   it('should create the Home Assistant report content with empty filters and fallback names', () => {

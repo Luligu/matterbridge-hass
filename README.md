@@ -37,6 +37,7 @@ Features:
 - It is possible to select from a list the entities to include in the device entity black list.
 - It is possible to select the split entities adding a label.
 - It is possible to postfix the Matter device serialNumber and the Matter device name to avoid collision with other instances.
+- It is possible to prefix the Matter device name with its Home Assistant area (e.g. Light in the Kitchen area becomes Kitchen Light).
 - Support **Apple Home Adaptive Lighting**. See https://github.com/Luligu/matterbridge/discussions/390.
 - Support **transition time**.
 - Support system unit **CELSIUS** and **FAHRENHEIT**.
@@ -89,9 +90,11 @@ Pair Matterbridge to your controller.
 
 (2) - The Apple Home crashes if the Rvc is inside the bridge. If you pair with Apple Home use the server mode in the config (it will create an autonomous device with its QR code in the Devices panel of the Home page) and disable or split all other entities that are not the rvc.
 
-(3) - Covers supporting tilt are exposed with the Matter Tilt feature (lift and tilt, or tilt only). Covers without `current_position` (i.e. garage doors) report fully open or fully closed from their state.
-
 If the vacuum supports the `locate` feature, the Matter Identify command calls the `vacuum.locate` service when `identifyTime` is greater than zero.
+
+Vacuum endpoints expose the mandatory RVC Run Mode and Operational State clusters. The optional RVC Clean Mode cluster is not exposed because Home Assistant fan-speed values do not provide reliable Matter clean-mode semantics.
+
+(3) - Covers supporting tilt are exposed with the Matter Tilt feature (lift and tilt, or tilt only). Covers without `current_position` (i.e. garage doors) report fully open or fully closed from their state.
 
 These domains are supported also like individual and split entities.
 
@@ -252,15 +255,15 @@ Filter devices and individual entities by label. If enabled, only devices, indiv
 
 ### Whitelist
 
-If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
+If the whiteList is defined only the devices, the individual and split entities included are exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is). When `autoRoomPrefix` is enabled, use the name with the area prefix.
 
 ### Blacklist
 
-If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is).
+If the blackList is defined the devices, the individual and split entities included will not be exposed to Matter. Use the device/entity name, the device/entity id, or the `entity_id` (for individual and split entities). When `namePostfix` or `postfix` is set, use the name with `namePostfix` or the id with `postfix` (the `entity_id` is used as is). When `autoRoomPrefix` is enabled, use the name with the area prefix.
 
 ### Device Entity Blacklist
 
-List of entities not to be exposed for a single device. Enter in the first field the name of the device (with `namePostfix` when set) and in the second field add all the entity names (`entity_id`) you want to exclude for that device.
+List of entities not to be exposed for a single device. Enter in the first field the name of the device (with the area prefix when `autoRoomPrefix` is enabled and with `namePostfix` when set) and in the second field add all the entity names (`entity_id`) you want to exclude for that device.
 
 ### Domain Whitelist
 
@@ -310,6 +313,10 @@ Strategy used for split entity names. "Entity name": use the entity name (i.e. C
 
 Strategy used to expose multiple device types. 'Merge' combines non-overlapping device types on the main endpoint. 'Matter' creates a separate endpoint for each device type. Use the Merge strategy for legacy controllers (more then one application device type on the same bridged endpoint is not strictly compliant in Matter 1.5.0). Changing this setting may require you to pair the controller again cause the entire node is composed differently.
 
+### Auto Room Prefix
+
+Put the Home Assistant area name in front of each device name, e.g. Light in the Kitchen area becomes Kitchen Light. Enable it if you name your devices without the area, as Home Assistant recommends, so that devices with the same name in different areas are all exposed. An entity without an area uses the area of its device, and names that already start with the area name (e.g. Kitchen Light in the Kitchen area) are not changed. The `whiteList`, `blackList` and `deviceEntityBlackList` must use the names with the prefix. You will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller.
+
 ### Name Postfix
 
 Add this unique postfix (3 characters max) to each device name to avoid collision with other instances (you will lose the configuration of the devices in your controller when changing this value and you may need to pair again the controller). The `whiteList`, `blackList` and `deviceEntityBlackList` must use the names with the postfix.
@@ -340,6 +347,14 @@ In addition to this well known bugs, the rvc must be a single device, it cannot 
 ### Discard Hidden Entities
 
 If enabled (default), the plugin discards entities that are hidden in Home Assistant (i.e. entities whose `hidden_by` field is not `null` in the entity registry). Hidden entities will not be exposed as device entities, individual entities, or split entities.
+
+### Discard Config Category
+
+Enable `discardConfigCategory` to skip all Home Assistant entities with `entity_category` set to `config` during Matter discovery. This applies to device entities, individual entities, and split entities. The option is off by default.
+
+### Discard Diagnostic Category
+
+Enable `discardDiagnosticCategory` to skip all Home Assistant entities with `entity_category` set to `diagnostic` during Matter discovery. This applies to device entities, individual entities, and split entities. **It also discards battery-related entities in that category**, including battery level, low-battery, charging, and battery voltage readings. Those entities are also excluded from Matter power source data. The option is off by default.
 
 ### Virtual Control Label
 

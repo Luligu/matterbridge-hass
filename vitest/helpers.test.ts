@@ -17,13 +17,17 @@ import {
   getName,
   getPostfixedName,
   getPostfixedSerial,
+  getRoomPrefixedName,
   isDeviceEntity,
   isDisabled,
   isHidden,
   isIndividualEntity,
   isSplitEntity,
   satisfiesAreaFilter,
+  satisfiesCategoryFilter,
   satisfiesLabelFilter,
+  truncateUtf8,
+  utf8ByteLength,
 } from '../src/helpers.js';
 import type { HassArea, HassDevice, HassEntity, HassLabel, HassState, HomeAssistant } from '../src/homeAssistant.js';
 import type { HomeAssistantPlatform } from '../src/module.js';
@@ -40,15 +44,39 @@ function createHomeAssistant(): HomeAssistant {
 
 describe('HassPlatform helpers', () => {
   it.each([
+    ['', 0],
+    ['short', 5],
+    ['버튼 - 작은방 (버튼-작은방)123', 40],
+    ['😀', 4],
+  ])('should measure %s as %s UTF-8 bytes', (value, expected) => {
+    expect(utf8ByteLength(value)).toBe(expected);
+  });
+
+  it.each([
+    ['short', 32, 'short'],
+    ['12345678901234567890123456789012', 32, '12345678901234567890123456789012'],
+    ['버튼 - 작은방 (버튼-작은방)123', 32, '버튼 - 작은방 (버튼-작'],
+    ['😀😀😀😀😀a', 4, '😀'],
+  ])('should truncate %s to at most %s UTF-8 bytes', (value, maxBytes, expected) => {
+    expect(truncateUtf8(value, maxBytes)).toBe(expected);
+    expect(utf8ByteLength(truncateUtf8(value, maxBytes))).toBeLessThanOrEqual(maxBytes);
+  });
+
+  it.each([
     ['HA', '123456789012345678901234567890123456', '123456789012345678901234567890HA'],
     ['ABC', 'short', 'shortABC'],
     ['HA', '123456789012345678901234567890', '123456789012345678901234567890HA'],
     ['HA', '1234567890123456789012345678901', '123456789012345678901234567890HA'],
     ['', 'short', 'short'],
     ['', '123456789012345678901234567890123456', '12345678901234567890123456789012'],
+    ['HA', '버튼 - 작은방 (버튼-작은방)123', '버튼 - 작은방 (버튼-작HA'],
+    ['버튼', '123456789012345678901234567890', '12345678901234567890123456버튼'],
+    ['버튼버튼버튼버튼버튼버튼', 'serial', 'se버튼버튼버튼버튼버튼'],
   ])('should produce serial %s / %s as %s', (postfix, serial, expected) => {
     const platform = { config: { postfix } } as unknown as HomeAssistantPlatform;
-    expect(getPostfixedSerial(platform, serial)).toBe(expected);
+    const result = getPostfixedSerial(platform, serial);
+    expect(result).toBe(expected);
+    expect(utf8ByteLength(result)).toBeLessThanOrEqual(32);
   });
 
   it('should create a unique id as a 32-character hexadecimal string', () => {
@@ -534,6 +562,22 @@ describe('HassPlatform helpers', () => {
     expect(satisfiesAreaFilter(createPlatform('Living Room', [area]), null)).toBe(false);
   });
 
+  it.each([
+    { discardConfigCategory: false, discardDiagnosticCategory: false, allowConfig: true, allowDiagnostic: true },
+    { discardConfigCategory: true, discardDiagnosticCategory: false, allowConfig: false, allowDiagnostic: true },
+    { discardConfigCategory: false, discardDiagnosticCategory: true, allowConfig: true, allowDiagnostic: false },
+    { discardConfigCategory: true, discardDiagnosticCategory: true, allowConfig: false, allowDiagnostic: false },
+  ])('should apply category filters with config=$discardConfigCategory and diagnostic=$discardDiagnosticCategory', (settings) => {
+    const { discardConfigCategory, discardDiagnosticCategory, allowConfig, allowDiagnostic } = settings;
+    const platform = { config: { discardConfigCategory, discardDiagnosticCategory } } as HomeAssistantPlatform;
+
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'switch.child_lock', entity_category: 'config' } as HassEntity)).toBe(allowConfig);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.battery', entity_category: 'diagnostic' } as HassEntity)).toBe(allowDiagnostic);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.temperature', entity_category: null } as HassEntity)).toBe(true);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.temperature' } as HassEntity)).toBe(true);
+    expect(satisfiesCategoryFilter(platform, { entity_id: 'sensor.temperature', entity_category: 'other' } as HassEntity)).toBe(true);
+  });
+
   it('should check if a device or entity satisfies the configured label filter', () => {
     const createPlatform = (filterByLabel: string, labels: HassLabel[] = []): HomeAssistantPlatform =>
       ({
@@ -843,5 +887,46 @@ describe('HassPlatform helpers', () => {
   it('should append namePostfix with a separating space when nonempty', () => {
     expect(getPostfixedName({ config: { namePostfix: '' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light');
     expect(getPostfixedName({ config: { namePostfix: 'HA' } } as unknown as HomeAssistantPlatform, 'Bedroom Light')).toBe('Bedroom Light HA');
+  });
+
+  it('should prefix the name with the area name when autoRoomPrefix is enabled', () => {
+    const ha = createHomeAssistant();
+    const platform = { config: { autoRoomPrefix: true }, ha } as unknown as HomeAssistantPlatform;
+    const kitchen = generateArea(ha, 'Kitchen');
+    const hallway = generateArea(ha, 'Hallway');
+    const device = generateDevice(ha, 'Light', kitchen.area_id);
+    const deviceEntity = generateEntity(ha, 'Lamp', 'light', device, null);
+    const ownAreaEntity = generateEntity(ha, 'Lamp', 'light', device, null);
+    ownAreaEntity.area_id = hallway.area_id;
+    const individualEntity = generateEntity(ha, 'Scene', 'scene', null, kitchen.area_id);
+
+    expect(getRoomPrefixedName(platform, 'Light', device)).toBe('Kitchen Light');
+    expect(getRoomPrefixedName(platform, 'Scene', individualEntity)).toBe('Kitchen Scene');
+    // An entity without its own area uses the area of its device
+    expect(getRoomPrefixedName(platform, 'Lamp', deviceEntity)).toBe('Kitchen Lamp');
+    expect(getRoomPrefixedName(platform, 'Lamp', ownAreaEntity)).toBe('Hallway Lamp');
+    // Only a whole leading word matches the area name
+    expect(getRoomPrefixedName(platform, 'Kitchenette Light', device)).toBe('Kitchen Kitchenette Light');
+  });
+
+  it('should not prefix the name when autoRoomPrefix is disabled, there is no area or the name already starts with the area name', () => {
+    const ha = createHomeAssistant();
+    const platform = { config: { autoRoomPrefix: true }, ha } as unknown as HomeAssistantPlatform;
+    const kitchen = generateArea(ha, 'Kitchen');
+    const device = generateDevice(ha, 'Light', kitchen.area_id);
+    const noAreaDevice = generateDevice(ha, 'Light');
+    const noAreaEntity = generateEntity(ha, 'Lamp', 'light', noAreaDevice, null);
+    const individualEntity = generateEntity(ha, 'Scene', 'scene', null, null);
+    const unknownAreaDevice = generateDevice(ha, 'Light', 'unknown_area');
+
+    expect(getRoomPrefixedName({ config: { autoRoomPrefix: false }, ha } as unknown as HomeAssistantPlatform, 'Light', device)).toBe('Light');
+    expect(getRoomPrefixedName(platform, null, device)).toBeNull();
+    expect(getRoomPrefixedName(platform, 'Light', noAreaDevice)).toBe('Light');
+    expect(getRoomPrefixedName(platform, 'Lamp', noAreaEntity)).toBe('Lamp');
+    expect(getRoomPrefixedName(platform, 'Scene', individualEntity)).toBe('Scene');
+    expect(getRoomPrefixedName(platform, 'Light', unknownAreaDevice)).toBe('Light');
+    expect(getRoomPrefixedName(platform, 'Kitchen Light', device)).toBe('Kitchen Light');
+    expect(getRoomPrefixedName(platform, 'kitchen light', device)).toBe('kitchen light');
+    expect(getRoomPrefixedName(platform, 'Kitchen', device)).toBe('Kitchen');
   });
 });
