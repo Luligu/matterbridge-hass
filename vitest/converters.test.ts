@@ -382,6 +382,11 @@ describe('HassPlatform converters', () => {
       if (converter.converter && converter.command === 'moveToLevelWithOnOff') {
         expect(converter.converter({ level: 56 }, undefined as any, undefined as any)).toEqual({ brightness: 56 });
       }
+      if (converter.converter && (converter.command === 'step' || (converter.command as string) === 'stepWithOnOff')) {
+        expect(converter.converter({ stepMode: 0, stepSize: 254 }, undefined as any, undefined as any)).toEqual({ brightness_step: 255 });
+        expect(converter.converter({ stepMode: 1, stepSize: 127 }, undefined as any, undefined as any)).toEqual({ brightness_step: -128 });
+        expect(converter.converter({ stepMode: 0, stepSize: 0 }, undefined as any, undefined as any)).toEqual({ brightness_step: 0 });
+      }
       if (converter.converter && converter.command === 'moveToColorTemperature') {
         expect(converter.converter({ colorTemperatureMireds: 200 }, undefined as any, { attributes: {} } as HassState)).toEqual({ color_temp_kelvin: 5000 });
       }

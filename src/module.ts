@@ -1124,7 +1124,7 @@ export class HomeAssistantPlatform extends MatterbridgeDynamicPlatform {
       if (domain === 'light') {
         // Special handling for light commands. Hass service light.turn_on will turn on the light if it's off while in Matter we can change brightness or color while the light is off if options.executeIfOff is set to true.
         const onOff = data.endpoint.getAttribute(OnOff, 'onOff', data.endpoint.log);
-        if (onOff === false && ['moveToLevel', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
+        if (onOff === false && ['moveToLevel', 'step', 'moveToColorTemperature', 'moveToColor', 'moveToHue', 'moveToSaturation', 'moveToHueAndSaturation'].includes(command)) {
           data.endpoint.log.debug(
             `Command ${ign}${command}${rs}${db} for domain ${CYAN}${domain}${db} entity ${CYAN}${entityId}${db} received while the light is off => skipping it`,
           );

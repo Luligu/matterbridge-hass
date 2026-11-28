@@ -21,7 +21,7 @@ const MATTER_CREATE_ONLY = true;
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
+import { type CommandHandlers, invokeBehaviorCommand, invokeSubscribeHandler, MatterbridgeEndpoint, occupancySensor } from 'matterbridge';
 import { CYAN, db, dn, hk, idn, LogLevel, nf, or, rs, wr } from 'matterbridge/logger';
 import { Lifecycle } from 'matterbridge/matter';
 import {
@@ -3448,6 +3448,35 @@ describe('Matterbridge ' + NAME, () => {
     expect(device.getAttribute(OnOff.id, 'onOff')).toBe(true);
     expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => turn on the light with attributes'));
     expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness: 100 });
+
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'onOff', 'off');
+    expect(device.getAttribute(OnOff.id, 'onOff')).toBe(false);
+
+    // Plain step must be ignored while the light is off (it must not turn the light on)
+    vi.clearAllMocks();
+    await invokeBehaviorCommand(device, 'levelControl', 'step', {
+      stepMode: LevelControl.StepMode.Up,
+      stepSize: 20,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: true, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: true, coupleColorTempToLevel: false },
+    });
+    expect(loggerLogSpy).toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => skipping it'));
+    expect(callServiceSpy).not.toHaveBeenCalled();
+
+    // stepWithOnOff is not ignored while the light is off: it is forwarded to Home Assistant
+    vi.clearAllMocks();
+    // Cast needed: matterbridge's CommandHandlerDataMap has no short 'stepWithOnOff' key (see hassCommandConverter)
+    await invokeBehaviorCommand(device, 'levelControl', 'stepWithOnOff' as CommandHandlers, {
+      stepMode: LevelControl.StepMode.Up,
+      stepSize: 20,
+      transitionTime: 0,
+      optionsMask: { executeIfOff: false, coupleColorTempToLevel: false },
+      optionsOverride: { executeIfOff: false, coupleColorTempToLevel: false },
+    });
+    expect(loggerLogSpy).not.toHaveBeenCalledWith(LogLevel.DEBUG, expect.stringContaining('received while the light is off => skipping it'));
+    expect(callServiceSpy).toHaveBeenCalledWith(lightEntity.entity_id.split('.')[0], 'turn_on', lightEntity.entity_id, { brightness_step: 20 });
 
     // setDebug(false);
 
